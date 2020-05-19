@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="RubiX">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/RubiX.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -68,7 +68,7 @@ public class InitiatorConsensus {
      * @throws IOException handles IO Exception
      * @throws JSONException handles JSON Exception
      */
-    public static Pair<JSONObject, ArrayList> start(String appExt, String hash, JSONArray details,String username,ArrayList<String> quorumPEER,IPFS ipfs, int PORT) throws IOException, JSONException, InterruptedException {
+    public static JSONObject start(String appExt, String hash, JSONArray details,String username,ArrayList<String> quorumPEER,IPFS ipfs, int PORT) throws IOException, JSONException, InterruptedException {
 
         pathSet(username);
 
@@ -149,7 +149,7 @@ public class InitiatorConsensus {
             });
             quorumThreads[j].start();
         }
-        return new Pair<>(quorumSignature, quorumWithShares);
+        return quorumSignature;
     }
 
 }
