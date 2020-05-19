@@ -24,7 +24,6 @@
       <element id="extracted-dir" path="$PROJECT_DIR$/out/artifacts/RubiX_jar/json-simple-2.3.0.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/out/artifacts/RubiX_jar/javax.json-1.0.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/out/artifacts/RubiX_jar/commons.io_2.0.1.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/RubiX.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>
