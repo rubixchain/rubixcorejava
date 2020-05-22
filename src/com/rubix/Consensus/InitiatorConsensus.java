@@ -71,6 +71,9 @@ public class InitiatorConsensus {
     public static JSONObject start(String appExt, String hash, JSONArray details,String username,ArrayList<String> quorumPEER,IPFS ipfs, int PORT) throws IOException, JSONException, InterruptedException {
 
         pathSet(username);
+        
+        
+                System.out.println("Quorumresponse var value "+quorumResponse);
 
         JSONArray tokenDetails = new JSONArray(details.toString());
         JSONObject detailsToken = tokenDetails.getJSONObject(0);
