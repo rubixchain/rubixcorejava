@@ -259,28 +259,28 @@ public class Functions {
             JSONArray js = new JSONArray();
             writeToFile(file.toString(), js.toString(), false);
         }
-        String fileContent = readFile(filePath);
-        JSONArray contentArray = new JSONArray(fileContent);
+            String fileContent = readFile(filePath);
+            JSONArray contentArray = new JSONArray(fileContent);
 
-        for (int i = 0; i < contentArray.length(); i++) {
-            JSONObject contentArrayJSONObject = contentArray.getJSONObject(i);
-            Iterator iterator = contentArrayJSONObject.keys();
-            if (operation.equals("remove")) {
-                while (iterator.hasNext()) {
-                    String tempString = iterator.next().toString();
-                    if (contentArrayJSONObject.getString(tempString).equals(data))
-                        contentArray.remove(i);
+            for (int i = 0; i < contentArray.length(); i++) {
+                JSONObject contentArrayJSONObject = contentArray.getJSONObject(i);
+                Iterator iterator = contentArrayJSONObject.keys();
+                if (operation.equals("remove")) {
+                    while (iterator.hasNext()) {
+                        String tempString = iterator.next().toString();
+                        if (contentArrayJSONObject.getString(tempString).equals(data))
+                            contentArray.remove(i);
+                    }
+                    writeToFile(filePath, contentArray.toString(), false);
                 }
+            }
+
+            if (operation.equals("add")) {
+                JSONArray newData = new JSONArray(data);
+                for (int i = 0; i < newData.length(); i++)
+                    contentArray.put(newData.getJSONObject(i));
                 writeToFile(filePath, contentArray.toString(), false);
             }
-        }
-
-        if (operation.equals("add")) {
-            JSONArray newData = new JSONArray(data);
-            for (int i = 0; i < newData.length(); i++)
-                contentArray.put(newData.getJSONObject(i));
-            writeToFile(filePath, contentArray.toString(), false);
-        }
     }
 
     /**

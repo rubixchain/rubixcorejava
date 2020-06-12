@@ -19,7 +19,7 @@ import static com.rubix.Resources.IPFSNetwork.listen;
 
 public class SendData implements Runnable {
 
-    String username;
+String username;
 
     public SendData(String username){
         this.username=username;

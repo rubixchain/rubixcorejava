@@ -26,7 +26,7 @@ public class InitiatorConsensus {
     private static BufferedReader[] qIn = new BufferedReader[7];
     private static String[] qResponse = new String[7];
     static int quorumCount = 7;
-    private static JSONObject quorumSignature = new JSONObject();
+    public static JSONObject quorumSignature = new JSONObject();
 
     private static final Object lock = new Object();
     private static String[] quorumID = new String[7];
@@ -71,9 +71,7 @@ public class InitiatorConsensus {
     public static JSONObject start(String appExt, String hash, JSONArray details,String username,ArrayList<String> quorumPEER,IPFS ipfs, int PORT) throws IOException, JSONException, InterruptedException {
 
         pathSet(username);
-        
-        
-                System.out.println("Quorumresponse var value "+quorumResponse);
+        quorumResponse = 0;
 
         JSONArray tokenDetails = new JSONArray(details.toString());
         JSONObject detailsToken = tokenDetails.getJSONObject(0);
@@ -152,6 +150,12 @@ public class InitiatorConsensus {
             });
             quorumThreads[j].start();
         }
+
+        while(quorumResponse < 5){
+
+        }
+        System.out.println("Quorum Signatures from Initiator Consensus: " + quorumSignature);
+        System.out.println("Quorum Response from Initiator Consensus: " + quorumResponse);
         return quorumSignature;
     }
 

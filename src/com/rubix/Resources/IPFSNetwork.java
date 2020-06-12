@@ -143,7 +143,7 @@ public class IPFSNetwork {
      * @throws IOException handles IO Exception
      */
 
-    public static String get(String MultiHash,IPFS ipfs) throws IOException {
+        public static String get(String MultiHash,IPFS ipfs) throws IOException {
         long st1 = System.currentTimeMillis();
         Multihash filePointer = Multihash.fromBase58(MultiHash);
         byte[] fileContents = ipfs.cat(filePointer);

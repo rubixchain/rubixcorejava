@@ -20,7 +20,7 @@ import static com.rubix.Resources.Functions.DATA_PATH;
 public class InitiatorProcedure {
     public static String essential, consensus, tid, senderSignQ;
     public static JSONObject payload = new JSONObject();
-    public static JSONObject quorumSigns;
+    public static JSONObject p;
     public static void consensusSetUp(String appExt, String message, String receiver, String pvt, String sender, String token, String username, ArrayList<String> quorumlist, IPFS ipfs, int PORT) throws IOException, InterruptedException, NoSuchAlgorithmException, JSONException {
         pathSet(username);
         String senderWalletID = getValues(DATA_PATH + "DataTable.json", "wid", "peer-id", sender);
@@ -63,7 +63,7 @@ public class InitiatorProcedure {
         detailsForQuorum.put(data2);
 
         System.out.println("Starting Consensus");
-        quorumSigns = InitiatorConsensus.start(appExt, authQuorumHash, detailsForQuorum,username,quorumlist,ipfs, PORT);
+        p = InitiatorConsensus.start(appExt, authQuorumHash, detailsForQuorum,username,quorumlist,ipfs, PORT);
 
         consensus = consensusStatus();
         System.out.println("status:" + consensus);
