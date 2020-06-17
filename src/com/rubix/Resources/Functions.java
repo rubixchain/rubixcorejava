@@ -22,6 +22,7 @@ import static com.rubix.Resources.IPFSNetwork.forward;
 
 public class Functions {
 
+    private static final Object lock = new Object();
     public static String DATA_PATH = "", SHARES_PATH = "";
 
     /**
@@ -251,14 +252,16 @@ public class Functions {
      * @throws IOException Handles IO Exceptions
      * @throws JSONException Handles JSON Exceptions
      */
-    public static void updateJSON(String operation, String filePath, String data) throws IOException, JSONException {
 
-        File file = new File(filePath);
-        if (!file.exists()) {
-            file.createNewFile();
-            JSONArray js = new JSONArray();
-            writeToFile(file.toString(), js.toString(), false);
-        }
+    public static synchronized void updateJSON(String operation, String filePath, String data) throws IOException, JSONException {
+
+        synchronized (lock) {
+            File file = new File(filePath);
+            if (!file.exists()) {
+                file.createNewFile();
+                JSONArray js = new JSONArray();
+                writeToFile(file.toString(), js.toString(), false);
+            }
             String fileContent = readFile(filePath);
             JSONArray contentArray = new JSONArray(fileContent);
 
@@ -281,6 +284,8 @@ public class Functions {
                     contentArray.put(newData.getJSONObject(i));
                 writeToFile(filePath, contentArray.toString(), false);
             }
+        }
+
     }
 
     /**
