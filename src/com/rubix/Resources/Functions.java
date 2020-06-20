@@ -22,7 +22,7 @@ import static com.rubix.Resources.IPFSNetwork.forward;
 
 public class Functions {
 
-    private static final Object lock = new Object();
+    public static boolean mutex = false;
     public static String DATA_PATH = "", SHARES_PATH = "";
 
     /**
@@ -30,17 +30,16 @@ public class Functions {
      */
 
     //change path set with username
-
     public static void pathSet(String username) throws IOException, JSONException, InterruptedException {
         String OSName = getOsName();
         System.out.println("OSNAME: " + OSName);
         BufferedReader configFR = null;
         if (OSName.contains("Windows"))
-            configFR = new BufferedReader(new FileReader(new File("C:\\Rubix"+username+"\\config.json")));
+            configFR = new BufferedReader(new FileReader(new File("C:\\Rubix" + username + "\\config.json")));
         else if (OSName.contains("Mac"))
-            configFR = new BufferedReader(new FileReader(new File("/Applications/Rubix"+username+"/config.json")));
+            configFR = new BufferedReader(new FileReader(new File("/Applications/Rubix" + username + "/config.json")));
         else if (OSName.contains("Linux"))
-            configFR = new BufferedReader(new FileReader(new File("/home/" + getSystemUser() + "/Rubix"+username+"/config.json/")));
+            configFR = new BufferedReader(new FileReader(new File("/home/" + getSystemUser() + "/Rubix" + username + "/config.json/")));
         else
             System.out.println("[Functions] Error : Cannot Set Paths, OS Not Supported");
 
@@ -59,9 +58,10 @@ public class Functions {
 
     /**
      * This method gets the currently logged in username
+     *
      * @return lineID
      * @throws InterruptedException Handles Interrupted Exceptions
-     * @throws IOException Handles IO Exceptions
+     * @throws IOException          Handles IO Exceptions
      */
     public static String getSystemUser() throws InterruptedException, IOException {
         Process processID = Runtime.getRuntime().exec("whoami");
@@ -76,7 +76,8 @@ public class Functions {
 
     /**
      * This method calculates different types of hashes as mentioned in the passed parameters for the mentioned message
-     * @param message Input string to be hashed
+     *
+     * @param message   Input string to be hashed
      * @param algorithm Specification of the algorithm used for hashing
      * @return (String) hash
      * @throws NoSuchAlgorithmException Handles NoSuchAlgorithm Exceptions
@@ -94,6 +95,7 @@ public class Functions {
 
     /**
      * This method Converts the string passed to it into an integer array
+     *
      * @param inputString Input string to be converted to integer array
      * @return (Integer Array) outputArray
      */
@@ -110,6 +112,7 @@ public class Functions {
 
     /**
      * This method Converts the integer array passed to it into String
+     *
      * @param inputArray Input integer array to be converted to String
      * @return (String) outputString
      */
@@ -126,6 +129,7 @@ public class Functions {
 
     /**
      * This method converts the passed byte array into Hexadecimal String (hex)
+     *
      * @param inputHash Byte Array to be concerted into hexadecimal string
      * @return outputHexString
      */
@@ -142,6 +146,7 @@ public class Functions {
 
     /**
      * This method returns the content of the file passed to it
+     *
      * @param filePath Location of the file to be read
      * @return File Content as string
      * @throws IOException Handles IO Exceptions
@@ -158,10 +163,11 @@ public class Functions {
     }
 
     /**
-     *This method writes the mentioned data into the file passed to it
+     * This method writes the mentioned data into the file passed to it
      * This also allows to take a decision on whether or not to append the data to the already existing content in the file
-     * @param filePath Location of the file to be read and written into
-     * @param data Data to be added
+     *
+     * @param filePath     Location of the file to be read and written into
+     * @param data         Data to be added
      * @param appendStatus Decides whether or not to append the new data into the already existing data
      * @throws IOException Handles IO Exceptions
      */
@@ -182,17 +188,18 @@ public class Functions {
      * This method allows transfer of a single message to a selected recipient and receive a response
      * It uses Libp2p stack to establish a connection between two nodes
      * Then a socket is bound to the port IPFS is listening on
-     * @param message Message to be sent
+     *
+     * @param message        Message to be sent
      * @param receiverPeerID Identity of the Receiver
-     * @param appNameExt Extention to the application name that the receiver is already listening on
-     * @param port Port number for the nodes to get connected
+     * @param appNameExt     Extention to the application name that the receiver is already listening on
+     * @param port           Port number for the nodes to get connected
      * @return Reply message from the receiver
-     * @throws IOException Handles IO Exceptions
+     * @throws IOException          Handles IO Exceptions
      * @throws InterruptedException Handles Interrupted Exceptions
      */
-    public static String singleDataTransfer(JSONObject message, String receiverPeerID, String appNameExt, int port,String  username) throws IOException, InterruptedException {
+    public static String singleDataTransfer(JSONObject message, String receiverPeerID, String appNameExt, int port, String username) throws IOException, InterruptedException {
         String applicationName = receiverPeerID.concat(appNameExt);
-        forward(applicationName, port, receiverPeerID,username);
+        forward(applicationName, port, receiverPeerID, username);
 
         Socket socket = new Socket("127.0.0.1", port);
 
@@ -211,10 +218,11 @@ public class Functions {
 
     /**
      * This method helps to sign a data with the selectively disclosed private share
+     *
      * @param filePath Location of the Private share
-     * @param hash Data to be signed on
+     * @param hash     Data to be signed on
      * @return Signature for the data
-     * @throws IOException Handles IO Exceptions
+     * @throws IOException   Handles IO Exceptions
      * @throws JSONException Handles JSON Exceptions
      */
     public static String getSignFromShares(String filePath, String hash) throws IOException, JSONException {
@@ -243,57 +251,63 @@ public class Functions {
         return signOneString + signTwoString + signThreeString;
     }
 
+
     /**
      * This method updates the mentioned JSON file
      * It can add a new data or remove an existing data
+     *
      * @param operation Decides whether to add or remove data
-     * @param filePath Locatio nof the JSON file to be updated
-     * @param data Data to be added or removed
-     * @throws IOException Handles IO Exceptions
+     * @param filePath  Locatio nof the JSON file to be updated
+     * @param data      Data to be added or removed
+     * @throws IOException   Handles IO Exceptions
      * @throws JSONException Handles JSON Exceptions
      */
 
-    public static synchronized void updateJSON(String operation, String filePath, String data) throws IOException, JSONException {
+    public static void updateJSON(String operation, String filePath, String data) throws IOException, JSONException {
 
-        synchronized (lock) {
-            File file = new File(filePath);
-            if (!file.exists()) {
-                file.createNewFile();
-                JSONArray js = new JSONArray();
-                writeToFile(file.toString(), js.toString(), false);
-            }
-            String fileContent = readFile(filePath);
-            JSONArray contentArray = new JSONArray(fileContent);
+        while(mutex);
 
-            for (int i = 0; i < contentArray.length(); i++) {
-                JSONObject contentArrayJSONObject = contentArray.getJSONObject(i);
-                Iterator iterator = contentArrayJSONObject.keys();
-                if (operation.equals("remove")) {
-                    while (iterator.hasNext()) {
-                        String tempString = iterator.next().toString();
-                        if (contentArrayJSONObject.getString(tempString).equals(data))
-                            contentArray.remove(i);
-                    }
-                    writeToFile(filePath, contentArray.toString(), false);
+        mutex = true;
+        File file = new File(filePath);
+        if (!file.exists()) {
+            file.createNewFile();
+            JSONArray js = new JSONArray();
+            writeToFile(file.toString(), js.toString(), false);
+        }
+        String fileContent = readFile(filePath);
+        JSONArray contentArray = new JSONArray(fileContent);
+
+        for (int i = 0; i < contentArray.length(); i++) {
+            JSONObject contentArrayJSONObject = contentArray.getJSONObject(i);
+            Iterator iterator = contentArrayJSONObject.keys();
+            if (operation.equals("remove")) {
+                while (iterator.hasNext()) {
+                    String tempString = iterator.next().toString();
+                    if (contentArrayJSONObject.getString(tempString).equals(data))
+                        contentArray.remove(i);
                 }
-            }
-
-            if (operation.equals("add")) {
-                JSONArray newData = new JSONArray(data);
-                for (int i = 0; i < newData.length(); i++)
-                    contentArray.put(newData.getJSONObject(i));
                 writeToFile(filePath, contentArray.toString(), false);
             }
         }
+
+        if (operation.equals("add")) {
+            JSONArray newData = new JSONArray(data);
+            for (int i = 0; i < newData.length(); i++)
+                contentArray.put(newData.getJSONObject(i));
+            writeToFile(filePath, contentArray.toString(), false);
+        }
+
+        mutex = false;
 
     }
 
     /**
      * This method gets you a required data from a JSON file with a tag to be compared with
+     *
      * @param filePath Location of the JSON file
-     * @param get Data to be fetched from the file
-     * @param tagName Name of the tag to be compared with
-     * @param value Value of the tag to be compared with
+     * @param get      Data to be fetched from the file
+     * @param tagName  Name of the tag to be compared with
+     * @param value    Value of the tag to be compared with
      * @return Data that is fetched from the JSON file
      */
     public static String getValues(String filePath, String get, String tagName, String value) {
@@ -321,6 +335,7 @@ public class Functions {
 
     /**
      * This method gets the Operating System that is being run the your computer
+     *
      * @return Name of the running Operating System
      */
     public static String getOsName() {
@@ -329,9 +344,10 @@ public class Functions {
 
     /**
      * This method identifies the Peer ID of the system by IPFS during installation
+     *
      * @param filePath Location of the file in which your IPFS Peer ID is stored
      * @return Your system's Peer ID assigned by IPFS
-     * @throws IOException Handles IO Exception
+     * @throws IOException   Handles IO Exception
      * @throws JSONException Handles JSON Exceptions
      */
     public static String getPeerID(String filePath) throws IOException, JSONException {
@@ -344,7 +360,8 @@ public class Functions {
 
     /**
      * This method gets the desired bits from your private shares
-     * @param positions Desired positions numbers
+     *
+     * @param positions    Desired positions numbers
      * @param privateArray Private shares as Integer Array
      * @return Final signature
      */
@@ -360,7 +377,8 @@ public class Functions {
 
     /**
      * This function picks desired number of random positions bt applying a well dispersed formula of the data passed
-     * @param hash Data from which positions are taken
+     *
+     * @param hash              Data from which positions are taken
      * @param numberOfPositions Desired number of positions
      * @return Set of well dispersed random positions
      */
@@ -381,8 +399,9 @@ public class Functions {
 
     /**
      * This functions extends the random positions into 64 times longer
+     *
      * @param randomPositions Array of random positions
-     * @param positionsCount Number of positions required
+     * @param positionsCount  Number of positions required
      * @return Extended array of positions
      */
     public static int[] finalPositions(int[] randomPositions, int positionsCount) {
@@ -400,6 +419,7 @@ public class Functions {
 
     /**
      * This function deletes the mentioned file
+     *
      * @param fileName Location of the file to be deleted
      * @throws IOException Handles IO Exception
      */
@@ -412,11 +432,12 @@ public class Functions {
 
     /**
      * This functions picks the required number of quorum members from the mentioned file
+     *
      * @param filePath Location of the file
-     * @param hash Data from which positions are chosen
+     * @param hash     Data from which positions are chosen
      * @return List of chosen members from the file
      * @throws JSONException Handles JSON Exceptions
-     * @throws IOException Handles IO Exceptions
+     * @throws IOException   Handles IO Exceptions
      */
     public static ArrayList<String> quorumChooser(String filePath, String hash) throws JSONException, IOException {
 
@@ -434,7 +455,7 @@ public class Functions {
         }
 
         for (Integer integer : positionSet)
-            quorumList.add(blockHeight.getJSONObject( integer).getString("peer-id"));
+            quorumList.add(blockHeight.getJSONObject(integer).getString("peer-id"));
 
         return quorumList;
     }
