@@ -265,8 +265,11 @@ public class Functions {
 
     public static void updateJSON(String operation, String filePath, String data) throws IOException, JSONException {
 
-        while(mutex);
+        while(mutex){
+            System.out.println("Waiting inside mutex");
+        }
 
+        System.out.println("Mutex: " + mutex);
         mutex = true;
         File file = new File(filePath);
         if (!file.exists()) {
@@ -286,18 +289,24 @@ public class Functions {
                     if (contentArrayJSONObject.getString(tempString).equals(data))
                         contentArray.remove(i);
                 }
-                writeToFile(filePath, contentArray.toString(), false);
             }
         }
+
+        System.out.println("Going to remove");
+        writeToFile(filePath, contentArray.toString(), false);
+        System.out.println("Removed");
 
         if (operation.equals("add")) {
             JSONArray newData = new JSONArray(data);
             for (int i = 0; i < newData.length(); i++)
                 contentArray.put(newData.getJSONObject(i));
+            System.out.println("Going to update tokenList inside JAR");
             writeToFile(filePath, contentArray.toString(), false);
+            System.out.println("Updated !!!!!");
         }
 
         mutex = false;
+        System.out.println("Mutex now: " + mutex);
 
     }
 
