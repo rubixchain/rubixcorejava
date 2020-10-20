@@ -1,8 +1,8 @@
 package com.rubix.AuthenticateNode;
-
 import java.util.Random;
 
-public class SecretShare {
+public class SecretShare
+{
     public static int[][] LA = {{0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 0, 0, 0, 0, 1, 0}, {0, 0, 0, 0, 0, 0,
             1, 1}, {0, 0, 0, 0, 0, 1, 0, 0}, {0, 0, 0, 0, 0, 1, 0, 1}, {0, 0, 0, 0,
             0, 1, 1, 0}, {0, 0, 0, 0, 0, 1, 1, 1}, {0, 0, 0, 0, 1, 0, 0, 0}, {0, 0,
@@ -199,57 +199,60 @@ public class SecretShare {
 
     public static int i, s;
 
-    //static Set<Integer> Xset = new HashSet<Integer>();
 
-
-    static int[] X1 = new int[4];
-    static int[] alpha1 = new int[8];
-    static int[] Y1 = new int[8];
-    //    static int[] Y2 =new int[8];
+    static int[] X1 =new int[4];
+    static int[] alpha1 =new int[8];
+    static int[] Y1 =new int[8];
     static int[] S0;
 
-    SecretShare(int n) {
-        s = n;
+    SecretShare(int n)
+    {
+        s=n;
     }
 
     public static int generateRandom(int length) {
         return new Random().nextInt(length);
     }
 
-    public static int[] genArray(int arr[][], int size)// To get random elements from any arrays
-    {
+
+
+    public static int[] generateArray(int[][] arr, int size) {
         int j;
         int[] temp = new int[size];
         int r = generateRandom(arr.length);
-        for (j = 0; j < size; j++)
+        for (j = 0; j < size; j++) {
             temp[j] = arr[r][j];
+        }
+
         return temp;
     }
 
 
-    public static int[] multiplyMatrices(int[] firstMatrix, int[][] secondMatrix, int c1, int c2) {
+
+    public static int[] multiplyMatrices(int[] firstMatrix, int[][] secondMatrix,int c1, int c2) {
         int[] product = new int[c2];
-        int i, j, sums = 0;
-        for (i = 0; i < c2; i++) {
-            for (j = 0; j < c1; j++)
-                sums += secondMatrix[j][i] * firstMatrix[j];
-            product[i] = sums;
-            sums = 0;
+        int sums = 0;
+        for(int i = 0; i < c2; i++) {
+            for(int j = 0; j < c1; j++) {
+                sums += secondMatrix[j][i]*firstMatrix[j];
+            }
+            product[i]=sums;
+            sums=0;
         }
         return product;
     }
 
 
     public static int[] checkComply(int[] cand, int[] S0) {
-        int sum = 5;  //can be any number greater than 's', so that we can enter the while loop
-        while (sum > s) {
+        int sum=5;
+        while(sum > s) {
             sum = 0;
             for (i = 0; i < cand.length; i++)
                 sum = sum + (cand[i] * S0[i]);
-            sum = sum % 2;
+            sum=sum%2;
             if (sum != s)           //if not valid
             {
-                cand = genArray(V8, 8); //get new Y
+                cand = generateArray(V8, 8); //get new Y
                 cand = checkComply(cand, S0); //check new Y
             }
         }
@@ -258,24 +261,24 @@ public class SecretShare {
     }
 
 
-    public void starts() {
+    public void starts()
+    {
 
-        X1 = genArray(V4, 4);
-        alpha1 = genArray(LA, 8);
+        X1 = generateArray(V4,4);
+        alpha1 = generateArray(LA,8);
 
-        Y1 = genArray(V8, 8);
+        Y1 = generateArray(V8,8);
+    //    Y2 = genarray(V8,8);
 
-        int[] tempMat;
-        tempMat = multiplyMatrices(X1, G, 4, 8);
+        int[] tempmat;
+        tempmat = multiplyMatrices(X1,G,4,8);
 
-        S0 = new int[tempMat.length];
+        S0 = new int[tempmat.length];
 
-        for (i = 0; i < alpha1.length; i++)
-            S0[i] = (tempMat[i] + alpha1[i]) % 2;
+        for(i=0;i<alpha1.length;i++)
+            S0[i]=(tempmat[i]+alpha1[i])%2;
 
-        Y1 = checkComply(Y1, S0);
-
-
+        Y1 = checkComply(Y1,S0);
     }
 }
 

@@ -1,24 +1,21 @@
 package com.rubix.SplitandStore;
 
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+
 public class Recombine {
 
-    public static int[] stringToIntArray(String string) {
-        int[] intArray = new int[string.length()];
-        for (int k = 0; k < string.length(); k++) {
-            if (string.charAt(k) == '0')
-                intArray[k] = 0;
-            else
-                intArray[k] = 1;
-        }
-        return intArray;
-    }
+    public static Logger RecombineLogger = Logger.getLogger(Recombine.class);
+
 
     public static String recombine(int[] Share1, int[] Share2, int[] Share3)
     {
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         StringBuilder recStr = new StringBuilder();
         int payloadlength = 205; // fix the payload size here ( 33070 )
 
-        
         //reconstruction with ideal contrast secret sharing, just shown an example of combining share1(essential share), share2 and share3
         int[] K = new int[8 * payloadlength];
 
@@ -83,7 +80,7 @@ System.out.println("The secret COMB");
 
             recStr.append((char) dec_value);
         }
-        System.out.println("[Split_135]The Reconstructed secret is: " + recStr);
+        RecombineLogger.debug("(1,3,5) Secret Recreated : " + recStr);
         return recStr.toString();
     }
 

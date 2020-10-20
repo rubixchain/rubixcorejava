@@ -1,0 +1,21 @@
+<component name="libraryTable">
+  <library name="java-cid-v1.1.0">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../JARS/java-cid-v1.1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../JARS/java-ipfs-api-v1.2.3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../JARS/java-json.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../JARS/java-multiaddr-v1.3.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../JARS/java-multibase-v1.0.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../JARS/java-multihash-v1.1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../JARS/javax.json-1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../JARS/json-simple-1.1.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../JARS/log4j.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../JARS/mysql-connector-java-8.0.21.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../JARS/org-apache-commons-codec.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../JARS/java-json.jar!/" />
+    </SOURCES>
+  </library>
+</component>

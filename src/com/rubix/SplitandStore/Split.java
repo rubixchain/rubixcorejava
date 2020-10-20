@@ -1,21 +1,24 @@
 package com.rubix.SplitandStore;
 
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+
 import java.util.ArrayList;
 import java.util.Collections;
 
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+
 public class Split {
     public static int[][] Share;
+    public static Logger SplitLogger = Logger.getLogger(Split.class);
 
     public static void split(String str) {
-      //  StringBuilder recStr = new StringBuilder();
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         int[] K = new int[8 * str.length()];
 
         int j, count1;
-        System.out.println("[Split_135]The secret is: " + str);
         for (count1 = 0; count1 < str.length(); count1++) {
             int n1 = (str.charAt(count1));
-
-            //System.out.println("The ASCII value of " + str.charAt(count1) + " is: " + n1);
 
             for (j = 0; j < 8; j++) {
                 if (n1 % 2 == 0)
@@ -106,7 +109,7 @@ public class Split {
             }
 
         }
-
+        SplitLogger.debug("(1,3,5) Share Generation Successful");
 //Prints the shares in console
 
 //        for(u1=0;u1<n;u1++)
