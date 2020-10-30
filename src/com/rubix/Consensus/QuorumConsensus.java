@@ -80,22 +80,8 @@ public class QuorumConsensus implements Runnable {
                 senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", senderDidIpfsHash);
                 String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", senderDidIpfsHash);
 
-                File quorumDataFolder = new File(DATA_PATH + senderDidIpfsHash + "/");
-                if (!quorumDataFolder.exists()) {
-                    quorumDataFolder.mkdirs();
-                    IPFSNetwork.getImage(senderDidIpfsHash, ipfs, DATA_PATH + senderDidIpfsHash + "/DID.png" );
-                    IPFSNetwork.getImage(senderWidIpfsHash, ipfs, DATA_PATH + senderDidIpfsHash + "/PublicShare.png" );
-                    QuorumConsensusLogger.debug("Sender Data Added");
-                }else
-                    QuorumConsensusLogger.debug("Sender Data Available");
-
+                nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
                 String quorumHash = calculateHash(verifySenderHash.concat(receiverDID),"SHA3-256");
-
-                BufferedImage didImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/DID.png"));
-                BufferedImage widImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
-
-                String decentralisedID = PropImage.img2bin(didImage);
-                String walletID = PropImage.img2bin(widImage);
 
                 JSONObject detailsToVerify = new JSONObject();
                 detailsToVerify.put("did", senderDidIpfsHash);
