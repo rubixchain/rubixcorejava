@@ -104,6 +104,15 @@ public class Functions {
         }
     }
 
+    public static void nodeData(String did, String wid, IPFS ipfs) throws IOException {
+        File dataFolder = new File(DATA_PATH + did + "/");
+        if (!dataFolder.exists()) {
+            dataFolder.mkdirs();
+            IPFSNetwork.getImage(did, ipfs, DATA_PATH + did + "/DID.png" );
+            IPFSNetwork.getImage(wid, ipfs, DATA_PATH + did + "/PublicShare.png" );
+        }
+    }
+
 
     /**
      * This method gets the currently logged in username
@@ -225,19 +234,7 @@ public class Functions {
         return fileContent.toString();
     }
 
-    /**
-     * This function gets the shares images from IPFS with DID as parameter
-     * @param DID Decentralized Identity
-     * @param WID Wallet Share
-     * @param ipfs IPFS instance
-     * @param dataFile DataTable file to get data from
-     * @throws IOException handles IO Exception
-     */
-    public static void getSharesImages(String DID, String WID, IPFS ipfs, File dataFile) throws IOException {
-        dataFile.mkdirs();
-        IPFSNetwork.getImage(DID, ipfs, DATA_PATH + DID + "/DID.png");
-        IPFSNetwork.getImage(WID, ipfs, DATA_PATH + DID + "/PublicShare.png");
-    }
+
 
     /**
      * This method writes the mentioned data into the file passed to it
