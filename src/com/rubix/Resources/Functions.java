@@ -316,7 +316,6 @@ public class Functions {
         int[] privateIntegerArray1 = strToIntArray(firstPrivate);
         JSONObject P = randomPositions("signer", hash, 32, privateIntegerArray1);
         int[] finalpos = (int[]) P.get("posForSign");
-        int[] originalpos = (int[]) P.get("originalPos");
         int[] p1Sign = getPrivatePosition(finalpos, privateIntegerArray1);
         String p1 = intArrayToStr(p1Sign);
         return p1;
@@ -325,17 +324,18 @@ public class Functions {
 
     /**
      * This function will sign on JSON data with private share
-     * @param details Details(JSONObject) to sign on
+     * @param detailsString Details(JSONObject) to sign on
      * @return Signature
      * @throws IOException Handles IO Exceptions
      * @throws JSONException Handles JSON Exceptions
      */
-    public static String sign(JSONObject details) throws IOException, JSONException {
+    public static String sign(String detailsString) throws IOException, JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
+        JSONObject details = new JSONObject(detailsString);
         String DID = details.getString("did");
         String filePath = DATA_PATH + DID + "/PrivateShare.png";
-        String hash = calculateHash(details.toString(), "SHA3-256");
+        String hash = calculateHash(detailsString, "SHA3-256");
 
         BufferedImage pvt = ImageIO.read(new File(filePath));
         String firstPrivate = PropImage.img2bin(pvt);
@@ -343,7 +343,6 @@ public class Functions {
         int[] privateIntegerArray1 = strToIntArray(firstPrivate);
         JSONObject P = randomPositions("signer", hash, 32, privateIntegerArray1);
         int[] finalpos = (int[]) P.get("posForSign");
-        int[] originalpos = (int[]) P.get("originalPos");
         int[] p1Sign = getPrivatePosition(finalpos, privateIntegerArray1);
         return intArrayToStr(p1Sign);
     }
