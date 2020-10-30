@@ -86,7 +86,7 @@ public class QuorumConsensus implements Runnable {
                 JSONObject detailsToVerify = new JSONObject();
                 detailsToVerify.put("did", senderDidIpfsHash);
 
-                if (Authenticate.verifySignature(detailsToVerify, senderPrivatePos)) {
+                if (Authenticate.verifySignature(detailsToVerify.toString(), senderPrivatePos)) {
                     QuorumConsensusLogger.debug("Quorum Authenticated Sender");
                     String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png", quorumHash);
                     out.println(QuorumSignature);

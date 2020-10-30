@@ -182,7 +182,7 @@ public class TokenReceiver {
                     detailsForVerify.put("did", quorumDID.get(i));
                     detailsForVerify.put("senderWID", SenWalletBin);
                     detailsForVerify.put("token", tokens);
-                    boolean val = Authenticate.verifySignature(detailsForVerify, quorumSignatures.getString(quorumDID.get(i)));
+                    boolean val = Authenticate.verifySignature(detailsForVerify.toString(), quorumSignatures.getString(quorumDID.get(i)));
                     if (val)
                         quorumSignVerifyCount++;
                 }
@@ -207,7 +207,7 @@ public class TokenReceiver {
             detailsForVerify.put("receiverWidBin", receiverWidBin);
             detailsForVerify.put("comment", comment);
 
-            boolean yesSender = Authenticate.verifySignature(detailsForVerify, senderSignature);
+            boolean yesSender = Authenticate.verifySignature(detailsForVerify.toString(), senderSignature);
             TokenReceiverLogger.debug("Sender auth hash " + hash);
             TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + "Sender Auth : " + yesSender);
             if (!(yesSender && yesQuorum)) {
