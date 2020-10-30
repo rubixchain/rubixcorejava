@@ -60,20 +60,13 @@ public class TokenSender {
 
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
-        BufferedImage senderDidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/DID.png"));
-        String senderDidBin = PropImage.img2bin(senderDidImage);
+
         BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
         String senderWidBin = PropImage.img2bin(senderWidImage);
 
         String receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
         String receiverWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", receiverDidIpfsHash);
-
-        File receiverDataFolder = new File(DATA_PATH + receiverDidIpfsHash + "/");
-        if (!receiverDataFolder.exists())
-            getSharesImages(receiverDidIpfsHash, receiverWidIpfsHash, ipfs, receiverDataFolder);
-
-        BufferedImage receiverDidImage = ImageIO.read(new File(DATA_PATH + receiverDidIpfsHash + "/DID.png"));
-        String receiverDidBin = PropImage.img2bin(receiverDidImage);
+        nodeData(receiverDidIpfsHash, receiverWidIpfsHash, ipfs);
         BufferedImage receiverWidImage = ImageIO.read(new File(DATA_PATH + receiverDidIpfsHash + "/PublicShare.png"));
         String receiverWidBin = PropImage.img2bin(receiverWidImage);
 
