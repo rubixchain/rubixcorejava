@@ -1,5 +1,6 @@
 package com.rubix.AuthenticateNode;
 
+import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONException;
@@ -29,10 +30,13 @@ public class Authenticate {
 
     public static boolean verifySignature(JSONObject details, String signature) throws IOException, JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
         String decentralizedID = details.getString("did");
+        String walletIdIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", decentralizedID);
+        nodeData(decentralizedID, walletIdIpfsHash, ipfs);
+
         BufferedImage senderDIDImage = ImageIO.read(new File(DATA_PATH + decentralizedID + "/DID.png"));
         String senderDIDBin = PropImage.img2bin(senderDIDImage);
-
         BufferedImage senderWIDImage = ImageIO.read(new File(DATA_PATH + decentralizedID + "/PublicShare.png"));
         String walletID = PropImage.img2bin(senderWIDImage);
 
