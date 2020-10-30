@@ -55,8 +55,6 @@ public class TokenReceiver {
         String receiverPeerID = getPeerID(DATA_PATH + "DID.json");
 
         String receiverDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", receiverPeerID);
-        BufferedImage receiverDidImage = ImageIO.read(new File(DATA_PATH + receiverDidIpfsHash + "/DID.png"));
-        String receiverDidBin = PropImage.img2bin(receiverDidImage);
         BufferedImage receiverWidImage = ImageIO.read(new File(DATA_PATH + receiverDidIpfsHash + "/PublicShare.png"));
         String receiverWidBin = PropImage.img2bin(receiverWidImage);
 
@@ -73,9 +71,7 @@ public class TokenReceiver {
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
         String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", senderPeerID);
 
-        File senderDataFolder = new File(DATA_PATH + senderDidIpfsHash + "/");
-        if (!senderDataFolder.exists())
-            getSharesImages(senderDidIpfsHash, senderWidIpfsHash, ipfs, senderDataFolder);
+        nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
         File senderDIDFile = new File(DATA_PATH + senderDidIpfsHash + "/DID.png");
         if (!senderDIDFile.exists()) {
             output.println("420");
