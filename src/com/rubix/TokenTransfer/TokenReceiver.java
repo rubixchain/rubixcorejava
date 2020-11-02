@@ -180,9 +180,9 @@ public class TokenReceiver {
                     String widQuorumBin = PropImage.img2bin(widQuorumImage);
                     JSONObject detailsForVerify = new JSONObject();
                     detailsForVerify.put("did", quorumDID.get(i));
-                    detailsForVerify.put("senderWID", SenWalletBin);
-                    detailsForVerify.put("token", tokens);
-                    boolean val = Authenticate.verifySignature(detailsForVerify.toString(), quorumSignatures.getString(quorumDID.get(i)));
+                    detailsForVerify.put("hash", SenWalletBin);
+                    detailsForVerify.put("signature",  quorumSignatures.getString(quorumDID.get(i)));
+                    boolean val = Authenticate.verifySignature(detailsForVerify.toString());
                     if (val)
                         quorumSignVerifyCount++;
                 }
@@ -202,12 +202,10 @@ public class TokenReceiver {
 
             JSONObject detailsForVerify = new JSONObject();
             detailsForVerify.put("did", senderDidIpfsHash);
-            detailsForVerify.put("tokens", tokens.toString());
-            detailsForVerify.put("tokenChains", allTokensChainsPushed.toString());
-            detailsForVerify.put("receiverWidBin", receiverWidBin);
-            detailsForVerify.put("comment", comment);
+            detailsForVerify.put("hash", hash);
+            detailsForVerify.put("signature", senderSignature);
 
-            boolean yesSender = Authenticate.verifySignature(detailsForVerify.toString(), senderSignature);
+            boolean yesSender = Authenticate.verifySignature(detailsForVerify.toString());
             TokenReceiverLogger.debug("Sender auth hash " + hash);
             TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + "Sender Auth : " + yesSender);
             if (!(yesSender && yesQuorum)) {
