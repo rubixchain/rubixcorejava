@@ -153,7 +153,9 @@ public class InitiatorConsensus {
 
                             JSONObject detailsToVerify = new JSONObject();
                             detailsToVerify.put("did", didHash);
-                            if (Authenticate.verifySignature(detailsToVerify.toString(), qResponse[j])) {
+                            detailsToVerify.put("hash", hash);
+                            detailsToVerify.put("signature", qResponse[j]);
+                            if (Authenticate.verifySignature(detailsToVerify.toString())) {
                                 voteNCount();
                                 if (quorumResponse < minQuorum()) {
                                     String shareToQuorum = shares[quorumResponse - 1];
