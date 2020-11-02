@@ -335,7 +335,6 @@ public class Functions {
         JSONObject details = new JSONObject(detailsString);
         String DID = details.getString("did");
         String filePath = DATA_PATH + DID + "/PrivateShare.png";
-        System.out.println("File Path: " + filePath);
         String hash = calculateHash(detailsString, "SHA3-256");
 
         BufferedImage pvt = ImageIO.read(new File(filePath));
