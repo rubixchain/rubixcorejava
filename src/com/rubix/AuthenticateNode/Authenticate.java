@@ -21,18 +21,21 @@ public class Authenticate {
      * This method is used to authenticate a node in Rubix implementing text based two level NLSS.
      * <P>It is customized for 32 positions verification. The position can be changed by
      * modifying the numberofpositions for integer array sizes accordingly
-     * @param detailString String of all details previously signed
-     * @param signature is the private share of the node
+     * @param detailString Details for verification
      * @return boolean returns true if verified and false if not verified
      * @throws IOException handles IO Exception
      * @throws JSONException handles JSON Exception
      */
 
-    public static boolean verifySignature(String detailString, String signature) throws IOException, JSONException {
+    public static boolean verifySignature(String detailString) throws IOException, JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
+        System.out.println(IPFS_PORT);
         JSONObject details = new JSONObject(detailString);
         String decentralizedID = details.getString("did");
+        String hash = details.getString("hash");
+        String signature = details.getString("signature");
+
         String walletIdIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", decentralizedID);
         nodeData(decentralizedID, walletIdIpfsHash, ipfs);
 
@@ -40,9 +43,6 @@ public class Authenticate {
         String senderDIDBin = PropImage.img2bin(senderDIDImage);
         BufferedImage senderWIDImage = ImageIO.read(new File(DATA_PATH + decentralizedID + "/PublicShare.png"));
         String walletID = PropImage.img2bin(senderWIDImage);
-
-        String hash = calculateHash(detailString, "SHA3-256");
-
 
         StringBuilder senderWalletID = new StringBuilder();
         int[] SenderSign = strToIntArray(signature);
