@@ -193,7 +193,7 @@ public class TokenSender {
                 String message = senderWidBin + tokens;
                 InitiatorProcedure.consensusSetUp(tid, message, receiverDidIpfsHash, pvt, senderDidIpfsHash, tokens.toString(), quorumPeersList, ipfs, SEND_PORT + 3);
                 TokenSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count " + InitiatorConsensus.quorumResponse);
-                if (!(InitiatorConsensus.quorumResponse > 4)) {
+                if (!(InitiatorConsensus.quorumResponse > minQuorum())) {
                     TokenSenderLogger.debug("Consensus Failed");
                     output.println("Consensus failed");
                     executeIPFSCommands(" ipfs p2p close -t /ipfs/" + receiverPeerId);
