@@ -180,14 +180,14 @@ public class TokenReceiver {
                     String widQuorumBin = PropImage.img2bin(widQuorumImage);
                     JSONObject detailsForVerify = new JSONObject();
                     detailsForVerify.put("did", quorumDID.get(i));
-                    detailsForVerify.put("hash", SenWalletBin);
+                    detailsForVerify.put("hash", verifyQuorumHash);
                     detailsForVerify.put("signature",  quorumSignatures.getString(quorumDID.get(i)));
                     boolean val = Authenticate.verifySignature(detailsForVerify.toString());
                     if (val)
                         quorumSignVerifyCount++;
                 }
                 TokenReceiverLogger.debug("Verified Quorum Count " + quorumSignVerifyCount);
-                yesQuorum = quorumSignVerifyCount >= 5;
+                yesQuorum = quorumSignVerifyCount >= minQuorum();
             } else
                 yesQuorum = true;
 
