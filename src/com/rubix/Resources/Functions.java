@@ -261,44 +261,6 @@ public class Functions {
         }
     }
 
-
-    /**
-     * This method allows transfer of a single message to a selected recipient and receive a response
-     * It uses Libp2p stack to establish a connection between two nodes
-     * Then a socket is bound to the port IPFS is listening on
-     *
-     * @param message        Message to be sent
-     * @param receiverPeerID Identity of the Receiver
-     * @param appNameExt     Extention to the application name that the receiver is already listening on
-     * @param port           Port number for the nodes to get connected
-     * @param username       Username
-     * @return Reply message from the receiver
-     */
-    public static String singleDataTransfer(JSONObject message, String receiverPeerID, String appNameExt, int port, String username) {
-        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        String receiverProof = "";
-        try {
-            String applicationName = receiverPeerID.concat(appNameExt);
-            forward(applicationName, port, receiverPeerID);
-
-            Socket socket = new Socket("127.0.0.1", port);
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintStream out = new PrintStream(socket.getOutputStream());
-            out.println(message);
-
-            while ((receiverProof = in.readLine()) == null) {
-            }
-            in.close();
-            out.close();
-            socket.close();
-        } catch (IOException e) {
-            FunctionsLogger.error("IOException Occurred", e);
-            e.printStackTrace();
-        }
-        return receiverProof;
-    }
-
     /**
      * This method helps to sign a data with the selectively disclosed private share
      *
@@ -349,16 +311,23 @@ public class Functions {
 
     /**
      * This function will connect to the receiver
-     * @param connectObject Details required for connection[DID, appName]
+     * @param connectObjectString Details required for connection[DID, appName]
      * @throws JSONException Handles JSON Exception
      */
-    public static void establishConnection(JSONObject connectObject) throws JSONException {
+    public static void establishConnection(String connectObjectString) {
         IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
-        String DID = connectObject.getString("did");
-        String appName = DID.concat(connectObject.getString("appName"));
-        String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", DID);
-        swarmConnect(peerID, ipfs);
-        forward(appName, SEND_PORT, peerID);
+        JSONObject connectObject = null;
+        try {
+            connectObject = new JSONObject(connectObjectString);
+            String DID = connectObject.getString("did");
+            String appName = DID.concat(connectObject.getString("appName"));
+            String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", DID);
+            swarmConnect(peerID, ipfs);
+            forward(appName, SEND_PORT, peerID);
+        } catch (JSONException e) {
+            FunctionsLogger.error("JSONException Occurred", e);
+        }
+
     }
 
 
@@ -367,10 +336,16 @@ public class Functions {
      * @param connectObject Details required for connection[DID, appName]
      * @throws JSONException Handles JSON Exception
      */
-    public static void listenThread(JSONObject connectObject) throws JSONException {
-        String DID = connectObject.getString("did");
-        String appName = DID.concat(connectObject.getString("appName"));
-        listen(appName, RECEIVER_PORT);
+    public static void listenThread(JSONObject connectObject) {
+        String DID = null;
+        try {
+            DID = connectObject.getString("did");
+            String appName = DID.concat(connectObject.getString("appName"));
+            listen(appName, RECEIVER_PORT);
+        } catch (JSONException e) {
+            FunctionsLogger.error("JSONException Occurred", e);
+        }
+
     }
 
 
