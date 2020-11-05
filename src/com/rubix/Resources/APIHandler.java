@@ -31,20 +31,25 @@ public class APIHandler {
 
     /**
      * Initiates a transfer between two nodes
-     * @param tokens List of tokens
-     * @param recDID DID of the receiver
-     * @param comments Any extra comment for the application
-     * @param tokenHeader List of Banks for each tokens
+     * @param data Data specific to token transfer
      * @return Message from the sender with transaction details
      * @throws JSONException
      * @throws NoSuchAlgorithmException
      * @throws IOException
      */
-    public static JSONObject send(JSONArray tokens, String recDID, String comments, JSONArray tokenHeader) throws JSONException, NoSuchAlgorithmException, IOException {
+    public static JSONObject send(String data) throws JSONException, IOException {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+
+
+        JSONObject dataObject = new JSONObject(data);
+        String recDID = dataObject.getString("recDID");
+        String comments = dataObject.getString("comments");
+        JSONArray tokens = dataObject.getJSONArray("tokens");
+        JSONArray tokenHeader = dataObject.getJSONArray("tokenHeader");
+
 
         JSONObject sendMessage = new JSONObject();
         if (recDID.length() != 46) {
@@ -62,7 +67,14 @@ public class APIHandler {
             sendMessage.put("message", "Invalid amount");
             return sendMessage;
         }
-        sendMessage =  TokenSender.Send(tokens, recDID, DATA_PATH + senDID + "/PrivateShare.png", ipfs, SEND_PORT, comments, tokenHeader);
+
+        JSONObject detailsObject = new JSONObject();
+        detailsObject.put("tokens", tokens);
+        detailsObject.put("receiverDidIpfsHash", recDID);
+        detailsObject.put("comment", comments);
+        detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        detailsObject.put("tokenHeader", tokenHeader);
+        sendMessage =  TokenSender.Send(detailsObject.toString(), ipfs, SEND_PORT);
         APILogger.info(sendMessage);
         return sendMessage;
     }
