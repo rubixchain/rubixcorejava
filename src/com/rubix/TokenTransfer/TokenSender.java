@@ -40,23 +40,25 @@ public class TokenSender {
 
     /**
      *  A sender node to transfer tokens
-     * @param tokens List of tokens selected to be transferred
-     * @param receiverDidIpfsHash Receiver's DID
-     * @param pvt Private share location
+     * @param data Details required for tokenTransfer
      * @param ipfs IPFS instance
      * @param port Sender port for communication
-     * @param comment Any additional header information
-     * @param tokenHeader TokenDetails
      * @return Transaction Details (JSONObject)
      * @throws IOException handles IO Exceptions
      * @throws JSONException handles JSON Exceptions
      * @throws NoSuchAlgorithmException handles No Such Algorithm Exceptions
      */
-    public static JSONObject Send(JSONArray tokens, String receiverDidIpfsHash, String pvt, IPFS ipfs, int port, String comment, JSONArray tokenHeader) throws IOException, JSONException {
+    public static JSONObject Send(String data, IPFS ipfs, int port) throws IOException, JSONException {
 
         JSONObject APIResponse = new JSONObject();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
+        JSONObject detailsObject = new JSONObject(data);
+        String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
+        String pvt = detailsObject.getString("pvt");
+        String comment = detailsObject.getString("comment");
+        JSONArray tokens = detailsObject.getJSONArray("tokens");
+        JSONArray tokenHeader = detailsObject.getJSONArray("tokenHeader");
 
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
@@ -191,7 +193,17 @@ public class TokenSender {
             TokenSenderLogger.debug("status of consensus : " + consensusStatus);
             if (consensusStatus) {
                 String message = senderWidBin + tokens;
-                InitiatorProcedure.consensusSetUp(tid, message, receiverDidIpfsHash, pvt, senderDidIpfsHash, tokens.toString(), quorumPeersList, ipfs, SEND_PORT + 3);
+
+                JSONObject dataObject = new JSONObject();
+                dataObject.put("tid", tid);
+                dataObject.put("message", message);
+                dataObject.put("receiverDidIpfs", receiverDidIpfsHash);
+                dataObject.put("pvt", pvt);
+                dataObject.put("senderDidIpfs", senderDidIpfsHash);
+                dataObject.put("token", tokens.toString());
+                dataObject.put("quorumlist", quorumPeersList);
+
+                InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3);
                 TokenSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count " + InitiatorConsensus.quorumResponse);
                 if (!(InitiatorConsensus.quorumResponse > minQuorum())) {
                     TokenSenderLogger.debug("Consensus Failed");
