@@ -29,7 +29,7 @@ import static com.rubix.Resources.IPFSNetwork.*;
 
 public class TokenReceiver {
     public static Logger TokenReceiverLogger = Logger.getLogger(TokenReceiver.class);
-    private static ArrayList<String> quorumPEER;
+
     private static final JSONObject APIResponse = new JSONObject();
     private static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
     private static String SenWalletBin;
@@ -41,7 +41,7 @@ public class TokenReceiver {
      * @throws JSONException handles JSON Exceptions
      * @throws NoSuchAlgorithmException handles No Such Algorithm Exceptions
      */
-    public static JSONObject receive() throws IOException, JSONException, NoSuchAlgorithmException {
+    public static String receive() throws IOException, JSONException{
         pathSet();
 
         int quorumSignVerifyCount = 0;
@@ -85,7 +85,7 @@ public class TokenReceiver {
             input.close();
             output.close();
             ss.close();
-            return APIResponse;
+            return APIResponse.toString();
         } else
             output.println("200");
 
@@ -121,7 +121,7 @@ public class TokenReceiver {
             input.close();
             output.close();
             ss.close();
-            return APIResponse;
+            return APIResponse.toString();
         } else
             output.println("200");
 
@@ -173,21 +173,17 @@ public class TokenReceiver {
                 }
 
                 for (int i = 0; i < quorumSignatures.length(); i++) {
-                    String widQuorumHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", quorumDID.get(i));
-                    BufferedImage didQuorumImage = ImageIO.read(new File(DATA_PATH + quorumDID.get(i) + "/DID.png"));
-                    BufferedImage widQuorumImage = ImageIO.read(new File(DATA_PATH + quorumDID.get(i) + "/PublicShare.png"));
-                    String didQuorumBin = PropImage.img2bin(didQuorumImage);
-                    String widQuorumBin = PropImage.img2bin(widQuorumImage);
+
                     JSONObject detailsForVerify = new JSONObject();
                     detailsForVerify.put("did", quorumDID.get(i));
-                    detailsForVerify.put("senderWID", SenWalletBin);
-                    detailsForVerify.put("token", tokens);
-                    boolean val = Authenticate.verifySignature(detailsForVerify, quorumSignatures.getString(quorumDID.get(i)));
+                    detailsForVerify.put("hash", verifyQuorumHash);
+                    detailsForVerify.put("signature",  quorumSignatures.getString(quorumDID.get(i)));
+                    boolean val = Authenticate.verifySignature(detailsForVerify.toString());
                     if (val)
                         quorumSignVerifyCount++;
                 }
                 TokenReceiverLogger.debug("Verified Quorum Count " + quorumSignVerifyCount);
-                yesQuorum = quorumSignVerifyCount >= 5;
+                yesQuorum = quorumSignVerifyCount >= minQuorum();
             } else
                 yesQuorum = true;
 
@@ -196,18 +192,13 @@ public class TokenReceiver {
                 allTokensChainsPushed.add(tokenChains.getString(i));
 
             String hash = calculateHash(tokens.toString() + allTokensChainsPushed.toString() + receiverWidBin + comment, "SHA3-256");
-            String SenDIDHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
-            BufferedImage senderDIDImage = ImageIO.read(new File(DATA_PATH + SenDIDHash + "/DID.png"));
-            String senderDIDBin = PropImage.img2bin(senderDIDImage);
 
             JSONObject detailsForVerify = new JSONObject();
             detailsForVerify.put("did", senderDidIpfsHash);
-            detailsForVerify.put("tokens", tokens.toString());
-            detailsForVerify.put("tokenChains", allTokensChainsPushed.toString());
-            detailsForVerify.put("receiverWidBin", receiverWidBin);
-            detailsForVerify.put("comment", comment);
+            detailsForVerify.put("hash", hash);
+            detailsForVerify.put("signature", senderSignature);
 
-            boolean yesSender = Authenticate.verifySignature(detailsForVerify, senderSignature);
+            boolean yesSender = Authenticate.verifySignature(detailsForVerify.toString());
             TokenReceiverLogger.debug("Sender auth hash " + hash);
             TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + "Sender Auth : " + yesSender);
             if (!(yesSender && yesQuorum)) {
@@ -222,7 +213,7 @@ public class TokenReceiver {
                 input.close();
                 output.close();
                 ss.close();
-                return APIResponse;
+                return APIResponse.toString();
             } else {
                 repo(ipfs);
                 TokenReceiverLogger.debug("Sender and Quorum Verified");
@@ -277,7 +268,7 @@ public class TokenReceiver {
                 transactionRecord.put("role", "Receiver");
                 transactionRecord.put("tokens", tokens);
                 transactionRecord.put("txn", tid);
-                transactionRecord.put("quorumList", quorumPEER);
+                transactionRecord.put("quorumList", QUORUM_MEMBERS);
                 transactionRecord.put("senderDID", senderDidIpfsHash);
                 transactionRecord.put("receiverDID", receiverDidIpfsHash);
                 transactionRecord.put("Date", currentTime);
@@ -306,6 +297,6 @@ public class TokenReceiver {
         input.close();
         output.close();
         ss.close();
-        return APIResponse;
+        return APIResponse.toString();
     }
 }

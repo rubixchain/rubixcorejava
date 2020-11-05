@@ -26,19 +26,24 @@ public class InitiatorProcedure {
 
     /**
      * This function sets up the initials before the consensus
-     * @param tid Transaction Id
-     * @param message Data to be signed on
-     * @param receiverDidIpfs DID of the receiver
-     * @param pvt Private Shares path
-     * @param senderDidIpfs DID of the sender
-     * @param token Token with attached data for signing
-     * @param quorumlist List of quorum peers
+     * @param data Data required for hashing and signing
      * @param ipfs IPFS instance
      * @param PORT port for forwarding to quorum
      */
-    public static void consensusSetUp(String tid, String message, String receiverDidIpfs, String pvt, String senderDidIpfs, String token, ArrayList<String> quorumlist, IPFS ipfs, int PORT) {
+    public static void consensusSetUp(String data,IPFS ipfs, int PORT) throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
+        JSONObject dataObject = new JSONObject(data);
+        String tid = dataObject.getString("tid");
+        String message = dataObject.getString("message");
+        String receiverDidIpfs = dataObject.getString("receiverDidIpfs");
+        String pvt = dataObject.getString("pvt");
+        String senderDidIpfs = dataObject.getString("senderDidIpfs");
+        String token = dataObject.getString("token");
+        JSONArray quorumlist = dataObject.getJSONArray("quorumlist");
+
+        JSONArray details = dataObject.getJSONArray("details");
+        JSONArray quorumPeersObject = dataObject.getJSONArray("quorumPeersObject");
         String authSenderByQuorumHash="", authQuorumHash="";
         authSenderByQuorumHash = calculateHash(message , "SHA3-256");
         authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
@@ -90,7 +95,11 @@ public class InitiatorProcedure {
         InitiatorProcedureLogger.debug("Invoking Consensus");
 
 
-        InitiatorConsensus.start(authQuorumHash, detailsForQuorum,quorumlist,ipfs, PORT);
+        JSONObject dataSend = new JSONObject();
+        dataSend.put("hash",authQuorumHash);
+        dataSend.put("details",detailsForQuorum);
+        dataSend.put("quorumPeersObject",quorumlist);
+        InitiatorConsensus.start(dataSend.toString(),ipfs, PORT);
 //        consensus = consensusStatus();
 //        InitiatorProcedureLogger.debug("Consensus Status: " + consensus);
     }

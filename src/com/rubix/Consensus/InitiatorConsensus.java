@@ -78,14 +78,17 @@ public class InitiatorConsensus {
      * 1. Contact quorum with sender signatures and details
      * 2. Verify quorum signatures
      * 3. If consensus reached , sends shares to Quorum
-     * @param hash Data for the quorum to sign on
-     * @param details Data to be shared with Quorum
-     * @param quorumPeersObject List of quorum peers to be contacted
      * @param ipfs IPFS instance
      * @param PORT Port for forwarding to Quorum
      */
-    public static void start(String hash, JSONArray details,ArrayList<String> quorumPeersObject,IPFS ipfs, int PORT) {
+    public static void start(String data,  IPFS ipfs, int PORT) throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        JSONObject dataObject = new JSONObject(data);
+        String hash = dataObject.getString("hash");
+        JSONArray details = dataObject.getJSONArray("details");
+        JSONArray quorumPeersObject = dataObject.getJSONArray("quorumPeersObject");
+
+
         quorumResponse = 0;
         quorumSignature = new JSONObject();
         JSONArray tokenDetails;
@@ -100,8 +103,8 @@ public class InitiatorConsensus {
                 shares[i] = sharesToken.getString("Share" + p);
             }
 
-            for (int j = 0; j < quorumPeersObject.size(); j++) {
-                quorumID[j] = quorumPeersObject.get(j);
+            for (int j = 0; j < quorumPeersObject.length(); j++) {
+                quorumID[j] = quorumPeersObject.getString(j);
 
                 String quorumDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", quorumID[j]);
                 String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", quorumID[j]);
@@ -119,8 +122,8 @@ public class InitiatorConsensus {
 
 
 
-            Thread[] quorumThreads = new Thread[quorumPeersObject.size()];
-            for (int i = 0; i < quorumPeersObject.size(); i++) {
+            Thread[] quorumThreads = new Thread[quorumPeersObject.length()];
+            for (int i = 0; i < quorumPeersObject.length(); i++) {
                 int j = i;
                 int k = i+1;
                 quorumThreads[i] = new Thread(() -> {
@@ -153,7 +156,9 @@ public class InitiatorConsensus {
 
                             JSONObject detailsToVerify = new JSONObject();
                             detailsToVerify.put("did", didHash);
-                            if (Authenticate.verifySignature(detailsToVerify, qResponse[j])) {
+                            detailsToVerify.put("hash", hash);
+                            detailsToVerify.put("signature", qResponse[j]);
+                            if (Authenticate.verifySignature(detailsToVerify.toString())) {
                                 voteNCount();
                                 if (quorumResponse < minQuorum()) {
                                     String shareToQuorum = shares[quorumResponse - 1];
@@ -161,7 +166,7 @@ public class InitiatorConsensus {
                                         Thread.onSpinWait();
                                     }
                                     quorumSign( didHash, qResponse[j]);
-                                    quorumWithShares.add(quorumPeersObject.get(j));
+                                    quorumWithShares.add(quorumPeersObject.getString(j));
                                     qOut[j].println(shareToQuorum);
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /ipfs/"+ quorumID[j]);
 

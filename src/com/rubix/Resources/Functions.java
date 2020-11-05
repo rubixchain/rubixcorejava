@@ -261,44 +261,6 @@ public class Functions {
         }
     }
 
-
-    /**
-     * This method allows transfer of a single message to a selected recipient and receive a response
-     * It uses Libp2p stack to establish a connection between two nodes
-     * Then a socket is bound to the port IPFS is listening on
-     *
-     * @param message        Message to be sent
-     * @param receiverPeerID Identity of the Receiver
-     * @param appNameExt     Extention to the application name that the receiver is already listening on
-     * @param port           Port number for the nodes to get connected
-     * @param username       Username
-     * @return Reply message from the receiver
-     */
-    public static String singleDataTransfer(JSONObject message, String receiverPeerID, String appNameExt, int port, String username) {
-        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        String receiverProof = "";
-        try {
-            String applicationName = receiverPeerID.concat(appNameExt);
-            forward(applicationName, port, receiverPeerID);
-
-            Socket socket = new Socket("127.0.0.1", port);
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintStream out = new PrintStream(socket.getOutputStream());
-            out.println(message);
-
-            while ((receiverProof = in.readLine()) == null) {
-            }
-            in.close();
-            out.close();
-            socket.close();
-        } catch (IOException e) {
-            FunctionsLogger.error("IOException Occurred", e);
-            e.printStackTrace();
-        }
-        return receiverProof;
-    }
-
     /**
      * This method helps to sign a data with the selectively disclosed private share
      *
@@ -316,7 +278,6 @@ public class Functions {
         int[] privateIntegerArray1 = strToIntArray(firstPrivate);
         JSONObject P = randomPositions("signer", hash, 32, privateIntegerArray1);
         int[] finalpos = (int[]) P.get("posForSign");
-        int[] originalpos = (int[]) P.get("originalPos");
         int[] p1Sign = getPrivatePosition(finalpos, privateIntegerArray1);
         String p1 = intArrayToStr(p1Sign);
         return p1;
@@ -325,17 +286,18 @@ public class Functions {
 
     /**
      * This function will sign on JSON data with private share
-     * @param details Details(JSONObject) to sign on
+     * @param detailsString Details(JSONObject) to sign on
      * @return Signature
      * @throws IOException Handles IO Exceptions
      * @throws JSONException Handles JSON Exceptions
      */
-    public static String sign(JSONObject details) throws IOException, JSONException {
+    public static String sign(String detailsString) throws IOException, JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
+        JSONObject details = new JSONObject(detailsString);
         String DID = details.getString("did");
         String filePath = DATA_PATH + DID + "/PrivateShare.png";
-        String hash = calculateHash(details.toString(), "SHA3-256");
+        String hash = calculateHash(detailsString, "SHA3-256");
 
         BufferedImage pvt = ImageIO.read(new File(filePath));
         String firstPrivate = PropImage.img2bin(pvt);
@@ -343,23 +305,29 @@ public class Functions {
         int[] privateIntegerArray1 = strToIntArray(firstPrivate);
         JSONObject P = randomPositions("signer", hash, 32, privateIntegerArray1);
         int[] finalpos = (int[]) P.get("posForSign");
-        int[] originalpos = (int[]) P.get("originalPos");
         int[] p1Sign = getPrivatePosition(finalpos, privateIntegerArray1);
         return intArrayToStr(p1Sign);
     }
 
     /**
      * This function will connect to the receiver
-     * @param connectObject Details required for connection[DID, appName]
+     * @param connectObjectString Details required for connection[DID, appName]
      * @throws JSONException Handles JSON Exception
      */
-    public static void establishConnection(JSONObject connectObject) throws JSONException {
+    public static void establishConnection(String connectObjectString) {
         IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
-        String DID = connectObject.getString("did");
-        String appName = DID.concat(connectObject.getString("appName"));
-        String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", DID);
-        swarmConnect(peerID, ipfs);
-        forward(appName, SEND_PORT, peerID);
+        JSONObject connectObject = null;
+        try {
+            connectObject = new JSONObject(connectObjectString);
+            String DID = connectObject.getString("did");
+            String appName = DID.concat(connectObject.getString("appName"));
+            String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", DID);
+            swarmConnect(peerID, ipfs);
+            forward(appName, SEND_PORT, peerID);
+        } catch (JSONException e) {
+            FunctionsLogger.error("JSONException Occurred", e);
+        }
+
     }
 
 
@@ -368,10 +336,16 @@ public class Functions {
      * @param connectObject Details required for connection[DID, appName]
      * @throws JSONException Handles JSON Exception
      */
-    public static void listenThread(JSONObject connectObject) throws JSONException {
-        String DID = connectObject.getString("did");
-        String appName = DID.concat(connectObject.getString("appName"));
-        listen(appName, RECEIVER_PORT);
+    public static void listenThread(JSONObject connectObject) {
+        String DID = null;
+        try {
+            DID = connectObject.getString("did");
+            String appName = DID.concat(connectObject.getString("appName"));
+            listen(appName, RECEIVER_PORT);
+        } catch (JSONException e) {
+            FunctionsLogger.error("JSONException Occurred", e);
+        }
+
     }
 
 
