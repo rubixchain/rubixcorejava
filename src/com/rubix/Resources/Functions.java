@@ -701,8 +701,6 @@ public class Functions {
         } catch (IOException e) {
             FunctionsLogger.error("IO Exception Occurred", e);
             e.printStackTrace();
-        } catch (JSONException e) {
-            e.printStackTrace();
         }
         if (syncFlag == 1)
             FunctionsLogger.info("Synced Successfully!");
