@@ -117,7 +117,7 @@ public class TokenSender {
                 allTokensChainsPushed.add(tokenChainHash);
             }
 
-            String authSenderByRecHash = calculateHash(tokens.toString() + allTokensChainsPushed.toString() + receiverWidBin + comment, "SHA3-256");
+            String authSenderByRecHash = calculateHash(tokens.toString() + allTokensChainsPushed.toString() + receiverDidIpfsHash + comment, "SHA3-256");
             String tid = calculateHash(authSenderByRecHash, "SHA3-256");
             TokenSenderLogger.debug("Sender by Receiver Hash " + authSenderByRecHash);
             TokenSenderLogger.debug("TID on sender " + tid);
