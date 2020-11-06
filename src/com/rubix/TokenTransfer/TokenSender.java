@@ -112,6 +112,16 @@ public class TokenSender {
             return APIResponse;
         } else {
             for (int i = 0; i < tokens.length(); i++) {
+                File token = new File(TOKENS_PATH + tokens.get(i));
+                if (!token.exists()) {
+                    APIResponse.put("did", senderDidIpfsHash);
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Invalid token(s)");
+                    executeIPFSCommands("ipfs p2p close -t /ipfs/" + receiverPeerId);
+                    senderMutex = false;
+                    return APIResponse;
+                }
                 add(TOKENS_PATH + tokens.get(i), ipfs);
                 String tokenChainHash = add(TOKENCHAIN_PATH + tokens.get(i) + ".json", ipfs);
                 allTokensChainsPushed.add(tokenChainHash);
