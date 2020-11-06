@@ -157,7 +157,7 @@ public class APIHandler {
      * @return Message if failed or succeeded
      * @throws IOException
      */
-    public static String sync() throws IOException {
+    public static String networkInfo() throws IOException {
         StringBuilder result = new StringBuilder();
         int syncFlag = 0;
         URL url = new URL(SYNC_IP + "/get");
@@ -172,6 +172,7 @@ public class APIHandler {
         }
 
         rd.close();
+
         writeToFile(DATA_PATH + "DataTable.json", result.toString(), false);
         if (syncFlag == 1) {
             return "Synced Successfully!";
