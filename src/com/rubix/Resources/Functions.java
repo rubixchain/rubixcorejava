@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 
+import static com.rubix.Resources.APIHandler.networkInfo;
 import static com.rubix.Resources.IPFSNetwork.*;
 
 
@@ -687,19 +688,8 @@ public class Functions {
         int syncFlag = 0;
         try {
             executeIPFSCommands("ipfs daemon");
-            StringBuilder result = new StringBuilder();
             if(!SYNC_IP.contains("127.0.0.1")){
-                URL url = new URL(SYNC_IP + "/get");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                String line;
-                while ((line = rd.readLine()) != null) {
-                    result.append(line);
-                    syncFlag = 1;
-                }
-                rd.close();
-                writeToFile(DATA_PATH + "DataTable.json", result.toString(), false);
+                networkInfo();
             }
 
         } catch (MalformedURLException e) {
@@ -710,6 +700,8 @@ public class Functions {
             e.printStackTrace();
         } catch (IOException e) {
             FunctionsLogger.error("IO Exception Occurred", e);
+            e.printStackTrace();
+        } catch (JSONException e) {
             e.printStackTrace();
         }
         if (syncFlag == 1)
