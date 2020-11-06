@@ -191,7 +191,7 @@ public class TokenReceiver {
             for (int i = 0; i < tokenCount; i++)
                 allTokensChainsPushed.add(tokenChains.getString(i));
 
-            String hash = calculateHash(tokens.toString() + allTokensChainsPushed.toString() + receiverWidBin + comment, "SHA3-256");
+            String hash = calculateHash(tokens.toString() + allTokensChainsPushed.toString() + receiverDidIpfsHash + comment, "SHA3-256");
 
             JSONObject detailsForVerify = new JSONObject();
             detailsForVerify.put("did", senderDidIpfsHash);
