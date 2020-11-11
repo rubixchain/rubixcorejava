@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="IPFS">
+    <CLASSES>
+      <root url="file://$USER_HOME$/Desktop/IPFS" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <jarDirectory url="file://$USER_HOME$/Desktop/IPFS" recursive="false" />
+  </library>
+</component>

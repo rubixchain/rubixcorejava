@@ -7,6 +7,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="java-cid-v1.1.0" level="project" />
+    <orderEntry type="library" name="IPFS" level="project" />
+    <orderEntry type="library" name="JAVA" level="project" />
   </component>
 </module>
