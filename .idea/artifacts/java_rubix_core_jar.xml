@@ -3,17 +3,18 @@
     <output-path>$PROJECT_DIR$/out/artifacts/java_rubix_core_jar</output-path>
     <root id="archive" name="java-rubix-core.jar">
       <element id="module-output" name="java-rubix-core" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/java-cid-v1.1.0.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/java-ipfs-api-v1.2.3.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/java-json.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/java-multiaddr-v1.3.1.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/java-multibase-v1.0.0.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/java-multihash-v1.1.0.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/javax.json-1.0.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/json-simple-1.1.1.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/log4j.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/mysql-connector-java-8.0.21.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../JARS/org-apache-commons-codec.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/cid.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/ipfs.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/multiaddr.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/multibase.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/multihash.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/junit-4.12.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/hamcrest-core-1.3.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/JAVA/log4j.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/JAVA/java-json.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/JAVA/javax.json-1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/JAVA/json-simple-1.1.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/JAVA/org-apache-commons-codec.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>
