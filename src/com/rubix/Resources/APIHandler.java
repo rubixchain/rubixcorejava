@@ -18,8 +18,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Date;
+import java.util.*;
 
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
@@ -33,9 +32,9 @@ public class APIHandler {
      * Initiates a transfer between two nodes
      * @param data Data specific to token transfer
      * @return Message from the sender with transaction details
-     * @throws JSONException
-     * @throws NoSuchAlgorithmException
-     * @throws IOException
+     * @throws JSONException handles JSON Exceptions
+     * @throws NoSuchAlgorithmException handles Invalid Algorithms Exceptions
+     * @throws IOException handles IO Exceptions
      */
     public static JSONObject send(String data) throws JSONException, IOException {
         Functions.pathSet();
@@ -83,7 +82,7 @@ public class APIHandler {
      * A call to get details of a transaction given its ID
      * @param txnId
      * @return Transaction Details
-     * @throws JSONException
+     * @throws JSONException handles JSON Exceptions
      */
     public static String transactionDetail(String txnId) throws JSONException {
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
@@ -105,7 +104,7 @@ public class APIHandler {
     /**
      * A call to get the account information
      * @return Detailed explanation of the account information of the user
-     * @throws JSONException
+     * @throws JSONException handles JSON Exceptions
      */
     public static String accountInformation() throws JSONException {
         int txnAsSender = 0, txnAsReceiver = 0;
@@ -215,7 +214,7 @@ public class APIHandler {
      * @param s Start Date
      * @param e End Date
      * @return List of transactions
-     * @throws JSONException
+     * @throws JSONException handles JSON Exceptions
      */
     public static String transactionsByDate(String s, String e) throws JSONException {
         LocalDate start = LocalDate.parse(s);
@@ -259,7 +258,7 @@ public class APIHandler {
      * A call to get list transactions within a mentioned count
      * @param n Count
      * @return List of transactions
-     * @throws JSONException
+     * @throws JSONException handles JSON Exceptions
      */
     public static String transactionsByCount(int n) throws JSONException {
         int count = 0, found = 0;
@@ -325,7 +324,7 @@ public class APIHandler {
      * A call to get list transactions with the mentioned comment
      * @param comment Comment
      * @return List of transactions
-     * @throws JSONException
+     * @throws JSONException handles JSON Exceptions
      */
     public static String transactionsByComment(String comment) throws JSONException {
 
@@ -339,5 +338,100 @@ public class APIHandler {
         }
 
         return "Not found any details for comment : " + comment;
+    }
+
+
+    /**
+     * A call to get list transactions made by the user with the input Did
+     * @param did DID of the contact
+     * @return List of transactions committed with the user DID
+     * @throws JSONException handles JSON Exceptions
+     */
+    public static String transactionsByDID(String did) throws JSONException {
+        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        JSONArray transArray = new JSONArray(transactionHistory);
+        JSONArray transactionList = new JSONArray();
+        for (int i = 0; i < transArray.length(); i++) {
+            JSONObject didObject = transArray.getJSONObject(i);
+            if (didObject.get("senderDID").equals(did) || didObject.get("receiverDID").equals(did))
+               transactionList.put(didObject);
+        }
+
+        return transactionList.toString();
+    }
+
+    /**
+     * A call to get the online/offline status of your contacts
+     * @return List indicating online status of each DID contact
+     * @throws JSONException handles JSON Exceptions
+     * @throws IOException handles IO Exceptions
+     */
+    public static String peersOnlineStatus() throws JSONException, IOException {
+        ArrayList peersArray = new ArrayList();
+        for (int i = 0; i < ipfs.swarm.peers().size(); i++){
+            peersArray.add(ipfs.swarm.peers().get(i).toString().substring(0, 45));
+        }
+
+        String dataTable = readFile(DATA_PATH + "DataTable.json");
+        JSONArray dataArray = new JSONArray(dataTable);
+        JSONObject onlinePeers = new JSONObject();
+        for(int i = 0; i < dataArray.length(); i++){
+            JSONObject peerObject = dataArray.getJSONObject(i);
+            String peerID = peerObject.getString("peerid");
+            if(peersArray.contains(peerID)){
+                onlinePeers.put(getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID), "online");
+            }
+            else
+                onlinePeers.put(getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID), "offline");
+
+        }
+
+        return onlinePeers.toString();
+    }
+
+    /**
+     * A call to list out all contacts in the user wallet
+     * @return A list of user wallet contacts
+     * @throws JSONException handles JSON Exceptions
+     */
+    public static String contacts() throws JSONException {
+        String dataTable = readFile(DATA_PATH + "DataTable.json");
+        JSONArray dataArray = new JSONArray(dataTable);
+        JSONArray didArray = new JSONArray();
+        for (int i = 0; i < dataArray.length(); i++){
+            didArray.put(dataArray.getJSONObject(i).getString("didHash"));
+        }
+        return didArray.toString();
+    }
+
+    /**
+     * A call to list out number of transactions made per day
+     * @return List of transactions committed on every date
+     * @throws JSONException handles JSON Exceptions
+     */
+    public static String txnPerDay() throws JSONException {
+        String dataTable = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        JSONArray dataArray = new JSONArray(dataTable);
+        HashSet<String> dateSet = new HashSet<>();
+        for(int i = 0; i < dataArray.length(); i++)
+            dateSet.add(dataArray.getJSONObject(i).getString("Date"));
+
+        JSONObject datesTxn = new JSONObject();
+        Iterator<String> dateIterator = dateSet.iterator();
+        while (dateIterator.hasNext()){
+            String date = dateIterator.next();
+            int count = 0;
+            for(int i = 0; i < dataArray.length(); i++){
+                JSONObject object = dataArray.getJSONObject(i);
+
+                if(date.equals(object.getString("Date"))){
+                    count++;
+                }
+            }
+            datesTxn.put(date, count);
+
+        }
+
+        return datesTxn.toString();
     }
 }

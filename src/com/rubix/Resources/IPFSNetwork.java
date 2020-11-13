@@ -50,7 +50,7 @@ public class IPFSNetwork {
 
     public static void forward(String application, int port, String peerid) {
 
-        String IPFSForward = " ipfs p2p forward /x/" + application + "/1.0 /ip4/127.0.0.1/tcp/" + port + " /ipfs/" + peerid;
+        String IPFSForward = " ipfs p2p forward /x/" + application + "/1.0 /ip4/127.0.0.1/tcp/" + port + " /p2p/" + peerid;
         executeIPFSCommands(IPFSForward);
     }
 
@@ -86,7 +86,7 @@ public class IPFSNetwork {
                     bootNode = bootNode.substring(bootNode.length() - 46);
                     IPFSNetworkLogger.debug("trying to connect: " + bootNode);
                 }
-                MultiAddress multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
+                MultiAddress multiAddress = new MultiAddress("/p2p/" + bootNode + "/p2p-circuit/p2p/" + peerid);
                 String output = swarmConnectProcess(multiAddress);
                 if(!output.contains("success"))
                     swarmConnect(peerid, ipfs);
