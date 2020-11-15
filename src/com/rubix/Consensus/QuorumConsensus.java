@@ -115,21 +115,21 @@ public class QuorumConsensus implements Runnable {
                     out.println("Auth_Failed");
                 }
             } catch (IOException e) {
-                executeIPFSCommands(" ipfs p2p close -t /ipfs/" + senderPID);
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                 QuorumConsensusLogger.error("IOException Occurred", e);
                 e.printStackTrace();
             } catch (JSONException e) {
-                executeIPFSCommands(" ipfs p2p close -t /ipfs/" + senderPID);
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                 QuorumConsensusLogger.error("JSONException Occurred", e);
                 e.printStackTrace();
             }
             finally {
                 try {
-                    executeIPFSCommands(" ipfs p2p close -t /ipfs/" + senderPID);
+                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     socket.close();
                     serverSocket.close();
                 } catch (IOException e) {
-                    executeIPFSCommands(" ipfs p2p close -t /ipfs/" + senderPID);
+                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     QuorumConsensusLogger.error("IOException Occurred", e);
                     e.printStackTrace();
                 }

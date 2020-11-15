@@ -171,7 +171,7 @@ public class TokenSender {
             }
 
             if (!peerAuth.equals("200")) {
-                executeIPFSCommands(" ipfs p2p close -t /ipfs/" + receiverPeerId);
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                 TokenSenderLogger.info("Sender Data Not Available");
                 output.close();
                 input.close();
@@ -188,7 +188,7 @@ public class TokenSender {
 
             String tokenAuth = input.readLine();
             if (!tokenAuth.equals("200")) {
-                executeIPFSCommands(" ipfs p2p close -t /ipfs/" + receiverPeerId);
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                 TokenSenderLogger.info("Tokens Not Verified");
                 output.close();
                 input.close();
@@ -221,7 +221,7 @@ public class TokenSender {
                 if (!(InitiatorConsensus.quorumResponse > minQuorum())) {
                     TokenSenderLogger.debug("Consensus Failed");
                     output.println("Consensus failed");
-                    executeIPFSCommands(" ipfs p2p close -t /ipfs/" + receiverPeerId);
+                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                     output.close();
                     input.close();
                     senderSocket.close();
@@ -247,7 +247,7 @@ public class TokenSender {
             long totalTime = endAuth - startTime;
             long startUnpin = System.currentTimeMillis();
             if (!signatureAuth.equals("200")) {
-                executeIPFSCommands(" ipfs p2p close -t /ipfs/" + receiverPeerId);
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                 TokenSenderLogger.info("Authentication Failed");
                 output.close();
                 input.close();
@@ -299,7 +299,7 @@ public class TokenSender {
             String confirmation = input.readLine();
             if (!confirmation.equals("Successfully Pinned")) {
                 TokenSenderLogger.warn("Multiple Owners for the token");
-                executeIPFSCommands(" ipfs p2p close -t /ipfs/" + receiverPeerId);
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                 TokenSenderLogger.info("Tokens with multiple pins");
                 output.close();
                 input.close();
@@ -321,7 +321,7 @@ public class TokenSender {
                 String respAuth = input.readLine();
 
                 if (!respAuth.equals("Send Response")) {
-                    executeIPFSCommands(" ipfs p2p close -t /ipfs/" + receiverPeerId);
+                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                     output.close();
                     input.close();
                     senderSocket.close();
@@ -360,7 +360,7 @@ public class TokenSender {
 
             }
         }
-        executeIPFSCommands(" ipfs p2p close -t /ipfs/" + receiverPeerId);
+        executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
         output.close();
         input.close();
         senderSocket.close();

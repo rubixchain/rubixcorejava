@@ -143,7 +143,7 @@ public class InitiatorConsensus {
 
                         if (quorumResponse > minQuorum()) {
                             qOut[j].println("null");
-                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /ipfs/"+ quorumID[j]);
+                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/"+ quorumID[j]);
                         } else {
 
                             String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",quorumID[j]);
@@ -168,23 +168,23 @@ public class InitiatorConsensus {
                                     quorumSign( didHash, qResponse[j]);
                                     quorumWithShares.add(quorumPeersObject.getString(j));
                                     qOut[j].println(shareToQuorum);
-                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /ipfs/"+ quorumID[j]);
+                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/"+ quorumID[j]);
 
                                 } else if (quorumResponse == minQuorum()) {
                                     quorumSign(didHash, qResponse[j]);
                                     qOut[j].println("null");
-                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /ipfs/"+ quorumID[j]);
+                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/"+ quorumID[j]);
 
                                 } else {
                                     qOut[j].println("null");
-                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /ipfs/"+ quorumID[j]);
+                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/"+ quorumID[j]);
                                 }
                                 InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse + "Signature count : " + quorumSignature.length());
 
                             }
                         }
                     } catch (IOException | JSONException e) {
-                        IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /ipfs/"+ quorumID[j]);
+                        IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/"+ quorumID[j]);
                         InitiatorConsensusLogger.error("IOException Occurred", e);
                         e.printStackTrace();
                     }
