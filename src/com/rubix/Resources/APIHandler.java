@@ -128,27 +128,14 @@ public class APIHandler {
             }
         }
 
-        int balance = accountBalance();
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String did = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
         String wid = getValues(DATA_PATH + "DID.json", "walletHash", "peerid", senderPeerID);
         accountDetails.put("did", did);
         accountDetails.put("wid", wid);
-        accountDetails.put("balance", balance);
         accountDetails.put("senderTxn", txnAsSender);
         accountDetails.put("receiverTxn", txnAsReceiver);
         return accountDetails.toString();
-    }
-
-    /**
-     * A call to get account balance
-     * @return Balance
-     */
-    public static int accountBalance(){
-        Functions.pathSet();
-        File folder = new File(TOKENS_PATH);
-        File[] listOfFiles = folder.listFiles();
-        return listOfFiles.length;
     }
 
     /**

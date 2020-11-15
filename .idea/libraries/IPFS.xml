@@ -1,15 +1,15 @@
 <component name="libraryTable">
   <library name="IPFS">
     <CLASSES>
-      <root url="file://$PROJECT_DIR$/../IPFS" />
-      <root url="file://$PROJECT_DIR$/../JAVA" />
+      <root url="file://$USER_HOME$/Desktop/IPFS" />
+      <root url="file://$USER_HOME$/Desktop/JAVA" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
-      <root url="file://$PROJECT_DIR$/../JAVA" />
+      <root url="file://$USER_HOME$/Desktop/JAVA" />
     </SOURCES>
-    <jarDirectory url="file://$PROJECT_DIR$/../IPFS" recursive="false" />
-    <jarDirectory url="file://$PROJECT_DIR$/../JAVA" recursive="false" />
-    <jarDirectory url="file://$PROJECT_DIR$/../JAVA" recursive="false" type="SOURCES" />
+    <jarDirectory url="file://$USER_HOME$/Desktop/IPFS" recursive="false" />
+    <jarDirectory url="file://$USER_HOME$/Desktop/JAVA" recursive="false" />
+    <jarDirectory url="file://$USER_HOME$/Desktop/JAVA" recursive="false" type="SOURCES" />
   </library>
 </component>
