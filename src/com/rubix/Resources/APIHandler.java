@@ -347,6 +347,13 @@ public class APIHandler {
         return transactionList.toString();
     }
 
+    public static ArrayList onlinePeersList() throws IOException {
+        ArrayList peersArray = new ArrayList();
+        for (int i = 0; i < ipfs.swarm.peers().size(); i++) {
+            peersArray.add(ipfs.swarm.peers().get(i).toString().substring(0, 45));
+        }
+        return peersArray;
+    }
     /**
      * A call to get the online/offline status of your contacts
      * @return List indicating online status of each DID contact
@@ -354,11 +361,7 @@ public class APIHandler {
      * @throws IOException handles IO Exceptions
      */
     public static String peersOnlineStatus() throws JSONException, IOException {
-        ArrayList peersArray = new ArrayList();
-        for (int i = 0; i < ipfs.swarm.peers().size(); i++){
-            peersArray.add(ipfs.swarm.peers().get(i).toString().substring(0, 45));
-        }
-
+        ArrayList peersArray = onlinePeersList();
         String dataTable = readFile(DATA_PATH + "DataTable.json");
         JSONArray dataArray = new JSONArray(dataTable);
         JSONObject onlinePeers = new JSONObject();
