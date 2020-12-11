@@ -1,7 +1,6 @@
 package com.rubix.Consensus;
 
 import com.rubix.AuthenticateNode.Authenticate;
-import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
@@ -9,9 +8,6 @@ import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -103,33 +99,21 @@ public class InitiatorConsensus {
                 shares[i] = sharesToken.getString("Share" + p);
             }
 
-            for (int j = 0; j < quorumPeersObject.length(); j++) {
+            for (int j = 0; j < quorumPeersObject.length(); j++)
                 quorumID[j] = quorumPeersObject.getString(j);
-
-                String quorumDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", quorumID[j]);
-                String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", quorumID[j]);
-
-                File quorumDataFolder = new File(DATA_PATH + quorumDidIpfsHash + "/");
-                if (!quorumDataFolder.exists()) {
-                    quorumDataFolder.mkdirs();
-                    IPFSNetwork.getImage(quorumDidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/DID.png" );
-                    IPFSNetwork.getImage(quorumWidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/PublicShare.png" );
-                    InitiatorConsensusLogger.debug("Quorum Data " + quorumID[j] + " Added");
-                }
-                else
-                    InitiatorConsensusLogger.debug("Quorum Data " + quorumID[j] + " Available");
-            }
 
 
 
             Thread[] quorumThreads = new Thread[quorumPeersObject.length()];
             for (int i = 0; i < quorumPeersObject.length(); i++) {
                 int j = i;
-                int k = i+1;
                 quorumThreads[i] = new Thread(() -> {
 
                     try {
                         swarmConnect(quorumID[j],ipfs);
+                        String quorumDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", quorumID[j]);
+                        String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", quorumID[j]);
+                        nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
                         String appName = quorumID[j].concat("consensus");
                         forward(appName, PORT+j, quorumID[j]);
                         InitiatorConsensusLogger.debug("Connected to " + quorumID[j] + "on AppName" + appName);
@@ -147,12 +131,6 @@ public class InitiatorConsensus {
                         } else {
 
                             String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",quorumID[j]);
-
-                            BufferedImage didImage = ImageIO.read(new File(DATA_PATH + didHash + "/DID.png"));
-                            BufferedImage widImage = ImageIO.read(new File(DATA_PATH + didHash + "/PublicShare.png"));
-
-                            String decentralisedID = PropImage.img2bin(didImage);
-                            String walletID = PropImage.img2bin(widImage);
 
                             JSONObject detailsToVerify = new JSONObject();
                             detailsToVerify.put("did", didHash);
@@ -196,8 +174,6 @@ public class InitiatorConsensus {
             }
         } catch (JSONException e) {
             InitiatorConsensusLogger.error("JSON Exception Occurred", e);
-            e.printStackTrace();
-        } catch (IOException e) {
             e.printStackTrace();
         }
     }

@@ -55,8 +55,6 @@ public class TokenReceiver {
         String receiverPeerID = getPeerID(DATA_PATH + "DID.json");
 
         String receiverDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", receiverPeerID);
-        BufferedImage receiverWidImage = ImageIO.read(new File(DATA_PATH + receiverDidIpfsHash + "/PublicShare.png"));
-        String receiverWidBin = PropImage.img2bin(receiverWidImage);
 
         listen(receiverPeerID, RECEIVER_PORT);
         ServerSocket ss = new ServerSocket(RECEIVER_PORT);

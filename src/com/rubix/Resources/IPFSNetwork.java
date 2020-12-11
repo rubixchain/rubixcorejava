@@ -27,7 +27,6 @@ public class IPFSNetwork {
      * This method create libp2p service and forward connections made to target-address.
      * target-address here is /ip4/127.0.0.1/tcp/port
      * See <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-p2p-listen"> ipfs p2p listen </a> for more
-     *
      */
 
 
@@ -61,7 +60,7 @@ public class IPFSNetwork {
      * See <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-swarm-connect"> ipfs swarm connect </a> for more
      *
      * @param peerid is the multiaddr of the node
-     * @param ipfs IPFS instance
+     * @param ipfs   IPFS instance
      */
 
 
@@ -69,6 +68,7 @@ public class IPFSNetwork {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String bootNode;
         int j;
+
         try {
             if (!ipfs.swarm.peers().toString().contains(peerid)) {
                 Random ran = new Random();
@@ -88,26 +88,28 @@ public class IPFSNetwork {
                 }
                 MultiAddress multiAddress = new MultiAddress("/p2p/" + bootNode + "/p2p-circuit/p2p/" + peerid);
                 String output = swarmConnectProcess(multiAddress);
-                if(!output.contains("success"))
+                if (!output.contains("success"))
                     swarmConnect(peerid, ipfs);
                 else
                     IPFSNetworkLogger.debug("Connected via bootstrap node: " + bootNode);
-            }
-            else
+            } else {
                 IPFSNetworkLogger.debug("Connecting to Receiver directly");
+
+            }
         } catch (IOException e) {
             IPFSNetworkLogger.error("IOException Occurred", e);
             e.printStackTrace();
         }
+
     }
 
     /**
      * This function connects the peer node through the private swarm
+     *
      * @param multiAddress Peer Identity of the node
      * @return Connection status
      */
-    public static String swarmConnectProcess(MultiAddress multiAddress)
-    {
+    public static String swarmConnectProcess(MultiAddress multiAddress) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String OS = getOsName();
         String command = "ipfs swarm connect " + multiAddress;
@@ -120,7 +122,7 @@ public class IPFSNetwork {
                 sb.append(line);
                 sb.append("\n");
             }
-            IPFSNetworkLogger.debug(command + " output: "+ sb.toString());
+            IPFSNetworkLogger.debug(command + " output: " + sb.toString());
             if (!OS.contains("Windows"))
                 P.waitFor();
             br.close();
@@ -141,7 +143,7 @@ public class IPFSNetwork {
      * See <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-add"> ipfs add </a> for more
      *
      * @param fileName is the the path to a file to be added to ipfs
-     * @param ipfs IPFS instance
+     * @param ipfs     IPFS instance
      * @return String ipfs hash of the file added
      */
 
@@ -170,7 +172,7 @@ public class IPFSNetwork {
      * See <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-pin-add"> ipfs pin add</a> for more
      *
      * @param MultiHash ipfspath of object to be pinned
-     * @param ipfs IPFS instance
+     * @param ipfs      IPFS instance
      */
 
 
@@ -195,7 +197,7 @@ public class IPFSNetwork {
      * ee <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-pin-rm"> ipfs pin rm </a> for more
      *
      * @param MultiHash ipfspath of object to be pinned
-     * @param ipfs IPFS instance
+     * @param ipfs      IPFS instance
      */
 
     public static void unpin(String MultiHash, IPFS ipfs) {
@@ -221,7 +223,7 @@ public class IPFSNetwork {
      * See <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-get"> ipfs get </a> for more
      *
      * @param MultiHash The path to the IPFS object(s) to be outputted
-     * @param ipfs IPFS instance
+     * @param ipfs      IPFS instance
      * @return the contents inside the file in string format
      */
 
@@ -241,9 +243,10 @@ public class IPFSNetwork {
 
     /**
      * IPFS get for images
+     *
      * @param MultiHash IPFS hash of the image
-     * @param ipfs IPFS instance
-     * @param path Path to save the image
+     * @param ipfs      IPFS instance
+     * @param path      Path to save the image
      * @throws IOException handles IO Exception
      */
     public static void getImage(String MultiHash, IPFS ipfs, String path) throws IOException {
@@ -281,38 +284,47 @@ public class IPFSNetwork {
         }
     }
 
-
     /**
      * This method perform ipfs CLI command and returns the CLI output
      *
      * @param command CLI command to be executed
-     *
      */
 
     public static void executeIPFSCommands(String command) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String OS = getOsName();
-        String[] args;
+        String[] commands = new String[3];
+        if(OS.contains("Mac") || OS.contains("Linux")){
+
+            commands[0] = "bash";
+            commands[1] = "-c";
+            commands[2] = "export PATH=/usr/local/bin:$PATH &&" + command;
+        }else if(OS.contains("Windows")){
+            commands[0] = "cmd.exe";
+            commands[1] = "/c";
+            commands[2] = command;
+        }
+        ProcessBuilder p;
+
         try {
+            Process process;
             if (command.contains(daemon)) {
-                Process P = Runtime.getRuntime().exec(command);
+                p = new ProcessBuilder(commands);
+                process = p.start();
                 Thread.sleep(7000);
                 IPFSNetworkLogger.debug("Daemon is running");
+
             }
+
             if (command.contains(listen) || command.contains(forward) || command.contains(p2p) || command.contains(shutdown)) {
-                StringBuilder sb = new StringBuilder();
-                String line;
-                Process P = Runtime.getRuntime().exec(command);
-                BufferedReader br = new BufferedReader(new InputStreamReader(P.getInputStream()));
-                while ((line = br.readLine()) != null) {
-                    sb.append(line);
-                    sb.append("\n");
-                }
-                if (!OS.contains("Windows"))
-                    P.waitFor();
-                br.close();
-                P.destroy();
+                p = new ProcessBuilder(commands);
+                process = p.start();
+                if(OS.contains("Mac") || OS.contains("Linux"))
+                    process.waitFor();
             }
+
+
+
         } catch (IOException e) {
             IPFSNetworkLogger.error("IOException Occurred", e);
             e.printStackTrace();

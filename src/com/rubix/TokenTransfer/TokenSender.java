@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.*;
@@ -37,25 +38,28 @@ public class TokenSender {
     private static Socket senderSocket;
     private static boolean senderMutex = false, consensusStatus = false;
     private static ArrayList quorumPeersList;
+    private static final String USER_AGENT = "Mozilla/5.0";
 
     /**
-     *  A sender node to transfer tokens
+     * A sender node to transfer tokens
+     *
      * @param data Details required for tokenTransfer
      * @param ipfs IPFS instance
      * @param port Sender port for communication
      * @return Transaction Details (JSONObject)
-     * @throws IOException handles IO Exceptions
-     * @throws JSONException handles JSON Exceptions
+     * @throws IOException              handles IO Exceptions
+     * @throws JSONException            handles JSON Exceptions
      * @throws NoSuchAlgorithmException handles No Such Algorithm Exceptions
      */
-    public static JSONObject Send(String data, IPFS ipfs, int port) throws IOException, JSONException {
+    public static JSONObject Send(String data, IPFS ipfs, int port) throws Exception {
 
         JSONObject APIResponse = new JSONObject();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-
+        String receiverPeerId;
         JSONObject detailsObject = new JSONObject(data);
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
+        int amount = detailsObject.getInt("amount");
         String comment = detailsObject.getString("comment");
         JSONArray tokens = detailsObject.getJSONArray("tokens");
         JSONArray tokenHeader = detailsObject.getJSONArray("tokenHeader");
@@ -65,12 +69,6 @@ public class TokenSender {
 
         BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
         String senderWidBin = PropImage.img2bin(senderWidImage);
-
-        String receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
-        String receiverWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", receiverDidIpfsHash);
-        nodeData(receiverDidIpfsHash, receiverWidIpfsHash, ipfs);
-        BufferedImage receiverWidImage = ImageIO.read(new File(DATA_PATH + receiverDidIpfsHash + "/PublicShare.png"));
-        String receiverWidBin = PropImage.img2bin(receiverWidImage);
 
 
         JSONObject quorumDidObject = null;
@@ -149,8 +147,15 @@ public class TokenSender {
             DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
             Date date = new Date();
             LocalDate currentTime = LocalDate.parse(formatter.format(date).replace("/", "-"));
+            receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
 
+            TokenSenderLogger.debug("Swarm connecting to " + receiverPeerId);
             swarmConnect(receiverPeerId, ipfs);
+            TokenSenderLogger.debug("Swarm connected");
+
+            String receiverWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", receiverDidIpfsHash);
+            nodeData(receiverDidIpfsHash, receiverWidIpfsHash, ipfs);
+
             forward(receiverPeerId, port, receiverPeerId);
 
             TokenSenderLogger.debug("Forwarded to " + receiverPeerId + " on " + port);
@@ -162,6 +167,7 @@ public class TokenSender {
             long startTime = System.currentTimeMillis();
 
             output.println(senderPeerID);
+            TokenSenderLogger.debug("Sent PeerID");
             while ((peerAuth = input.readLine()) == null) {
                 forward(receiverPeerId, port, receiverPeerId);
                 senderSocket = new Socket("127.0.0.1", port);
@@ -264,33 +270,7 @@ public class TokenSender {
                     unpin(String.valueOf(tokens.get(i)), ipfs);
 
                 repo(ipfs);
-                if (!EXPLORER_IP.contains("127.0.0.1")) {
-                    URL obj = new URL(EXPLORER_IP);
-                    JSONObject dataToSend = new JSONObject();
-                    dataToSend.put("transaction_id", tid);
-                    dataToSend.put("sender_did", senderDidIpfsHash);
-                    dataToSend.put("receiver_did", receiverDidIpfsHash);
-                    dataToSend.put("token_id", tokens.toString());
-                    dataToSend.put("total_time", totalTime);
-                    String populate = dataToSend.toString();
 
-                    HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-
-                    con.setRequestMethod("POST");
-                    con.setRequestProperty("User-Agent", "signer");
-                    con.setRequestProperty("Content-Type", "application/json");
-
-                    con.setDoOutput(true);
-
-                    DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-                    wr.writeBytes(populate);
-                    wr.flush();
-                    wr.close();
-                    int responseCode = con.getResponseCode();
-                    TokenSenderLogger.debug("Sending 'POST' request to URL : " + EXPLORER_IP);
-                    TokenSenderLogger.debug("Post Data : " + populate);
-                    TokenSenderLogger.info("Response code " + responseCode);
-                }
 
             }
             TokenSenderLogger.debug("Unpinned Tokens");
@@ -321,6 +301,7 @@ public class TokenSender {
                 String respAuth = input.readLine();
 
                 if (!respAuth.equals("Send Response")) {
+
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                     output.close();
                     input.close();
@@ -354,7 +335,66 @@ public class TokenSender {
 
                     for (int i = 0; i < tokens.length(); i++)
                         Files.deleteIfExists(Paths.get(TOKENS_PATH + tokens.get(i)));
+
+
+                    //Populating data to explorer
+                    if(!EXPLORER_IP.contains("127.0.0.1")) {
+                        List<String> tokenList = new ArrayList<>();
+                        for (int i = 0; i < tokens.length(); i++)
+                            tokenList.add(tokens.getString(i));
+                        String url = EXPLORER_IP.concat("/api/services/app/Rubix/CreateOrUpdateRubixTransaction");
+                        URL obj = new URL(url);
+                        HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+                        // Setting basic post request
+                        con.setRequestMethod("POST");
+                        con.setRequestProperty("User-Agent", USER_AGENT);
+                        con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+                        con.setRequestProperty("Accept", "application/json");
+                        con.setRequestProperty("Content-Type", "application/json");
+                        con.setRequestProperty("Authorization", "null");
+
+                        // Serialization
+                        JSONObject dataToSend = new JSONObject();
+                        dataToSend.put("transaction_id", tid);
+                        dataToSend.put("sender_did", senderDidIpfsHash);
+                        dataToSend.put("receiver_did", receiverDidIpfsHash);
+                        dataToSend.put("token_id", tokenList);
+                        dataToSend.put("token_time", (int) totalTime);
+                        dataToSend.put("amount", amount);
+                        String populate = dataToSend.toString();
+
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("InputString", populate);
+                        String postJsonData = jsonObject.toString();
+
+                        // Send post request
+                        con.setDoOutput(true);
+                        DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+                        wr.writeBytes(postJsonData);
+                        wr.flush();
+                        wr.close();
+
+                        int responseCode = con.getResponseCode();
+                        TokenSenderLogger.debug("Sending 'POST' request to URL : " + url);
+                        TokenSenderLogger.debug("Post Data : " + postJsonData);
+                        TokenSenderLogger.debug("Response Code : " + responseCode);
+
+                        BufferedReader in = new BufferedReader(
+                                new InputStreamReader(con.getInputStream()));
+                        String output;
+                        StringBuffer response = new StringBuffer();
+
+                        while ((output = in.readLine()) != null) {
+                            response.append(output);
+                        }
+                        in.close();
+
+                        TokenSenderLogger.debug(response.toString());
+                    }
                     TokenSenderLogger.info("Transaction Successful");
+
+
 
                 }
 

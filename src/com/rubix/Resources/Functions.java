@@ -44,25 +44,32 @@ public class Functions {
     public static String EXPLORER_IP = "";
     public static String USERDID_IP = "";
     public static String configPath = "";
+    public static String dirPath = "";
     public static boolean CONSENSUS_STATUS;
     public static JSONObject QUORUM_MEMBERS;
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
+    public static void setDir(){
+        String OSName = getOsName();
+        if (OSName.contains("Windows"))
+            dirPath = "C:\\Rubix\\";
+        else if (OSName.contains("Mac"))
+            dirPath = "/Applications/Rubix/";
+        else if (OSName.contains("Linux"))
+            dirPath = "/home/" + getSystemUser() + "/Rubix/";
+        else
+            System.exit(0);
+    }
+    public static void setConfig(){
+        setDir();
+        configPath = dirPath.concat("config.json");
+    }
     /**
      * This method sets the required paths used in the functions
      */
     public static void pathSet() {
-        String OSName = getOsName();
-        if (OSName.contains("Windows"))
-            configPath = "C:\\Rubix\\config.json";
-        else if (OSName.contains("Mac"))
-            configPath = "/Applications/Rubix/config.json";
-        else if (OSName.contains("Linux"))
-            configPath = "/home/" + getSystemUser() + "/Rubix/config.json/";
-        else
-            System.exit(0);
-
+        setConfig();
         String configFileContent = readFile(configPath);
 
         JSONArray pathsArray;
@@ -106,11 +113,25 @@ public class Functions {
     }
 
     public static void nodeData(String did, String wid, IPFS ipfs) throws IOException {
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         File dataFolder = new File(DATA_PATH + did + "/");
         if (!dataFolder.exists()) {
             dataFolder.mkdirs();
             IPFSNetwork.getImage(did, ipfs, DATA_PATH + did + "/DID.png" );
             IPFSNetwork.getImage(wid, ipfs, DATA_PATH + did + "/PublicShare.png" );
+        }
+        else{
+            String didHash = add(DATA_PATH + did + "/DID.png", ipfs);
+            String widHash = add(DATA_PATH + did + "/PublicShare.png", ipfs);
+            if(!didHash.equals(did) || !widHash.equals(wid)){
+                FunctionsLogger.debug("New DID Created for user " + did);
+                File didFile = new File(DATA_PATH + did + "/DID.png");
+                File widFile = new File(DATA_PATH + did + "/PublicShare.png");
+                didFile.delete();
+                widFile.delete();
+                IPFSNetwork.getImage(did, ipfs, DATA_PATH + did + "/DID.png" );
+                IPFSNetwork.getImage(wid, ipfs, DATA_PATH + did + "/PublicShare.png" );
+            }
         }
     }
 
@@ -125,7 +146,19 @@ public class Functions {
         Process processID;
         String lineID = "";
         try {
-            processID = Runtime.getRuntime().exec("whoami");
+            String OS = getOsName();
+            String[] command = new String[3];
+            if(OS.contains("Mac") || OS.contains("Linux")){
+                command[0] = "bash";
+                command[1] = "-c";
+            }
+            else if(OS.contains("Windows")){
+                command[0] = "cmd.exe";
+                command[1] = "/c";
+            }
+            command[2] = "whoami";
+
+            processID = Runtime.getRuntime().exec(command);
             InputStreamReader inputStreamReader = new InputStreamReader(processID.getInputStream());
             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
             lineID = bufferedReader.readLine();
@@ -690,6 +723,7 @@ public class Functions {
             executeIPFSCommands("ipfs daemon");
             if(!SYNC_IP.contains("127.0.0.1")){
                 networkInfo();
+                syncFlag = 1;
             }
 
         } catch (MalformedURLException e) {
@@ -701,11 +735,106 @@ public class Functions {
         } catch (IOException e) {
             FunctionsLogger.error("IO Exception Occurred", e);
             e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
         if (syncFlag == 1)
             FunctionsLogger.info("Synced Successfully!");
         else
             FunctionsLogger.info("Not synced! Try again after sometime.");
+    }
+
+    /**
+     * This function checks if the Rubix Working Directory is present or not
+     * @return A message
+     * @throws JSONException handle all JSON Exceptions
+     */
+    public static String checkDirectory() throws JSONException {
+        setDir();
+        File mainDir = new File(dirPath);
+        if (!mainDir.exists()) {
+            mainDir.delete();
+            JSONObject result = new JSONObject();
+            result.put("message", "User not registered, create your Decentralised Identity!");
+            result.put("info", "Main Directory Missing");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+        setConfig();
+        File configFile = new File(configPath);
+
+        if (!configFile.exists()) {
+            configFile.delete();
+            JSONObject result = new JSONObject();
+            result.put("message", "User not registered, create your Decentralised Identity!");
+            result.put("info", "Config File Missing");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+
+        pathSet();
+        File dataFolder = new File(DATA_PATH);
+        File loggerFolder = new File(LOGGER_PATH);
+        File tokensFolder = new File(TOKENS_PATH);
+        File tokenChainsFolder = new File(TOKENCHAIN_PATH);
+        File walletDataFolder = new File(WALLET_DATA_PATH);
+
+        if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists() || !walletDataFolder.exists()) {
+            dataFolder.delete();
+            loggerFolder.delete();
+            tokenChainsFolder.delete();
+            tokensFolder.delete();
+            walletDataFolder.delete();
+            JSONObject result = new JSONObject();
+            result.put("message", "User not registered, create your Decentralised Identity!");
+            result.put("info", "Inner Folders Missing");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+
+        File didFile = new File(DATA_PATH + "DID.json");
+        File dataTable = new File(DATA_PATH + "DataTable.json");
+        if(!didFile.exists() || !dataTable.exists()){
+            didFile.delete();
+            dataTable.delete();
+            JSONObject result = new JSONObject();
+            result.put("message", "User not registered, create your Decentralised Identity!");
+            result.put("nfo", "DID / Datatable File Missing ");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+
+        String didContent = readFile(DATA_PATH + "DID.json");
+        JSONArray didArray = new JSONArray(didContent);
+        String myDID = didArray.getJSONObject(0).getString("didHash");
+
+        File didFolder = new File(DATA_PATH + myDID + "/");
+        if(!didFolder.exists()){
+            didFolder.delete();
+            JSONObject result = new JSONObject();
+            result.put("message", "User not registered, create your Decentralised Identity!");
+            result.put("info", "DID Folder Missing");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+
+        File didImage = new File(DATA_PATH + myDID + "/DID.png");
+        File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
+        File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
+        if(!didImage.exists() || !widImage.exists() || !pvtImage.exists()){
+            didImage.delete();
+            didImage.delete();
+            didImage.delete();
+            JSONObject result = new JSONObject();
+            result.put("message", "User not registered, create your Decentralised Identity!");
+            result.put("info", "Shares Images Missing");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+        JSONObject returnObject = new JSONObject();
+        returnObject.put("message", "User successfully registered!");
+        returnObject.put("status", "Success");
+        return returnObject.toString();
     }
 }
 
