@@ -1,5 +1,6 @@
 package com.rubix.Resources;
 
+import com.rubix.TokenTransfer.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
 import io.ipfs.api.IPFS;
 import io.ipfs.api.Peer;
@@ -34,6 +35,9 @@ public class APIHandler {
      * @throws NoSuchAlgorithmException handles Invalid Algorithms Exceptions
      * @throws IOException handles IO Exceptions
      */
+
+
+
     public static JSONObject send(String data) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -78,6 +82,24 @@ public class APIHandler {
         APILogger.info(sendMessage);
         return sendMessage;
     }
+
+
+    public static JSONObject create() throws Exception {
+        Functions.pathSet();
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        networkInfo();
+        String senderPeerID = getPeerID(DATA_PATH + "DID.json");
+        String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+
+        JSONObject sendMessage = new JSONObject();
+        JSONObject detailsObject = new JSONObject();
+        detailsObject.put("receiverDidIpfsHash", senDID);
+        detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        sendMessage =  ProofCredits.create(detailsObject.toString(), ipfs);
+        APILogger.info(sendMessage);
+        return sendMessage;
+    }
+
 
     /**
      * A call to get details of a transaction given its ID

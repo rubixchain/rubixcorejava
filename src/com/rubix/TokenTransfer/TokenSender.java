@@ -33,12 +33,13 @@ import static com.rubix.Resources.IPFSNetwork.*;
 
 public class TokenSender {
     private static final Logger TokenSenderLogger = Logger.getLogger(TokenSender.class);
+    private static final String USER_AGENT = "Mozilla/5.0";
+    public static BufferedReader serverInput;
     private static PrintStream output;
     private static BufferedReader input;
     private static Socket senderSocket;
     private static boolean senderMutex = false, consensusStatus = false;
     private static ArrayList quorumPeersList;
-    private static final String USER_AGENT = "Mozilla/5.0";
 
     /**
      * A sender node to transfer tokens
@@ -70,11 +71,32 @@ public class TokenSender {
         BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
         String senderWidBin = PropImage.img2bin(senderWidImage);
 
-
-        JSONObject quorumDidObject = null;
         if (CONSENSUS_STATUS) {
-            quorumDidObject = QUORUM_MEMBERS;
-            quorumPeersList = QuorumCheck(quorumDidObject, ipfs);
+            //  quorumDidObject = QUORUM_MEMBERS;
+
+//            String userUrl = SYNC_IP+"/getQuorum?id="+senderPeerID;
+//            URL userObj = new URL(userUrl);
+//            HttpURLConnection userCon = (HttpURLConnection) userObj.openConnection();
+//
+//            userCon.setRequestMethod("GET");
+//            userCon.setRequestProperty("User-Agent", USER_AGENT);
+//            userCon.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+//            userCon.setRequestProperty("Accept", "application/json");
+//            userCon.setRequestProperty("Content-Type", "application/json");
+//            userCon.setRequestProperty("Authorization", "null");
+//
+//            serverInput = new BufferedReader(new InputStreamReader(userCon.getInputStream()));
+//            String userResponse;
+//            StringBuffer quorumList = new StringBuffer();
+//
+//            while ((userResponse = serverInput.readLine()) != null) {
+//                quorumList.append(userResponse);
+//            }
+//            serverInput.close();
+
+            JSONArray quorumArray = new JSONArray(readFile(DATA_PATH+"quorumlist.json"));
+
+            quorumPeersList = QuorumCheck(quorumArray, ipfs);
             if (quorumPeersList == null) {
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", "null");
@@ -193,6 +215,10 @@ public class TokenSender {
                 output.println(tokenDetails);
 
             String tokenAuth = input.readLine();
+
+            // tokens get confirmed by receiver
+
+
             if (!tokenAuth.equals("200")) {
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                 TokenSenderLogger.info("Tokens Not Verified");
@@ -220,11 +246,17 @@ public class TokenSender {
                 dataObject.put("pvt", pvt);
                 dataObject.put("senderDidIpfs", senderDidIpfsHash);
                 dataObject.put("token", tokens.toString());
-                dataObject.put("quorumlist", quorumPeersList);
+                dataObject.put("alphaList", quorumPeersList.subList(0,7));
+                dataObject.put("betaList", quorumPeersList.subList(7,14));
+                dataObject.put("gammaList", quorumPeersList.subList(14,21));
+
+                TokenSenderLogger.debug("dataobject "+dataObject.toString());
 
                 InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3);
                 TokenSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count " + InitiatorConsensus.quorumResponse);
-                if (!(InitiatorConsensus.quorumResponse > minQuorum())) {
+                if (!(InitiatorConsensus.quorumSignature.length() >= 3*minQuorum(7))) {
+
+                    //  if (!(InitiatorProcedure.alphaReply.length() >= minQuorum(7))) {
                     TokenSenderLogger.debug("Consensus Failed");
                     output.println("Consensus failed");
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
@@ -251,7 +283,6 @@ public class TokenSender {
 
             long endAuth = System.currentTimeMillis();
             long totalTime = endAuth - startTime;
-            long startUnpin = System.currentTimeMillis();
             if (!signatureAuth.equals("200")) {
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                 TokenSenderLogger.info("Authentication Failed");
@@ -320,7 +351,7 @@ public class TokenSender {
                     transactionRecord.put("role", "Sender");
                     transactionRecord.put("tokens", tokens);
                     transactionRecord.put("txn", tid);
-                    transactionRecord.put("quorumList", quorumDidObject);
+                    transactionRecord.put("quorumList", quorumPeersList);
                     transactionRecord.put("senderDID", senderDidIpfsHash);
                     transactionRecord.put("receiverDID", receiverDidIpfsHash);
                     transactionRecord.put("Date", currentTime);
@@ -393,8 +424,6 @@ public class TokenSender {
                         TokenSenderLogger.debug(response.toString());
                     }
                     TokenSenderLogger.info("Transaction Successful");
-
-
 
                 }
 

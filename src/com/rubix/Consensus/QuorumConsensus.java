@@ -35,12 +35,14 @@ public class QuorumConsensus implements Runnable {
 
     int port;
     IPFS ipfs;
+    String role;
+    int round;
 
-    // pass username also
-
-    public QuorumConsensus(){
-        this.port = QUORUM_PORT;
+    public QuorumConsensus(String role,int port,int round){
+        this.role = role;
+        this.port = port;
         this.ipfs=new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
+        this.round=round;
     }
 
 
@@ -48,6 +50,7 @@ public class QuorumConsensus implements Runnable {
     public void run() {
         while (true) {
             PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+            boolean integrityCheck=true;
             String temp, peerID, transactionID, verifySenderHash, receiverDID, appName, senderPrivatePos, senderDidIpfsHash="", senderPID = "";
             ServerSocket serverSocket = null;
             Socket socket = null;
@@ -55,11 +58,11 @@ public class QuorumConsensus implements Runnable {
 
                 peerID = getPeerID(DATA_PATH + "DID.json");
                 String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
-                appName = peerID.concat("consensus");
+                appName = peerID.concat(role).concat(String.valueOf(round));
 
                 listen(appName, port);
 
-                QuorumConsensusLogger.debug("Quorum Listening on " + port);
+                QuorumConsensusLogger.debug("Quorum Listening on " + port + " appname "+appName);
                  serverSocket = new ServerSocket(port);
                  socket = serverSocket.accept();
 
@@ -88,27 +91,28 @@ public class QuorumConsensus implements Runnable {
                 detailsToVerify.put("hash", verifySenderHash);
                 detailsToVerify.put("signature", senderPrivatePos);
 
-                if (Authenticate.verifySignature(detailsToVerify.toString())) {
+                if (Authenticate.verifySignature(detailsToVerify.toString())&&integrityCheck) {
                     QuorumConsensusLogger.debug("Quorum Authenticated Sender");
                     String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png", quorumHash);
                     out.println(QuorumSignature);
-                    String share;
-                    share = in.readLine();
-                    if (!share.equals("null")) { //commented as per test for multiple consensus threads
-                        FileWriter shareWriter = new FileWriter(new File("MyShare.txt"), true);
-                        shareWriter.write(share);
+                    String creditval;
+                    creditval = in.readLine();
+                    QuorumConsensusLogger.debug("credit value "+creditval);
+                    if (!creditval.equals("null")) { //commented as per test for multiple consensus threads
+                        FileWriter shareWriter = new FileWriter(new File("mycredit.txt"), true);
+                        shareWriter.write(creditval);
                         shareWriter.close();
-                        File readShare = new File("MyShare.txt");
-                        String shareHash = add(readShare.toString(), ipfs);
+                        File readCredit = new File("mycredit.txt");
+                        String credit = add(readCredit.toString(), ipfs);
                         JSONObject storeDetailsQuorum = new JSONObject();
                         storeDetailsQuorum.put("tid", transactionID);
                         storeDetailsQuorum.put("sign", QuorumSignature);
-                        storeDetailsQuorum.put("Share", shareHash);
+                        storeDetailsQuorum.put("credits", credit);
                         JSONArray data = new JSONArray();
                         data.put(storeDetailsQuorum);
-                        QuorumConsensusLogger.debug("Quorum Share: " + share);
+                        QuorumConsensusLogger.debug("Quorum Share: " + credit);
                         updateJSON("add",WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
-                        deleteFile("MyShare.txt");
+                        deleteFile("mycredit.txt");
                     }
                 } else {
                     QuorumConsensusLogger.debug("Sender Authentication Failure - Quorum");

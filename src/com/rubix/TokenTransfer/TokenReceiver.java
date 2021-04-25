@@ -47,7 +47,6 @@ public class TokenReceiver {
         int quorumSignVerifyCount = 0;
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
-
         DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
         Date date = new Date();
         LocalDate currentTime = LocalDate.parse(formatter.format(date).replace("/", "-"));
@@ -130,7 +129,6 @@ public class TokenReceiver {
         String tid = SenderDetails.getString("tid");
         String comment = SenderDetails.getString("comment");
 
-
         BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
         SenWalletBin = PropImage.img2bin(senderWidImage);
 
@@ -144,7 +142,9 @@ public class TokenReceiver {
 
                 TokenReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
                 JSONObject quorumSignatures = new JSONObject(QuorumDetails);
-                String selectQuorumHash = calculateHash(SenWalletBin + tokens, "SHA3-256");
+
+                String message = SenWalletBin + tokens;
+                String selectQuorumHash = calculateHash(message, "SHA3-256");
 
                 String verifyQuorumHash = calculateHash(selectQuorumHash.concat(receiverDidIpfsHash), "SHA3-256");
                 TokenReceiverLogger.debug("Quorum Hash on Receiver Side " + verifyQuorumHash);
@@ -217,7 +217,6 @@ public class TokenReceiver {
                 TokenReceiverLogger.debug("Sender and Quorum Verified");
                 output.println("200");
             }
-
 
             String readServer = input.readLine();
             if (readServer.equals("Unpinned")) {

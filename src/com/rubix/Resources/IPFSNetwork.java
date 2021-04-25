@@ -319,6 +319,19 @@ public class IPFSNetwork {
             if (command.contains(listen) || command.contains(forward) || command.contains(p2p) || command.contains(shutdown)) {
                 p = new ProcessBuilder(commands);
                 process = p.start();
+
+                BufferedReader reader =
+                        new BufferedReader(new InputStreamReader(process.getInputStream()));
+                StringBuilder builder = new StringBuilder();
+                String line = null;
+                while ( (line = reader.readLine()) != null) {
+                    builder.append(line);
+                    builder.append(System.getProperty("line.separator"));
+                }
+                String result = builder.toString();
+
+                System.out.println("result "+result+ "for process "+ command);
+
                 if(OS.contains("Mac") || OS.contains("Linux"))
                     process.waitFor();
             }

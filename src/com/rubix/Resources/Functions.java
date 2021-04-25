@@ -7,8 +7,6 @@ import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -35,6 +33,7 @@ public class Functions {
     public static String TOKENCHAIN_PATH = "";
     public static String LOGGER_PATH = "";
     public static String WALLET_DATA_PATH = "";
+    public static String PAYMENTS_PATH = "";
     public static int RECEIVER_PORT, GOSSIP_SENDER, GOSSIP_RECEIVER, QUORUM_PORT, SENDER2Q1, SENDER2Q2, SENDER2Q3, SENDER2Q4, SENDER2Q5, SENDER2Q6, SENDER2Q7;
     public static int QUORUM_COUNT;
     public static int SEND_PORT;
@@ -50,7 +49,7 @@ public class Functions {
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
-    public static void setDir(){
+    public static void setDir() {
         String OSName = getOsName();
         if (OSName.contains("Windows"))
             dirPath = "C:\\Rubix\\";
@@ -61,10 +60,12 @@ public class Functions {
         else
             System.exit(0);
     }
-    public static void setConfig(){
+
+    public static void setConfig() {
         setDir();
         configPath = dirPath.concat("config.json");
     }
+
     /**
      * This method sets the required paths used in the functions
      */
@@ -81,6 +82,7 @@ public class Functions {
             LOGGER_PATH = pathsArray.getJSONObject(0).getString("LOGGER_PATH");
             TOKENCHAIN_PATH = pathsArray.getJSONObject(0).getString("TOKENCHAIN_PATH");
             WALLET_DATA_PATH = pathsArray.getJSONObject(0).getString("WALLET_DATA_PATH");
+            PAYMENTS_PATH = pathsArray.getJSONObject(0).getString("PAYMENTS_PATH");
 
             SEND_PORT = pathsArray.getJSONObject(1).getInt("SEND_PORT");
             RECEIVER_PORT = pathsArray.getJSONObject(1).getInt("RECEIVER_PORT");
@@ -117,20 +119,19 @@ public class Functions {
         File dataFolder = new File(DATA_PATH + did + "/");
         if (!dataFolder.exists()) {
             dataFolder.mkdirs();
-            IPFSNetwork.getImage(did, ipfs, DATA_PATH + did + "/DID.png" );
-            IPFSNetwork.getImage(wid, ipfs, DATA_PATH + did + "/PublicShare.png" );
-        }
-        else{
+            IPFSNetwork.getImage(did, ipfs, DATA_PATH + did + "/DID.png");
+            IPFSNetwork.getImage(wid, ipfs, DATA_PATH + did + "/PublicShare.png");
+        } else {
             String didHash = add(DATA_PATH + did + "/DID.png", ipfs);
             String widHash = add(DATA_PATH + did + "/PublicShare.png", ipfs);
-            if(!didHash.equals(did) || !widHash.equals(wid)){
+            if (!didHash.equals(did) || !widHash.equals(wid)) {
                 FunctionsLogger.debug("New DID Created for user " + did);
                 File didFile = new File(DATA_PATH + did + "/DID.png");
                 File widFile = new File(DATA_PATH + did + "/PublicShare.png");
                 didFile.delete();
                 widFile.delete();
-                IPFSNetwork.getImage(did, ipfs, DATA_PATH + did + "/DID.png" );
-                IPFSNetwork.getImage(wid, ipfs, DATA_PATH + did + "/PublicShare.png" );
+                IPFSNetwork.getImage(did, ipfs, DATA_PATH + did + "/DID.png");
+                IPFSNetwork.getImage(wid, ipfs, DATA_PATH + did + "/PublicShare.png");
             }
         }
     }
@@ -148,11 +149,10 @@ public class Functions {
         try {
             String OS = getOsName();
             String[] command = new String[3];
-            if(OS.contains("Mac") || OS.contains("Linux")){
+            if (OS.contains("Mac") || OS.contains("Linux")) {
                 command[0] = "bash";
                 command[1] = "-c";
-            }
-            else if(OS.contains("Windows")){
+            } else if (OS.contains("Windows")) {
                 command[0] = "cmd.exe";
                 command[1] = "/c";
             }
@@ -269,7 +269,6 @@ public class Functions {
     }
 
 
-
     /**
      * This method writes the mentioned data into the file passed to it
      * This also allows to take a decision on whether or not to append the data to the already existing content in the file
@@ -301,7 +300,7 @@ public class Functions {
      * @param filePath Location of the Private share
      * @param hash     Data to be signed on
      * @return Signature for the data
-     * @throws IOException   Handles IO Exceptions
+     * @throws IOException Handles IO Exceptions
      */
 
     public static String getSignFromShares(String filePath, String hash) throws IOException, JSONException {
@@ -320,9 +319,10 @@ public class Functions {
 
     /**
      * This function will sign on JSON data with private share
+     *
      * @param detailsString Details(JSONObject) to sign on
      * @return Signature
-     * @throws IOException Handles IO Exceptions
+     * @throws IOException   Handles IO Exceptions
      * @throws JSONException Handles JSON Exceptions
      */
     public static String sign(String detailsString) throws IOException, JSONException {
@@ -345,6 +345,7 @@ public class Functions {
 
     /**
      * This function will connect to the receiver
+     *
      * @param connectObjectString Details required for connection[DID, appName]
      * @throws JSONException Handles JSON Exception
      */
@@ -367,6 +368,7 @@ public class Functions {
 
     /**
      * This function will allow for a user to listen on a particular appName
+     *
      * @param connectObject Details required for connection[DID, appName]
      * @throws JSONException Handles JSON Exception
      */
@@ -385,6 +387,7 @@ public class Functions {
 
     /**
      * This function converts any integer to its binary form
+     *
      * @param a An integer
      * @return Binary form of the input integer
      */
@@ -398,6 +401,7 @@ public class Functions {
 
     /**
      * This function converts any binary value to its Decimal form
+     *
      * @param bin Binary value
      * @return Decimal format of the input binary
      */
@@ -475,31 +479,48 @@ public class Functions {
      * @param value    Value of the tag to be compared with
      * @return Data that is fetched from the JSON file
      */
+//    public static String getValues(String filePath, String get, String tagName, String value) {
+//        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+//        String resultString = "";
+//        JSONParser jsonParser = new JSONParser();
+//
+//        try (FileReader reader = new FileReader(filePath)) {
+//            Object obj = jsonParser.parse(reader);
+//            org.json.simple.JSONArray List = (org.json.simple.JSONArray) obj;
+//            for (Object o : List) {
+//                org.json.simple.JSONObject js = (org.json.simple.JSONObject) o;
+//
+//                String itemCompare = js.get(tagName).toString();
+//                if (value.equals(itemCompare)) {
+//                    resultString = js.get(get).toString();
+//                }
+//            }
+//        } catch (ParseException e) {
+//            FunctionsLogger.error("JSON Parser Exception Occurred", e);
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            FunctionsLogger.error("IOException Occurred", e);
+//            e.printStackTrace();
+//        }
+//
+//
+//        return resultString;
+//    }
     public static String getValues(String filePath, String get, String tagName, String value) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String resultString = "";
-        JSONParser jsonParser = new JSONParser();
-
-        try (FileReader reader = new FileReader(filePath)) {
-            Object obj = jsonParser.parse(reader);
-            org.json.simple.JSONArray List = (org.json.simple.JSONArray) obj;
-            for (Object o : List) {
-                org.json.simple.JSONObject js = (org.json.simple.JSONObject) o;
-
-                String itemCompare = js.get(tagName).toString();
-                if (value.equals(itemCompare)) {
-                    resultString = js.get(get).toString();
+        try {
+            JSONArray searchSpace = new JSONArray(readFile(filePath));
+            for (int i = 0; i < searchSpace.length(); i++) {
+                JSONObject temp = searchSpace.getJSONObject(i);
+                if (temp.get(tagName).equals(value)) {
+                    resultString = temp.getString(get);
+                    break;
                 }
             }
-        } catch (ParseException e) {
-            FunctionsLogger.error("JSON Parser Exception Occurred", e);
-            e.printStackTrace();
-        } catch (IOException e) {
-            FunctionsLogger.error("IOException Occurred", e);
+        } catch (JSONException e) {
             e.printStackTrace();
         }
-
-
         return resultString;
     }
 
@@ -514,26 +535,38 @@ public class Functions {
 
     /**
      * This function calculates the minimum number of quorum peers required for consensus to work
+     *
      * @return Minimum number of quorum count for consensus to work
      */
-    public static int minQuorum(){
-        return (((QUORUM_COUNT - 1)/3)*2) + 1;
+    public static int minQuorum() {
+        return (((QUORUM_COUNT - 1) / 3) * 2) + 1;
     }
 
     /**
+     * This function calculates the minimum number of quorum peers required for consensus to work
+     *
+     * @return Minimum number of quorum count for consensus to work
+     */
+    public static int minQuorum(int count) {
+        return (((count - 1) / 3) * 2) + 1;
+    }
+
+
+    /**
      * This method checks if Quorum is available for consensus
+     *
      * @param quorum List of peers
-     * @param ipfs IPFS instance
+     * @param ipfs   IPFS instance
      * @return final list of all available Quorum peers
      */
-    public static ArrayList<String> QuorumCheck(JSONObject quorum, IPFS ipfs) {
+    public static ArrayList<String> QuorumCheck(JSONArray quorum, IPFS ipfs) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         ArrayList<String> peers = new ArrayList<>();
         if (!(quorum.length() < minQuorum() || quorum.length() > QUORUM_COUNT)) {
-            for (int i = 1; i <= quorum.length(); i++) {
+            for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
-                    quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString("QUORUM_" + i));
+                    quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
                     if (ipfs.swarm.peers().toString().contains(quorumPeer)) {
                         peers.add(quorumPeer);
                         FunctionsLogger.debug(quorumPeer);
@@ -639,7 +672,7 @@ public class Functions {
         resultObject.put("originalPos", originalPos);
         resultObject.put("posForSign", posForSign);
         long et = System.currentTimeMillis();
-        FunctionsLogger.debug("Time taken for randomPositions Calculation " + (et-st));
+        FunctionsLogger.debug("Time taken for randomPositions Calculation " + (et - st));
         return resultObject;
     }
 
@@ -721,7 +754,7 @@ public class Functions {
         int syncFlag = 0;
         try {
             executeIPFSCommands("ipfs daemon");
-            if(!SYNC_IP.contains("127.0.0.1")){
+            if (!SYNC_IP.contains("127.0.0.1")) {
                 networkInfo();
                 syncFlag = 1;
             }
@@ -746,6 +779,7 @@ public class Functions {
 
     /**
      * This function checks if the Rubix Working Directory is present or not
+     *
      * @return A message
      * @throws JSONException handle all JSON Exceptions
      */
@@ -794,7 +828,7 @@ public class Functions {
 
         File didFile = new File(DATA_PATH + "DID.json");
         File dataTable = new File(DATA_PATH + "DataTable.json");
-        if(!didFile.exists() || !dataTable.exists()){
+        if (!didFile.exists() || !dataTable.exists()) {
             didFile.delete();
             dataTable.delete();
             JSONObject result = new JSONObject();
@@ -809,7 +843,7 @@ public class Functions {
         String myDID = didArray.getJSONObject(0).getString("didHash");
 
         File didFolder = new File(DATA_PATH + myDID + "/");
-        if(!didFolder.exists()){
+        if (!didFolder.exists()) {
             didFolder.delete();
             JSONObject result = new JSONObject();
             result.put("message", "User not registered, create your Decentralised Identity!");
@@ -821,7 +855,7 @@ public class Functions {
         File didImage = new File(DATA_PATH + myDID + "/DID.png");
         File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
         File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
-        if(!didImage.exists() || !widImage.exists() || !pvtImage.exists()){
+        if (!didImage.exists() || !widImage.exists() || !pvtImage.exists()) {
             didImage.delete();
             didImage.delete();
             didImage.delete();
@@ -835,6 +869,13 @@ public class Functions {
         returnObject.put("message", "User successfully registered!");
         returnObject.put("status", "Success");
         return returnObject.toString();
+    }
+
+    public static String mineToken(int level, int tokenNumber) {
+        String tokenHash = calculateHash(String.valueOf(tokenNumber), "SHA-256");
+        String levelHex = Integer.toHexString(level);
+        String token = levelHex + tokenHash;
+        return token;
     }
 }
 
