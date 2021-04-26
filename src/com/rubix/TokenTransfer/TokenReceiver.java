@@ -254,9 +254,10 @@ public class TokenReceiver {
                     JSONArray arr1 = new JSONArray(allTokenChainContent.get(i));
                     JSONObject obj2 = new JSONObject();
                     obj2.put("senderSign", senderSignature);
-                    obj2.put("peer-id", senderPeerID);
+                    obj2.put("sender", senderDidIpfsHash);
                     obj2.put("group", groupTokens);
                     obj2.put("comment", comment);
+                    obj2.put("tid",tid);
                     arr1.put(obj2);
                     writeToFile(TOKENCHAIN_PATH + tokens.getString(i) + ".json", arr1.toString(), false);
                 }
