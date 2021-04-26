@@ -45,6 +45,8 @@ public class TokenReceiver {
         pathSet();
 
         int quorumSignVerifyCount = 0;
+
+        ArrayList<String> quorumDID = new ArrayList<>();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
@@ -151,7 +153,6 @@ public class TokenReceiver {
                 TokenReceiverLogger.debug("Quorum Signatures length : " + quorumSignatures.length());
 
                 Iterator<String> keys = quorumSignatures.keys();
-                ArrayList<String> quorumDID = new ArrayList<>();
                 while (keys.hasNext()) {
                     String key = keys.next();
                     quorumDID.add(key);
@@ -266,7 +267,7 @@ public class TokenReceiver {
                 transactionRecord.put("role", "Receiver");
                 transactionRecord.put("tokens", tokens);
                 transactionRecord.put("txn", tid);
-                transactionRecord.put("quorumList", QUORUM_MEMBERS);
+                transactionRecord.put("quorumList", quorumDID);
                 transactionRecord.put("senderDID", senderDidIpfsHash);
                 transactionRecord.put("receiverDID", receiverDidIpfsHash);
                 transactionRecord.put("Date", currentTime);
