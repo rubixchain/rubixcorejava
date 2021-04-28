@@ -91,7 +91,7 @@ public class QuorumConsensus implements Runnable {
                 detailsToVerify.put("hash", verifySenderHash);
                 detailsToVerify.put("signature", senderPrivatePos);
 
-                if (Authenticate.verifySignature(detailsToVerify.toString())&&integrityCheck) {
+                if (Authenticate.verifySignature(detailsToVerify.toString())&&integrityCheck(transactionID)) {
                     QuorumConsensusLogger.debug("Quorum Authenticated Sender");
                     String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png", quorumHash);
                     out.println(QuorumSignature);
@@ -106,8 +106,10 @@ public class QuorumConsensus implements Runnable {
                         String credit = add(readCredit.toString(), ipfs);
                         JSONObject storeDetailsQuorum = new JSONObject();
                         storeDetailsQuorum.put("tid", transactionID);
-                        storeDetailsQuorum.put("sign", QuorumSignature);
+                        storeDetailsQuorum.put("minestatus",false);
+                        storeDetailsQuorum.put("sign", senderPrivatePos);
                         storeDetailsQuorum.put("credits", credit);
+                        storeDetailsQuorum.put("senderdid",senderDidIpfsHash);
                         JSONArray data = new JSONArray();
                         data.put(storeDetailsQuorum);
                         QuorumConsensusLogger.debug("Quorum Share: " + credit);

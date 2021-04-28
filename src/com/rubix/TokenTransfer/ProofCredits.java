@@ -70,8 +70,10 @@ public class ProofCredits {
         JSONArray prooftid = new JSONArray();
         for (int i = 0; i < reqProofCredits; i++) {
             JSONObject temp = records.getJSONObject(i);
-            records.remove(i);
-            prooftid.put(temp.getString("tid"));
+            if(temp.getBoolean("minestatus")==false) {
+                prooftid.put(temp.getString("tid"));
+                records.getJSONObject(i).put("minestatus",true);
+            }
         }
 
         balance -= prooftid.length();

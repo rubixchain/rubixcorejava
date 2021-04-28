@@ -877,5 +877,17 @@ public class Functions {
         String token = levelHex + tokenHash;
         return token;
     }
+
+    public static Boolean integrityCheck(String tid){
+        File file = new File(WALLET_DATA_PATH+"QuorumSignedTransactions.json");
+        if(file.exists()) {
+            if (getValues(file.getAbsolutePath(), "senderdid", "tid", tid).equals(""))
+                return true;
+            else
+                return false;
+        }
+        else
+            return false;
+    }
 }
 

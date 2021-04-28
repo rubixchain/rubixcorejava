@@ -61,9 +61,11 @@ public class TokenSender {
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
         int amount = detailsObject.getInt("amount");
+        int type = detailsObject.getInt("type");
         String comment = detailsObject.getString("comment");
         JSONArray tokens = detailsObject.getJSONArray("tokens");
         JSONArray tokenHeader = detailsObject.getJSONArray("tokenHeader");
+        JSONArray quorumArray;
 
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
@@ -72,29 +74,48 @@ public class TokenSender {
         String senderWidBin = PropImage.img2bin(senderWidImage);
 
         if (CONSENSUS_STATUS) {
-            //  quorumDidObject = QUORUM_MEMBERS;
 
-//            String userUrl = SYNC_IP+"/getQuorum?id="+senderPeerID;
-//            URL userObj = new URL(userUrl);
-//            HttpURLConnection userCon = (HttpURLConnection) userObj.openConnection();
-//
-//            userCon.setRequestMethod("GET");
-//            userCon.setRequestProperty("User-Agent", USER_AGENT);
-//            userCon.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-//            userCon.setRequestProperty("Accept", "application/json");
-//            userCon.setRequestProperty("Content-Type", "application/json");
-//            userCon.setRequestProperty("Authorization", "null");
-//
-//            serverInput = new BufferedReader(new InputStreamReader(userCon.getInputStream()));
-//            String userResponse;
-//            StringBuffer quorumList = new StringBuffer();
-//
-//            while ((userResponse = serverInput.readLine()) != null) {
-//                quorumList.append(userResponse);
-//            }
-//            serverInput.close();
 
-            JSONArray quorumArray = new JSONArray(readFile(DATA_PATH+"quorumlist.json"));
+            switch (type) {
+                case 1: {
+                    String userUrl = SYNC_IP + "/getQuorum?id=" + senderPeerID;
+                    URL userObj = new URL(userUrl);
+                    HttpURLConnection userCon = (HttpURLConnection) userObj.openConnection();
+
+                    userCon.setRequestMethod("GET");
+                    userCon.setRequestProperty("User-Agent", USER_AGENT);
+                    userCon.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+                    userCon.setRequestProperty("Accept", "application/json");
+                    userCon.setRequestProperty("Content-Type", "application/json");
+                    userCon.setRequestProperty("Authorization", "null");
+
+                    serverInput = new BufferedReader(new InputStreamReader(userCon.getInputStream()));
+                    String userResponse;
+                    StringBuffer quorumList = new StringBuffer();
+                    while ((userResponse = serverInput.readLine()) != null)
+                        quorumList.append(userResponse);
+
+                    serverInput.close();
+                    quorumArray = new JSONArray(quorumList);
+                    break;
+                }
+                case 2: {
+                    quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                    break;
+                }
+                case 3: {
+                    quorumArray = detailsObject.getJSONArray("quorum");
+                    break;
+                }
+                default: {
+                    TokenSenderLogger.error("Unknown quorum type input, cancelling transaction");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Unknown quorum type input, cancelling transaction");
+                    return APIResponse;
+
+                }
+            }
+
 
             quorumPeersList = QuorumCheck(quorumArray, ipfs);
             if (quorumPeersList == null) {
@@ -246,15 +267,15 @@ public class TokenSender {
                 dataObject.put("pvt", pvt);
                 dataObject.put("senderDidIpfs", senderDidIpfsHash);
                 dataObject.put("token", tokens.toString());
-                dataObject.put("alphaList", quorumPeersList.subList(0,7));
-                dataObject.put("betaList", quorumPeersList.subList(7,14));
-                dataObject.put("gammaList", quorumPeersList.subList(14,21));
+                dataObject.put("alphaList", quorumPeersList.subList(0, 7));
+                dataObject.put("betaList", quorumPeersList.subList(7, 14));
+                dataObject.put("gammaList", quorumPeersList.subList(14, 21));
 
-                TokenSenderLogger.debug("dataobject "+dataObject.toString());
+                TokenSenderLogger.debug("dataobject " + dataObject.toString());
 
                 InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3);
                 TokenSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count " + InitiatorConsensus.quorumResponse);
-                if (!(InitiatorConsensus.quorumSignature.length() >= 3*minQuorum(7))) {
+                if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
 
                     //  if (!(InitiatorProcedure.alphaReply.length() >= minQuorum(7))) {
                     TokenSenderLogger.debug("Consensus Failed");
@@ -351,7 +372,7 @@ public class TokenSender {
                     transactionRecord.put("role", "Sender");
                     transactionRecord.put("tokens", tokens);
                     transactionRecord.put("txn", tid);
-                    transactionRecord.put("quorumList", quorumPeersList);
+                    transactionRecord.put("quorumList", InitiatorConsensus.quorumSignature.keys());
                     transactionRecord.put("senderDID", senderDidIpfsHash);
                     transactionRecord.put("receiverDID", receiverDidIpfsHash);
                     transactionRecord.put("Date", currentTime);
@@ -369,7 +390,7 @@ public class TokenSender {
 
 
                     //Populating data to explorer
-                    if(!EXPLORER_IP.contains("127.0.0.1")) {
+                    if (!EXPLORER_IP.contains("127.0.0.1")) {
                         List<String> tokenList = new ArrayList<>();
                         for (int i = 0; i < tokens.length(); i++)
                             tokenList.add(tokens.getString(i));

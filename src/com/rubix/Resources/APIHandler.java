@@ -48,10 +48,10 @@ public class APIHandler {
 
         JSONObject dataObject = new JSONObject(data);
         String recDID = dataObject.getString("recDID");
-        String comments = dataObject.getString("comments");
+//        String comments = dataObject.getString("comments");
         JSONArray tokens = dataObject.getJSONArray("tokens");
-        JSONArray tokenHeader = dataObject.getJSONArray("tokenHeader");
-        int amount = dataObject.getInt("amount");
+//        JSONArray tokenHeader = dataObject.getJSONArray("tokenHeader");
+//        int amount = dataObject.getInt("amount");
 
 
         JSONObject sendMessage = new JSONObject();
@@ -71,14 +71,16 @@ public class APIHandler {
             return sendMessage;
         }
 
-        JSONObject detailsObject = new JSONObject();
-        detailsObject.put("tokens", tokens);
-        detailsObject.put("receiverDidIpfsHash", recDID);
-        detailsObject.put("comment", comments);
-        detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-        detailsObject.put("tokenHeader", tokenHeader);
-        detailsObject.put("amount", amount);
-        sendMessage =  TokenSender.Send(detailsObject.toString(), ipfs, SEND_PORT);
+//        detailsObject.put("tokens", tokens);
+//        detailsObject.put("receiverDidIpfsHash", recDID);
+//        detailsObject.put("comment", comments);
+//        detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+//        detailsObject.put("tokenHeader", tokenHeader);
+//        detailsObject.put("amount", amount);
+        dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        sendMessage =  TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+
+//        sendMessage =  TokenSender.Send(detailsObject.toString(), ipfs, SEND_PORT);
         APILogger.info(sendMessage);
         return sendMessage;
     }

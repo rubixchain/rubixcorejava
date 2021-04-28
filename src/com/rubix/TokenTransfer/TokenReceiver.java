@@ -15,7 +15,6 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -39,12 +38,12 @@ public class TokenReceiver {
      * @return Transaction Details (JSONObject)
      * @throws IOException handles IO Exceptions
      * @throws JSONException handles JSON Exceptions
-     * @throws NoSuchAlgorithmException handles No Such Algorithm Exceptions
      */
     public static String receive() throws IOException, JSONException{
         pathSet();
 
         int quorumSignVerifyCount = 0;
+        JSONObject quorumSignatures = null;
 
         ArrayList<String> quorumDID = new ArrayList<>();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -143,7 +142,7 @@ public class TokenReceiver {
                 String QuorumDetails = input.readLine();
 
                 TokenReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
-                JSONObject quorumSignatures = new JSONObject(QuorumDetails);
+                quorumSignatures = new JSONObject(QuorumDetails);
 
                 String message = SenWalletBin + tokens;
                 String selectQuorumHash = calculateHash(message, "SHA3-256");
@@ -267,7 +266,7 @@ public class TokenReceiver {
                 transactionRecord.put("role", "Receiver");
                 transactionRecord.put("tokens", tokens);
                 transactionRecord.put("txn", tid);
-                transactionRecord.put("quorumList", quorumDID);
+                transactionRecord.put("quorumList", quorumSignatures.keys());
                 transactionRecord.put("senderDID", senderDidIpfsHash);
                 transactionRecord.put("receiverDID", receiverDidIpfsHash);
                 transactionRecord.put("Date", currentTime);
