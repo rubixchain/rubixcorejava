@@ -278,7 +278,7 @@ public class Functions {
      * @param appendStatus Decides whether or not to append the new data into the already existing data
      */
 
-    public static void writeToFile(String filePath, String data, Boolean appendStatus) {
+    public synchronized static void writeToFile(String filePath, String data, Boolean appendStatus) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         try {
             File writeFile = new File(filePath);
@@ -887,7 +887,7 @@ public class Functions {
                 return false;
         }
         else
-            return false;
+            return true;
     }
 }
 

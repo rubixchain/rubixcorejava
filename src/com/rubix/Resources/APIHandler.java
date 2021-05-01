@@ -47,7 +47,7 @@ public class APIHandler {
 
 
         JSONObject dataObject = new JSONObject(data);
-        String recDID = dataObject.getString("recDID");
+        String recDID = dataObject.getString("receiverDidIpfsHash");
 //        String comments = dataObject.getString("comments");
         JSONArray tokens = dataObject.getJSONArray("tokens");
 //        JSONArray tokenHeader = dataObject.getJSONArray("tokenHeader");

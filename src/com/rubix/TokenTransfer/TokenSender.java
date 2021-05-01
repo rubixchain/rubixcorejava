@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import static com.rubix.Resources.Functions.*;
@@ -344,10 +345,6 @@ public class TokenSender {
                 return APIResponse;
 
             } else {
-                APIResponse.put("tid", tid);
-                APIResponse.put("status", "Success");
-                APIResponse.put("did", senderDidIpfsHash);
-                APIResponse.put("message", "Tokens transferred successfully!");
 
                 output.println(InitiatorProcedure.essential);
                 String respAuth = input.readLine();
@@ -367,12 +364,24 @@ public class TokenSender {
                     return APIResponse;
 
                 } else {
+                    Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
+                    JSONArray signedQuorumList = new JSONArray();
+                    while(keys.hasNext())
+                        signedQuorumList.put(keys.next());
+
+                    APIResponse.put("tid", tid);
+                    APIResponse.put("status", "Success");
+                    APIResponse.put("did", senderDidIpfsHash);
+                    APIResponse.put("message", "Tokens transferred successfully!");
+                    APIResponse.put("quorumlist",signedQuorumList);
+                    APIResponse.put("receiver",receiverDidIpfsHash);
+                    APIResponse.put("totaltime",totalTime);
 
                     JSONObject transactionRecord = new JSONObject();
                     transactionRecord.put("role", "Sender");
                     transactionRecord.put("tokens", tokens);
                     transactionRecord.put("txn", tid);
-                    transactionRecord.put("quorumList", InitiatorConsensus.quorumSignature.keys());
+                    transactionRecord.put("quorumList",signedQuorumList);
                     transactionRecord.put("senderDID", senderDidIpfsHash);
                     transactionRecord.put("receiverDID", receiverDidIpfsHash);
                     transactionRecord.put("Date", currentTime);
@@ -394,7 +403,7 @@ public class TokenSender {
                         List<String> tokenList = new ArrayList<>();
                         for (int i = 0; i < tokens.length(); i++)
                             tokenList.add(tokens.getString(i));
-                        String url = EXPLORER_IP.concat("/api/services/app/Rubix/CreateOrUpdateRubixTransaction");
+                        String url = EXPLORER_IP.concat("/log");
                         URL obj = new URL(url);
                         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
@@ -414,6 +423,7 @@ public class TokenSender {
                         dataToSend.put("token_id", tokenList);
                         dataToSend.put("token_time", (int) totalTime);
                         dataToSend.put("amount", amount);
+                        dataToSend.put("quorum_list", signedQuorumList);
                         String populate = dataToSend.toString();
 
                         JSONObject jsonObject = new JSONObject();

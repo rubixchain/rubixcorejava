@@ -130,49 +130,53 @@ public class InitiatorConsensus {
                         qOut[j] = new PrintStream(qSocket[j].getOutputStream());
                         qOut[j].println(detailsToken);
                         qResponse[j] = qIn[j].readLine();
-                        InitiatorConsensusLogger.debug("Signature Received from " + quorumID[j] + " " + qResponse[j]);
 
-                        if (quorumResponse[index] > minQuorum(7)) {
-                            qOut[j].println("null");
-                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/"+ quorumID[j]);
+                        if (qResponse[j].equals("Auth_Failed"))
+                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                        else {
+                            InitiatorConsensusLogger.debug("Signature Received from " + quorumID[j] + " " + qResponse[j]);
+                            if (quorumResponse[index] > minQuorum(7)) {
+                                qOut[j].println("null");
+                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
 
-                        } else {
+                            } else {
 
-                            String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",quorumID[j]);
+                                String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", quorumID[j]);
 
-                            JSONObject detailsToVerify = new JSONObject();
-                            detailsToVerify.put("did", didHash);
-                            detailsToVerify.put("hash", hash);
-                            detailsToVerify.put("signature", qResponse[j]);
-                            if (Authenticate.verifySignature(detailsToVerify.toString())) {
-                                InitiatorConsensusLogger.debug(role +" node authenticated at index "+index);
-                                boolean voteStatus = voteNCount(index);
-                                if (quorumResponse[index] <= minQuorum(7)&&voteStatus) {
-                                    InitiatorConsensusLogger.debug("waiting for 5 signs "+role);
-                                    while (quorumResponse[index] < minQuorum(7)) {}
-                                    InitiatorConsensusLogger.debug("between Q1-5 for index "+index);
-                                    quorumSign( didHash, qResponse[j],index);
-                                    quorumWithShares.add(quorumPeersObject.getString(j));
-                                    while (quorumSignature.length()<3*minQuorum(7)) {}
-                                    InitiatorConsensusLogger.debug("sending Qsign to Q1-Q5 of length "+quorumSignature.length()+ "at index "+ index);
-                                    qOut[j].println(quorumSignature);
-                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/"+ quorumID[j]);
+                                JSONObject detailsToVerify = new JSONObject();
+                                detailsToVerify.put("did", didHash);
+                                detailsToVerify.put("hash", hash);
+                                detailsToVerify.put("signature", qResponse[j]);
+                                if (Authenticate.verifySignature(detailsToVerify.toString())) {
+                                    InitiatorConsensusLogger.debug(role + " node authenticated at index " + index);
+                                    boolean voteStatus = voteNCount(index);
+                                    if (quorumResponse[index] <= minQuorum(7) && voteStatus) {
+                                        InitiatorConsensusLogger.debug("waiting for 5 signs " + role);
+                                        while (quorumResponse[index] < minQuorum(7)) {
+                                        }
+                                        InitiatorConsensusLogger.debug("between Q1-5 for index " + index);
+                                        quorumSign(didHash, qResponse[j], index);
+                                        quorumWithShares.add(quorumPeersObject.getString(j));
+                                        while (quorumSignature.length() < 3 * minQuorum(7)) {
+                                        }
+                                        InitiatorConsensusLogger.debug("sending Qsign to Q1-Q5 of length " + quorumSignature.length() + "at index " + index);
+                                        qOut[j].println(quorumSignature);
+                                        IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
 
-                                }
+                                    }
 //
-                                else {
-                                    InitiatorConsensusLogger.debug("sending null for Q6 and Q7 ");
-                                    qOut[j].println("null");
-                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/"+ quorumID[j]);
+                                    else {
+                                        InitiatorConsensusLogger.debug("sending null for Q6 and Q7 ");
+                                        qOut[j].println("null");
+                                        IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
 
+                                    }
+                                    InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse + "Signature count : " + quorumSignature.length());
+
+                                } else {
+                                    InitiatorConsensusLogger.debug("node failed authentication with index " + index + " with role " + role + " with did " + didHash + " and data to verify " + detailsToVerify);
+                                    InitiatorConsensusLogger.debug("recheck result is " + Authenticate.verifySignature(detailsToVerify.toString()));
                                 }
-                                InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse + "Signature count : " + quorumSignature.length());
-
-                            }
-                            else
-                            {
-                                InitiatorConsensusLogger.debug("node failed authentication with index "+index+" with role "+role+" with did "+didHash+ " and data to verify "+detailsToVerify);
-                                InitiatorConsensusLogger.debug("recheck result is "+Authenticate.verifySignature(detailsToVerify.toString()));
                             }
                         }
                     } catch (IOException | JSONException e) {
