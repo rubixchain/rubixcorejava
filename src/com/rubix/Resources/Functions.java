@@ -11,6 +11,7 @@ import org.json.JSONObject;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.math.BigInteger;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,6 +19,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Iterator;
 
@@ -872,10 +874,71 @@ public class Functions {
     }
 
     public static String mineToken(int level, int tokenNumber) {
+
+        String levelBinary = toBinary(level, 4);
+//        String levelHex = Integer.toHexString(level);
+        String tokenType = "001";
+        String denominationColour = "001";
+        String LRBankNumber = "01";
+        String BankHash = toBinary(0,256);
+        String BloomFilterHash = toBinary(0,256);
+        Calendar now = Calendar.getInstance();
+        int year = now.get(Calendar.YEAR);
+        String yearBin = toBinary(year,12);
+        int month = now.get(Calendar.MONTH) + 1; // Note: zero based!
+        String monthBin = toBinary(month,4);
+        int day = now.get(Calendar.DAY_OF_MONTH);
+        String dayBin = toBinary(day,5);
+        int hour = now.get(Calendar.HOUR_OF_DAY);
+        String hourBin = toBinary(hour,5);
+        int minute = now.get(Calendar.MINUTE);
+        String minuteBin = toBinary(minute,6);
+        int second = now.get(Calendar.SECOND);
+        String secondBin = toBinary(second,6);
+        int millis = now.get(Calendar.MILLISECOND);
+        String millisBin = toBinary(millis,20);
+        String utcTime = yearBin + monthBin + dayBin + hourBin + minuteBin + secondBin + millisBin;
+
+        String visible = "11001010";
+        String invisible = "00101100";
+        String logo = "10011001";
+        String countryMap = "01011011";
+        String governance = "01";
+        String reserved= toBinary(0,30);
+        String latLong = "0000100010000010000111001001100000100111000000000011111110011100";
+
+        String HeaderBin = levelBinary + tokenType + denominationColour + LRBankNumber + BankHash + BloomFilterHash + utcTime + utcTime + visible + invisible + logo + countryMap + governance + reserved + latLong;
+
+        int len1 = HeaderBin.length();
+        String hexHeader = new BigInteger(HeaderBin,2).toString(16);
+        if(hexHeader.length() < len1/4) {
+            int diff = (len1/4) - hexHeader.length();
+            String pad = "";
+            for (int j = 0; j < diff; ++j) {
+                pad = pad.concat("0");
+            }
+            hexHeader = pad.concat(hexHeader);
+        }
+
         String tokenHash = calculateHash(String.valueOf(tokenNumber), "SHA-256");
-        String levelHex = Integer.toHexString(level);
-        String token = levelHex + tokenHash;
+
+        String token = hexHeader + tokenHash;
         return token;
+
+
+//        String tokenHash = calculateHash(String.valueOf(tokenNumber), "SHA-256");
+//        String levelHex = Integer.toHexString(level);
+//        String token = levelHex + tokenHash;
+//        return token;
+    }
+
+
+    public static String toBinary(int x, int len) {
+        if (len > 0) {
+            return String.format("%" + len + "s",
+                    Integer.toBinaryString(x)).replaceAll(" ", "0");
+        }
+        return null;
     }
 
     public static Boolean integrityCheck(String tid){

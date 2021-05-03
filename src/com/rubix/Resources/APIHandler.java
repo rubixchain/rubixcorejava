@@ -513,4 +513,14 @@ public class APIHandler {
 
         return new JSONArray().put(datesTxn);
     }
+
+    public static JSONObject syncNetworkNodes() throws JSONException, IOException {
+        String dataTable = readFile(DATA_PATH + "DataTable.json");
+        JSONArray dataArray = new JSONArray(dataTable);
+
+        for (int i = 0; i < dataArray.length(); i++)
+            nodeData(dataArray.getJSONObject(i).getString("didHash"), dataArray.getJSONObject(i).getString("walletHash"), ipfs);
+
+        return new JSONObject("{\"message\":\"Synced all nodes\"}");
+    }
 }

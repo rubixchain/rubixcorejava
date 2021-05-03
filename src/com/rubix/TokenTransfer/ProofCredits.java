@@ -195,6 +195,9 @@ public class ProofCredits {
         long starttime = System.currentTimeMillis();
         JSONArray resJsonData = new JSONArray();
 
+
+
+
         //Reading proofcredits.json
         String jsonFilePath = WALLET_DATA_PATH+"QuorumSignedTransactions.json";
         JSONArray records = new JSONArray(readFile(jsonFilePath));
