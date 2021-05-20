@@ -403,13 +403,12 @@ public class TokenSender {
                         List<String> tokenList = new ArrayList<>();
                         for (int i = 0; i < tokens.length(); i++)
                             tokenList.add(tokens.getString(i));
-                        String url = EXPLORER_IP.concat("/log");
+                        String url = EXPLORER_IP+"/CreateOrUpdateRubixTransaction";
                         URL obj = new URL(url);
                         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
                         // Setting basic post request
                         con.setRequestMethod("POST");
-                        con.setRequestProperty("User-Agent", USER_AGENT);
                         con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
                         con.setRequestProperty("Accept", "application/json");
                         con.setRequestProperty("Content-Type", "application/json");
@@ -423,11 +422,10 @@ public class TokenSender {
                         dataToSend.put("token_id", tokenList);
                         dataToSend.put("token_time", (int) totalTime);
                         dataToSend.put("amount", amount);
-                        dataToSend.put("quorum_list", signedQuorumList);
                         String populate = dataToSend.toString();
 
                         JSONObject jsonObject = new JSONObject();
-                        jsonObject.put("InputString", populate);
+                        jsonObject.put("inputString", populate);
                         String postJsonData = jsonObject.toString();
 
                         // Send post request

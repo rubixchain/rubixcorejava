@@ -137,7 +137,7 @@ public class TokenReceiver {
         TokenReceiverLogger.debug("Consensus Status:  " + Status);
 
         if (!Status.equals("Consensus failed")) {
-            boolean yesQuorum;
+            boolean yesQuorum = false;
             if (Status.equals("Consensus Reached")) {
                 String QuorumDetails = input.readLine();
 
@@ -181,10 +181,8 @@ public class TokenReceiver {
                         quorumSignVerifyCount++;
                 }
                 TokenReceiverLogger.debug("Verified Quorum Count " + quorumSignVerifyCount);
-                yesQuorum = quorumSignVerifyCount >= minQuorum();
-            } else
-                yesQuorum = true;
-
+                yesQuorum = quorumSignVerifyCount >= 3* minQuorum(7);
+            }
             ArrayList<String> allTokensChainsPushed = new ArrayList<>();
             for (int i = 0; i < tokenCount; i++)
                 allTokensChainsPushed.add(tokenChains.getString(i));

@@ -34,7 +34,7 @@ public class ProofCredits {
         JSONObject detailsObject = new JSONObject(data);
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
-        int creditUsed=100;
+        int creditUsed=10;
 
         // getInfo api call to fetch current token, current level and required proof credits for level
 
@@ -308,6 +308,7 @@ public class ProofCredits {
                     }
 
 
+
                         writeToFile(jsonFilePath,records.toString(),false);
 //                    FileWriter File = new FileWriter(jsonFilePath);
 //                    File.write(records.toString());
@@ -327,6 +328,54 @@ public class ProofCredits {
                     APIResponse.put("time", endtime - starttime);
                     APIResponse.put("status", "Success");
                     APIResponse.put("message", token.length()+" tokens mined");
+
+
+                    String url = EXPLORER_IP.concat("/CreateOrUpdateRubixToken");
+                    URL obj = new URL(url);
+                    HttpURLConnection connection_Explorer = (HttpURLConnection) obj.openConnection();
+
+                    // Setting basic post request
+                    connection_Explorer.setRequestMethod("POST");
+                    connection_Explorer.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+                    connection_Explorer.setRequestProperty("Accept", "application/json");
+                    connection_Explorer.setRequestProperty("Content-Type", "application/json");
+                    connection_Explorer.setRequestProperty("Authorization", "null");
+
+                    // Serialization
+                    JSONObject dataToSend = new JSONObject();
+                    dataToSend.put("bank_id", "01");
+                    dataToSend.put("user_did", receiverDidIpfsHash);
+                    dataToSend.put("token_id", token);
+                    dataToSend.put("level","01");
+                    dataToSend.put("denomination", 1);
+                    String populate = dataToSend.toString();
+
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("inputString", populate);
+                    String postJsonData = jsonObject.toString();
+
+                    // Send post request
+                    connection_Explorer.setDoOutput(true);
+                    DataOutputStream wr = new DataOutputStream(connection_Explorer.getOutputStream());
+                    wr.writeBytes(postJsonData);
+                    wr.flush();
+                    wr.close();
+
+                    int responseCodeExplorer = connection_Explorer.getResponseCode();
+                    ProofCreditsLogger.debug("Sending 'POST' request to URL : " + url);
+                    ProofCreditsLogger.debug("Post Data : " + postJsonData);
+                    ProofCreditsLogger.debug("Response Code : " + responseCodeExplorer);
+
+                    BufferedReader in_BR = new BufferedReader(
+                            new InputStreamReader(connection_Explorer.getInputStream()));
+                    String output;
+                    StringBuffer response_Explorer = new StringBuffer();
+
+                    while ((output = in_BR.readLine()) != null) {
+                        response_Explorer.append(output);
+                    }
+                    in_BR.close();
+
                 }
 
             } else {
