@@ -73,13 +73,13 @@ public class TokenReceiver {
         File senderDIDFile = new File(DATA_PATH + senderDidIpfsHash + "/DID.png");
         if (!senderDIDFile.exists()) {
             output.println("420");
-            APIResponse.put("did", receiverDidIpfsHash);
+            APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
             APIResponse.put("message", "Sender details not available");
             TokenReceiverLogger.info("Sender details not available");
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-            
+
             output.close();
             input.close();
             sk.close();
@@ -110,7 +110,7 @@ public class TokenReceiver {
         repo(ipfs);
         if (!(ipfsGetFlag == tokenCount)) {
             output.println("420");
-            APIResponse.put("did", receiverDidIpfsHash);
+            APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
             APIResponse.put("message", "Tokens not verified");
@@ -200,7 +200,7 @@ public class TokenReceiver {
             TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + "Sender Auth : " + yesSender);
             if (!(yesSender && yesQuorum)) {
                 output.println("420");
-                APIResponse.put("did", receiverDidIpfsHash);
+                APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", tid);
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Sender / Quorum not verified");
@@ -280,20 +280,32 @@ public class TokenReceiver {
                 TokenReceiverLogger.info("Transaction ID: " + tid + "Transaction Successful");
                 output.println("Send Response");
             }
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", tid);
+            APIResponse.put("status", "Success");
+            APIResponse.put("tokens", tokens);
+            APIResponse.put("tokenHeader", tokenHeader);
+            APIResponse.put("comment", comment);
+            APIResponse.put("message", "Transaction Successful");
+            TokenReceiverLogger.info(" Transaction Successful");
+            executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+            output.close();
+            input.close();
+            sk.close();
+            ss.close();
         }
-        APIResponse.put("did", senderDidIpfsHash);
-        APIResponse.put("tid", tid);
-        APIResponse.put("status", "Success");
-        APIResponse.put("tokens", tokens);
-        APIResponse.put("tokenHeader", tokenHeader);
-        APIResponse.put("comment", comment);
-        APIResponse.put("message", "Transaction Successful");
-        TokenReceiverLogger.info(" Transaction Successful");
-        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-        output.close();
-        input.close();
-        sk.close();
-        ss.close();
+        else {
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", "null");
+            APIResponse.put("status", "Failed");
+            APIResponse.put("message", "Consensus failed at Sender side");
+            TokenReceiverLogger.info(" Transaction failed");
+            executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+            output.close();
+            input.close();
+            sk.close();
+            ss.close();
+        }
         return APIResponse.toString();
     }
 }
