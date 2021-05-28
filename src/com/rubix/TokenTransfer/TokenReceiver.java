@@ -79,9 +79,10 @@ public class TokenReceiver {
             APIResponse.put("message", "Sender details not available");
             TokenReceiverLogger.info("Sender details not available");
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-            sk.close();
-            input.close();
+            
             output.close();
+            input.close();
+            sk.close();
             ss.close();
             return APIResponse.toString();
         } else
@@ -115,9 +116,9 @@ public class TokenReceiver {
             APIResponse.put("message", "Tokens not verified");
             TokenReceiverLogger.info("Tokens not verified");
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-            sk.close();
-            input.close();
             output.close();
+            input.close();
+            sk.close();
             ss.close();
             return APIResponse.toString();
         } else
@@ -205,9 +206,9 @@ public class TokenReceiver {
                 APIResponse.put("message", "Sender / Quorum not verified");
                 TokenReceiverLogger.info("Sender / Quorum not verified");
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-                sk.close();
-                input.close();
                 output.close();
+                input.close();
+                sk.close();
                 ss.close();
                 return APIResponse.toString();
             } else {
@@ -289,9 +290,9 @@ public class TokenReceiver {
         APIResponse.put("message", "Transaction Successful");
         TokenReceiverLogger.info(" Transaction Successful");
         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-        sk.close();
-        input.close();
         output.close();
+        input.close();
+        sk.close();
         ss.close();
         return APIResponse.toString();
     }
