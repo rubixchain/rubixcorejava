@@ -12,6 +12,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.imageio.ImageIO;
+import javax.net.ssl.HttpsURLConnection;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -74,8 +75,6 @@ public class TokenSender {
         BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
         String senderWidBin = PropImage.img2bin(senderWidImage);
 
-        if (CONSENSUS_STATUS) {
-
 
             switch (type) {
                 case 1: {
@@ -119,6 +118,7 @@ public class TokenSender {
 
 
             quorumPeersList = QuorumCheck(quorumArray, ipfs);
+
             if (quorumPeersList == null) {
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", "null");
@@ -126,9 +126,7 @@ public class TokenSender {
                 APIResponse.put("message", "Quorum Members not available");
                 TokenSenderLogger.warn("Quorum Members not available");
                 return APIResponse;
-            } else
-                consensusStatus = true;
-        }
+            }
 
 
         if (senderMutex) {
@@ -156,9 +154,7 @@ public class TokenSender {
                 File token = new File(TOKENS_PATH + tokens.get(i));
                 if (!token.exists()) {
                     TokenSenderLogger.info("Tokens Not Verified");
-                    output.close();
-                    input.close();
-                    senderSocket.close();
+
                     senderMutex = false;
                     APIResponse.put("did", senderDidIpfsHash);
                     APIResponse.put("tid", "null");
@@ -213,13 +209,12 @@ public class TokenSender {
             output.println(senderPeerID);
             TokenSenderLogger.debug("Sent PeerID");
             while ((peerAuth = input.readLine()) == null) {
-                forward(receiverPeerId, port, receiverPeerId);
-                senderSocket = new Socket("127.0.0.1", port);
-                input = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
-                output = new PrintStream(senderSocket.getOutputStream());
-                output.println(senderPeerID);
+//                forward(receiverPeerId, port, receiverPeerId);
+//                senderSocket = new Socket("127.0.0.1", port);
+//                input = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
+//                output = new PrintStream(senderSocket.getOutputStream());
+//                output.println(senderPeerID);
             }
-
             if (!peerAuth.equals("200")) {
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                 TokenSenderLogger.info("Sender Data Not Available");
@@ -240,7 +235,6 @@ public class TokenSender {
 
             // tokens get confirmed by receiver
 
-
             if (!tokenAuth.equals("200")) {
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                 TokenSenderLogger.info("Tokens Not Verified");
@@ -253,7 +247,7 @@ public class TokenSender {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Tokens Not Verified");
                 return APIResponse;
-
+                
             } else
                 output.println(senderDetails2Receiver);
 
@@ -405,7 +399,7 @@ public class TokenSender {
                             tokenList.add(tokens.getString(i));
                         String url = EXPLORER_IP+"/CreateOrUpdateRubixTransaction";
                         URL obj = new URL(url);
-                        HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                        HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
 
                         // Setting basic post request
                         con.setRequestMethod("POST");
@@ -453,16 +447,17 @@ public class TokenSender {
                         TokenSenderLogger.debug(response.toString());
                     }
                     TokenSenderLogger.info("Transaction Successful");
+                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+                    output.close();
+                    input.close();
+                    senderSocket.close();
+                    senderMutex = false;
 
                 }
 
             }
         }
-        executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
-        output.close();
-        input.close();
-        senderSocket.close();
-        senderMutex = false;
+
         return APIResponse;
 
     }
