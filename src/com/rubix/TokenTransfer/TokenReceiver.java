@@ -85,7 +85,7 @@ public class TokenReceiver {
             sk.close();
             ss.close();
             return APIResponse.toString();
-        } else
+        } 
             output.println("200");
 
         String data = input.readLine();
@@ -121,7 +121,7 @@ public class TokenReceiver {
             sk.close();
             ss.close();
             return APIResponse.toString();
-        } else
+        } 
             output.println("200");
 
         String senderDetails = input.readLine();
@@ -211,12 +211,12 @@ public class TokenReceiver {
                 sk.close();
                 ss.close();
                 return APIResponse.toString();
-            } else {
+            } 
+            
                 repo(ipfs);
                 TokenReceiverLogger.debug("Sender and Quorum Verified");
                 output.println("200");
-            }
-
+                
             String readServer = input.readLine();
             if (readServer.equals("Unpinned")) {
 
@@ -279,22 +279,34 @@ public class TokenReceiver {
 
                 TokenReceiverLogger.info("Transaction ID: " + tid + "Transaction Successful");
                 output.println("Send Response");
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", tid);
+                APIResponse.put("status", "Success");
+                APIResponse.put("tokens", tokens);
+                APIResponse.put("tokenHeader", tokenHeader);
+                APIResponse.put("comment", comment);
+                APIResponse.put("message", "Transaction Successful");
+                TokenReceiverLogger.info(" Transaction Successful");
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
             }
             APIResponse.put("did", senderDidIpfsHash);
-            APIResponse.put("tid", tid);
-            APIResponse.put("status", "Success");
-            APIResponse.put("tokens", tokens);
-            APIResponse.put("tokenHeader", tokenHeader);
-            APIResponse.put("comment", comment);
-            APIResponse.put("message", "Transaction Successful");
-            TokenReceiverLogger.info(" Transaction Successful");
+            APIResponse.put("tid", "null");
+            APIResponse.put("status", "Failed");
+            APIResponse.put("message", "Failed to unpin");
+            TokenReceiverLogger.info(" Transaction failed");
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
             output.close();
             input.close();
             sk.close();
             ss.close();
+            return APIResponse.toString();
+            
         }
-        else {
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
@@ -305,7 +317,7 @@ public class TokenReceiver {
             input.close();
             sk.close();
             ss.close();
-        }
-        return APIResponse.toString();
+            return APIResponse.toString();
+ 
     }
 }
