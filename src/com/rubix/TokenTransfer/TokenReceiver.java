@@ -69,6 +69,24 @@ public class TokenReceiver {
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
         String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", senderPeerID);
 
+        if(!(senderDidIpfsHash.contains("Qm")&&senderDidIpfsHash.contains("Qm")))
+        {
+            output.println("420");
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", "null");
+            APIResponse.put("status", "Failed");
+            APIResponse.put("message", "Sender details not available in network , please sync");
+            TokenReceiverLogger.info("Sender details not available in datatable");
+            /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);*/
+            
+            output.close();
+            input.close();
+            sk.close();
+            ss.close();
+            return APIResponse.toString();
+        }
+
+
         nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
         File senderDIDFile = new File(DATA_PATH + senderDidIpfsHash + "/DID.png");
         if (!senderDIDFile.exists()) {
@@ -78,14 +96,14 @@ public class TokenReceiver {
             APIResponse.put("status", "Failed");
             APIResponse.put("message", "Sender details not available");
             TokenReceiverLogger.info("Sender details not available");
-            executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+           /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);*/
 
             output.close();
             input.close();
             sk.close();
             ss.close();
             return APIResponse.toString();
-        } 
+        }
             output.println("200");
 
         String data = input.readLine();
@@ -121,7 +139,7 @@ public class TokenReceiver {
             sk.close();
             ss.close();
             return APIResponse.toString();
-        } 
+        }
             output.println("200");
 
         String senderDetails = input.readLine();
@@ -211,12 +229,12 @@ public class TokenReceiver {
                 sk.close();
                 ss.close();
                 return APIResponse.toString();
-            } 
-            
+            }
+
                 repo(ipfs);
                 TokenReceiverLogger.debug("Sender and Quorum Verified");
                 output.println("200");
-                
+
             String readServer = input.readLine();
             if (readServer.equals("Unpinned")) {
 
@@ -305,7 +323,7 @@ public class TokenReceiver {
             sk.close();
             ss.close();
             return APIResponse.toString();
-            
+
         }
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
@@ -318,6 +336,6 @@ public class TokenReceiver {
             sk.close();
             ss.close();
             return APIResponse.toString();
- 
+
     }
 }
