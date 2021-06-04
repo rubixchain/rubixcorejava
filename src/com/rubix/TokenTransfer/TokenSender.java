@@ -137,7 +137,7 @@ public class TokenSender {
             TokenSenderLogger.warn("Sender busy");
             return APIResponse;
         }
-        
+
         senderMutex = true;
 
         String peerAuth;
@@ -150,13 +150,13 @@ public class TokenSender {
             APIResponse.put("message", "No balance");
             senderMutex = false;
             return APIResponse;
-        } 
-        
+        }
+
             for (int i = 0; i < tokens.length(); i++) {
                 File token = new File(TOKENS_PATH + tokens.get(i));
-                if (!token.exists()) {
+                File tokenchain = new File(TOKENCHAIN_PATH+tokens.get(i));
+                if (!(token.exists()&&tokenchain.exists())) {
                     TokenSenderLogger.info("Tokens Not Verified");
-
                     senderMutex = false;
                     APIResponse.put("did", senderDidIpfsHash);
                     APIResponse.put("tid", "null");
@@ -210,9 +210,9 @@ public class TokenSender {
 
             output.println(senderPeerID);
             TokenSenderLogger.debug("Sent PeerID");
-            
+
             peerAuth= input.readLine();
-            
+
 //            while ((peerAuth = input.readLine()) == null) {
 ////                forward(receiverPeerId, port, receiverPeerId);
 ////                senderSocket = new Socket("127.0.0.1", port);
@@ -233,12 +233,12 @@ public class TokenSender {
                 APIResponse.put("message", "Sender Data Not Available");
                 return APIResponse;
 
-            } 
-            
+            }
+
                 output.println(tokenDetails);
 
             String tokenAuth = input.readLine();
-            
+
             if (!tokenAuth.equals("200")) {
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                 TokenSenderLogger.info("Tokens Not Verified");
@@ -252,10 +252,10 @@ public class TokenSender {
                 APIResponse.put("message", "Tokens Not Verified");
                 return APIResponse;
 
-            } 
-            
+            }
+
                 output.println(senderDetails2Receiver);
-            
+
                 String message = senderWidBin + tokens;
 
                 JSONObject dataObject = new JSONObject();
@@ -294,7 +294,7 @@ public class TokenSender {
                     output.println("Consensus Reached");
                     TokenSenderLogger.debug("Quorum Signatures length " + InitiatorConsensus.quorumSignature.length());
                     output.println(InitiatorConsensus.quorumSignature);
-                    
+
             String signatureAuth = input.readLine();
 
             long endAuth = System.currentTimeMillis();
@@ -312,13 +312,13 @@ public class TokenSender {
                 APIResponse.put("message", "Sender not authenticated");
                 return APIResponse;
 
-            } 
-            
+            }
+
                 for (int i = 0; i < tokens.length(); i++)
                     unpin(String.valueOf(tokens.get(i)), ipfs);
 
                 repo(ipfs);
-            
+
             TokenSenderLogger.debug("Unpinned Tokens");
             output.println("Unpinned");
 
@@ -337,7 +337,7 @@ public class TokenSender {
                 APIResponse.put("message", "Tokens with multiple pins");
                 return APIResponse;
 
-            } 
+            }
                 output.println(InitiatorProcedure.essential);
                 String respAuth = input.readLine();
 
@@ -355,8 +355,8 @@ public class TokenSender {
                     TokenSenderLogger.info("Incomplete Transaction");
                     return APIResponse;
 
-                } 
-                
+                }
+
                     Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
                     JSONArray signedQuorumList = new JSONArray();
                     while(keys.hasNext())
@@ -452,6 +452,6 @@ public class TokenSender {
                     senderSocket.close();
                     senderMutex = false;
                     return APIResponse;
-                    
+
     }
 }
