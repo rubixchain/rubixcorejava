@@ -2,6 +2,7 @@ package com.rubix.TokenTransfer;
 
 import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
@@ -16,6 +17,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -39,7 +41,7 @@ public class TokenReceiver {
      * @throws IOException handles IO Exceptions
      * @throws JSONException handles JSON Exceptions
      */
-    public static String receive() throws IOException, JSONException{
+    public static String receive() throws IOException, JSONException, ParseException {
         pathSet();
 
         int quorumSignVerifyCount = 0;
@@ -78,7 +80,7 @@ public class TokenReceiver {
             APIResponse.put("message", "Sender details not available in network , please sync");
             TokenReceiverLogger.info("Sender details not available in datatable");
             /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);*/
-            
+
             output.close();
             input.close();
             sk.close();
@@ -286,7 +288,7 @@ public class TokenReceiver {
                 transactionRecord.put("quorumList", quorumSignatures.keys());
                 transactionRecord.put("senderDID", senderDidIpfsHash);
                 transactionRecord.put("receiverDID", receiverDidIpfsHash);
-                transactionRecord.put("Date", currentTime);
+                transactionRecord.put("Date", getCurrentUtcTime());
                 transactionRecord.put("totalTime", (endTime - startTime));
                 transactionRecord.put("comment", comment);
                 transactionRecord.put("essentialShare", essentialShare);

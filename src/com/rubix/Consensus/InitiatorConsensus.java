@@ -49,6 +49,7 @@ public class InitiatorConsensus {
         return status;
     }
 
+
     /**
      * This method stores all the quorum signatures until required count for consensus
      * @param quorumDID DID of the Quorum
@@ -109,8 +110,6 @@ public class InitiatorConsensus {
             for (int j = 0; j < quorumPeersObject.length(); j++)
                 quorumID[j] = quorumPeersObject.getString(j);
 
-
-
             Thread[] quorumThreads = new Thread[quorumPeersObject.length()];
             for (int i = 0; i < quorumPeersObject.length(); i++) {
                 int j = i;
@@ -131,8 +130,10 @@ public class InitiatorConsensus {
                         qOut[j].println(detailsToken);
                         qResponse[j] = qIn[j].readLine();
 
-                        if (qResponse[j].equals("Auth_Failed"))
+                        if (qResponse[j].equals("Auth_Failed")) {
+
                             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                        }
                         else {
                             InitiatorConsensusLogger.debug("Signature Received from " + quorumID[j] + " " + qResponse[j]);
                             if (quorumResponse[index] > minQuorum(7)) {

@@ -10,13 +10,20 @@ import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
+import java.net.InetAddress;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import static com.rubix.Resources.Functions.*;
@@ -35,6 +42,7 @@ public class ProofCredits {
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
         int creditUsed=10;
+        long totalTime=0;
 
         // getInfo api call to fetch current token, current level and required proof credits for level
 
@@ -316,6 +324,7 @@ public class ProofCredits {
 
                     ProofCreditsLogger.debug("Updated balance of node : " + (balance - creditUsed));
                     long endtime = System.currentTimeMillis();
+                    totalTime=endtime-starttime;
                     Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
                     JSONArray signedQuorumList = new JSONArray();
                     while (keys.hasNext())
@@ -325,56 +334,138 @@ public class ProofCredits {
                     APIResponse.put("token", token);
                     APIResponse.put("creditsused", creditUsed);
                     APIResponse.put("quorumlist", signedQuorumList);
-                    APIResponse.put("time", endtime - starttime);
+                    APIResponse.put("time", totalTime);
                     APIResponse.put("status", "Success");
                     APIResponse.put("message", token.length()+" tokens mined");
 
+                    DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
+                    Date date = new Date();
+                    LocalDate currentTime = LocalDate.parse(formatter.format(date).replace("/", "-"));
+                    JSONObject transactionRecord = new JSONObject();
+                    transactionRecord.put("role", "Sender");
+                    transactionRecord.put("tokens", token);
+                    transactionRecord.put("txn", tid);
+                    transactionRecord.put("quorumList",signedQuorumList);
+                    transactionRecord.put("senderDID", receiverDidIpfsHash);
+                    transactionRecord.put("receiverDID", receiverDidIpfsHash);
+                    transactionRecord.put("Date", currentTime);
+                    transactionRecord.put("totalTime", totalTime);
+                    transactionRecord.put("comment", "minedtxn");
+                    transactionRecord.put("essentialShare", InitiatorProcedure.essential);
 
-                    String url = EXPLORER_IP.concat("/CreateOrUpdateRubixToken");
-                    URL obj = new URL(url);
-                    HttpURLConnection connection_Explorer = (HttpURLConnection) obj.openConnection();
 
-                    // Setting basic post request
-                    connection_Explorer.setRequestMethod("POST");
-                    connection_Explorer.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-                    connection_Explorer.setRequestProperty("Accept", "application/json");
-                    connection_Explorer.setRequestProperty("Content-Type", "application/json");
-                    connection_Explorer.setRequestProperty("Authorization", "null");
+                    JSONArray transactionHistoryEntry = new JSONArray();
+                    transactionHistoryEntry.put(transactionRecord);
+                    updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString());
 
-                    // Serialization
-                    JSONObject dataToSend = new JSONObject();
-                    dataToSend.put("bank_id", "01");
-                    dataToSend.put("user_did", receiverDidIpfsHash);
-                    dataToSend.put("token_id", token);
-                    dataToSend.put("level","01");
-                    dataToSend.put("denomination", 1);
-                    String populate = dataToSend.toString();
 
-                    JSONObject jsonObject = new JSONObject();
-                    jsonObject.put("inputString", populate);
-                    String postJsonData = jsonObject.toString();
 
-                    // Send post request
-                    connection_Explorer.setDoOutput(true);
-                    DataOutputStream wr = new DataOutputStream(connection_Explorer.getOutputStream());
-                    wr.writeBytes(postJsonData);
-                    wr.flush();
-                    wr.close();
+                    if (!EXPLORER_IP.contains("127.0.0.1")) {
 
-                    int responseCodeExplorer = connection_Explorer.getResponseCode();
-                    ProofCreditsLogger.debug("Sending 'POST' request to URL : " + url);
-                    ProofCreditsLogger.debug("Post Data : " + postJsonData);
-                    ProofCreditsLogger.debug("Response Code : " + responseCodeExplorer);
 
-                    BufferedReader in_BR = new BufferedReader(
-                            new InputStreamReader(connection_Explorer.getInputStream()));
-                    String output;
-                    StringBuffer response_Explorer = new StringBuffer();
+                        String url = EXPLORER_IP.concat("/CreateOrUpdateRubixToken");
+                        URL obj = new URL(url);
+                        HttpsURLConnection connection_Explorer = (HttpsURLConnection) obj.openConnection();
 
-                    while ((output = in_BR.readLine()) != null) {
-                        response_Explorer.append(output);
+                        // Setting basic post request
+                        connection_Explorer.setRequestMethod("POST");
+                        connection_Explorer.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+                        connection_Explorer.setRequestProperty("Accept", "application/json");
+                        connection_Explorer.setRequestProperty("Content-Type", "application/json");
+                        connection_Explorer.setRequestProperty("Authorization", "null");
+
+                        // Serialization
+                        JSONObject dataToSend = new JSONObject();
+                        dataToSend.put("bank_id", "01");
+                        dataToSend.put("user_did", receiverDidIpfsHash);
+                        dataToSend.put("token_id", token);
+                        dataToSend.put("level", "01");
+                        dataToSend.put("denomination", 1);
+                        String populate = dataToSend.toString();
+
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("inputString", populate);
+                        String postJsonData = jsonObject.toString();
+
+                        // Send post request
+                        connection_Explorer.setDoOutput(true);
+                        DataOutputStream wr = new DataOutputStream(connection_Explorer.getOutputStream());
+                        wr.writeBytes(postJsonData);
+                        wr.flush();
+                        wr.close();
+
+                        int responseCodeExplorer = connection_Explorer.getResponseCode();
+                        ProofCreditsLogger.debug("Sending 'POST' request to URL : " + url);
+                        ProofCreditsLogger.debug("Post Data : " + postJsonData);
+                        ProofCreditsLogger.debug("Response Code : " + responseCodeExplorer);
+
+                        BufferedReader in_BR = new BufferedReader(
+                                new InputStreamReader(connection_Explorer.getInputStream()));
+                        String output;
+                        StringBuffer response_Explorer = new StringBuffer();
+
+                        while ((output = in_BR.readLine()) != null) {
+                            response_Explorer.append(output);
+                        }
+                        in_BR.close();
+
                     }
-                    in_BR.close();
+
+                    if (!EXPLORER_IP.contains("127.0.0.1")) {
+                        List<String> tokenList = new ArrayList<>();
+                        for (int i = 0; i < token.length(); i++)
+                            tokenList.add(token.getString(i));
+                        String urlTxn = EXPLORER_IP+"/CreateOrUpdateRubixTransaction";
+                        URL objTxn = new URL(urlTxn);
+                        HttpsURLConnection conTxn = (HttpsURLConnection) objTxn.openConnection();
+
+                        // Setting basic post request
+                        conTxn.setRequestMethod("POST");
+                        conTxn.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+                        conTxn.setRequestProperty("Accept", "application/json");
+                        conTxn.setRequestProperty("Content-Type", "application/json");
+                        conTxn.setRequestProperty("Authorization", "null");
+
+                        // Serialization
+                        JSONObject dataToSend = new JSONObject();
+                        dataToSend.put("transaction_id", tid);
+                        dataToSend.put("sender_did", receiverDidIpfsHash);
+                        dataToSend.put("receiver_did", receiverDidIpfsHash);
+                        dataToSend.put("token_id", tokenList);
+                        dataToSend.put("token_time", (int) totalTime);
+                        dataToSend.put("amount", 80);
+                        String populate = dataToSend.toString();
+
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("inputString", populate);
+                        String postJsonData = jsonObject.toString();
+
+                        // Send post request
+                        conTxn.setDoOutput(true);
+                        DataOutputStream wrTxn = new DataOutputStream(conTxn.getOutputStream());
+                        wrTxn.writeBytes(postJsonData);
+                        wrTxn.flush();
+                        wrTxn.close();
+
+                        int responseCodeTxn = conTxn.getResponseCode();
+                        ProofCreditsLogger.debug("Sending 'POST' request to URL : " + urlTxn);
+                        ProofCreditsLogger.debug("Post Data : " + postJsonData);
+                        ProofCreditsLogger.debug("Response Code : " + responseCode);
+
+                        BufferedReader inTxn = new BufferedReader(
+                                new InputStreamReader(conTxn.getInputStream()));
+                        String outputTxn;
+                        StringBuffer responseTxn = new StringBuffer();
+
+                        while ((outputTxn = inTxn.readLine()) != null) {
+                            responseTxn.append(outputTxn);
+                        }
+                        inTxn.close();
+
+                        ProofCreditsLogger.debug(responseTxn.toString());
+                    }
+
+
 
                 }
 

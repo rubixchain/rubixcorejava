@@ -4,6 +4,7 @@ import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 
 import com.rubix.Consensus.InitiatorProcedure;
+import com.rubix.Resources.Functions;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -24,10 +25,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.*;
@@ -188,6 +186,8 @@ public class TokenSender {
 
             DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
             Date date = new Date();
+
+
             LocalDate currentTime = LocalDate.parse(formatter.format(date).replace("/", "-"));
             receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
 
@@ -377,7 +377,7 @@ public class TokenSender {
                     transactionRecord.put("quorumList",signedQuorumList);
                     transactionRecord.put("senderDID", senderDidIpfsHash);
                     transactionRecord.put("receiverDID", receiverDidIpfsHash);
-                    transactionRecord.put("Date", currentTime);
+                    transactionRecord.put("Date", getCurrentUtcTime());
                     transactionRecord.put("totalTime", totalTime);
                     transactionRecord.put("comment", comment);
                     transactionRecord.put("essentialShare", InitiatorProcedure.essential);

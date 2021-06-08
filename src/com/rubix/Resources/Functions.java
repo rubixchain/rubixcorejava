@@ -18,10 +18,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 import static com.rubix.Resources.APIHandler.networkInfo;
 import static com.rubix.Resources.IPFSNetwork.*;
@@ -960,5 +959,13 @@ public class Functions {
         else
             return true;
     }
+
+    public static Date getCurrentUtcTime() throws ParseException {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss");
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        SimpleDateFormat localDateFormat = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss");
+        return localDateFormat.parse( simpleDateFormat.format(new Date()) );
+    }
+
 }
 
