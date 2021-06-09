@@ -152,7 +152,8 @@ public class TokenSender {
 
             for (int i = 0; i < tokens.length(); i++) {
                 File token = new File(TOKENS_PATH + tokens.get(i));
-                File tokenchain = new File(TOKENCHAIN_PATH+tokens.get(i));
+                File tokenchain = new File(TOKENCHAIN_PATH+tokens.get(i)+".json");
+                TokenSenderLogger.debug(token +"and " +tokenchain);
                 if (!(token.exists()&&tokenchain.exists())) {
                     TokenSenderLogger.info("Tokens Not Verified");
                     senderMutex = false;
