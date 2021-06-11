@@ -16,6 +16,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -212,18 +214,19 @@ public class APIHandler {
      * @return List of transactions
      * @throws JSONException handles JSON Exceptions
      */
-    public static JSONArray transactionsByDate(String s, String e) throws JSONException {
+    public static JSONArray transactionsByDate(String s, String e) throws JSONException, ParseException {
         JSONArray resultArray = new JSONArray();
-        LocalDate start = LocalDate.parse(s);
-        LocalDate end = LocalDate.parse(e);
+        String strDateFormat = "yyyy-MMM-dd HH:mm:ss"; //Date format is Specified
+        SimpleDateFormat objSDF = new SimpleDateFormat(strDateFormat);
+        Date date1=new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(s);
+        String startDateString= objSDF.format(date1);
+        Date date2=new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(e);
+        String endDateString= objSDF.format(date2);
         JSONObject countResult = new JSONObject();
-        ArrayList<LocalDate> totalDates = new ArrayList<>();
-        while (!start.isAfter(end)) {
-            totalDates.add(start);
-            start = start.plusDays(1);
-        }
-
-
+        Date startDate = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss").parse(startDateString);
+        Date endDate = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss").parse(endDateString);
+        APILogger.debug("start date is "+startDate);
+        APILogger.debug("end date is "+endDate);
         File fileCheck1 = new File(WALLET_DATA_PATH + "TransactionHistory.json");
         if (!fileCheck1.exists()) {
             countResult.put("Message", "File not found");
@@ -231,28 +234,23 @@ public class APIHandler {
             return resultArray;
         }
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
-
-
         JSONArray transArray = new JSONArray(transactionHistory);
-
         if (transArray.length() == 0){
             countResult.put("Message", "No Transactions made yet");
             resultArray.put(countResult);
             return resultArray;
         }
-
-
-        int count = 0;
-        JSONObject Obj;
-        String temp;
-        while (count < totalDates.size()) {
-            temp = totalDates.get(count).toString();
-            for (int i = 0; i < transArray.length(); i++) {
-                Obj = transArray.getJSONObject(i);
-                if (temp.equals(Obj.get("Date")))
-                    resultArray.put(Obj);
-            }
-            count++;
+        for (int i=0;i<transArray.length();i++)
+        {
+            String dateFromTxnHistoryString = transArray.getJSONObject(i).get("Date").toString();
+            Date dateTH=new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(dateFromTxnHistoryString);
+            String dateTHS= objSDF.format(dateTH);
+            Calendar c= Calendar.getInstance();
+            c.setTime(objSDF.parse(dateTHS));
+            dateTH = c.getTime();
+            APILogger.debug("dateFromTxnHistory "+dateTH);
+            if (dateTH.after(startDate)&&dateTH.before(endDate))
+                resultArray.put(transArray.getJSONObject(i));
         }
         return resultArray;
     }
