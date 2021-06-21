@@ -91,7 +91,11 @@ public class QuorumConsensus implements Runnable {
                 detailsToVerify.put("hash", verifySenderHash);
                 detailsToVerify.put("signature", senderPrivatePos);
 
-                if (Authenticate.verifySignature(detailsToVerify.toString())&&integrityCheck(transactionID)) {
+                writeToFile("tempverifysenderhash", verifySenderHash, false);
+                String verifySenderIPFSHash = IPFSNetwork.addHashOnly("tempverifysenderhash", ipfs);
+                deleteFile("tempverifysenderhash");
+
+                if (Authenticate.verifySignature(detailsToVerify.toString())&&(integrityCheck(verifySenderHash)||dhtEmpty(verifySenderIPFSHash,ipfs))) {
                     QuorumConsensusLogger.debug("Quorum Authenticated Sender");
                     String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png", quorumHash);
                     out.println(QuorumSignature);
@@ -106,6 +110,7 @@ public class QuorumConsensus implements Runnable {
                         String credit = add(readCredit.toString(), ipfs);
                         JSONObject storeDetailsQuorum = new JSONObject();
                         storeDetailsQuorum.put("tid", transactionID);
+                        storeDetailsQuorum.put("consensusID", verifySenderHash);
                         storeDetailsQuorum.put("minestatus",false);
                         storeDetailsQuorum.put("sign", senderPrivatePos);
                         storeDetailsQuorum.put("credits", credit);
@@ -115,6 +120,10 @@ public class QuorumConsensus implements Runnable {
                         QuorumConsensusLogger.debug("Quorum Share: " + credit);
                         updateJSON("add",WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
                         deleteFile("mycredit.txt");
+                        writeToFile("consenusIDhash", verifySenderHash, false);
+                        String consenusIDhash = IPFSNetwork.add("consenusIDhash", ipfs);
+                        deleteFile("consenusIDhash");
+                        QuorumConsensusLogger.debug("added consensus ID "+consenusIDhash);
                     }
                 } else {
                     QuorumConsensusLogger.debug("Sender Authentication Failure - Quorum");

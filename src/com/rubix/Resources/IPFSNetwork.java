@@ -169,6 +169,29 @@ public class IPFSNetwork {
             return null;
     }
 
+
+
+    public static String addHashOnly(String fileName, IPFS ipfs) {
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+
+        NamedStreamable file = new NamedStreamable.FileWrapper(new File(fileName));
+        MerkleNode response = null;
+        try {
+            //response = ipfs.add(file).get(0);
+            response = ipfs.add(file,false,true).get(0);
+        } catch (IOException e) {
+
+            IPFSNetworkLogger.error("IOException Occurred", e);
+            e.printStackTrace();
+        }
+
+        if (response != null)
+            return response.hash.toBase58();
+        else
+            return null;
+    }
+
+
     /**
      * This method pin objects to local storage
      * See <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-pin-add"> ipfs pin add</a> for more
@@ -248,6 +271,16 @@ public class IPFSNetwork {
         List dhtlist = ipfs.dht.findprovs(dhtMultihash);
         if(dhtlist.size()==1&&dhtlist.toString().contains(previousOwner))
         return true;
+        return false;
+    }
+
+
+    public static boolean dhtEmpty(String MultiHash, IPFS ipfs) throws IOException{
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
+        List dhtlist = ipfs.dht.findprovs(dhtMultihash);
+        if(dhtlist.isEmpty())
+            return true;
         return false;
     }
 

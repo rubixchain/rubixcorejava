@@ -124,8 +124,11 @@ public class TokenSender {
 
         writeToFile("tempbeta", tid.concat(senderDidIpfsHash), false);
         String betaHash = IPFSNetwork.add("tempbeta", ipfs);
+        deleteFile("tempbeta");
+
         writeToFile("tempgamma", tid.concat(receiverDidIpfsHash), false);
         String gammaHash = IPFSNetwork.add("tempgamma", ipfs);
+        deleteFile("tempgamma");
 
 
             switch (type) {
@@ -185,6 +188,8 @@ public class TokenSender {
 
                 }
             }
+
+            QuorumCheck(quorumArray,ipfs);
 
             quorumPeersList = QuorumCheck(quorumArray, ipfs);
 
@@ -281,7 +286,7 @@ public class TokenSender {
 
                 output.println(senderDetails2Receiver);
 
-                String message = senderWidBin + tokens;
+                String message = senderWidBin + tokens.toString() + allTokensChainsPushed.toString() ;
 
                 JSONObject dataObject = new JSONObject();
                 dataObject.put("tid", tid);
