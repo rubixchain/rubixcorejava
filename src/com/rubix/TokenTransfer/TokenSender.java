@@ -286,7 +286,7 @@ public class TokenSender {
 
                 output.println(senderDetails2Receiver);
 
-                String message = senderWidBin + tokens.toString() + allTokensChainsPushed.toString() ;
+                String message = tokens.toString() + allTokensChainsPushed.toString() ;
 
                 JSONObject dataObject = new JSONObject();
                 dataObject.put("tid", tid);

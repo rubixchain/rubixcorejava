@@ -115,6 +115,8 @@ public class TokenReceiver {
         JSONArray tokenHeader =  TokenDetails.getJSONArray("tokenHeader");
         int tokenCount = tokens.length();
 
+        String message = tokens.toString() + tokenChains.toString() ;
+
         //Check IPFS get for all Tokens
         int ipfsGetFlag = 0;
         ArrayList<String> allTokenContent = new ArrayList<>();
@@ -128,7 +130,29 @@ public class TokenReceiver {
         }
 
         repo(ipfs);
-        if (!(ipfsGetFlag == tokenCount)) {
+
+
+        String consensusID = calculateHash(message , "SHA3-256");
+        writeToFile("consensusID", consensusID, false);
+        String consensusIDIPFSHash = IPFSNetwork.addHashOnly("consensusID", ipfs);
+        deleteFile("consensusID");
+
+        if (!(dhtEmpty(consensusIDIPFSHash,ipfs))) {
+            output.println("420");
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", "null");
+            APIResponse.put("status", "Failed");
+            APIResponse.put("message", "Consensus ID not unique");
+            TokenReceiverLogger.info("Consensus ID not unique");
+            executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+            output.close();
+            input.close();
+            sk.close();
+            ss.close();
+            return APIResponse.toString();
+        }
+
+        else if (!(ipfsGetFlag == tokenCount)) {
             output.println("420");
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
@@ -165,7 +189,6 @@ public class TokenReceiver {
                 TokenReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
                 quorumSignatures = new JSONObject(QuorumDetails);
 
-                String message = SenWalletBin + tokens;
                 String selectQuorumHash = calculateHash(message, "SHA3-256");
 
                 String verifyQuorumHash = calculateHash(selectQuorumHash.concat(receiverDidIpfsHash), "SHA3-256");
