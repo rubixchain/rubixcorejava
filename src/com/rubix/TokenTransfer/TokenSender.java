@@ -147,6 +147,7 @@ public class TokenSender {
                     dataToSendQuorumPick.put("betahash", betaHash);
                     dataToSendQuorumPick.put("gammahash", gammaHash);
                     dataToSendQuorumPick.put("sender", senderDidIpfsHash);
+                    dataToSendQuorumPick.put("receiver", receiverDidIpfsHash);
                     String populateQuorumPick = dataToSendQuorumPick.toString();
 
                     conQuorumPick.setDoOutput(true);
