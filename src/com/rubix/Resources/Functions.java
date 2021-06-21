@@ -571,7 +571,7 @@ public class Functions {
     public static ArrayList<String> QuorumCheck(JSONArray quorum, IPFS ipfs) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         ArrayList<String> peers = new ArrayList<>();
-        if (!(quorum.length() < minQuorum() || quorum.length() > QUORUM_COUNT)) {
+        if (!(quorum.length() < minQuorum(7) || quorum.length() > QUORUM_COUNT)) {
             for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
@@ -589,12 +589,9 @@ public class Functions {
                     e.printStackTrace();
                 }
             }
-            if (peers.size() < minQuorum())
-                return null;
-            else {
+
                 FunctionsLogger.debug("Quorum Peer IDs : " + peers);
                 return peers;
-            }
         } else
             return null;
     }
@@ -934,6 +931,8 @@ public class Functions {
 
         String tokenHash = calculateHash(String.valueOf(tokenNumber), "SHA-256");
         String levelHex = Integer.toHexString(level);
+        if(level<16)
+        levelHex=String.valueOf(0).concat(levelHex);
         String token = levelHex + tokenHash;
         return token;
     }

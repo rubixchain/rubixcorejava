@@ -10,10 +10,12 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import static com.rubix.Constants.IPFSConstants.*;
@@ -240,6 +242,14 @@ public class IPFSNetwork {
         return new String(fileContents);
     }
 
+    public static boolean dhtFindProvs(String MultiHash,String previousOwner, IPFS ipfs) throws IOException{
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
+        List dhtlist = ipfs.dht.findprovs(dhtMultihash);
+        if(dhtlist.size()==1&&dhtlist.toString().contains(previousOwner))
+        return true;
+        return false;
+    }
 
     /**
      * IPFS get for images

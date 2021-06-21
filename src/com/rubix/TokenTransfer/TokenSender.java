@@ -5,6 +5,7 @@ import com.rubix.Consensus.InitiatorConsensus;
 
 import com.rubix.Consensus.InitiatorProcedure;
 import com.rubix.Resources.Functions;
+import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -74,59 +75,6 @@ public class TokenSender {
         String senderWidBin = PropImage.img2bin(senderWidImage);
 
 
-            switch (type) {
-                case 1: {
-                    String userUrl = SYNC_IP + "/getQuorum?id=" + senderPeerID;
-                    URL userObj = new URL(userUrl);
-                    HttpURLConnection userCon = (HttpURLConnection) userObj.openConnection();
-
-                    userCon.setRequestMethod("GET");
-                    userCon.setRequestProperty("User-Agent", USER_AGENT);
-                    userCon.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-                    userCon.setRequestProperty("Accept", "application/json");
-                    userCon.setRequestProperty("Content-Type", "application/json");
-                    userCon.setRequestProperty("Authorization", "null");
-
-                    serverInput = new BufferedReader(new InputStreamReader(userCon.getInputStream()));
-                    String userResponse;
-                    StringBuffer quorumList = new StringBuffer();
-                    while ((userResponse = serverInput.readLine()) != null)
-                        quorumList.append(userResponse);
-
-                    serverInput.close();
-                    quorumArray = new JSONArray(quorumList);
-                    break;
-                }
-                case 2: {
-                    quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
-                    break;
-                }
-                case 3: {
-                    quorumArray = detailsObject.getJSONArray("quorum");
-                    break;
-                }
-                default: {
-                    TokenSenderLogger.error("Unknown quorum type input, cancelling transaction");
-                    APIResponse.put("status", "Failed");
-                    APIResponse.put("message", "Unknown quorum type input, cancelling transaction");
-                    return APIResponse;
-
-                }
-            }
-
-
-            quorumPeersList = QuorumCheck(quorumArray, ipfs);
-
-            if (quorumPeersList.size()<15) {
-                APIResponse.put("did", senderDidIpfsHash);
-                APIResponse.put("tid", "null");
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", "Quorum Members not available");
-                TokenSenderLogger.warn("Quorum Members not available");
-                return APIResponse;
-            }
-
-
         if (senderMutex) {
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
@@ -150,29 +98,105 @@ public class TokenSender {
             return APIResponse;
         }
 
-            for (int i = 0; i < tokens.length(); i++) {
-                File token = new File(TOKENS_PATH + tokens.get(i));
-                File tokenchain = new File(TOKENCHAIN_PATH+tokens.get(i)+".json");
-                TokenSenderLogger.debug(token +"and " +tokenchain);
-                if (!(token.exists()&&tokenchain.exists())) {
-                    TokenSenderLogger.info("Tokens Not Verified");
-                    senderMutex = false;
-                    APIResponse.put("did", senderDidIpfsHash);
-                    APIResponse.put("tid", "null");
+        for (int i = 0; i < tokens.length(); i++) {
+            File token = new File(TOKENS_PATH + tokens.get(i));
+            File tokenchain = new File(TOKENCHAIN_PATH+tokens.get(i)+".json");
+            TokenSenderLogger.debug(token +"and " +tokenchain);
+            if (!(token.exists()&&tokenchain.exists())) {
+                TokenSenderLogger.info("Tokens Not Verified");
+                senderMutex = false;
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Invalid token(s)");
+                return APIResponse;
+
+            }
+            add(TOKENS_PATH + tokens.get(i), ipfs);
+            String tokenChainHash = add(TOKENCHAIN_PATH + tokens.get(i) + ".json", ipfs);
+            allTokensChainsPushed.add(tokenChainHash);
+        }
+
+        String authSenderByRecHash = calculateHash(tokens.toString() + allTokensChainsPushed.toString() + receiverDidIpfsHash + comment, "SHA3-256");
+        String tid = calculateHash(authSenderByRecHash, "SHA3-256");
+        TokenSenderLogger.debug("Sender by Receiver Hash " + authSenderByRecHash);
+        TokenSenderLogger.debug("TID on sender " + tid);
+
+        writeToFile("tempbeta", tid.concat(senderDidIpfsHash), false);
+        String betaHash = IPFSNetwork.add("tempbeta", ipfs);
+        writeToFile("tempgamma", tid.concat(receiverDidIpfsHash), false);
+        String gammaHash = IPFSNetwork.add("tempgamma", ipfs);
+
+
+            switch (type) {
+                case 1: {
+                    String urlQuorumPick = SYNC_IP+"/getQuorum";
+                    URL objQuorumPick = new URL(urlQuorumPick);
+                    HttpURLConnection conQuorumPick = (HttpURLConnection) objQuorumPick.openConnection();
+
+                    conQuorumPick.setRequestMethod("POST");
+                    conQuorumPick.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+                    conQuorumPick.setRequestProperty("Accept", "application/json");
+                    conQuorumPick.setRequestProperty("Content-Type", "application/json");
+                    conQuorumPick.setRequestProperty("Authorization", "null");
+
+                    JSONObject dataToSendQuorumPick = new JSONObject();
+                    dataToSendQuorumPick.put("betahash", betaHash);
+                    dataToSendQuorumPick.put("gammahash", gammaHash);
+                    dataToSendQuorumPick.put("sender", senderDidIpfsHash);
+                    String populateQuorumPick = dataToSendQuorumPick.toString();
+
+                    conQuorumPick.setDoOutput(true);
+                    DataOutputStream wrQuorumPick = new DataOutputStream(conQuorumPick.getOutputStream());
+                    wrQuorumPick.writeBytes(populateQuorumPick);
+                    wrQuorumPick.flush();
+                    wrQuorumPick.close();
+
+                    int responseCodeQuorumPick = conQuorumPick.getResponseCode();
+                    TokenSenderLogger.debug("Sending 'POST' request to URL : " + urlQuorumPick);
+                    TokenSenderLogger.debug("Post Data : " + populateQuorumPick);
+                    TokenSenderLogger.debug("Response Code : " + responseCodeQuorumPick);
+
+                    BufferedReader inQuorumPick = new BufferedReader(
+                            new InputStreamReader(conQuorumPick.getInputStream()));
+                    String outputQuorumPick;
+                    StringBuffer responseQuorumPick = new StringBuffer();
+                    while ((outputQuorumPick = inQuorumPick.readLine()) != null) {
+                        responseQuorumPick.append(outputQuorumPick);
+                    }
+                    inQuorumPick.close();
+                    quorumArray = new JSONArray(responseQuorumPick);
+                   break;
+                }
+
+                case 2: {
+                    quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                    break;
+                }
+                case 3: {
+                    quorumArray = detailsObject.getJSONArray("quorum");
+                    break;
+                }
+                default: {
+                    TokenSenderLogger.error("Unknown quorum type input, cancelling transaction");
                     APIResponse.put("status", "Failed");
-                    APIResponse.put("message", "Invalid token(s)");
+                    APIResponse.put("message", "Unknown quorum type input, cancelling transaction");
                     return APIResponse;
 
                 }
-                add(TOKENS_PATH + tokens.get(i), ipfs);
-                String tokenChainHash = add(TOKENCHAIN_PATH + tokens.get(i) + ".json", ipfs);
-                allTokensChainsPushed.add(tokenChainHash);
             }
 
-            String authSenderByRecHash = calculateHash(tokens.toString() + allTokensChainsPushed.toString() + receiverDidIpfsHash + comment, "SHA3-256");
-            String tid = calculateHash(authSenderByRecHash, "SHA3-256");
-            TokenSenderLogger.debug("Sender by Receiver Hash " + authSenderByRecHash);
-            TokenSenderLogger.debug("TID on sender " + tid);
+            quorumPeersList = QuorumCheck(quorumArray, ipfs);
+
+            if (quorumPeersList.size()<15) {
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Quorum Members not available");
+                TokenSenderLogger.warn("Quorum Members not available");
+                return APIResponse;
+            }
+
             String senderSign = getSignFromShares(pvt, authSenderByRecHash);
 
             JSONObject senderDetails2Receiver = new JSONObject();

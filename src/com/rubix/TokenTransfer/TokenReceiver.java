@@ -239,24 +239,26 @@ public class TokenReceiver {
 
             String readServer = input.readLine();
             if (readServer.equals("Unpinned")) {
-
+                int count=0;
                 for (int i = 0; i < tokenCount; i++) {
                     FileWriter fileWriter;
                     fileWriter = new FileWriter(TOKENS_PATH + tokens.getString(i));
                     fileWriter.write(allTokenContent.get(i));
                     fileWriter.close();
-
-                    add(TOKENS_PATH + tokens.getString(i), ipfs);
-                    pin(tokens.getString(i), ipfs);
+                    if (dhtFindProvs(tokens.get(i).toString(),senderPeerID,ipfs)) {
+                        add(TOKENS_PATH + tokens.getString(i), ipfs);
+                        pin(tokens.getString(i), ipfs);
+                        count++;
+                    }
                 }
 
+                if (count==tokenCount)
+                {
                 TokenReceiverLogger.debug("Pinned All Tokens");
-
                 output.println("Successfully Pinned");
 
                 String essentialShare = input.readLine();
                 long endTime = System.currentTimeMillis();
-
 
                 for (int i = 0; i < tokenCount; i++) {
 
@@ -313,7 +315,23 @@ public class TokenReceiver {
                 sk.close();
                 ss.close();
                 return APIResponse.toString();
+
             }
+                output.println("Multiple owners");
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", "null");
+            APIResponse.put("status", "Failed");
+            APIResponse.put("message", "Multiple owners");
+            TokenReceiverLogger.info(" Transaction failed");
+            executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+            output.close();
+            input.close();
+            sk.close();
+            ss.close();
+            return APIResponse.toString();
+
+        }
+
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
