@@ -137,7 +137,8 @@ public class TokenReceiver {
         String consensusIDIPFSHash = IPFSNetwork.addHashOnly("consensusID", ipfs);
         deleteFile("consensusID");
 
-        if (!(dhtEmpty(consensusIDIPFSHash,ipfs))) {
+        if ((dhtEmpty(consensusIDIPFSHash,ipfs))==false) {
+            TokenReceiverLogger.debug("consensus ID not unique"+consensusIDIPFSHash);
             output.println("420");
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
@@ -153,7 +154,7 @@ public class TokenReceiver {
         }
 
         else if (!(ipfsGetFlag == tokenCount)) {
-            output.println("420");
+            output.println("421");
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");

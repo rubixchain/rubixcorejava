@@ -95,7 +95,7 @@ public class QuorumConsensus implements Runnable {
                 String verifySenderIPFSHash = IPFSNetwork.addHashOnly("tempverifysenderhash", ipfs);
                 deleteFile("tempverifysenderhash");
 
-                if (Authenticate.verifySignature(detailsToVerify.toString())&&(integrityCheck(verifySenderHash)||dhtEmpty(verifySenderIPFSHash,ipfs))) {
+                if (Authenticate.verifySignature(detailsToVerify.toString())&&(dhtEmpty(verifySenderIPFSHash,ipfs))) {
                     QuorumConsensusLogger.debug("Quorum Authenticated Sender");
                     String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png", quorumHash);
                     out.println(QuorumSignature);

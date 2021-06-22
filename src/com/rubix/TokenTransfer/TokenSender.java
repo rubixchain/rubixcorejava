@@ -210,6 +210,15 @@ public class TokenSender {
             senderDetails2Receiver.put("tid", tid);
             senderDetails2Receiver.put("comment", comment);
 
+        String message = tokens.toString() + allTokensChainsPushed.toString();
+        String consensusID = calculateHash(message , "SHA3-256");
+        writeToFile("consensusID", consensusID, false);
+        String consensusIDIPFSHash = IPFSNetwork.addHashOnly("consensusID", ipfs);
+        deleteFile("consensusID");
+
+        TokenSenderLogger.debug("consensusID hash " + consensusIDIPFSHash + " unique own " + dhtEmpty(consensusIDIPFSHash,ipfs));
+
+
             JSONObject tokenDetails = new JSONObject();
             tokenDetails.put("token", tokens);
             tokenDetails.put("tokenChain", allTokensChainsPushed);
@@ -217,7 +226,6 @@ public class TokenSender {
 
             DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
             Date date = new Date();
-
 
             LocalDate currentTime = LocalDate.parse(formatter.format(date).replace("/", "-"));
             receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
@@ -244,6 +252,7 @@ public class TokenSender {
 
             peerAuth= input.readLine();
 
+
 //            while ((peerAuth = input.readLine()) == null) {
 ////                forward(receiverPeerId, port, receiverPeerId);
 ////                senderSocket = new Socket("127.0.0.1", port);
@@ -266,28 +275,36 @@ public class TokenSender {
 
             }
 
-                output.println(tokenDetails);
+        output.println(tokenDetails);
 
             String tokenAuth = input.readLine();
 
             if (!tokenAuth.equals("200")) {
+
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
-                TokenSenderLogger.info("Tokens Not Verified");
+
                 output.close();
                 input.close();
                 senderSocket.close();
                 senderMutex = false;
-                APIResponse.put("did", senderDidIpfsHash);
-                APIResponse.put("tid", tid);
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", "Tokens Not Verified");
+                if (tokenAuth.equals("421")) {
+                    TokenSenderLogger.info("Tokens Not Verified");
+                    APIResponse.put("message", "Tokens Not Verified");
+                }
+                else {
+                    TokenSenderLogger.info("Consensus ID not unique");
+                    APIResponse.put("message", "Consensus ID not unique");
+                }
+                    APIResponse.put("did", senderDidIpfsHash);
+                    APIResponse.put("tid", tid);
+                    APIResponse.put("status", "Failed");
+
                 return APIResponse;
 
             }
 
                 output.println(senderDetails2Receiver);
 
-                String message = tokens.toString() + allTokensChainsPushed.toString() ;
 
                 JSONObject dataObject = new JSONObject();
                 dataObject.put("tid", tid);
