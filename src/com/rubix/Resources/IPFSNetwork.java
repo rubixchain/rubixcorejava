@@ -279,34 +279,14 @@ public class IPFSNetwork {
         return false;
     }
 
-    public static boolean dhtEmpty(String MultiHash, IPFS ipfs) throws IOException, JSONException {
+    public static boolean dhtEmpty(String MultiHash, IPFS ipfs) throws IOException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
         List dhtlist = ipfs.dht.findprovs(dhtMultihash);
-        JSONArray dhtListJSON = new JSONArray(dhtlist);
-        JSONObject dhtlistObject = dhtListJSON.getJSONObject(0);
-        String Type = dhtlistObject.get("Type").toString();
-        IPFSNetworkLogger.debug("Type "+Type + " length " + dhtListJSON.length());
-        if(Type.equals("4"))
-        return false;
+        if (dhtlist.toString().contains("Type=4"))
+            return false;
         return true;
-
-//        while(dhtListJSON.length()>0)
-//        {
-//            JSONObject dhtlistObject = dhtListJSON.getJSONObject(0);
-//            String Type = dhtlistObject.get("Type").toString();
-//            IPFSNetworkLogger.debug("Type "+Type + " length " + dhtListJSON.length());
-//            if(Type.equals("4"))
-//                return false;
-//            else
-//                dhtlist.remove(0);
-//
-//        }
-//
-//        return true;
-
     }
-
 
 
     /**
