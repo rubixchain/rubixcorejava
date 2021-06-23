@@ -8,8 +8,12 @@ import io.ipfs.multiaddr.MultiAddress;
 import io.ipfs.multihash.Multihash;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import javax.imageio.ImageIO;
+import javax.json.JsonArray;
 import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -275,14 +279,35 @@ public class IPFSNetwork {
         return false;
     }
 
-
-    public static boolean dhtEmpty(String MultiHash, IPFS ipfs) throws IOException{
+    public static boolean dhtEmpty(String MultiHash, IPFS ipfs) throws IOException, JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
         List dhtlist = ipfs.dht.findprovs(dhtMultihash);
-        IPFSNetworkLogger.debug("dht list size" + dhtlist.size() + " empty status " + dhtlist.isEmpty());
-        return dhtlist.isEmpty();
+        JSONArray dhtListJSON = new JSONArray(dhtlist);
+        JSONObject dhtlistObject = dhtListJSON.getJSONObject(0);
+        String Type = dhtlistObject.get("Type").toString();
+        IPFSNetworkLogger.debug("Type "+Type + " length " + dhtListJSON.length());
+        if(Type.equals("4"))
+        return false;
+        return true;
+
+//        while(dhtListJSON.length()>0)
+//        {
+//            JSONObject dhtlistObject = dhtListJSON.getJSONObject(0);
+//            String Type = dhtlistObject.get("Type").toString();
+//            IPFSNetworkLogger.debug("Type "+Type + " length " + dhtListJSON.length());
+//            if(Type.equals("4"))
+//                return false;
+//            else
+//                dhtlist.remove(0);
+//
+//        }
+//
+//        return true;
+
     }
+
+
 
     /**
      * IPFS get for images

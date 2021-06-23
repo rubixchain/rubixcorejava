@@ -115,7 +115,12 @@ public class TokenReceiver {
         JSONArray tokenHeader =  TokenDetails.getJSONArray("tokenHeader");
         int tokenCount = tokens.length();
 
-        String message = tokens.toString() + tokenChains.toString() ;
+        String message = TokenDetails.toString();
+
+        String consensusID = calculateHash(message , "SHA3-256");
+        writeToFile("consensusID", consensusID, false);
+        String consensusIDIPFSHash = IPFSNetwork.addHashOnly("consensusID", ipfs);
+        deleteFile("consensusID");
 
         //Check IPFS get for all Tokens
         int ipfsGetFlag = 0;
@@ -132,10 +137,6 @@ public class TokenReceiver {
         repo(ipfs);
 
 
-        String consensusID = calculateHash(message , "SHA3-256");
-        writeToFile("consensusID", consensusID, false);
-        String consensusIDIPFSHash = IPFSNetwork.addHashOnly("consensusID", ipfs);
-        deleteFile("consensusID");
 
         if ((dhtEmpty(consensusIDIPFSHash,ipfs))==false) {
             TokenReceiverLogger.debug("consensus ID not unique"+consensusIDIPFSHash);
@@ -269,11 +270,10 @@ public class TokenReceiver {
                     fileWriter = new FileWriter(TOKENS_PATH + tokens.getString(i));
                     fileWriter.write(allTokenContent.get(i));
                     fileWriter.close();
-                    if (dhtFindProvs(tokens.get(i).toString(),senderPeerID,ipfs)) {
                         add(TOKENS_PATH + tokens.getString(i), ipfs);
                         pin(tokens.getString(i), ipfs);
                         count++;
-                    }
+
                 }
 
                 if (count==tokenCount)
@@ -341,11 +341,11 @@ public class TokenReceiver {
                 return APIResponse.toString();
 
             }
-                output.println("Multiple owners");
+                output.println("count mistmatch");
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
-            APIResponse.put("message", "Multiple owners");
+            APIResponse.put("message", "count mismacth");
             TokenReceiverLogger.info(" Transaction failed");
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
             output.close();

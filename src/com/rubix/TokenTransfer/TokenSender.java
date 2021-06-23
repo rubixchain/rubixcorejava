@@ -210,7 +210,13 @@ public class TokenSender {
             senderDetails2Receiver.put("tid", tid);
             senderDetails2Receiver.put("comment", comment);
 
-        String message = tokens.toString() + allTokensChainsPushed.toString();
+        JSONObject tokenDetails = new JSONObject();
+        tokenDetails.put("token", tokens);
+        tokenDetails.put("tokenChain", allTokensChainsPushed);
+        tokenDetails.put("tokenHeader", tokenHeader);
+
+        String message = tokenDetails.toString();
+
         String consensusID = calculateHash(message , "SHA3-256");
         writeToFile("consensusID", consensusID, false);
         String consensusIDIPFSHash = IPFSNetwork.addHashOnly("consensusID", ipfs);
@@ -218,11 +224,6 @@ public class TokenSender {
 
         TokenSenderLogger.debug("consensusID hash " + consensusIDIPFSHash + " unique own " + dhtEmpty(consensusIDIPFSHash,ipfs));
 
-
-            JSONObject tokenDetails = new JSONObject();
-            tokenDetails.put("token", tokens);
-            tokenDetails.put("tokenChain", allTokensChainsPushed);
-            tokenDetails.put("tokenHeader", tokenHeader);
 
             DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
             Date date = new Date();
