@@ -190,7 +190,6 @@ public class TokenSender {
                 }
             }
 
-            QuorumCheck(quorumArray,ipfs);
 
             quorumPeersList = QuorumCheck(quorumArray, ipfs);
 
