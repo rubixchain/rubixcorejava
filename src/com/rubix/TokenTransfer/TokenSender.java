@@ -513,6 +513,7 @@ public class TokenSender {
                 JSONObject dataToSendQuorumUpdate = new JSONObject();
                 dataToSendQuorumUpdate.put("sender", senderDidIpfsHash);
                 dataToSendQuorumUpdate.put("receiver", receiverDidIpfsHash);
+                dataToSendQuorumUpdate.put("quorum",signedQuorumList);
                 String populateQuorumUpdate = dataToSendQuorumUpdate.toString();
 
                 conQuorumUpdate.setDoOutput(true);
