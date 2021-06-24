@@ -131,7 +131,6 @@ public class InitiatorConsensus {
                         qResponse[j] = qIn[j].readLine();
 
                         if (qResponse[j].equals("Auth_Failed")) {
-
                             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                         }
                         else {

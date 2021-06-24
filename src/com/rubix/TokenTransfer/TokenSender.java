@@ -511,9 +511,8 @@ public class TokenSender {
                 conQuorumUpdate.setRequestProperty("Authorization", "null");
 
                 JSONObject dataToSendQuorumUpdate = new JSONObject();
-                dataToSendQuorumUpdate.put("sender", senderDidIpfsHash);
-                dataToSendQuorumUpdate.put("receiver", receiverDidIpfsHash);
-                dataToSendQuorumUpdate.put("quorum",signedQuorumList);
+                dataToSendQuorumUpdate.put("completequorum", quorumArray);
+                dataToSendQuorumUpdate.put("signedquorum",signedQuorumList);
                 String populateQuorumUpdate = dataToSendQuorumUpdate.toString();
 
                 conQuorumUpdate.setDoOutput(true);
