@@ -90,6 +90,7 @@ public class TokenSender {
         ArrayList<String> allTokensChainsPushed = new ArrayList();
         APIResponse = new JSONObject();
         if (tokens.length() == 0) {
+
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
@@ -195,6 +196,7 @@ public class TokenSender {
             quorumPeersList = QuorumCheck(quorumArray, ipfs);
 
             if (quorumPeersList.size()<15) {
+                updateQuorum(quorumArray,null,false,type);
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");
@@ -268,6 +270,7 @@ public class TokenSender {
                 input.close();
                 senderSocket.close();
                 senderMutex = false;
+                updateQuorum(quorumArray,null,false,type);
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", tid);
                 APIResponse.put("status", "Failed");
@@ -296,6 +299,7 @@ public class TokenSender {
                     TokenSenderLogger.info("Consensus ID not unique");
                     APIResponse.put("message", "Consensus ID not unique");
                 }
+                updateQuorum(quorumArray,null,false,type);
                     APIResponse.put("did", senderDidIpfsHash);
                     APIResponse.put("tid", tid);
                     APIResponse.put("status", "Failed");
@@ -332,6 +336,7 @@ public class TokenSender {
                     input.close();
                     senderSocket.close();
                     senderMutex = false;
+                    updateQuorum(quorumArray,null,false,type);
                     APIResponse.put("did", senderDidIpfsHash);
                     APIResponse.put("tid", tid);
                     APIResponse.put("status", "Failed");
@@ -355,6 +360,7 @@ public class TokenSender {
                 input.close();
                 senderSocket.close();
                 senderMutex = false;
+                updateQuorum(quorumArray,null,false,type);
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", tid);
                 APIResponse.put("status", "Failed");
@@ -380,6 +386,7 @@ public class TokenSender {
                 input.close();
                 senderSocket.close();
                 senderMutex = false;
+                updateQuorum(quorumArray,null,false,type);
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", tid);
                 APIResponse.put("status", "Failed");
@@ -397,6 +404,7 @@ public class TokenSender {
                     input.close();
                     senderSocket.close();
                     senderMutex = false;
+                    updateQuorum(quorumArray,null,false,type);
                     APIResponse.put("did", senderDidIpfsHash);
                     APIResponse.put("tid", tid);
                     APIResponse.put("status", "Failed");
@@ -410,7 +418,6 @@ public class TokenSender {
                     JSONArray signedQuorumList = new JSONArray();
                     while(keys.hasNext())
                         signedQuorumList.put(keys.next());
-
                     APIResponse.put("tid", tid);
                     APIResponse.put("status", "Success");
                     APIResponse.put("did", senderDidIpfsHash);
@@ -418,6 +425,8 @@ public class TokenSender {
                     APIResponse.put("quorumlist",signedQuorumList);
                     APIResponse.put("receiver",receiverDidIpfsHash);
                     APIResponse.put("totaltime",totalTime);
+
+                    updateQuorum(quorumArray,signedQuorumList,true,type);
 
                     JSONObject transactionRecord = new JSONObject();
                     transactionRecord.put("role", "Sender");
@@ -495,50 +504,44 @@ public class TokenSender {
                         TokenSenderLogger.debug(response.toString());
                     }
 
-
-
-
-
-        if (type==1) {
-                String urlQuorumUpdate = SYNC_IP+"/updateQuorum";
-                URL objQuorumUpdate = new URL(urlQuorumUpdate);
-                HttpURLConnection conQuorumUpdate = (HttpURLConnection) objQuorumUpdate.openConnection();
-
-                conQuorumUpdate.setRequestMethod("POST");
-                conQuorumUpdate.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-                conQuorumUpdate.setRequestProperty("Accept", "application/json");
-                conQuorumUpdate.setRequestProperty("Content-Type", "application/json");
-                conQuorumUpdate.setRequestProperty("Authorization", "null");
-
-                JSONObject dataToSendQuorumUpdate = new JSONObject();
-                dataToSendQuorumUpdate.put("completequorum", quorumArray);
-                dataToSendQuorumUpdate.put("signedquorum",signedQuorumList);
-                String populateQuorumUpdate = dataToSendQuorumUpdate.toString();
-
-                conQuorumUpdate.setDoOutput(true);
-                DataOutputStream wrQuorumUpdate = new DataOutputStream(conQuorumUpdate.getOutputStream());
-                wrQuorumUpdate.writeBytes(populateQuorumUpdate);
-                wrQuorumUpdate.flush();
-                wrQuorumUpdate.close();
-
-                int responseCodeQuorumUpdate = conQuorumUpdate.getResponseCode();
-                TokenSenderLogger.debug("Sending 'POST' request to URL : " + urlQuorumUpdate);
-                TokenSenderLogger.debug("Post Data : " + populateQuorumUpdate);
-                TokenSenderLogger.debug("Response Code : " + responseCodeQuorumUpdate);
-
-                BufferedReader inQuorumUpdate = new BufferedReader(
-                        new InputStreamReader(conQuorumUpdate.getInputStream()));
-                String outputQuorumUpdate;
-                StringBuffer responseQuorumUpdate = new StringBuffer();
-                while ((outputQuorumUpdate = inQuorumUpdate.readLine()) != null) {
-                    responseQuorumUpdate.append(outputQuorumUpdate);
-                }
-                inQuorumUpdate.close();
-
-        }
-
-
-
+//
+//        if (type==1) {
+//                String urlQuorumUpdate = SYNC_IP+"/updateQuorum";
+//                URL objQuorumUpdate = new URL(urlQuorumUpdate);
+//                HttpURLConnection conQuorumUpdate = (HttpURLConnection) objQuorumUpdate.openConnection();
+//
+//                conQuorumUpdate.setRequestMethod("POST");
+//                conQuorumUpdate.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+//                conQuorumUpdate.setRequestProperty("Accept", "application/json");
+//                conQuorumUpdate.setRequestProperty("Content-Type", "application/json");
+//                conQuorumUpdate.setRequestProperty("Authorization", "null");
+//
+//                JSONObject dataToSendQuorumUpdate = new JSONObject();
+//                dataToSendQuorumUpdate.put("completequorum", quorumArray);
+//                dataToSendQuorumUpdate.put("signedquorum",signedQuorumList);
+//                String populateQuorumUpdate = dataToSendQuorumUpdate.toString();
+//
+//                conQuorumUpdate.setDoOutput(true);
+//                DataOutputStream wrQuorumUpdate = new DataOutputStream(conQuorumUpdate.getOutputStream());
+//                wrQuorumUpdate.writeBytes(populateQuorumUpdate);
+//                wrQuorumUpdate.flush();
+//                wrQuorumUpdate.close();
+//
+//                int responseCodeQuorumUpdate = conQuorumUpdate.getResponseCode();
+//                TokenSenderLogger.debug("Sending 'POST' request to URL : " + urlQuorumUpdate);
+//                TokenSenderLogger.debug("Post Data : " + populateQuorumUpdate);
+//                TokenSenderLogger.debug("Response Code : " + responseCodeQuorumUpdate);
+//
+//                BufferedReader inQuorumUpdate = new BufferedReader(
+//                        new InputStreamReader(conQuorumUpdate.getInputStream()));
+//                String outputQuorumUpdate;
+//                StringBuffer responseQuorumUpdate = new StringBuffer();
+//                while ((outputQuorumUpdate = inQuorumUpdate.readLine()) != null) {
+//                    responseQuorumUpdate.append(outputQuorumUpdate);
+//                }
+//                inQuorumUpdate.close();
+//
+//        }
 
                     TokenSenderLogger.info("Transaction Successful");
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);

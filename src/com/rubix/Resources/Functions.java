@@ -917,6 +917,49 @@ public class Functions {
     }
 
 
+    public static void updateQuorum(JSONArray quorumArray,JSONArray signedQuorumList,boolean status,int type) throws IOException, JSONException {
+
+        if (type==1) {
+            String urlQuorumUpdate = SYNC_IP+"/updateQuorum";
+            URL objQuorumUpdate = new URL(urlQuorumUpdate);
+            HttpURLConnection conQuorumUpdate = (HttpURLConnection) objQuorumUpdate.openConnection();
+
+            conQuorumUpdate.setRequestMethod("POST");
+            conQuorumUpdate.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+            conQuorumUpdate.setRequestProperty("Accept", "application/json");
+            conQuorumUpdate.setRequestProperty("Content-Type", "application/json");
+            conQuorumUpdate.setRequestProperty("Authorization", "null");
+
+            JSONObject dataToSendQuorumUpdate = new JSONObject();
+            dataToSendQuorumUpdate.put("completequorum", quorumArray);
+            dataToSendQuorumUpdate.put("signedquorum",signedQuorumList);
+            dataToSendQuorumUpdate.put("status",status);
+            String populateQuorumUpdate = dataToSendQuorumUpdate.toString();
+
+            conQuorumUpdate.setDoOutput(true);
+            DataOutputStream wrQuorumUpdate = new DataOutputStream(conQuorumUpdate.getOutputStream());
+            wrQuorumUpdate.writeBytes(populateQuorumUpdate);
+            wrQuorumUpdate.flush();
+            wrQuorumUpdate.close();
+
+            int responseCodeQuorumUpdate = conQuorumUpdate.getResponseCode();
+            FunctionsLogger.debug("Sending 'POST' request to URL : " + urlQuorumUpdate);
+            FunctionsLogger.debug("Post Data : " + populateQuorumUpdate);
+            FunctionsLogger.debug("Response Code : " + responseCodeQuorumUpdate);
+
+            BufferedReader inQuorumUpdate = new BufferedReader(
+                    new InputStreamReader(conQuorumUpdate.getInputStream()));
+            String outputQuorumUpdate;
+            StringBuffer responseQuorumUpdate = new StringBuffer();
+            while ((outputQuorumUpdate = inQuorumUpdate.readLine()) != null) {
+                responseQuorumUpdate.append(outputQuorumUpdate);
+            }
+            inQuorumUpdate.close();
+
+        }
+    }
+
+
 
 }
 
