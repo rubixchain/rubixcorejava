@@ -920,7 +920,7 @@ public class Functions {
     public static void updateQuorum(JSONArray quorumArray,JSONArray signedQuorumList,boolean status,int type) throws IOException, JSONException {
 
         if (type==1) {
-            String urlQuorumUpdate = SYNC_IP+"/updateQuorum";
+            String urlQuorumUpdate = "http://192.168.1.226:9595/updateQuorum";
             URL objQuorumUpdate = new URL(urlQuorumUpdate);
             HttpURLConnection conQuorumUpdate = (HttpURLConnection) objQuorumUpdate.openConnection();
 
@@ -960,6 +960,88 @@ public class Functions {
     }
 
 
+    public static JSONArray getQuorum(String betaHash,String gammaHash,String senderDidIpfsHash,String receiverDidIpfsHash,int tokenslength) throws IOException, JSONException {
+        JSONArray quorumArray;
+        String urlQuorumPick = "http://192.168.1.226:9595/getQuorum";
+        URL objQuorumPick = new URL(urlQuorumPick);
+        HttpURLConnection conQuorumPick = (HttpURLConnection) objQuorumPick.openConnection();
+
+        conQuorumPick.setRequestMethod("POST");
+        conQuorumPick.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+        conQuorumPick.setRequestProperty("Accept", "application/json");
+        conQuorumPick.setRequestProperty("Content-Type", "application/json");
+        conQuorumPick.setRequestProperty("Authorization", "null");
+
+        JSONObject dataToSendQuorumPick = new JSONObject();
+        dataToSendQuorumPick.put("betahash", betaHash);
+        dataToSendQuorumPick.put("gammahash", gammaHash);
+        dataToSendQuorumPick.put("sender", senderDidIpfsHash);
+        dataToSendQuorumPick.put("receiver", receiverDidIpfsHash);
+        dataToSendQuorumPick.put("tokencount",tokenslength);
+        String populateQuorumPick = dataToSendQuorumPick.toString();
+
+        conQuorumPick.setDoOutput(true);
+        DataOutputStream wrQuorumPick = new DataOutputStream(conQuorumPick.getOutputStream());
+        wrQuorumPick.writeBytes(populateQuorumPick);
+        wrQuorumPick.flush();
+        wrQuorumPick.close();
+
+        int responseCodeQuorumPick = conQuorumPick.getResponseCode();
+        FunctionsLogger.debug("Sending 'POST' request to URL : " + urlQuorumPick);
+        FunctionsLogger.debug("Post Data : " + populateQuorumPick);
+        FunctionsLogger.debug("Response Code : " + responseCodeQuorumPick);
+
+        BufferedReader inQuorumPick = new BufferedReader(
+                new InputStreamReader(conQuorumPick.getInputStream()));
+        String outputQuorumPick;
+        StringBuffer responseQuorumPick = new StringBuffer();
+        while ((outputQuorumPick = inQuorumPick.readLine()) != null) {
+            responseQuorumPick.append(outputQuorumPick);
+        }
+        inQuorumPick.close();
+        quorumArray = new JSONArray(responseQuorumPick);
+        return quorumArray;
+    }
+
+
+
+    public static void mineUpdate(String didHash,int credits) throws IOException, JSONException {
+        String urlMineUpdate = "http://192.168.1.226:9595/updatemine";
+        URL objMineUpdate = new URL(urlMineUpdate);
+        HttpURLConnection conMineUpdate = (HttpURLConnection) objMineUpdate.openConnection();
+
+        conMineUpdate.setRequestMethod("POST");
+        conMineUpdate.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+        conMineUpdate.setRequestProperty("Accept", "application/json");
+        conMineUpdate.setRequestProperty("Content-Type", "application/json");
+        conMineUpdate.setRequestProperty("Authorization", "null");
+
+        JSONObject dataToSendMineUpdate = new JSONObject();
+        dataToSendMineUpdate.put("didhash", didHash);
+        dataToSendMineUpdate.put("credits",credits);
+        String populateMineUpdate = dataToSendMineUpdate.toString();
+
+        conMineUpdate.setDoOutput(true);
+        DataOutputStream wrMineUpdate = new DataOutputStream(conMineUpdate.getOutputStream());
+        wrMineUpdate.writeBytes(populateMineUpdate);
+        wrMineUpdate.flush();
+        wrMineUpdate.close();
+
+        int responseCodeMineUpdate = conMineUpdate.getResponseCode();
+        FunctionsLogger.debug("Sending 'POST' request to URL : " + urlMineUpdate);
+        FunctionsLogger.debug("Post Data : " + populateMineUpdate);
+        FunctionsLogger.debug("Response Code : " + responseCodeMineUpdate);
+
+        BufferedReader inMineUpdate = new BufferedReader(
+                new InputStreamReader(conMineUpdate.getInputStream()));
+        String outputMineUpdate;
+        StringBuffer responseMineUpdate = new StringBuffer();
+        while ((outputMineUpdate = inMineUpdate.readLine()) != null) {
+            responseMineUpdate.append(outputMineUpdate);
+        }
+        inMineUpdate.close();
+
+    }
 
 }
 

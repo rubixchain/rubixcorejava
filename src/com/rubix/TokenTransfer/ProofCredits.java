@@ -41,7 +41,7 @@ public class ProofCredits {
         JSONObject detailsObject = new JSONObject(data);
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
-        int creditUsed=10;
+        int creditUsed=0;
         long totalTime=0;
 
         // getInfo api call to fetch current token, current level and required proof credits for level
@@ -256,15 +256,30 @@ public class ProofCredits {
                 //Calling Mine token function
                 JSONArray token = new JSONArray();
 
-                for (int i = 0; i < resJsonData.length(); i++)
+                for (int i = 0; i < resJsonData.length(); i++) {
                     token.put(Functions.mineToken(resJsonData.getJSONObject(i).getInt("level"), resJsonData.getJSONObject(i).getInt("token")));
+
+                    creditUsed+=(int) Math.pow(2,(2+resJsonData.getJSONObject(i).getInt("level")));
+
+                }
+
+                if(resJsonData.getJSONObject(0).getInt("level")==1)
+                    creditUsed = 10;
 
                 String comments = resJsonData.toString() + prooftid;
 
-
                 String authSenderByRecHash = calculateHash(token + receiverDidIpfsHash + comments, "SHA3-256");
                 String tid = calculateHash(authSenderByRecHash, "SHA3-256");
-                JSONArray quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+
+                writeToFile("tempbeta", tid.concat(receiverDidIpfsHash), false);
+                String betaHash = IPFSNetwork.add("tempbeta", ipfs);
+                deleteFile("tempbeta");
+
+                writeToFile("tempgamma", tid.concat(receiverDidIpfsHash), false);
+                String gammaHash = IPFSNetwork.add("tempgamma", ipfs);
+                deleteFile("tempgamma");
+
+                JSONArray quorumArray= getQuorum(betaHash,gammaHash,receiverDidIpfsHash,receiverDidIpfsHash,token.length());
 
                 quorumPeersList = QuorumCheck(quorumArray, ipfs);
 
@@ -315,8 +330,6 @@ public class ProofCredits {
                         updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
                     }
 
-
-
                         writeToFile(jsonFilePath,records.toString(),false);
 //                    FileWriter File = new FileWriter(jsonFilePath);
 //                    File.write(records.toString());
@@ -329,6 +342,9 @@ public class ProofCredits {
                     JSONArray signedQuorumList = new JSONArray();
                     while (keys.hasNext())
                         signedQuorumList.put(keys.next());
+
+                    updateQuorum(quorumArray,signedQuorumList,true,1);
+                    mineUpdate(receiverDidIpfsHash,creditUsed);
                     APIResponse.put("did", receiverDidIpfsHash);
                     APIResponse.put("tid", tid);
                     APIResponse.put("token", token);
@@ -464,8 +480,6 @@ public class ProofCredits {
 
                         ProofCreditsLogger.debug(responseTxn.toString());
                     }
-
-
 
                 }
 

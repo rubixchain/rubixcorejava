@@ -134,44 +134,7 @@ public class TokenSender {
 
             switch (type) {
                 case 1: {
-                    String urlQuorumPick = SYNC_IP+"/getQuorum";
-                    URL objQuorumPick = new URL(urlQuorumPick);
-                    HttpURLConnection conQuorumPick = (HttpURLConnection) objQuorumPick.openConnection();
-
-                    conQuorumPick.setRequestMethod("POST");
-                    conQuorumPick.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-                    conQuorumPick.setRequestProperty("Accept", "application/json");
-                    conQuorumPick.setRequestProperty("Content-Type", "application/json");
-                    conQuorumPick.setRequestProperty("Authorization", "null");
-
-                    JSONObject dataToSendQuorumPick = new JSONObject();
-                    dataToSendQuorumPick.put("betahash", betaHash);
-                    dataToSendQuorumPick.put("gammahash", gammaHash);
-                    dataToSendQuorumPick.put("sender", senderDidIpfsHash);
-                    dataToSendQuorumPick.put("receiver", receiverDidIpfsHash);
-                    dataToSendQuorumPick.put("tokencount",tokens.length());
-                    String populateQuorumPick = dataToSendQuorumPick.toString();
-
-                    conQuorumPick.setDoOutput(true);
-                    DataOutputStream wrQuorumPick = new DataOutputStream(conQuorumPick.getOutputStream());
-                    wrQuorumPick.writeBytes(populateQuorumPick);
-                    wrQuorumPick.flush();
-                    wrQuorumPick.close();
-
-                    int responseCodeQuorumPick = conQuorumPick.getResponseCode();
-                    TokenSenderLogger.debug("Sending 'POST' request to URL : " + urlQuorumPick);
-                    TokenSenderLogger.debug("Post Data : " + populateQuorumPick);
-                    TokenSenderLogger.debug("Response Code : " + responseCodeQuorumPick);
-
-                    BufferedReader inQuorumPick = new BufferedReader(
-                            new InputStreamReader(conQuorumPick.getInputStream()));
-                    String outputQuorumPick;
-                    StringBuffer responseQuorumPick = new StringBuffer();
-                    while ((outputQuorumPick = inQuorumPick.readLine()) != null) {
-                        responseQuorumPick.append(outputQuorumPick);
-                    }
-                    inQuorumPick.close();
-                    quorumArray = new JSONArray(responseQuorumPick);
+                    quorumArray = getQuorum(betaHash,gammaHash,senderDidIpfsHash,receiverDidIpfsHash,tokens.length());
                    break;
                 }
 
