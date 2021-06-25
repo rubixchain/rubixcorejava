@@ -885,7 +885,7 @@ public class Functions {
         String levelHex = Integer.toHexString(level);
         if(level<16)
         levelHex=String.valueOf(0).concat(levelHex);
-        String token = levelHex + tokenHash;
+        String token = String.valueOf(0) + levelHex + tokenHash;
         return token;
     }
 

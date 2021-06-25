@@ -41,7 +41,7 @@ public class ProofCredits {
         JSONObject detailsObject = new JSONObject(data);
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
-        int creditUsed=16;
+        int creditUsed=10;
         long totalTime=0;
 
         // getInfo api call to fetch current token, current level and required proof credits for level
