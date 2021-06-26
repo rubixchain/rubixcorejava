@@ -279,6 +279,7 @@ public class ProofCredits {
                 String gammaHash = IPFSNetwork.add("tempgamma", ipfs);
                 deleteFile("tempgamma");
 
+
                 JSONArray quorumArray= getQuorum(betaHash,gammaHash,receiverDidIpfsHash,receiverDidIpfsHash,token.length());
 
                 quorumPeersList = QuorumCheck(quorumArray, ipfs);
