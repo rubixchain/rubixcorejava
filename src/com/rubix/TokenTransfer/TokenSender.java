@@ -71,9 +71,9 @@ public class TokenSender {
         JSONArray tokens = detailsObject.getJSONArray("tokens");
         JSONArray tokenHeader = detailsObject.getJSONArray("tokenHeader");
         JSONArray quorumArray;
-        JSONArray alphaQuorum = null;
-        JSONArray betaQuorum=null;
-        JSONArray gammaQuorum=null;
+        JSONArray alphaQuorum = new JSONArray();
+        JSONArray betaQuorum=new JSONArray();
+        JSONArray gammaQuorum=new JSONArray();
 
 
 
@@ -163,7 +163,6 @@ public class TokenSender {
 
                 }
             }
-
 
         for(int i=0;i<7;i++)
         {

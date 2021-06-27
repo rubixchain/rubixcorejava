@@ -47,9 +47,9 @@ public class ProofCredits {
         int creditUsed=0;
         long totalTime=0;
 
-        JSONArray alphaQuorum = null;
-        JSONArray betaQuorum=null;
-        JSONArray gammaQuorum=null;
+        JSONArray alphaQuorum = new JSONArray();
+        JSONArray betaQuorum=new JSONArray();
+        JSONArray gammaQuorum=new JSONArray();
 
 
 
