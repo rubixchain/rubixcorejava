@@ -293,13 +293,12 @@ public class ProofCredits {
 
                 JSONArray quorumArray= getQuorum(betaHash,gammaHash,receiverDidIpfsHash,receiverDidIpfsHash,token.length());
 
-                quorumPeersList = QuorumCheck(quorumArray, ipfs);
 
                 for(int i=0;i<7;i++)
                 {
-                    alphaQuorum.put(quorumArray.get(i));
-                    betaQuorum.put(quorumArray.get(7+i));
-                    gammaQuorum.put(quorumArray.get(14+i));
+                    alphaQuorum.put(quorumArray.getString(i));
+                    betaQuorum.put(quorumArray.getString(7+i));
+                    gammaQuorum.put(quorumArray.getString(14+i));
                 }
 
 
