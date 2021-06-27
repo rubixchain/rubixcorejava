@@ -34,6 +34,9 @@ public class ProofCredits {
 
     public static Logger ProofCreditsLogger = Logger.getLogger(ProofCredits.class);
     private static ArrayList quorumPeersList;
+    private static ArrayList alphaPeersList;
+    private static ArrayList betaPeersList;
+    private static ArrayList gammaPeersList;
 
     public static JSONObject create(String data, IPFS ipfs) throws IOException, JSONException {
 
@@ -43,6 +46,12 @@ public class ProofCredits {
         String pvt = detailsObject.getString("pvt");
         int creditUsed=0;
         long totalTime=0;
+
+        JSONArray alphaQuorum = null;
+        JSONArray betaQuorum=null;
+        JSONArray gammaQuorum=null;
+
+
 
         // getInfo api call to fetch current token, current level and required proof credits for level
 
@@ -286,6 +295,30 @@ public class ProofCredits {
 
                 quorumPeersList = QuorumCheck(quorumArray, ipfs);
 
+                for(int i=0;i<7;i++)
+                {
+                    alphaQuorum.put(quorumArray.get(i));
+                    betaQuorum.put(quorumArray.get(7+i));
+                    gammaQuorum.put(quorumArray.get(14+i));
+                }
+
+
+                alphaPeersList=QuorumCheck(alphaQuorum,ipfs);
+                betaPeersList= QuorumCheck(betaQuorum,ipfs);
+                gammaPeersList=QuorumCheck(gammaQuorum,ipfs);
+
+                // quorumPeersList = QuorumCheck(quorumArray, ipfs);
+
+                if (alphaPeersList.size()<5||betaPeersList.size()<5||gammaPeersList.size()<5) {
+                    updateQuorum(quorumArray,null,false,1);
+                    APIResponse.put("did", receiverDidIpfsHash);
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Quorum Members not available");
+                    ProofCreditsLogger.warn("Quorum Members not available");
+                    return APIResponse;
+                }
+
 
                 JSONObject dataObject = new JSONObject();
                 dataObject.put("tid", tid);
@@ -294,9 +327,9 @@ public class ProofCredits {
                 dataObject.put("pvt", pvt);
                 dataObject.put("senderDidIpfs", receiverDidIpfsHash);
                 dataObject.put("token", token.toString());
-                dataObject.put("alphaList", quorumPeersList.subList(0, 7));
-                dataObject.put("betaList", quorumPeersList.subList(7, 14));
-                dataObject.put("gammaList", quorumPeersList.subList(14, 21));
+                dataObject.put("alphaList", alphaPeersList);
+                dataObject.put("betaList", betaPeersList);
+                dataObject.put("gammaList", gammaPeersList);
 
                 InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3);
 
