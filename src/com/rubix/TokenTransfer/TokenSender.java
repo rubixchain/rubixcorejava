@@ -165,13 +165,16 @@ public class TokenSender {
             }
 
 
-            for(int i=0;i<7;i++)
-            {
-                alphaQuorum.put(quorumArray.get(i));
-                betaQuorum.put(quorumArray.get(7+i));
-                gammaQuorum.put(quorumArray.get(14+i));
-            }
+        for(int i=0;i<7;i++)
+        {
+            alphaQuorum.put(quorumArray.getString(i));
+            betaQuorum.put(quorumArray.getString(7+i));
+            gammaQuorum.put(quorumArray.getString(14+i));
+        }
 
+        TokenSenderLogger.debug("alphaquorum " + alphaQuorum + " size " +alphaQuorum.length());
+        TokenSenderLogger.debug("betaquorum "+betaQuorum + " size "+betaQuorum.length());
+        TokenSenderLogger.debug("gammaquorum "+gammaQuorum + " size "+gammaQuorum.length());
 
             alphaPeersList=QuorumCheck(alphaQuorum,ipfs);
             betaPeersList= QuorumCheck(betaQuorum,ipfs);

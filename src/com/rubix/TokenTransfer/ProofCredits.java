@@ -301,6 +301,10 @@ public class ProofCredits {
                     gammaQuorum.put(quorumArray.getString(14+i));
                 }
 
+                ProofCreditsLogger.debug("alphaquorum " + alphaQuorum + " size " +alphaQuorum.length());
+                ProofCreditsLogger.debug("betaquorum "+betaQuorum + " size "+betaQuorum.length());
+                ProofCreditsLogger.debug("gammaquorum "+gammaQuorum + " size "+gammaQuorum.length());
+
 
                 alphaPeersList=QuorumCheck(alphaQuorum,ipfs);
                 betaPeersList= QuorumCheck(betaQuorum,ipfs);
