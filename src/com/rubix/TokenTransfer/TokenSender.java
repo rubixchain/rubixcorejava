@@ -4,6 +4,7 @@ import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 
 import com.rubix.Consensus.InitiatorProcedure;
+import com.rubix.Consensus.QuorumConsensus;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
@@ -40,7 +41,10 @@ public class TokenSender {
     private static BufferedReader input;
     private static Socket senderSocket;
     private static boolean senderMutex = false;
-    private static ArrayList quorumPeersList;
+
+    private static ArrayList alphaPeersList;
+    private static ArrayList betaPeersList;
+    private static ArrayList gammaPeersList;
 
     /**
      * A sender node to transfer tokens
@@ -67,6 +71,11 @@ public class TokenSender {
         JSONArray tokens = detailsObject.getJSONArray("tokens");
         JSONArray tokenHeader = detailsObject.getJSONArray("tokenHeader");
         JSONArray quorumArray;
+        JSONArray alphaQuorum = null;
+        JSONArray betaQuorum=null;
+        JSONArray gammaQuorum=null;
+
+
 
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
@@ -156,9 +165,21 @@ public class TokenSender {
             }
 
 
-            quorumPeersList = QuorumCheck(quorumArray, ipfs);
+            for(int i=0;i<7;i++)
+            {
+                alphaQuorum.put(quorumArray.get(i));
+                betaQuorum.put(quorumArray.get(7+i));
+                gammaQuorum.put(quorumArray.get(14+i));
+            }
 
-            if (quorumPeersList.size()<15) {
+
+            alphaPeersList=QuorumCheck(alphaQuorum,ipfs);
+            betaPeersList= QuorumCheck(betaQuorum,ipfs);
+            gammaPeersList=QuorumCheck(gammaQuorum,ipfs);
+
+           // quorumPeersList = QuorumCheck(quorumArray, ipfs);
+
+            if (alphaPeersList.size()<5||betaPeersList.size()<5||gammaPeersList.size()<5) {
                 updateQuorum(quorumArray,null,false,type);
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", "null");
@@ -281,9 +302,9 @@ public class TokenSender {
                 dataObject.put("pvt", pvt);
                 dataObject.put("senderDidIpfs", senderDidIpfsHash);
                 dataObject.put("token", tokens.toString());
-                dataObject.put("alphaList", quorumPeersList.subList(0, 7));
-                dataObject.put("betaList", quorumPeersList.subList(7, 14));
-                dataObject.put("gammaList", quorumPeersList.subList(14, 21));
+                dataObject.put("alphaList", alphaPeersList);
+                dataObject.put("betaList", betaPeersList);
+                dataObject.put("gammaList", gammaPeersList);
 
                 TokenSenderLogger.debug("dataobject " + dataObject.toString());
 

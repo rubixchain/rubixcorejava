@@ -256,6 +256,8 @@ public class ProofCredits {
                 //Calling Mine token function
                 JSONArray token = new JSONArray();
 
+                level = resJsonData.getJSONObject(0).getInt("level");
+
                 for (int i = 0; i < resJsonData.length(); i++) {
                     token.put(Functions.mineToken(resJsonData.getJSONObject(i).getInt("level"), resJsonData.getJSONObject(i).getInt("token")));
 
@@ -396,7 +398,7 @@ public class ProofCredits {
                         dataToSend.put("bank_id", "01");
                         dataToSend.put("user_did", receiverDidIpfsHash);
                         dataToSend.put("token_id", token);
-                        dataToSend.put("level", "01");
+                        dataToSend.put("level",level);
                         dataToSend.put("denomination", 1);
                         String populate = dataToSend.toString();
 

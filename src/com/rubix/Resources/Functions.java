@@ -573,7 +573,7 @@ public class Functions {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         ArrayList<String> peers = new ArrayList<>();
 
-        if (quorum.length()>=minQuorum(QUORUM_COUNT)) {
+        if (quorum.length()>=minQuorum(7)) {
             for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
