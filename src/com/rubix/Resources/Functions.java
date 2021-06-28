@@ -920,7 +920,7 @@ public class Functions {
     public static void updateQuorum(JSONArray quorumArray,JSONArray signedQuorumList,boolean status,int type) throws IOException, JSONException {
 
         if (type==1) {
-            String urlQuorumUpdate = "http://183.82.0.114:9595/updateQuorum";
+            String urlQuorumUpdate = "http://13.76.134.226:9595/updateQuorum";
             URL objQuorumUpdate = new URL(urlQuorumUpdate);
             HttpURLConnection conQuorumUpdate = (HttpURLConnection) objQuorumUpdate.openConnection();
 
@@ -962,7 +962,7 @@ public class Functions {
 
     public static JSONArray getQuorum(String betaHash,String gammaHash,String senderDidIpfsHash,String receiverDidIpfsHash,int tokenslength) throws IOException, JSONException {
         JSONArray quorumArray;
-        String urlQuorumPick = "http://183.82.0.114:9595/getQuorum";
+        String urlQuorumPick = "http://13.76.134.226:9595/getQuorum";
         URL objQuorumPick = new URL(urlQuorumPick);
         HttpURLConnection conQuorumPick = (HttpURLConnection) objQuorumPick.openConnection();
 
@@ -1007,7 +1007,7 @@ public class Functions {
 
 
     public static void mineUpdate(String didHash,int credits) throws IOException, JSONException {
-        String urlMineUpdate = "http://183.82.0.114:9595/updatemine";
+        String urlMineUpdate = "http://13.76.134.226:9595/updatemine";
         URL objMineUpdate = new URL(urlMineUpdate);
         HttpURLConnection conMineUpdate = (HttpURLConnection) objMineUpdate.openConnection();
 
