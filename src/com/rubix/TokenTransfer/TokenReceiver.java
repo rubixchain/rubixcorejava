@@ -71,7 +71,7 @@ public class TokenReceiver {
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
         String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", senderPeerID);
 
-        if(!(senderDidIpfsHash.contains("Qm")&&senderDidIpfsHash.contains("Qm")))
+        if(!(senderDidIpfsHash.contains("Qm")&&senderWidIpfsHash.contains("Qm")))
         {
             output.println("420");
             APIResponse.put("did", senderDidIpfsHash);

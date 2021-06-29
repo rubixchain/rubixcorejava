@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.IPFSNetwork.repo;
 
 
 public class ProofCredits {
@@ -413,6 +414,7 @@ public class ProofCredits {
                     transactionHistoryEntry.put(transactionRecord);
                     updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString());
 
+                    repo(ipfs);
 
 
                     if (!EXPLORER_IP.contains("127.0.0.1")) {
