@@ -48,6 +48,7 @@ public class Functions {
     public static String dirPath = "";
     public static boolean CONSENSUS_STATUS;
     public static JSONObject QUORUM_MEMBERS;
+    public static JSONArray BOOTSTRAPS;
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
@@ -109,6 +110,8 @@ public class Functions {
             QUORUM_COUNT = pathsArray.getJSONObject(3).getInt("QUORUM_COUNT");
 
             QUORUM_MEMBERS = pathsArray.getJSONObject(4);
+
+            BOOTSTRAPS =pathsArray.getJSONArray(5);
 
 
         } catch (JSONException e) {

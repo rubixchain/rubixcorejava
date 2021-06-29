@@ -23,8 +23,7 @@ import java.util.Map;
 import java.util.Random;
 
 import static com.rubix.Constants.IPFSConstants.*;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.getOsName;
+import static com.rubix.Resources.Functions.*;
 
 
 public class IPFSNetwork {
@@ -60,17 +59,9 @@ public class IPFSNetwork {
     }
 
 
-    /**
-     * This method opens a new direct connection to a peer address.
-     * The address format is an IPFS multiaddr.
-     * See <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-swarm-connect"> ipfs swarm connect </a> for more
-     *
-     * @param peerid is the multiaddr of the node
-     * @param ipfs   IPFS instance
-     */
 
 
-    public static void swarmConnect(String peerid, IPFS ipfs) {
+    public static void swarmConnector(String peerid, IPFS ipfs) throws JSONException{
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String bootNode;
         int j;
@@ -78,10 +69,12 @@ public class IPFSNetwork {
         try {
             if (!ipfs.swarm.peers().toString().contains(peerid)) {
                 Random ran = new Random();
+
                 List bootStrapList = ipfs.bootstrap.list();
                 Collections.shuffle(bootStrapList);
                 ran.setSeed(123456);
                 int bootstrapSize = bootStrapList.size();
+
                 j = ran.nextInt(bootstrapSize);
                 bootNode = String.valueOf(bootStrapList.get(j));
                 bootNode = bootNode.substring(bootNode.length() - 46);
@@ -108,6 +101,63 @@ public class IPFSNetwork {
         }
 
     }
+
+
+    /**
+     * This method opens a new direct connection to a peer address.
+     * The address format is an IPFS multiaddr.
+     * See <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-swarm-connect"> ipfs swarm connect </a> for more
+     *
+     * @param peerid is the multiaddr of the node
+     * @param ipfs   IPFS instance
+     */
+
+
+    public static void swarmConnect(String peerid, IPFS ipfs) throws JSONException{
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        String bootNode;
+        int j;
+
+        try {
+
+            if (!ipfs.swarm.peers().toString().contains(peerid)) {
+                Random ran = new Random();
+
+//                List bootStrapList = ipfs.bootstrap.list();
+//                Collections.shuffle(bootStrapList);
+                ran.setSeed(123456);
+                int bootstrapSize = BOOTSTRAPS.length();
+
+                IPFSNetworkLogger.debug( "Bootstraps  "+BOOTSTRAPS + "size " + bootstrapSize);
+
+                j = ran.nextInt(bootstrapSize);
+                bootNode = String.valueOf(BOOTSTRAPS.get(j));
+                bootNode = bootNode.substring(bootNode.length() - 46);
+                IPFSNetworkLogger.debug("bootnode is " + bootNode);
+                IPFSNetworkLogger.debug(bootNode);
+                while (!ipfs.swarm.peers().toString().contains(bootNode)) {
+                    j = (j + 1) % bootstrapSize;
+                    bootNode = String.valueOf(BOOTSTRAPS.get(j));
+                    bootNode = bootNode.substring(bootNode.length() - 46);
+                    IPFSNetworkLogger.debug("trying to connect: " + bootNode);
+                }
+                MultiAddress multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
+                String output = swarmConnectProcess(multiAddress);
+                if (!output.contains("success"))
+                    swarmConnect(peerid, ipfs);
+                else
+                    IPFSNetworkLogger.debug("Connected via bootstrap node: " + bootNode);
+            } else {
+                IPFSNetworkLogger.debug("Connecting to Receiver directly");
+
+            }
+        } catch (IOException e) {
+            IPFSNetworkLogger.error("IOException Occurred", e);
+            e.printStackTrace();
+        }
+
+    }
+
 
     /**
      * This function connects the peer node through the private swarm

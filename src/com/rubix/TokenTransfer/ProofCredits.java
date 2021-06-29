@@ -209,11 +209,11 @@ public class ProofCredits {
 
 
 
-        int level = 0,tokenNumber = 0,availableCredits = 0, balance=0;
+        int level = 0,tokenNumber = 0,availableCredits = 0, balance=0,creditsRequired=500000,level_credit=0;
         long starttime = System.currentTimeMillis();
         JSONArray resJsonData = new JSONArray();
-
-
+        new JSONObject();
+        JSONObject resJsonData_credit;
 
 
         //Reading proofcredits.json
@@ -230,8 +230,39 @@ public class ProofCredits {
             }
         }
 
+        String GET_URL_credit = SYNC_IP + "/getlevel";
+        URL URLobj_credit = new URL(GET_URL_credit);
+        HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
+        con_credit.setRequestMethod("GET");
+        int responseCode_credit = con_credit.getResponseCode();
+        System.out.println("GET Response Code :: " + responseCode_credit);
+        if (responseCode_credit == HttpURLConnection.HTTP_OK) {
+            BufferedReader in_credit = new BufferedReader(new InputStreamReader(con_credit.getInputStream()));
+            String inputLine_credit;
+            StringBuffer response_credit = new StringBuffer();
+            while ((inputLine_credit = in_credit.readLine()) != null) {
+                response_credit.append(inputLine_credit);
+            }
+            in_credit.close();
+            ProofCreditsLogger.debug("response from service " + response_credit.toString());
 
-        if (availableCredits>=creditUsed) {
+            //JSONObject responseJSON=new JSONObject(response.toString());
+            //resJsonData= responseJSON.getJSONArray("data");
+            //creditUsed = responseJSON.getInt("credits");
+
+
+             resJsonData_credit = new JSONObject(response_credit.toString());
+             level_credit = resJsonData_credit.getInt("level");
+             creditsRequired =(int) Math.pow(2,(2+level_credit));
+             ProofCreditsLogger.debug("credits required "  + creditsRequired);
+
+        } else
+            ProofCreditsLogger.debug("GET request not worked");
+
+
+        ProofCreditsLogger.debug("credits required " + creditsRequired+ " available credits "+ availableCredits);
+
+        if (availableCredits>=creditsRequired) {
 
             //String GET_URL = SYNC_IP+"/getInfo?count="+availableCredits;
 
