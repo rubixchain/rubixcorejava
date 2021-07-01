@@ -5,7 +5,7 @@ public class IPFSConstants {
     public static String listen = "ipfs listen ";
     public static String forward = "ipfs forward ";
     public static String p2p = "ipfs p2p ";
-    public static String swarmConnect = "ipfs swarm connect ";
+    public static String swarmConnect = "ipfs swarm connect";
     public static String shutdown = "ipfs shutdown";
     public static String daemon = "ipfs daemon";
 

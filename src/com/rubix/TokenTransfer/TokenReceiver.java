@@ -118,9 +118,9 @@ public class TokenReceiver {
         String message = TokenDetails.toString();
 
         String consensusID = calculateHash(message , "SHA3-256");
-        writeToFile("consensusID", consensusID, false);
-        String consensusIDIPFSHash = IPFSNetwork.addHashOnly("consensusID", ipfs);
-        deleteFile("consensusID");
+        writeToFile(LOGGER_PATH+"consensusID", consensusID, false);
+        String consensusIDIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH+"consensusID", ipfs);
+        deleteFile(LOGGER_PATH+"consensusID");
 
         //Check IPFS get for all Tokens
         int ipfsGetFlag = 0;

@@ -132,13 +132,13 @@ public class TokenSender {
         TokenSenderLogger.debug("Sender by Receiver Hash " + authSenderByRecHash);
         TokenSenderLogger.debug("TID on sender " + tid);
 
-        writeToFile("tempbeta", tid.concat(senderDidIpfsHash), false);
-        String betaHash = IPFSNetwork.add("tempbeta", ipfs);
-        deleteFile("tempbeta");
+        writeToFile(LOGGER_PATH+"tempbeta", tid.concat(senderDidIpfsHash), false);
+        String betaHash = IPFSNetwork.add(LOGGER_PATH+"tempbeta", ipfs);
+        deleteFile(LOGGER_PATH+"tempbeta");
 
-        writeToFile("tempgamma", tid.concat(receiverDidIpfsHash), false);
-        String gammaHash = IPFSNetwork.add("tempgamma", ipfs);
-        deleteFile("tempgamma");
+        writeToFile(LOGGER_PATH+"tempgamma", tid.concat(receiverDidIpfsHash), false);
+        String gammaHash = IPFSNetwork.add(LOGGER_PATH+"tempgamma", ipfs);
+        deleteFile(LOGGER_PATH+"tempgamma");
 
 
             switch (type) {
@@ -164,12 +164,15 @@ public class TokenSender {
                 }
             }
 
+            QuorumSwarmConnect(quorumArray,ipfs);
+
         for(int i=0;i<7;i++)
         {
             alphaQuorum.put(quorumArray.getString(i));
             betaQuorum.put(quorumArray.getString(7+i));
             gammaQuorum.put(quorumArray.getString(14+i));
         }
+
 
         TokenSenderLogger.debug("alphaquorum " + alphaQuorum + " size " +alphaQuorum.length());
         TokenSenderLogger.debug("betaquorum "+betaQuorum + " size "+betaQuorum.length());
@@ -206,9 +209,9 @@ public class TokenSender {
         String message = tokenDetails.toString();
 
         String consensusID = calculateHash(message , "SHA3-256");
-        writeToFile("consensusID", consensusID, false);
-        String consensusIDIPFSHash = IPFSNetwork.addHashOnly("consensusID", ipfs);
-        deleteFile("consensusID");
+        writeToFile(LOGGER_PATH+"consensusID", consensusID, false);
+        String consensusIDIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH+"consensusID", ipfs);
+        deleteFile(LOGGER_PATH+"consensusID");
 
         TokenSenderLogger.debug("consensusID hash " + consensusIDIPFSHash + " unique own " + dhtEmpty(consensusIDIPFSHash,ipfs));
 

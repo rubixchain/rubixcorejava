@@ -27,6 +27,7 @@ import static com.rubix.Resources.Functions.*;
 
 
 public class IPFSNetwork {
+    public static int swarmAttempt = 0;
 
     /**
      * This method create libp2p service and forward connections made to target-address.
@@ -59,6 +60,13 @@ public class IPFSNetwork {
     }
 
 
+    public static String checkSwarmConnect()
+    {
+        IPFSNetworkLogger.debug("check swarm peers request");
+        String response =  executeIPFSCommandsResponse("ipfs swarm peers");
+        IPFSNetworkLogger.debug(response + "is the response ");
+        return  response;
+    }
 
 
     public static void swarmConnector(String peerid, IPFS ipfs) throws JSONException{
@@ -67,7 +75,7 @@ public class IPFSNetwork {
         int j;
 
         try {
-            if (!ipfs.swarm.peers().toString().contains(peerid)) {
+            if (!checkSwarmConnect().contains(peerid)) {
                 Random ran = new Random();
 
                 List bootStrapList = ipfs.bootstrap.list();
@@ -79,7 +87,7 @@ public class IPFSNetwork {
                 bootNode = String.valueOf(bootStrapList.get(j));
                 bootNode = bootNode.substring(bootNode.length() - 46);
                 IPFSNetworkLogger.debug(bootNode);
-                while (!ipfs.swarm.peers().toString().contains(bootNode)) {
+                while (!checkSwarmConnect().contains(bootNode)) {
                     j = (j + 1) % bootstrapSize;
                     bootNode = String.valueOf(bootStrapList.get(j));
                     bootNode = bootNode.substring(bootNode.length() - 46);
@@ -113,47 +121,56 @@ public class IPFSNetwork {
      */
 
 
+
     public static void swarmConnect(String peerid, IPFS ipfs) throws JSONException{
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String bootNode;
         int j;
 
-        try {
-
-            if (!ipfs.swarm.peers().toString().contains(peerid)) {
-                Random ran = new Random();
+        IPFSNetworkLogger.debug("at  swarmconnect " + peerid);
+        if (!checkSwarmConnect().contains(peerid)) {
+            Random ran = new Random();
 
 //                List bootStrapList = ipfs.bootstrap.list();
 //                Collections.shuffle(bootStrapList);
-                ran.setSeed(123456);
-                int bootstrapSize = BOOTSTRAPS.length();
+            ran.setSeed(123456);
+            int bootstrapSize = BOOTSTRAPS.length();
 
-                IPFSNetworkLogger.debug( "Bootstraps  "+BOOTSTRAPS + "size " + bootstrapSize);
+            IPFSNetworkLogger.debug("Bootstraps  " + BOOTSTRAPS + "size " + bootstrapSize);
 
-                j = ran.nextInt(bootstrapSize);
+            j = ran.nextInt(bootstrapSize);
+            bootNode = String.valueOf(BOOTSTRAPS.get(j));
+            bootNode = bootNode.substring(bootNode.length() - 46);
+            IPFSNetworkLogger.debug("bootnode is " + bootNode);
+            IPFSNetworkLogger.debug(bootNode);
+            while (!checkSwarmConnect().contains(bootNode)) {
+                j = (j + 1) % bootstrapSize;
                 bootNode = String.valueOf(BOOTSTRAPS.get(j));
                 bootNode = bootNode.substring(bootNode.length() - 46);
-                IPFSNetworkLogger.debug("bootnode is " + bootNode);
-                IPFSNetworkLogger.debug(bootNode);
-                while (!ipfs.swarm.peers().toString().contains(bootNode)) {
-                    j = (j + 1) % bootstrapSize;
-                    bootNode = String.valueOf(BOOTSTRAPS.get(j));
-                    bootNode = bootNode.substring(bootNode.length() - 46);
-                    IPFSNetworkLogger.debug("trying to connect: " + bootNode);
-                }
-                MultiAddress multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
-                String output = swarmConnectProcess(multiAddress);
-                if (!output.contains("success"))
-                    swarmConnect(peerid, ipfs);
-                else
-                    IPFSNetworkLogger.debug("Connected via bootstrap node: " + bootNode);
-            } else {
-                IPFSNetworkLogger.debug("Connecting to Receiver directly");
-
+                IPFSNetworkLogger.debug("trying to connect: " + bootNode);
             }
-        } catch (IOException e) {
-            IPFSNetworkLogger.error("IOException Occurred", e);
-            e.printStackTrace();
+            MultiAddress multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
+            String output = swarmConnectProcess(multiAddress);
+            if (!output.contains("success"))
+            {
+                if (swarmAttempt < 25) {
+                    IPFSNetworkLogger.debug("swarm attempt round " + swarmAttempt);
+                    swarmAttempt++;
+                    swarmConnect(peerid, ipfs);
+                }
+                else {
+                    IPFSNetworkLogger.debug("swarm attempt failed");
+                    swarmAttempt=0;
+                }
+        }
+            else {
+                IPFSNetworkLogger.debug("Connected via bootstrap node: " + bootNode);
+                swarmAttempt=0;
+            }
+        } else {
+            IPFSNetworkLogger.debug("Connecting to Receiver directly");
+            swarmAttempt=0;
+
         }
 
     }
@@ -222,6 +239,7 @@ public class IPFSNetwork {
         else
             return null;
     }
+
 
 
 
@@ -381,6 +399,76 @@ public class IPFSNetwork {
             e.printStackTrace();
         }
     }
+
+
+    public static String executeIPFSCommandsResponse(String command) {
+        IPFSNetworkLogger.debug("executeIPFSCommandsResponse for command "+ command);
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        String OS = getOsName();
+        String[] commands = new String[3];
+        if(OS.contains("Mac") || OS.contains("Linux")){
+
+            commands[0] = "bash";
+            commands[1] = "-c";
+            commands[2] = "export PATH=/usr/local/bin:$PATH &&" + command;
+        }else if(OS.contains("Windows")){
+            commands[0] = "cmd.exe";
+            commands[1] = "/c";
+            commands[2] = command;
+        }
+        ProcessBuilder p;
+
+        try {
+            Process process;
+            if (command.contains(daemon)) {
+                p = new ProcessBuilder(commands);
+                process = p.start();
+                Thread.sleep(7000);
+                IPFSNetworkLogger.debug("Daemon is running");
+
+            }
+
+            if (command.contains(listen) || command.contains(forward) || command.contains("swarm") || command.contains(p2p) || command.contains(shutdown)) {
+                IPFSNetworkLogger.debug("executing command " + command);
+                p = new ProcessBuilder(commands);
+                process = p.start();
+
+                BufferedReader reader =
+                        new BufferedReader(new InputStreamReader(process.getInputStream()));
+                StringBuilder builder = new StringBuilder();
+                String line = null;
+                while ( (line = reader.readLine()) != null) {
+                    builder.append(line);
+                    builder.append(System.getProperty("line.separator"));
+                }
+                String result = builder.toString();
+
+                System.out.println("result "+result+ "for process "+ command);
+
+                if(OS.contains("Mac") || OS.contains("Linux"))
+                    process.waitFor();
+
+                return result;
+            }
+            else {
+                IPFSNetworkLogger.debug("unhandled command " + command);
+                return "wrong command";
+            }
+
+
+
+        } catch (IOException e) {
+            IPFSNetworkLogger.error("IOException Occurred", e);
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            IPFSNetworkLogger.error("Interrupted Exception Occurred", e);
+            e.printStackTrace();
+        }
+        IPFSNetworkLogger.debug("return string " );
+        return "result";
+    }
+
+
 
     /**
      * This method perform ipfs CLI command and returns the CLI output

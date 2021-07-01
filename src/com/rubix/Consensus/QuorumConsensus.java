@@ -17,6 +17,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.Functions.deleteFile;
 import static com.rubix.Resources.IPFSNetwork.*;
 
 public class QuorumConsensus implements Runnable {
@@ -91,9 +92,9 @@ public class QuorumConsensus implements Runnable {
                 detailsToVerify.put("hash", verifySenderHash);
                 detailsToVerify.put("signature", senderPrivatePos);
 
-                writeToFile("tempverifysenderhash", verifySenderHash, false);
-                String verifySenderIPFSHash = IPFSNetwork.addHashOnly("tempverifysenderhash", ipfs);
-                deleteFile("tempverifysenderhash");
+                writeToFile(LOGGER_PATH+"tempverifysenderhash", verifySenderHash, false);
+                String verifySenderIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH+"tempverifysenderhash", ipfs);
+                deleteFile(LOGGER_PATH+"tempverifysenderhash");
 
                 if (Authenticate.verifySignature(detailsToVerify.toString())&&(dhtEmpty(verifySenderIPFSHash,ipfs))) {
                     QuorumConsensusLogger.debug("Quorum Authenticated Sender");
@@ -103,10 +104,10 @@ public class QuorumConsensus implements Runnable {
                     creditval = in.readLine();
                     QuorumConsensusLogger.debug("credit value "+creditval);
                     if (!creditval.equals("null")) { //commented as per test for multiple consensus threads
-                        FileWriter shareWriter = new FileWriter(new File("mycredit.txt"), true);
+                        FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH+"mycredit.txt"), true);
                         shareWriter.write(creditval);
                         shareWriter.close();
-                        File readCredit = new File("mycredit.txt");
+                        File readCredit = new File(LOGGER_PATH+"mycredit.txt");
                         String credit = add(readCredit.toString(), ipfs);
                         JSONObject storeDetailsQuorum = new JSONObject();
                         storeDetailsQuorum.put("tid", transactionID);
@@ -119,10 +120,10 @@ public class QuorumConsensus implements Runnable {
                         data.put(storeDetailsQuorum);
                         QuorumConsensusLogger.debug("Quorum Share: " + credit);
                         updateJSON("add",WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
-                        deleteFile("mycredit.txt");
-                        writeToFile("consenusIDhash", verifySenderHash, false);
-                        String consenusIDhash = IPFSNetwork.add("consenusIDhash", ipfs);
-                        deleteFile("consenusIDhash");
+                        deleteFile(LOGGER_PATH+"mycredit.txt");
+                        writeToFile(LOGGER_PATH+"consenusIDhash", verifySenderHash, false);
+                        String consenusIDhash = IPFSNetwork.add(LOGGER_PATH+"consenusIDhash", ipfs);
+                        deleteFile(LOGGER_PATH+"consenusIDhash");
                         QuorumConsensusLogger.debug("added consensus ID "+consenusIDhash);
                     }
                 } else {

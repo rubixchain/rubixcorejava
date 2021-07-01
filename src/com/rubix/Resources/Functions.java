@@ -581,16 +581,12 @@ public class Functions {
                 String quorumPeer;
                 try {
                     quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
-                    if (ipfs.swarm.peers().toString().contains(quorumPeer)) {
+                    if (checkSwarmConnect().contains(quorumPeer)) {
                         peers.add(quorumPeer);
                         FunctionsLogger.debug(quorumPeer);
                     }
-
                 } catch (JSONException e) {
                     FunctionsLogger.error("JSON Exception Occurred", e);
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    FunctionsLogger.error("IOException Occurred", e);
                     e.printStackTrace();
                 }
             }
@@ -600,6 +596,28 @@ public class Functions {
         } else
             return null;
     }
+
+
+
+
+    public static void QuorumSwarmConnect(JSONArray quorum, IPFS ipfs) {
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+
+            for (int i = 0; i < quorum.length(); i++) {
+                String quorumPeer;
+                try {
+                    quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
+                    IPFSNetwork.swarmConnect(quorumPeer,ipfs);
+                } catch (JSONException e) {
+                    FunctionsLogger.error("JSON Exception Occurred", e);
+                    e.printStackTrace();
+                }
+            }
+
+
+    }
+
+
 
     /**
      * This method identifies the Peer ID of the system by IPFS during installation

@@ -314,13 +314,13 @@ public class ProofCredits {
                 String authSenderByRecHash = calculateHash(token + receiverDidIpfsHash + comments, "SHA3-256");
                 String tid = calculateHash(authSenderByRecHash, "SHA3-256");
 
-                writeToFile("tempbeta", tid.concat(receiverDidIpfsHash), false);
-                String betaHash = IPFSNetwork.add("tempbeta", ipfs);
-                deleteFile("tempbeta");
+                writeToFile(LOGGER_PATH+"tempbeta", tid.concat(receiverDidIpfsHash), false);
+                String betaHash = IPFSNetwork.add(LOGGER_PATH+"tempbeta", ipfs);
+                deleteFile(LOGGER_PATH+"tempbeta");
 
-                writeToFile("tempgamma", tid.concat(receiverDidIpfsHash), false);
-                String gammaHash = IPFSNetwork.add("tempgamma", ipfs);
-                deleteFile("tempgamma");
+                writeToFile(LOGGER_PATH+"tempgamma", tid.concat(receiverDidIpfsHash), false);
+                String gammaHash = IPFSNetwork.add(LOGGER_PATH+"tempgamma", ipfs);
+                deleteFile(LOGGER_PATH+"tempgamma");
 
 
                 JSONArray quorumArray= getQuorum(betaHash,gammaHash,receiverDidIpfsHash,receiverDidIpfsHash,token.length());
@@ -389,10 +389,10 @@ public class ProofCredits {
 
 
                     for (int i = 0; i < token.length(); i++) {
-                        writeToFile("tempToken", token.getString(i), false);
-                        String tokenHash = IPFSNetwork.add("tempToken", ipfs);
+                        writeToFile(LOGGER_PATH+"tempToken", token.getString(i), false);
+                        String tokenHash = IPFSNetwork.add(LOGGER_PATH+"tempToken", ipfs);
                         writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
-                        deleteFile("tempToken");
+                        deleteFile(LOGGER_PATH+"tempToken");
                         writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", "[]", false);
                         JSONObject temp = new JSONObject();
                         temp.put("tokenHash", tokenHash);
