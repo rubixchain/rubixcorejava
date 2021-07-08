@@ -170,23 +170,27 @@ public class TokenReceiver {
         }
             output.println("200");
 
+
         String senderDetails = input.readLine();
 
         JSONObject SenderDetails = new JSONObject(senderDetails);
         String senderSignature = SenderDetails.getString("sign");
         String tid = SenderDetails.getString("tid");
         String comment = SenderDetails.getString("comment");
+        String Status = SenderDetails.getString("status");
+        String QuorumDetails = SenderDetails.getString("quorumsign");
 
         BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
         SenWalletBin = PropImage.img2bin(senderWidImage);
 
-        String Status = input.readLine();
+       // String Status = input.readLine();
+
         TokenReceiverLogger.debug("Consensus Status:  " + Status);
 
         if (!Status.equals("Consensus failed")) {
             boolean yesQuorum = false;
             if (Status.equals("Consensus Reached")) {
-                String QuorumDetails = input.readLine();
+//                String QuorumDetails = input.readLine();
 
                 TokenReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
                 quorumSignatures = new JSONObject(QuorumDetails);

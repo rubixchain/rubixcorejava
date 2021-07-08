@@ -119,6 +119,7 @@ public class Functions {
         }
     }
 
+
     public static void nodeData(String did, String wid, IPFS ipfs) throws IOException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         File dataFolder = new File(DATA_PATH + did + "/");
@@ -127,16 +128,22 @@ public class Functions {
             dataFolder.mkdirs();
             IPFSNetwork.getImage(did, ipfs, DATA_PATH + did + "/DID.png");
             IPFSNetwork.getImage(wid, ipfs, DATA_PATH + did + "/PublicShare.png");
-        }
-        else {
-            File DIDFile = new File(dataFolder+"/DID.png");
-            File WIDFile = new File(dataFolder+"/PublicShare.png");
-            if(!DIDFile.exists())
+
+            IPFSNetwork.add(DATA_PATH + did + "/DID.png", ipfs);
+            IPFSNetwork.add(DATA_PATH + did + "/PublicShare.png", ipfs);
+
+        } else {
+            File DIDFile = new File(dataFolder + "/DID.png");
+            File WIDFile = new File(dataFolder + "/PublicShare.png");
+            if (!DIDFile.exists())
                 IPFSNetwork.getImage(did, ipfs, DATA_PATH + did + "/DID.png");
-            if(!WIDFile.exists())
+
+            if (!WIDFile.exists())
                 IPFSNetwork.getImage(wid, ipfs, DATA_PATH + did + "/PublicShare.png");
-            String didHash = add(DATA_PATH + did + "/DID.png", ipfs);
-            String widHash = add(DATA_PATH + did + "/PublicShare.png", ipfs);
+
+            String didHash = IPFSNetwork.add(DATA_PATH + did + "/DID.png", ipfs);
+            String widHash = IPFSNetwork.add(DATA_PATH + did + "/PublicShare.png", ipfs);
+
             if (!didHash.equals(did) || !widHash.equals(wid)) {
                 FunctionsLogger.debug("New DID Created for user " + did);
                 File didFile = new File(DATA_PATH + did + "/DID.png");
@@ -145,6 +152,9 @@ public class Functions {
                 widFile.delete();
                 IPFSNetwork.getImage(did, ipfs, DATA_PATH + did + "/DID.png");
                 IPFSNetwork.getImage(wid, ipfs, DATA_PATH + did + "/PublicShare.png");
+
+                IPFSNetwork.add(DATA_PATH + did + "/DID.png", ipfs);
+                IPFSNetwork.add(DATA_PATH + did + "/PublicShare.png", ipfs);
             }
         }
     }

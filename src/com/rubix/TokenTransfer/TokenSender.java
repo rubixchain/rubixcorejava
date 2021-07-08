@@ -297,7 +297,7 @@ public class TokenSender {
 
             }
 
-                output.println(senderDetails2Receiver);
+               // output.println(senderDetails2Receiver);
 
 
                 JSONObject dataObject = new JSONObject();
@@ -333,10 +333,15 @@ public class TokenSender {
                     return APIResponse;
 
                 }
+
                     TokenSenderLogger.debug("Consensus Reached");
-                    output.println("Consensus Reached");
+                senderDetails2Receiver.put("status","Consensus Reached");
+                senderDetails2Receiver.put("quorumsign",InitiatorConsensus.quorumSignature);
+
+                    output.println(senderDetails2Receiver);
+                   // output.println("Consensus Reached");
                     TokenSenderLogger.debug("Quorum Signatures length " + InitiatorConsensus.quorumSignature.length());
-                    output.println(InitiatorConsensus.quorumSignature);
+                   // output.println(InitiatorConsensus.quorumSignature);
 
             String signatureAuth = input.readLine();
 
