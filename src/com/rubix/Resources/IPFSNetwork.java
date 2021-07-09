@@ -135,7 +135,7 @@ public class IPFSNetwork {
             ran.setSeed(123456);
             int bootstrapSize = BOOTSTRAPS.length();
 
-            IPFSNetworkLogger.debug("Bootstraps  " + BOOTSTRAPS + "size " + bootstrapSize);
+           IPFSNetworkLogger.debug("Bootstraps  " + BOOTSTRAPS + "size " + bootstrapSize);
 
             j = ran.nextInt(bootstrapSize);
             bootNode = String.valueOf(BOOTSTRAPS.get(j));
@@ -346,10 +346,15 @@ public class IPFSNetwork {
         return false;
     }
 
-    public static boolean dhtEmpty(String MultiHash, IPFS ipfs) throws IOException {
+    public static boolean dhtEmpty(String MultiHash, IPFS ipfs)  {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
-        List dhtlist = ipfs.dht.findprovs(dhtMultihash);
+        List dhtlist = null;
+        try {
+            dhtlist = ipfs.dht.findprovs(dhtMultihash);
+        } catch (IOException e) {
+            return true;
+        }
         if (dhtlist.toString().contains("Type=4"))
             return false;
         return true;
