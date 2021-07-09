@@ -64,7 +64,6 @@ public class IPFSNetwork {
     {
         IPFSNetworkLogger.debug("check swarm peers request");
         String response =  executeIPFSCommandsResponse("ipfs swarm peers");
-        IPFSNetworkLogger.debug(response + "is the response ");
         return  response;
     }
 
@@ -443,8 +442,6 @@ public class IPFSNetwork {
                 }
                 String result = builder.toString();
 
-                System.out.println("result "+result+ "for process "+ command);
-
                 if(OS.contains("Mac") || OS.contains("Linux"))
                     process.waitFor();
 
@@ -514,9 +511,6 @@ public class IPFSNetwork {
                     builder.append(line);
                     builder.append(System.getProperty("line.separator"));
                 }
-                String result = builder.toString();
-
-                System.out.println("result "+result+ "for process "+ command);
 
                 if(OS.contains("Mac") || OS.contains("Linux"))
                     process.waitFor();

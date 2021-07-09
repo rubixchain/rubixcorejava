@@ -336,7 +336,7 @@ public class TokenSender {
 
                     TokenSenderLogger.debug("Consensus Reached");
                 senderDetails2Receiver.put("status","Consensus Reached");
-                senderDetails2Receiver.put("quorumsign",InitiatorConsensus.quorumSignature);
+                senderDetails2Receiver.put("quorumsign",InitiatorConsensus.quorumSignature.toString());
 
                     output.println(senderDetails2Receiver);
                    // output.println("Consensus Reached");
