@@ -41,6 +41,7 @@ public class Functions {
     public static int SEND_PORT;
     public static int IPFS_PORT;
     public static String SYNC_IP = "";
+    public static String ADVISORY_IP = "";
     public static int APPLICATION_PORT;
     public static String EXPLORER_IP = "";
     public static String USERDID_IP = "";
@@ -105,6 +106,7 @@ public class Functions {
             SYNC_IP = pathsArray.getJSONObject(2).getString("SYNC_IP");
             EXPLORER_IP = pathsArray.getJSONObject(2).getString("EXPLORER_IP");
             USERDID_IP = pathsArray.getJSONObject(2).getString("USERDID_IP");
+            ADVISORY_IP=pathsArray.getJSONObject(2).getString("ADVISORY_IP");
 
             CONSENSUS_STATUS = pathsArray.getJSONObject(3).getBoolean("CONSENSUS_STATUS");
             QUORUM_COUNT = pathsArray.getJSONObject(3).getInt("QUORUM_COUNT");
@@ -502,33 +504,7 @@ public class Functions {
      * @param value    Value of the tag to be compared with
      * @return Data that is fetched from the JSON file
      */
-//    public static String getValues(String filePath, String get, String tagName, String value) {
-//        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-//        String resultString = "";
-//        JSONParser jsonParser = new JSONParser();
-//
-//        try (FileReader reader = new FileReader(filePath)) {
-//            Object obj = jsonParser.parse(reader);
-//            org.json.simple.JSONArray List = (org.json.simple.JSONArray) obj;
-//            for (Object o : List) {
-//                org.json.simple.JSONObject js = (org.json.simple.JSONObject) o;
-//
-//                String itemCompare = js.get(tagName).toString();
-//                if (value.equals(itemCompare)) {
-//                    resultString = js.get(get).toString();
-//                }
-//            }
-//        } catch (ParseException e) {
-//            FunctionsLogger.error("JSON Parser Exception Occurred", e);
-//            e.printStackTrace();
-//        } catch (IOException e) {
-//            FunctionsLogger.error("IOException Occurred", e);
-//            e.printStackTrace();
-//        }
-//
-//
-//        return resultString;
-//    }
+
     public static String getValues(String filePath, String get, String tagName, String value) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String resultString = "";
@@ -607,7 +583,12 @@ public class Functions {
             return null;
     }
 
-
+    /**
+     * This method is to connect to quorum nodes for consensus
+     *
+     * @param quorum JSONArray is list of quorum nodes didHash
+     * @param ipfs      ipfs instance
+     */
 
 
     public static void QuorumSwarmConnect(JSONArray quorum, IPFS ipfs) {
@@ -624,7 +605,6 @@ public class Functions {
                 }
             }
 
-
     }
 
 
@@ -635,6 +615,8 @@ public class Functions {
      * @param filePath Location of the file in which your IPFS Peer ID is stored
      * @return Your system's Peer ID assigned by IPFS
      */
+
+
     public static String getPeerID(String filePath) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         JSONArray fileContentArray;
@@ -651,6 +633,8 @@ public class Functions {
         }
         return peerid;
     }
+
+
 
     public static int[] getPrivatePosition(int[] positions, int[] privateArray) {
         int[] PrivatePosition = new int[positions.length];
@@ -910,6 +894,15 @@ public class Functions {
         return returnObject.toString();
     }
 
+    /**
+     * This method is used generate new token given level and tokenNumber
+     * New token is the multi hash of hash of token number and hex of level
+     *
+     * @param level level in token tree
+     * @param tokenNumber  unique number for particular level in token tree
+     * @return mined token
+     */
+
     public static String mineToken(int level, int tokenNumber) {
 
         String tokenHash = calculateHash(String.valueOf(tokenNumber), "SHA-256");
@@ -929,6 +922,13 @@ public class Functions {
         return null;
     }
 
+    /**
+     * This method is used to check uniqueness of value in a particular file
+     *
+     * @param consensusID unique ID that is to be compared
+     * @return true if data is unique , false otherwise
+     */
+
     public static Boolean integrityCheck(String consensusID){
         File file = new File(WALLET_DATA_PATH+"QuorumSignedTransactions.json");
         if(file.exists()) {
@@ -941,6 +941,10 @@ public class Functions {
             return true;
     }
 
+    /**
+     * This method is used generate current utc time
+     */
+
     public static Date getCurrentUtcTime() throws ParseException {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss");
         SimpleDateFormat localDateFormat = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss");
@@ -948,10 +952,21 @@ public class Functions {
     }
 
 
+    /**
+     * This method is used to update quorum credits in server
+     *
+     * @param quorumArray jsonarray of all quorum
+     * @param signedQuorumList  jsonarray of all signedquorum
+     * @param status boolean for consensus status
+     * @param type transaction type : default to 1
+     * @return mined token
+     */
+
+
     public static void updateQuorum(JSONArray quorumArray,JSONArray signedQuorumList,boolean status,int type) throws IOException, JSONException {
 
         if (type==1) {
-            String urlQuorumUpdate = "http://13.76.134.226:9595/updateQuorum";
+            String urlQuorumUpdate = ADVISORY_IP+"/updateQuorum";
             URL objQuorumUpdate = new URL(urlQuorumUpdate);
             HttpURLConnection conQuorumUpdate = (HttpURLConnection) objQuorumUpdate.openConnection();
 
@@ -991,9 +1006,21 @@ public class Functions {
     }
 
 
+    /**
+     * This method is used get getquorum from advisory node
+     *
+     * @param betaHash betahash in string form
+     * @param gammaHash gammahash in string form
+     * @param senderDidIpfsHash didhash of sender
+     * @param receiverDidIpfsHash didhash of receiver
+     * @param tokenslength tokens amount for picking quorum
+     * @return JSONArray of quorum nodes
+     */
+
+
     public static JSONArray getQuorum(String betaHash,String gammaHash,String senderDidIpfsHash,String receiverDidIpfsHash,int tokenslength) throws IOException, JSONException {
         JSONArray quorumArray;
-        String urlQuorumPick = "http://13.76.134.226:9595/getQuorum";
+        String urlQuorumPick = ADVISORY_IP+"/getQuorum";
         URL objQuorumPick = new URL(urlQuorumPick);
         HttpURLConnection conQuorumPick = (HttpURLConnection) objQuorumPick.openConnection();
 
@@ -1035,10 +1062,16 @@ public class Functions {
         return quorumArray;
     }
 
-
+    /**
+     * This method is used update credits of didHash
+     *
+     * @param didHash senderdidhash
+     * @param credits credits to be removed
+     * @return JSONArray of quorum nodes
+     */
 
     public static void mineUpdate(String didHash,int credits) throws IOException, JSONException {
-        String urlMineUpdate = "http://13.76.134.226:9595/updatemine";
+        String urlMineUpdate = ADVISORY_IP+"/updatemine";
         URL objMineUpdate = new URL(urlMineUpdate);
         HttpURLConnection conMineUpdate = (HttpURLConnection) objMineUpdate.openConnection();
 

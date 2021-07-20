@@ -78,7 +78,19 @@ public class TokenSender {
 
 
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
+        TokenSenderLogger.debug("sender peer id"+senderPeerID);
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
+        TokenSenderLogger.debug("sender did ipfs hash"+senderDidIpfsHash);
+        TokenSenderLogger.debug("path is" + DATA_PATH+senderDidIpfsHash);
+        File folder = new File(DATA_PATH+senderDidIpfsHash);
+        File[] listOfFiles = folder.listFiles();
+        for (int i = 0; i < listOfFiles.length; i++) {
+            if (listOfFiles[i].isFile()) {
+                System.out.println("File " + listOfFiles[i].getName());
+            } else if (listOfFiles[i].isDirectory()) {
+                System.out.println("Directory " + listOfFiles[i].getName());
+            }
+        }
 
         BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
         String senderWidBin = PropImage.img2bin(senderWidImage);
