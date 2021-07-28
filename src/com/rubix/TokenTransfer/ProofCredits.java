@@ -527,7 +527,7 @@ public class ProofCredits {
                         dataToSend.put("receiver_did", receiverDidIpfsHash);
                         dataToSend.put("token_id", tokenList);
                         dataToSend.put("token_time", (int) totalTime);
-                        dataToSend.put("amount", 80);
+                        dataToSend.put("amount", tokenList.size());
                         String populate = dataToSend.toString();
 
                         JSONObject jsonObject = new JSONObject();
