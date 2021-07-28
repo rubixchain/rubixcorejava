@@ -558,11 +558,11 @@ public class Functions {
      * @param ipfs   IPFS instance
      * @return final list of all available Quorum peers
      */
-    public static ArrayList<String> QuorumCheck(JSONArray quorum, IPFS ipfs) {
+    public static ArrayList<String> QuorumCheck(JSONArray quorum, IPFS ipfs,int size) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         ArrayList<String> peers = new ArrayList<>();
 
-        if (quorum.length()>=minQuorum(7)) {
+        if (quorum.length()>=minQuorum(size)) {
             for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
@@ -1106,6 +1106,19 @@ public class Functions {
         }
         inMineUpdate.close();
 
+    }
+
+    public static int checkHeartBeat(String peerId,String appName)  {
+
+        if(forwardCheck(appName, QUORUM_PORT , peerId)) {
+            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + peerId);
+            return 1;
+        }
+
+        else {
+            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + peerId);
+            return 0;
+        }
     }
 
 }

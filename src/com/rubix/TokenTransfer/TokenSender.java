@@ -41,10 +41,14 @@ public class TokenSender {
     private static BufferedReader input;
     private static Socket senderSocket;
     private static boolean senderMutex = false;
-
-    private static ArrayList alphaPeersList;
-    private static ArrayList betaPeersList;
-    private static ArrayList gammaPeersList;
+//    private static int heartBeatAlpha=0;
+//    private static int heartBeatBeta=0;
+//    private static int heartBeatGamma=0;
+//    private static int alphaSize=0;
+//
+//    private static ArrayList alphaPeersList;
+//    private static ArrayList betaPeersList;
+//    private static ArrayList gammaPeersList;
 
     /**
      * A sender node to transfer tokens
@@ -58,6 +62,7 @@ public class TokenSender {
      * @throws NoSuchAlgorithmException handles No Such Algorithm Exceptions
      */
     public static JSONObject Send(String data, IPFS ipfs, int port) throws Exception {
+
 
         JSONObject APIResponse = new JSONObject();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -74,8 +79,14 @@ public class TokenSender {
         JSONArray alphaQuorum = new JSONArray();
         JSONArray betaQuorum=new JSONArray();
         JSONArray gammaQuorum=new JSONArray();
+        int heartBeatAlpha=0;
+        int heartBeatBeta=0;
+        int heartBeatGamma=0;
+        int alphaSize;
 
-
+        ArrayList alphaPeersList;
+        ArrayList betaPeersList;
+        ArrayList gammaPeersList;
 
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         TokenSenderLogger.debug("sender peer id"+senderPeerID);
@@ -178,26 +189,52 @@ public class TokenSender {
 
             QuorumSwarmConnect(quorumArray,ipfs);
 
+            alphaSize=quorumArray.length()-14;
+
+        for(int i=0;i<alphaSize;i++)
+            alphaQuorum.put(quorumArray.getString(i));
+
         for(int i=0;i<7;i++)
         {
-            alphaQuorum.put(quorumArray.getString(i));
-            betaQuorum.put(quorumArray.getString(7+i));
-            gammaQuorum.put(quorumArray.getString(14+i));
+            betaQuorum.put(quorumArray.getString(alphaSize+i));
+            gammaQuorum.put(quorumArray.getString(alphaSize+7+i));
         }
-
 
         TokenSenderLogger.debug("alphaquorum " + alphaQuorum + " size " +alphaQuorum.length());
         TokenSenderLogger.debug("betaquorum "+betaQuorum + " size "+betaQuorum.length());
         TokenSenderLogger.debug("gammaquorum "+gammaQuorum + " size "+gammaQuorum.length());
 
-            alphaPeersList=QuorumCheck(alphaQuorum,ipfs);
-            betaPeersList= QuorumCheck(betaQuorum,ipfs);
-            gammaPeersList=QuorumCheck(gammaQuorum,ipfs);
+
+        alphaPeersList=QuorumCheck(alphaQuorum,ipfs,alphaSize);
+        betaPeersList= QuorumCheck(betaQuorum,ipfs,7);
+        gammaPeersList=QuorumCheck(gammaQuorum,ipfs,7);
+
+//        for(int i=0;i<alphaPeersList.size();i++) {
+//            heartBeatAlpha += checkHeartBeat(alphaPeersList.get(i).toString(), alphaPeersList.get(i).toString() + "alpha");
+//        }
+//
+//        for(int i=0;i<betaPeersList.size();i++) {
+//            heartBeatBeta += checkHeartBeat(betaPeersList.get(i).toString(), betaPeersList.get(i).toString() + "beta");
+//        }
+//        for(int i=0;i<gammaPeersList.size();i++) {
+//            heartBeatGamma += checkHeartBeat(gammaPeersList.get(i).toString(), gammaPeersList.get(i).toString() + "gamma");
+//        }
+
+
+        TokenSenderLogger.debug("alphaPeersList size "+ alphaPeersList.size());
+        TokenSenderLogger.debug("betaPeersList size "+ betaPeersList.size());
+        TokenSenderLogger.debug("gammaPeersList size "+ gammaPeersList.size());
+//        TokenSenderLogger.debug("heartBeatAlpha size "+ heartBeatAlpha);
+//        TokenSenderLogger.debug("heartBeatBeta size "+ heartBeatBeta);
+//        TokenSenderLogger.debug("heartBeatGamma size "+ heartBeatGamma);
+        TokenSenderLogger.debug("minQuorumAlpha size "+ minQuorum(alphaSize));
 
            // quorumPeersList = QuorumCheck(quorumArray, ipfs);
 
-            if (alphaPeersList.size()<5||betaPeersList.size()<5||gammaPeersList.size()<5) {
-                updateQuorum(quorumArray,null,false,type);
+          //  if (alphaPeersList.size()<minQuorum(alphaSize)||betaPeersList.size()<5||gammaPeersList.size()<5 || heartBeatAlpha<minQuorum(alphaSize)||heartBeatBeta<5||heartBeatGamma<5) {
+
+                if (alphaPeersList.size()<minQuorum(alphaSize)||betaPeersList.size()<5||gammaPeersList.size()<5) {
+                    updateQuorum(quorumArray,null,false,type);
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");
@@ -205,6 +242,7 @@ public class TokenSender {
                 TokenSenderLogger.warn("Quorum Members not available");
                 return APIResponse;
             }
+
 
             String senderSign = getSignFromShares(pvt, authSenderByRecHash);
 
@@ -325,13 +363,14 @@ public class TokenSender {
 
                 TokenSenderLogger.debug("dataobject " + dataObject.toString());
 
-                InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3);
+                InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100,alphaSize);
                 TokenSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count " + InitiatorConsensus.quorumResponse);
-                if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
-
+                if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2* minQuorum(7))) {
                     //  if (!(InitiatorProcedure.alphaReply.length() >= minQuorum(7))) {
                     TokenSenderLogger.debug("Consensus Failed");
-                    output.println("Consensus failed");
+                    senderDetails2Receiver.put("status","Consensus Failed");
+                    senderDetails2Receiver.put("quorumsign",InitiatorConsensus.quorumSignature.toString());
+                    output.println(senderDetails2Receiver);
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
                     output.close();
                     input.close();

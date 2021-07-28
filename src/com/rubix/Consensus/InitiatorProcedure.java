@@ -28,7 +28,7 @@ public class InitiatorProcedure {
      * @param ipfs IPFS instance
      * @param PORT port for forwarding to quorum
      */
-    public static void consensusSetUp(String data,IPFS ipfs, int PORT) throws JSONException {
+    public static void consensusSetUp(String data,IPFS ipfs, int PORT,int alphaSize) throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         JSONObject dataObject = new JSONObject(data);
@@ -99,7 +99,7 @@ public class InitiatorProcedure {
 
         Thread alphaThread = new Thread(()->{
             try {
-                alphaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT,0,"alpha",alphaList);
+                alphaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT,0,"alpha",alphaList,alphaSize);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -107,7 +107,7 @@ public class InitiatorProcedure {
 
         Thread betaThread = new Thread(()->{
             try {
-                betaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+10,1,"beta",betaList);
+                betaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+100,1,"beta",betaList,alphaSize);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -115,7 +115,7 @@ public class InitiatorProcedure {
 
         Thread gammaThread = new Thread(()->{
             try {
-                gammaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+20,2,"gamma",gammaList);
+                gammaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+107,2,"gamma",gammaList,alphaSize);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -125,7 +125,7 @@ public class InitiatorProcedure {
         alphaThread.start();
         betaThread.start();
         gammaThread.start();
-        while (InitiatorConsensus.quorumSignature.length()<3*minQuorum(7)){}
-        InitiatorProcedureLogger.debug("ABG Consensus completed");
+        while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2* minQuorum(7))) {}
+        InitiatorProcedureLogger.debug("ABG Consensus completed with length " +InitiatorConsensus.quorumSignature.length());
     }
 }

@@ -60,6 +60,15 @@ public class IPFSNetwork {
     }
 
 
+    public static boolean forwardCheck(String application, int port, String peerid) {
+
+        String IPFSForward = " ipfs p2p forward /x/" + application + "/1.0 /ip4/127.0.0.1/tcp/" + port + " /p2p/" + peerid;
+        if(executeIPFSCommandsResponse(IPFSForward).contains("Exception"))
+            return false;
+        return true;
+
+    }
+
 
     public static String checkSwarmConnect()
     {
@@ -410,6 +419,7 @@ public class IPFSNetwork {
         IPFSNetworkLogger.debug("executeIPFSCommandsResponse for command "+ command);
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String OS = getOsName();
+        String result;
         String[] commands = new String[3];
         if(OS.contains("Mac") || OS.contains("Linux")){
 
@@ -446,7 +456,7 @@ public class IPFSNetwork {
                     builder.append(line);
                     builder.append(System.getProperty("line.separator"));
                 }
-                String result = builder.toString();
+                 result = builder.toString();
 
                 if(OS.contains("Mac") || OS.contains("Linux"))
                     process.waitFor();
@@ -461,14 +471,16 @@ public class IPFSNetwork {
 
 
         } catch (IOException e) {
-            IPFSNetworkLogger.error("IOException Occurred", e);
+            IPFSNetworkLogger.error("IO Exception Occurred", e);
+            result = e.toString();
             e.printStackTrace();
         } catch (InterruptedException e) {
             IPFSNetworkLogger.error("Interrupted Exception Occurred", e);
+            result = e.toString();
             e.printStackTrace();
         }
         IPFSNetworkLogger.debug("return string " );
-        return "result";
+        return result;
     }
 
 

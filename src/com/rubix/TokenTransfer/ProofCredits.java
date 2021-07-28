@@ -38,6 +38,8 @@ public class ProofCredits {
     private static ArrayList alphaPeersList;
     private static ArrayList betaPeersList;
     private static ArrayList gammaPeersList;
+    private static int sizeOfQuorum=0;
+    private static int alphaSize=0;
 
     public static JSONObject create(String data, IPFS ipfs) throws IOException, JSONException {
 
@@ -325,12 +327,17 @@ public class ProofCredits {
 
                 JSONArray quorumArray= getQuorum(betaHash,gammaHash,receiverDidIpfsHash,receiverDidIpfsHash,token.length());
 
+                QuorumSwarmConnect(quorumArray,ipfs);
+
+                alphaSize=quorumArray.length()-14;
+
+                for(int i=0;i<alphaSize;i++)
+                    alphaQuorum.put(quorumArray.getString(i));
 
                 for(int i=0;i<7;i++)
                 {
-                    alphaQuorum.put(quorumArray.getString(i));
-                    betaQuorum.put(quorumArray.getString(7+i));
-                    gammaQuorum.put(quorumArray.getString(14+i));
+                    betaQuorum.put(quorumArray.getString(alphaSize+i));
+                    gammaQuorum.put(quorumArray.getString(alphaSize+7+i));
                 }
 
                 ProofCreditsLogger.debug("alphaquorum " + alphaQuorum + " size " +alphaQuorum.length());
@@ -338,13 +345,13 @@ public class ProofCredits {
                 ProofCreditsLogger.debug("gammaquorum "+gammaQuorum + " size "+gammaQuorum.length());
 
 
-                alphaPeersList=QuorumCheck(alphaQuorum,ipfs);
-                betaPeersList= QuorumCheck(betaQuorum,ipfs);
-                gammaPeersList=QuorumCheck(gammaQuorum,ipfs);
+                alphaPeersList=QuorumCheck(alphaQuorum,ipfs,alphaSize);
+                betaPeersList= QuorumCheck(betaQuorum,ipfs,7);
+                gammaPeersList=QuorumCheck(gammaQuorum,ipfs,7);
 
                 // quorumPeersList = QuorumCheck(quorumArray, ipfs);
 
-                if (alphaPeersList.size()<5||betaPeersList.size()<5||gammaPeersList.size()<5) {
+                if (alphaPeersList.size()<minQuorum(alphaSize)||betaPeersList.size()<5||gammaPeersList.size()<5) {
                     updateQuorum(quorumArray,null,false,1);
                     APIResponse.put("did", receiverDidIpfsHash);
                     APIResponse.put("tid", "null");
@@ -353,7 +360,6 @@ public class ProofCredits {
                     ProofCreditsLogger.warn("Quorum Members not available");
                     return APIResponse;
                 }
-
 
                 JSONObject dataObject = new JSONObject();
                 dataObject.put("tid", tid);
@@ -366,7 +372,7 @@ public class ProofCredits {
                 dataObject.put("betaList", betaPeersList);
                 dataObject.put("gammaList", gammaPeersList);
 
-                InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3);
+                InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3,alphaSize);
 
                 if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
                     APIResponse.put("did", receiverDidIpfsHash);
