@@ -83,9 +83,9 @@ public class InitiatorConsensus {
      * @param ipfs IPFS instance
      * @param PORT Port for forwarding to Quorum
      */
-    public static JSONObject start(String data,  IPFS ipfs, int PORT, int index,String role,JSONArray quorumPeersObject,int alphaSize) throws JSONException {
+    public static JSONObject start(String data,  IPFS ipfs, int PORT, int index,String role,JSONArray quorumPeersObject,int alphaSize,int quorumSize) throws JSONException {
         String[] qResponse = new String[QUORUM_COUNT];
-        int quorumSize = quorumPeersObject.length();
+//        int quorumSize = quorumPeersObject.length();
         Socket[] qSocket = new Socket[QUORUM_COUNT];
         PrintStream[] qOut = new PrintStream[QUORUM_COUNT];
         BufferedReader[] qIn = new BufferedReader[QUORUM_COUNT];

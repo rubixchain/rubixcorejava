@@ -240,6 +240,7 @@ public class TokenSender {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Quorum Members not available");
                 TokenSenderLogger.warn("Quorum Members not available");
+                senderMutex=false;
                 return APIResponse;
             }
 

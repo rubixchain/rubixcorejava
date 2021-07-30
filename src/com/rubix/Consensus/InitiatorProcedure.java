@@ -99,7 +99,7 @@ public class InitiatorProcedure {
 
         Thread alphaThread = new Thread(()->{
             try {
-                alphaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT,0,"alpha",alphaList,alphaSize);
+                alphaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT,0,"alpha",alphaList,alphaSize,alphaSize);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -107,7 +107,7 @@ public class InitiatorProcedure {
 
         Thread betaThread = new Thread(()->{
             try {
-                betaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+100,1,"beta",betaList,alphaSize);
+                betaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+100,1,"beta",betaList,alphaSize,7);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -115,7 +115,7 @@ public class InitiatorProcedure {
 
         Thread gammaThread = new Thread(()->{
             try {
-                gammaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+107,2,"gamma",gammaList,alphaSize);
+                gammaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+107,2,"gamma",gammaList,alphaSize,7);
             } catch (JSONException e) {
                 e.printStackTrace();
             }

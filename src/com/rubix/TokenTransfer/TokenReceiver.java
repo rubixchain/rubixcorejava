@@ -234,7 +234,7 @@ public class TokenReceiver {
                             quorumSignVerifyCount++;
                     }
                     TokenReceiverLogger.debug("Verified Quorum Count " + quorumSignVerifyCount);
-                    yesQuorum = quorumSignVerifyCount >= (2 * minQuorum(7) + minQuorum(alphaSize));
+                    yesQuorum = quorumSignVerifyCount >= quorumSignatures.length();
                 }
                 ArrayList<String> allTokensChainsPushed = new ArrayList<>();
                 for (int i = 0; i < tokenCount; i++)
