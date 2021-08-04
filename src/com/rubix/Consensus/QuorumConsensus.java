@@ -71,8 +71,10 @@ public class QuorumConsensus implements Runnable {
                 JSONObject readSenderData;
                 String getData;
                 getData = in.readLine();
-                if (getData.contains("ping check"))
+                if (getData.contains("ping check")) {
                     QuorumConsensusLogger.debug("Ping check from sender: " + getData);
+                    out.println("pong response");
+                }
                 else {
                     QuorumConsensusLogger.debug("Received Details from initiator: " + getData);
                     readSenderData = new JSONObject(getData);
