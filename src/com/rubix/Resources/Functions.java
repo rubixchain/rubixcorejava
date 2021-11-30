@@ -1,18 +1,13 @@
 package com.rubix.Resources;
 
 import com.rubix.AuthenticateNode.PropImage;
-import io.ipfs.api.IPFS;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import io.ipfs.api.*;
+import org.apache.log4j.*;
+import org.json.*;
 
 import javax.imageio.ImageIO;
-import javax.json.JsonArray;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.math.BigInteger;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -369,29 +364,6 @@ public class Functions {
     }
 
     /**
-     * This function will connect to the receiver
-     *
-     * @param connectObjectString Details required for connection[DID, appName]
-     * @throws JSONException Handles JSON Exception
-     */
-    public static void establishConnection(String connectObjectString) {
-        IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
-        JSONObject connectObject = null;
-        try {
-            connectObject = new JSONObject(connectObjectString);
-            String DID = connectObject.getString("did");
-            String appName = DID.concat(connectObject.getString("appName"));
-            String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", DID);
-            swarmConnect(peerID, ipfs);
-            forward(appName, SEND_PORT, peerID);
-        } catch (JSONException e) {
-            FunctionsLogger.error("JSONException Occurred", e);
-        }
-
-    }
-
-
-    /**
      * This function will allow for a user to listen on a particular appName
      *
      * @param connectObject Details required for connection[DID, appName]
@@ -555,10 +527,9 @@ public class Functions {
      * This method checks if Quorum is available for consensus
      *
      * @param quorum List of peers
-     * @param ipfs   IPFS instance
      * @return final list of all available Quorum peers
      */
-    public static ArrayList<String> QuorumCheck(JSONArray quorum, IPFS ipfs,int size) {
+    public static ArrayList<String> QuorumCheck(JSONArray quorum, int size) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         ArrayList<String> peers = new ArrayList<>();
 
@@ -569,7 +540,7 @@ public class Functions {
                     quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
                     if (checkSwarmConnect().contains(quorumPeer)) {
                         peers.add(quorumPeer);
-                        FunctionsLogger.debug(quorumPeer);
+                        FunctionsLogger.debug(quorumPeer + " added to list");
                     }
                 } catch (JSONException e) {
                     FunctionsLogger.error("JSON Exception Occurred", e);
@@ -597,8 +568,13 @@ public class Functions {
             for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
+                    FunctionsLogger.debug("Quorum DID: "+ quorum.getString(i));
                     quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
-                    IPFSNetwork.swarmConnect(quorumPeer,ipfs);
+                    FunctionsLogger.debug("Quorum PID: "+ quorumPeer);
+                  // Commented by Anuradha K; A new method swamConnectP2P is implemented for swarm connection
+                    // IPFSNetwork.swarmConnect(quorumPeer,ipfs);
+                    IPFSNetwork.swarmConnectP2P(quorumPeer,ipfs);
+
                 } catch (JSONException e) {
                     FunctionsLogger.error("JSON Exception Occurred", e);
                     e.printStackTrace();
@@ -706,18 +682,18 @@ public class Functions {
      * @param positionsCount  Number of positions required
      * @return Extended array of positions
      */
-    public static int[] finalPositions(int[] randomPositions, int positionsCount) {
-        int[] finalPositions = new int[positionsCount * 64];
-        int u = 0;
-        for (int k = 0; k < positionsCount; k++) {
-            for (int p = 0; p < 64; p++) {
-                finalPositions[u] = randomPositions[k];
-                randomPositions[k]++;
-                u++;
-            }
-        }
-        return finalPositions;
-    }
+//    public static int[] finalPositions(int[] randomPositions, int positionsCount) {
+//        int[] finalPositions = new int[positionsCount * 64];
+//        int u = 0;
+//        for (int k = 0; k < positionsCount; k++) {
+//            for (int p = 0; p < 64; p++) {
+//                finalPositions[u] = randomPositions[k];
+//                randomPositions[k]++;
+//                u++;
+//            }
+//        }
+//        return finalPositions;
+//    }
 
     /**
      * This function deletes the mentioned file
@@ -736,37 +712,37 @@ public class Functions {
     }
 
 
-    /**
-     * This functions picks the required number of quorum members from the mentioned file
-     *
-     * @param filePath Location of the file
-     * @param hash     Data from which positions are chosen
-     * @return List of chosen members from the file
-     */
-    public static ArrayList<String> quorumChooser(String filePath, String hash) {
-        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        ArrayList<String> quorumList = new ArrayList();
-        try {
-            String fileContent = readFile(filePath);
-            JSONArray blockHeight = new JSONArray(fileContent);
-
-            int[] hashCharacters = new int[256];
-            var randomPositions = new ArrayList<Integer>();
-            HashSet<Integer> positionSet = new HashSet<>();
-            for (int k = 0; positionSet.size() != 7; k++) {
-                hashCharacters[k] = Character.getNumericValue(hash.charAt(k));
-                randomPositions.add((((2402 + hashCharacters[k]) * 2709) + ((k + 2709) + hashCharacters[(k)])) % blockHeight.length());
-                positionSet.add(randomPositions.get(k));
-            }
-
-            for (Integer integer : positionSet)
-                quorumList.add(blockHeight.getJSONObject(integer).getString("peer-id"));
-        } catch (JSONException e) {
-            FunctionsLogger.error("JSON Exception Occurred", e);
-            e.printStackTrace();
-        }
-        return quorumList;
-    }
+//    /**
+//     * This functions picks the required number of quorum members from the mentioned file
+//     *
+//     * @param filePath Location of the file
+//     * @param hash     Data from which positions are chosen
+//     * @return List of chosen members from the file
+//     */
+//    public static ArrayList<String> quorumChooser(String filePath, String hash) {
+//        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+//        ArrayList<String> quorumList = new ArrayList();
+//        try {
+//            String fileContent = readFile(filePath);
+//            JSONArray blockHeight = new JSONArray(fileContent);
+//
+//            int[] hashCharacters = new int[256];
+//            var randomPositions = new ArrayList<Integer>();
+//            HashSet<Integer> positionSet = new HashSet<>();
+//            for (int k = 0; positionSet.size() != 7; k++) {
+//                hashCharacters[k] = Character.getNumericValue(hash.charAt(k));
+//                randomPositions.add((((2402 + hashCharacters[k]) * 2709) + ((k + 2709) + hashCharacters[(k)])) % blockHeight.length());
+//                positionSet.add(randomPositions.get(k));
+//            }
+//
+//            for (Integer integer : positionSet)
+//                quorumList.add(blockHeight.getJSONObject(integer).getString("peer-id"));
+//        } catch (JSONException e) {
+//            FunctionsLogger.error("JSON Exception Occurred", e);
+//            e.printStackTrace();
+//        }
+//        return quorumList;
+//    }
 
     /**
      * This function is to be initially called to setup the environment of your project
@@ -776,7 +752,7 @@ public class Functions {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         int syncFlag = 0;
         try {
-            executeIPFSCommands("ipfs daemon");
+            executeIPFSCommands("ipfs daemon --enable-gc");
             if (!SYNC_IP.contains("127.0.0.1")) {
                 networkInfo();
                 syncFlag = 1;
@@ -1120,6 +1096,42 @@ public class Functions {
             return 0;
         }
     }
+    
+//    /**
+//     * This method checks if Quorum is available for consensus
+//     *
+//     * @param quorum List of peers
+//     * @param ipfs   IPFS instance
+//     * @return final list of all available Quorum peers
+//     */
+//    public static ArrayList<String> checkQuorum(JSONArray quorum, IPFS ipfs,int size) {
+//        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+//        ArrayList<String> peers = new ArrayList<>();
+//
+//        if (quorum.length()>=minQuorum(size)) {
+//        	/**Swarm connect - sticky connection */
+//        	QuorumSwarmConnect(quorum, ipfs);
+//            for (int i = 0; i < quorum.length(); i++) {
+//                String quorumPeer;
+//                try {
+//                    quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
+//                    if (checkSwarmConnect().contains(quorumPeer)) {
+//                        peers.add(quorumPeer);
+//                        FunctionsLogger.debug(quorumPeer);
+//                    }else {
+//                    	FunctionsLogger.debug("cannot connect to Peer : " + quorumPeer);
+//                    }
+//                } catch (JSONException e) {
+//                    FunctionsLogger.error("JSON Exception Occurred", e);
+//                    e.printStackTrace();
+//                }
+//            }
+//
+//                FunctionsLogger.debug("Quorum Peer IDs : " + peers);
+//                return peers;
+//        } else
+//            return null;
+//    }
 
 }
 

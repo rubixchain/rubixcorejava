@@ -1,19 +1,10 @@
 package com.rubix.Resources;
 
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.IPFS_PORT;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.SEND_PORT;
-import static com.rubix.Resources.Functions.SYNC_IP;
-import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
-import static com.rubix.Resources.Functions.getOsName;
-import static com.rubix.Resources.Functions.getPeerID;
-import static com.rubix.Resources.Functions.getValues;
-import static com.rubix.Resources.Functions.nodeData;
-import static com.rubix.Resources.Functions.readFile;
-import static com.rubix.Resources.Functions.writeToFile;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
-
+import com.rubix.TokenTransfer.ProofCredits;
+import com.rubix.TokenTransfer.TokenSender;
+import io.ipfs.api.*;
+import org.apache.log4j.*;
+import org.json.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -23,29 +14,15 @@ import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
-import com.rubix.TokenTransfer.ProofCredits;
-import com.rubix.TokenTransfer.TokenSender;
-
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import io.ipfs.api.IPFS;
-import io.ipfs.api.Peer;
+import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 
 public class APIHandler {
     private static final Logger APILogger = Logger.getLogger(APIHandler.class);
     public static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
-
+    private static final Logger eventLogger = Logger.getLogger("eventLogger");
 
     /**
      * Initiates a transfer between two nodes
@@ -61,13 +38,27 @@ public class APIHandler {
     public static JSONObject send(String data) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        networkInfo();
+
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
 
 
         JSONObject dataObject = new JSONObject(data);
         String recDID = dataObject.getString("receiverDidIpfsHash");
+
+        String dataTableData = readFile(DATA_PATH + "DataTable.json");
+        boolean isObjectValid = false;
+        JSONArray dataTable = new JSONArray(dataTableData);
+        // check value matches any of the data in the data table
+        for (int i = 0; i < dataTable.length(); i++) {
+            JSONObject dataTableObject = dataTable.getJSONObject(i);
+            if (dataTableObject.getString("didHash").equals(recDID)) {
+                isObjectValid = true;
+            }
+        }
+        if(!isObjectValid)
+            networkInfo();
+
 //        String comments = dataObject.getString("comments");
         JSONArray tokens = dataObject.getJSONArray("tokens");
 //        JSONArray tokenHeader = dataObject.getJSONArray("tokenHeader");
@@ -106,17 +97,31 @@ public class APIHandler {
     }
 
 
-    public static JSONObject create() throws Exception {
+    public static JSONObject create(int type) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        networkInfo();
+
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+
+        String dataTableData = readFile(DATA_PATH + "DataTable.json");
+        boolean isObjectValid = false;
+        JSONArray dataTable = new JSONArray(dataTableData);
+        // check value matches any of the data in the data table
+        for (int i = 0; i < dataTable.length(); i++) {
+            JSONObject dataTableObject = dataTable.getJSONObject(i);
+            if (dataTableObject.getString("didHash").equals(senDID)) {
+                isObjectValid = true;
+            }
+        }
+        if(!isObjectValid)
+            networkInfo();
 
         JSONObject sendMessage = new JSONObject();
         JSONObject detailsObject = new JSONObject();
         detailsObject.put("receiverDidIpfsHash", senDID);
         detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        detailsObject.put("type", type);
         sendMessage =  ProofCredits.create(detailsObject.toString(), ipfs);
         APILogger.info(sendMessage);
         return sendMessage;
@@ -405,8 +410,13 @@ public class APIHandler {
 
 
     public static int onlinePeersCount() throws JSONException, IOException, InterruptedException {
-        ArrayList peersArray = swarmPeersList();
-        return peersArray.size();
+        JSONArray peersArray = peersOnlineStatus();
+        int count = 0;
+        for (int i = 0; i < peersArray.length(); i++){
+            if(peersArray.getJSONObject(i).getString("onlineStatus").contains("online"))
+                count++;
+        }
+        return count;
     }
 
 
