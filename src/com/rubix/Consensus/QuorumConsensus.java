@@ -85,16 +85,15 @@ public class QuorumConsensus implements Runnable {
                         creditsMapping.createNewFile();
                         writeToFile(creditsMapping.toString(), "[]", false);
                     }
-                    String qstFileHash = IPFSNetwork.add(WALLET_DATA_PATH + "QuorumSignedTransactions.json", ipfs);
-//                    JSONArray qstContent = new JSONArray(readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json"));
-//                    JSONObject qstObjectSend;
-//                    if(qstContent.length() > 0) {
-//                        qstContent =
-//                    }
+                    JSONArray qstContent = new JSONArray(readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json"));
+                    JSONObject qstObjectSend = new JSONObject();
+                    if(qstContent.length() > 0)
+                        qstObjectSend = qstContent.getJSONObject(qstContent.length() - 1);
+
                     String cmFileHash = IPFSNetwork.add(WALLET_DATA_PATH + "CreditMapping.json", ipfs);
 
                     JSONObject qResponse = new JSONObject();
-                    qResponse.put("QuorumSignedTransactions", qstFileHash);
+                    qResponse.put("QuorumSignedTransactions", qstObjectSend.toString());
                     qResponse.put("CreditMapping", cmFileHash);
 
                     dataResp.println(qResponse.toString());
@@ -179,7 +178,7 @@ public class QuorumConsensus implements Runnable {
 
                                 creditMappingArray.put(creditMappingObject);
 
-                                updateJSON("add", WALLET_DATA_PATH + "CreditMapping.json", creditMappingArray.toString());
+                                writeToFile(WALLET_DATA_PATH + "CreditMapping.json", creditMappingArray.toString(), false);
 
                             }
                             JSONObject storeDetailsQuorum = new JSONObject();

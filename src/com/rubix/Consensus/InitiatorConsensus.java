@@ -1,14 +1,13 @@
 package com.rubix.Consensus;
 
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.QUORUM_COUNT;
-import static com.rubix.Resources.Functions.getValues;
-import static com.rubix.Resources.Functions.minQuorum;
-import static com.rubix.Resources.Functions.nodeData;
-import static com.rubix.Resources.IPFSNetwork.forward;
-import static com.rubix.Resources.IPFSNetwork.repo;
-import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
+import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.Resources.IPFSNetwork;
+import io.ipfs.api.IPFS;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,16 +16,8 @@ import java.io.PrintStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
-import com.rubix.AuthenticateNode.Authenticate;
-import com.rubix.Resources.IPFSNetwork;
-
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import io.ipfs.api.IPFS;
+import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.IPFSNetwork.*;
 
 
 public class InitiatorConsensus {
@@ -78,7 +69,6 @@ public class InitiatorConsensus {
                     jsonObject.put("hash", hash);
                     finalQuorumSignsArray.put(jsonObject);
                     quorumSignature.put(quorumDID, quorumSignResponse);
-                    InitiatorConsensusLogger.debug("quorum sign added current length " + quorumSignature.length());
                 } else {
                     InitiatorConsensusLogger.debug("quorum already reached consensus " + quorumSignature.length());
                 }
@@ -102,7 +92,6 @@ public class InitiatorConsensus {
     public static JSONObject start(String data, IPFS ipfs, int PORT, int index, String role, JSONArray quorumPeersObject, int alphaSize, int quorumSize) throws JSONException {
         String[] qResponse = new String[QUORUM_COUNT];
         String[] qVerification = new String[QUORUM_COUNT];
-//        int quorumSize = quorumPeersObject.length();
         Socket[] qSocket = new Socket[QUORUM_COUNT];
         PrintStream[] qOut = new PrintStream[QUORUM_COUNT];
         BufferedReader[] qIn = new BufferedReader[QUORUM_COUNT];
@@ -112,7 +101,6 @@ public class InitiatorConsensus {
         String hash = dataObject.getString("hash");
         JSONArray details = dataObject.getJSONArray("details");
         quorumResponse[index] = 0;
-        InitiatorConsensusLogger.debug("quorum peer role " + role + " length " + quorumPeersObject.length());
         JSONArray tokenDetails;
         try {
             tokenDetails = new JSONArray(details.toString());
@@ -139,7 +127,6 @@ public class InitiatorConsensus {
                         String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", quorumID[j]);
                         nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
                         String appName = quorumID[j].concat(role);
-                        InitiatorConsensusLogger.debug("quourm ID " + quorumID[j] + " appname " + appName);
                         forward(appName, PORT + j, quorumID[j]);
                         InitiatorConsensusLogger.debug("Connected to " + quorumID[j] + "on port " + (PORT + j) + "with AppName" + appName);
                         qSocket[j] = new Socket("127.0.0.1", PORT + j);
@@ -148,26 +135,22 @@ public class InitiatorConsensus {
                         qOut[j].println("qstcmrequest");
                         qVerification[j] = qIn[j].readLine();
                         JSONObject quorumDetails = new JSONObject(qVerification[j]);
-                        String qstData = IPFSNetwork.get(quorumDetails.getString("QuorumSignedTransactions"), ipfs);
                         String cmData = IPFSNetwork.get(quorumDetails.getString("CreditMapping"), ipfs);
 
-                        JSONArray qstContent = new JSONArray(qstData);
-                        JSONArray cmContent = new JSONArray(cmData);
-                        InitiatorConsensusLogger.debug("Credits Mapping Entries: " + cmContent.length());
+                        JSONObject qstContent = new JSONObject(quorumDetails.getString("QuorumSignedTransactions"));
 
-                        // qstData = readFile();
-                        if (qstContent.length() == 0 && role == "alpha") {
-                            InitiatorConsensusLogger.warn("Alpha quorum (" + quorumID[j] + ") has no credits");
-                        }
-                        if (cmContent.length() == 0 && role == "alpha") {
-                            InitiatorConsensusLogger.warn("Alpha quorum (" + quorumID[j] + ") has no credits in credit mapping data");
-                        }
 
-                        if (qstContent.length() > 0) {
-                            JSONObject qstLatest = qstContent.getJSONObject(qstContent.length() - 1);
-                            InitiatorConsensusLogger.debug("Check credits: " + qstLatest);
-                            if (!qstLatest.toString().contains("empty")) {
-                                String credits = qstLatest.getString("credits");
+//                        if (qstContent.length() == 0 && role == "alpha") {
+//                            InitiatorConsensusLogger.warn("Alpha quorum (" + quorumID[j] + ") has no credits");
+//                        }
+//                        if (cmContent.length() == 0 && role == "alpha") {
+//                            InitiatorConsensusLogger.warn("Alpha quorum (" + quorumID[j] + ") has no credits in credit mapping data");
+//                        }
+
+                        if (!qstContent.has("minestatus") && qstContent.length() != 0) {
+                            if (!qstContent.toString().contains("empty")) {
+                                JSONArray cmContent = new JSONArray(cmData);
+                                String credits = qstContent.getString("credits");
 
                                 String creditContent = IPFSNetwork.get(credits, ipfs);
                                 JSONArray credObject = new JSONArray(creditContent);
@@ -185,6 +168,16 @@ public class InitiatorConsensus {
 
                                     if (!(Authenticate.verifySignature(hashedCredObject.toString())))
                                         InitiatorConsensusLogger.warn("Credit verification failed for Alpha quorum (" + quorumID[j] + ") credits");
+
+
+                                    if (cmContent != null) {
+                                        for (int l = 0; l <= cmContent.length(); l++) {
+                                            if ((cmContent.getJSONObject(l).getString("hash") == signHash)) {
+                                                InitiatorConsensusLogger.warn("Credit verification failed for Alpha quorum (" + quorumID[j] + ") credits - Hash matched in Credits Mapping file");
+                                            }
+                                        }
+                                    }
+
                                 }
                             }
                         }
@@ -195,7 +188,7 @@ public class InitiatorConsensus {
                         if (qResponse[j].equals("Auth_Failed")) {
                             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                         } else {
-                            InitiatorConsensusLogger.debug("Signature Received from " + quorumID[j] + " " + qResponse[j]);
+                            InitiatorConsensusLogger.debug("Signature Received from " + quorumID[j]);
                             if (quorumResponse[index] > minQuorum(quorumSize)) {
                                 qOut[j].println("null");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
@@ -206,36 +199,32 @@ public class InitiatorConsensus {
                                 detailsToVerify.put("hash", hash);
                                 detailsToVerify.put("signature", qResponse[j]);
                                 if (Authenticate.verifySignature(detailsToVerify.toString())) {
-                                    InitiatorConsensusLogger.debug(role + " node authenticated at index " + index);
                                     boolean voteStatus = voteNCount(index, quorumSize);
                                     if (quorumResponse[index] <= minQuorum(quorumSize) && voteStatus) {
-                                        InitiatorConsensusLogger.debug("waiting for  " + quorumSize + " +signs " + role);
                                         while (quorumResponse[index] < minQuorum(quorumSize)) {
                                         }
-                                        InitiatorConsensusLogger.debug("between Q1- to Q" + quorumSize + " for index " + index);
                                         quorumSign(didHash, hash, qResponse[j], index, quorumSize, alphaSize);
                                         quorumWithShares.add(quorumPeersObject.getString(j));
                                         while (quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
                                         }
-                                        InitiatorConsensusLogger.debug("sending Qsign  of length " + quorumSignature.length() + "at index " + index);
+
                                         qOut[j].println(finalQuorumSignsArray);
                                         IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                     } else {
-                                        InitiatorConsensusLogger.debug("sending null for slow quorum ");
+
                                         qOut[j].println("null");
                                         IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                     }
                                     InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse + "Signature count : " + quorumSignature.length());
                                 } else {
                                     InitiatorConsensusLogger.debug("node failed authentication with index " + index + " with role " + role + " with did " + didHash + " and data to verify " + detailsToVerify);
-                                    InitiatorConsensusLogger.debug("recheck result is " + Authenticate.verifySignature(detailsToVerify.toString()));
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                 }
                             }
                         }
                     } catch (IOException | JSONException e) {
                         IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                        InitiatorConsensusLogger.error("IOException Occurred", e);
+                        InitiatorConsensusLogger.error("IOException Occurred");
                         e.printStackTrace();
                     }
                 });

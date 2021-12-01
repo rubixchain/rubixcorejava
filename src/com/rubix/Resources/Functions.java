@@ -540,7 +540,6 @@ public class Functions {
                     quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
                     if (checkSwarmConnect().contains(quorumPeer)) {
                         peers.add(quorumPeer);
-                        FunctionsLogger.debug(quorumPeer + " added to list");
                     }
                 } catch (JSONException e) {
                     FunctionsLogger.error("JSON Exception Occurred", e);
@@ -568,11 +567,8 @@ public class Functions {
             for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
-                    FunctionsLogger.debug("Quorum DID: "+ quorum.getString(i));
                     quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
-                    FunctionsLogger.debug("Quorum PID: "+ quorumPeer);
-                  // Commented by Anuradha K; A new method swamConnectP2P is implemented for swarm connection
-                    // IPFSNetwork.swarmConnect(quorumPeer,ipfs);
+
                     IPFSNetwork.swarmConnectP2P(quorumPeer,ipfs);
 
                 } catch (JSONException e) {
@@ -625,7 +621,6 @@ public class Functions {
     public static JSONObject randomPositions(String role, String hash, int numberOfPositions, int[] pvt1) throws JSONException {
 
         int u = 0, l = 0, m = 0;
-        long st = System.currentTimeMillis();
         int[] hashCharacters = new int[256];
         int[] randomPositions = new int[32];
         int[] randPos = new int[256];
@@ -670,8 +665,6 @@ public class Functions {
         JSONObject resultObject = new JSONObject();
         resultObject.put("originalPos", originalPos);
         resultObject.put("posForSign", posForSign);
-        long et = System.currentTimeMillis();
-        FunctionsLogger.debug("Time taken for randomPositions Calculation " + (et - st));
         return resultObject;
     }
 
@@ -708,7 +701,7 @@ public class Functions {
             FunctionsLogger.error("IOException Occurred", e);
             e.printStackTrace();
         }
-        FunctionsLogger.debug("File Deletion successful");
+
     }
 
 
@@ -1033,7 +1026,7 @@ public class Functions {
             responseQuorumPick.append(outputQuorumPick);
         }
         inQuorumPick.close();
-        FunctionsLogger.debug(" responsequorumpick " + responseQuorumPick.toString());
+
         quorumArray = new JSONArray(responseQuorumPick.toString());
         return quorumArray;
     }

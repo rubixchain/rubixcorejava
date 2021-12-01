@@ -44,8 +44,6 @@ public class InitiatorProcedure {
         String authSenderByQuorumHash="", authQuorumHash="";
         authSenderByQuorumHash = message;
         authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
-        InitiatorProcedureLogger.debug("Sender by Quorum Hash" + authSenderByQuorumHash);
-        InitiatorProcedureLogger.debug("Quorum Auth Hash" + authQuorumHash);
 
         try {
             payload.put("sender", senderDidIpfs);
