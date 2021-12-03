@@ -1,13 +1,14 @@
 package com.rubix.Consensus;
 
-import com.rubix.AuthenticateNode.Authenticate;
-import com.rubix.Resources.IPFSNetwork;
-import io.ipfs.api.IPFS;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import static com.rubix.Resources.Functions.DATA_PATH;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.QUORUM_COUNT;
+import static com.rubix.Resources.Functions.getValues;
+import static com.rubix.Resources.Functions.minQuorum;
+import static com.rubix.Resources.Functions.nodeData;
+import static com.rubix.Resources.IPFSNetwork.forward;
+import static com.rubix.Resources.IPFSNetwork.repo;
+import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,8 +17,16 @@ import java.io.PrintStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
-import static com.rubix.Resources.Functions.*;
-import static com.rubix.Resources.IPFSNetwork.*;
+import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.Resources.IPFSNetwork;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.ipfs.api.IPFS;
 
 
 public class InitiatorConsensus {
@@ -171,7 +180,7 @@ public class InitiatorConsensus {
 
 
                                     if (cmContent != null) {
-                                        for (int l = 0; l <= cmContent.length(); l++) {
+                                        for (int l = 0; l < cmContent.length(); l++) {
                                             if ((cmContent.getJSONObject(l).getString("hash") == signHash)) {
                                                 InitiatorConsensusLogger.warn("Credit verification failed for Alpha quorum (" + quorumID[j] + ") credits - Hash matched in Credits Mapping file");
                                             }
