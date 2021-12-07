@@ -1,22 +1,17 @@
 package com.rubix.Resources;
 
-import static com.rubix.Resources.APIHandler.networkInfo;
-import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
-import static com.rubix.Resources.IPFSNetwork.forwardCheck;
-import static com.rubix.Resources.IPFSNetwork.listen;
+import com.rubix.AuthenticateNode.PropImage;
+import io.ipfs.api.IPFS;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -29,17 +24,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 
-import javax.imageio.ImageIO;
-
-import com.rubix.AuthenticateNode.PropImage;
-
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import io.ipfs.api.IPFS;
+import static com.rubix.Resources.IPFSNetwork.*;
 
 
 public class Functions {
@@ -137,7 +122,6 @@ public class Functions {
     }
 
 
-    //? 
     public static void nodeData(String did, String wid, IPFS ipfs) throws IOException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         File dataFolder = new File(DATA_PATH + did + "/");
@@ -221,7 +205,6 @@ public class Functions {
      * @return (String) hash
      */
 
-    //? rubix-crypto
     public static String calculateHash(String message, String algorithm) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         MessageDigest digest = null;
@@ -562,6 +545,7 @@ public class Functions {
                     quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
                     if (checkSwarmConnect().contains(quorumPeer)) {
                         peers.add(quorumPeer);
+                        FunctionsLogger.debug(quorumPeer + " added to list");
                     }
                 } catch (JSONException e) {
                     FunctionsLogger.error("JSON Exception Occurred", e);
@@ -589,8 +573,11 @@ public class Functions {
             for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
+                    FunctionsLogger.debug("Quorum DID: "+ quorum.getString(i));
                     quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
-
+                    FunctionsLogger.debug("Quorum PID: "+ quorumPeer);
+                  // Commented by Anuradha K; A new method swamConnectP2P is implemented for swarm connection
+                    // IPFSNetwork.swarmConnect(quorumPeer,ipfs);
                     IPFSNetwork.swarmConnectP2P(quorumPeer,ipfs);
 
                 } catch (JSONException e) {
@@ -643,6 +630,7 @@ public class Functions {
     public static JSONObject randomPositions(String role, String hash, int numberOfPositions, int[] pvt1) throws JSONException {
 
         int u = 0, l = 0, m = 0;
+        long st = System.currentTimeMillis();
         int[] hashCharacters = new int[256];
         int[] randomPositions = new int[32];
         int[] randPos = new int[256];
@@ -687,6 +675,8 @@ public class Functions {
         JSONObject resultObject = new JSONObject();
         resultObject.put("originalPos", originalPos);
         resultObject.put("posForSign", posForSign);
+        long et = System.currentTimeMillis();
+        FunctionsLogger.debug("Time taken for randomPositions Calculation " + (et - st));
         return resultObject;
     }
 
@@ -723,7 +713,7 @@ public class Functions {
             FunctionsLogger.error("IOException Occurred", e);
             e.printStackTrace();
         }
-
+        FunctionsLogger.debug("File Deletion successful");
     }
 
 
@@ -765,30 +755,15 @@ public class Functions {
     public static void launch() {
         pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        int syncFlag = 0;
+
         try {
             executeIPFSCommands("ipfs daemon --enable-gc");
-            if (!SYNC_IP.contains("127.0.0.1")) {
-                networkInfo();
-                syncFlag = 1;
-            }
 
-        } catch (MalformedURLException e) {
-            FunctionsLogger.error("MalformedURL Exception Occurred", e);
-            e.printStackTrace();
-        } catch (ProtocolException e) {
-            FunctionsLogger.error("Protocol Exception Occurred", e);
-            e.printStackTrace();
-        } catch (IOException e) {
-            FunctionsLogger.error("IO Exception Occurred", e);
-            e.printStackTrace();
-        } catch (JSONException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        if (syncFlag == 1)
-            FunctionsLogger.info("Synced Successfully!");
-        else
-            FunctionsLogger.info("Not synced! Try again after sometime.");
+
+        FunctionsLogger.debug("Enabled ipfs GC");
     }
 
     /**
@@ -797,7 +772,6 @@ public class Functions {
      * @return A message
      * @throws JSONException handle all JSON Exceptions
      */
-    //? self-test
     public static String checkDirectory() throws JSONException {
         setDir();
         File mainDir = new File(dirPath);
@@ -1049,7 +1023,7 @@ public class Functions {
             responseQuorumPick.append(outputQuorumPick);
         }
         inQuorumPick.close();
-
+        FunctionsLogger.debug(" responsequorumpick " + responseQuorumPick.toString());
         quorumArray = new JSONArray(responseQuorumPick.toString());
         return quorumArray;
     }
