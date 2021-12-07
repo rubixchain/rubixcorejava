@@ -1,6 +1,7 @@
 package com.rubix.Consensus;
 
 import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
@@ -8,7 +9,6 @@ import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -63,11 +63,47 @@ public class QuorumConsensus implements Runnable {
                  serverSocket = new ServerSocket(port);
                  socket = serverSocket.accept();
 
+                BufferedReader dataReq = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                PrintStream dataResp = new PrintStream(socket.getOutputStream());
                 PrintStream out = new PrintStream(socket.getOutputStream());
 
                 JSONObject readSenderData;
                 String getData;
+                String qstReq;
+
+                //? check for incoming request for QST
+
+                qstReq = dataReq.readLine();
+                if (qstReq.contains("qstcmrequest")) {
+
+                    QuorumConsensusLogger.debug("Sender reqesting QuorumSignedTransactions.json and CreditMapping.json: " + qstReq);
+
+                    File creditsMapping = new File(WALLET_DATA_PATH + "CreditMapping.json");
+                    if(!creditsMapping.exists()) {
+                        QuorumConsensusLogger.debug("File doesn't exist");
+                        creditsMapping.createNewFile();
+                        writeToFile(creditsMapping.toString(), "[]", false);
+                    }
+                    JSONArray qstContent = new JSONArray(readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json"));
+                    JSONObject qstObjectSend = new JSONObject();
+                    if(qstContent.length() > 0)
+                        qstObjectSend = qstContent.getJSONObject(qstContent.length() - 1);
+
+                    String cmFileHash = IPFSNetwork.add(WALLET_DATA_PATH + "CreditMapping.json", ipfs);
+
+                    JSONObject qResponse = new JSONObject();
+                    qResponse.put("QuorumSignedTransactions", qstObjectSend.toString());
+                    qResponse.put("CreditMapping", cmFileHash);
+
+                    dataResp.println(qResponse.toString());
+                }
+
+
+                //TODO: if the incoming request contains the keyword "request", push the QST to IPFS and send the two hashes back to the sender.
+
+                //? This is where quorum fetched the data send from initiatorConsensus (Line 148)
+
                 getData = in.readLine();
                 if (getData.contains("ping check")) {
                     QuorumConsensusLogger.debug("Ping check from sender: " + getData);
@@ -100,7 +136,7 @@ public class QuorumConsensus implements Runnable {
                     ArrayList dhtOwnersList = dhtOwnerCheck(verifySenderHash);
                     QuorumConsensusLogger.debug("Providers: " + dhtOwnersList);
                     boolean consensusIDcheck = false;
-                    if(dhtOwnersList.size() <= 2 && dhtOwnersList.contains(senderPID))
+                    if(dhtOwnersList.size() == 2 && dhtOwnersList.contains(senderPID) && dhtOwnersList.contains(receiverPID))
                         consensusIDcheck = true;
 
 
@@ -115,16 +151,39 @@ public class QuorumConsensus implements Runnable {
                         String creditval;
                         creditval = in.readLine();
                         QuorumConsensusLogger.debug("credit value " + creditval);
+
                         if (!creditval.equals("null")) { //commented as per test for multiple consensus threads
+
                             FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
                             shareWriter.write(creditval);
                             shareWriter.close();
                             File readCredit = new File(LOGGER_PATH + "mycredit.txt");
                             String credit = add(readCredit.toString(), ipfs);
+
+                            // adding credit to credit mapping
+                            JSONArray CreditBody = new JSONArray(creditval);
+                            JSONObject creditMappingObject = new JSONObject();
+                            JSONArray creditMappingArray = new JSONArray();
+
+                            for(int i = 0; i < CreditBody.length(); i++){
+                                JSONObject object = CreditBody.getJSONObject(i);
+                                String key = object.getString("did");
+                                String sign = object.getString("sign");
+                                String creditHash = calculateHash(sign, "SHA3-256");
+
+                                creditMappingObject.put("did", key);
+                                creditMappingObject.put("sign", sign);
+                                creditMappingObject.put("hash", creditHash);
+                                creditMappingObject.put("tid", transactionID);
+
+                                creditMappingArray.put(creditMappingObject);
+
+                                writeToFile(WALLET_DATA_PATH + "CreditMapping.json", creditMappingArray.toString(), false);
+
+                            }
                             JSONObject storeDetailsQuorum = new JSONObject();
                             storeDetailsQuorum.put("tid", transactionID);
                             storeDetailsQuorum.put("consensusID", verifySenderHash);
-                            storeDetailsQuorum.put("minestatus", false);
                             storeDetailsQuorum.put("sign", senderPrivatePos);
                             storeDetailsQuorum.put("credits", credit);
                             storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
