@@ -55,6 +55,10 @@ public class TokenReceiver {
             ArrayList<String> quorumDID = new ArrayList<>();
             PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
+            DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
+            Date date = new Date();
+            LocalDate currentTime = LocalDate.parse(formatter.format(date).replace("/", "-"));
+
             String receiverPeerID = getPeerID(DATA_PATH + "DID.json");
 
             String receiverDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", receiverPeerID);
@@ -159,7 +163,7 @@ public class TokenReceiver {
                 ss.close();
                 return APIResponse.toString();
             }
-            else if(!(dhtOwnersList.size() == 1 && dhtOwnersList.contains(senderPeerID))){
+            else if(!(dhtOwnersList.size() <= 2 && dhtOwnersList.contains(senderPeerID))){
                 String errorMessage = "Consensus ID not unique: " + dhtOwnersList.size() + " owns the hash " + dhtOwnersList;
                 output.println("421");
                 APIResponse.put("did", senderDidIpfsHash);
@@ -216,15 +220,15 @@ public class TokenReceiver {
                 if (Status.equals("Consensus Reached")) {
 //                String QuorumDetails = input.readLine();
 
-//                    TokenReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
+                    TokenReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
                     quorumSignatures = new JSONObject(QuorumDetails);
                     int alphaSize = quorumSignatures.length() - 10;
 
 //                    String selectQuorumHash = calculateHash(senderToken, "SHA3-256");
 
                     String verifyQuorumHash = calculateHash(getCIDipfsHash.concat(receiverDidIpfsHash), "SHA3-256");
-//                    TokenReceiverLogger.debug("Quorum Hash on Receiver Side " + verifyQuorumHash);
-//                    TokenReceiverLogger.debug("Quorum Signatures length : " + quorumSignatures.length());
+                    TokenReceiverLogger.debug("Quorum Hash on Receiver Side " + verifyQuorumHash);
+                    TokenReceiverLogger.debug("Quorum Signatures length : " + quorumSignatures.length());
 
                     Iterator<String> keys = quorumSignatures.keys();
                     while (keys.hasNext()) {
@@ -240,8 +244,9 @@ public class TokenReceiver {
                             quorumDataFolder.mkdirs();
                             IPFSNetwork.getImage(quorumDidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/DID.png");
                             IPFSNetwork.getImage(quorumWidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/PublicShare.png");
-//                            TokenReceiverLogger.debug("Quorum Data " + quorumDidIpfsHash + " Added");
-                        }
+                            TokenReceiverLogger.debug("Quorum Data " + quorumDidIpfsHash + " Added");
+                        } else
+                            TokenReceiverLogger.debug("Quorum Data " + quorumDidIpfsHash + " Available");
                     }
 
                     for (int i = 0; i < quorumSignatures.length(); i++) {
@@ -269,8 +274,8 @@ public class TokenReceiver {
                 detailsForVerify.put("signature", senderSignature);
 
                 boolean yesSender = Authenticate.verifySignature(detailsForVerify.toString());
-//                TokenReceiverLogger.debug("Sender auth hash " + hash);
-//                TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + "Sender Auth : " + yesSender);
+                TokenReceiverLogger.debug("Sender auth hash " + hash);
+                TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + "Sender Auth : " + yesSender);
                 if (!(yesSender && yesQuorum)) {
                     output.println("420");
                     APIResponse.put("did", senderDidIpfsHash);
@@ -358,7 +363,7 @@ public class TokenReceiver {
                         APIResponse.put("tokens", tokens);
                         APIResponse.put("comment", comment);
                         APIResponse.put("message", "Transaction Successful");
-//                        TokenReceiverLogger.info(" Transaction Successful");
+                        TokenReceiverLogger.info(" Transaction Successful");
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
                         output.close();
                         input.close();
