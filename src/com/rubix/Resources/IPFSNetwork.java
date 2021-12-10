@@ -65,6 +65,7 @@ public class IPFSNetwork {
     }
 
     public static String checkSwarmConnect() {
+        IPFSNetworkLogger.debug("check swarm peers request");
         String response = executeIPFSCommandsResponse("ipfs swarm peers");
         return response;
     }
@@ -188,6 +189,7 @@ public class IPFSNetwork {
                 sb.append(line);
                 sb.append("\n");
             }
+            IPFSNetworkLogger.debug(command + " output: " + command);
             if (!OS.contains("Windows"))
                 P.waitFor();
             br.close();
@@ -275,6 +277,34 @@ public class IPFSNetwork {
 
         if (fileContents == null) {
         }
+    }
+
+     /**
+     * This method pin objects to local storage See
+     * <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-pin-add"> ipfs pin
+     * add</a> for more
+     *
+     * @param MultiHash ipfspath of object to be pinned
+     * @param ipfs      IPFS instance
+     */
+    public static void pinNFT(String MultiHash, IPFS ipfs) {
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        String command = " ipfs pin " + MultiHash;
+        executeIPFSCommands(command);
+    }
+
+    /**
+     * This method removes pinned objects from local storage ee
+     * <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-pin-rm"> ipfs pin rm
+     * </a> for more
+     *
+     * @param MultiHash ipfspath of object to be pinned
+     * @param ipfs      IPFS instance
+     */
+    public static void unpinNFT(String MultiHash, IPFS ipfs) {
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        String command = " ipfs unpin " + MultiHash;
+        executeIPFSCommands(command);
     }
 
     /**
@@ -406,7 +436,7 @@ public class IPFSNetwork {
         ImageIO.write(bis, "png", new File(path));
     }
 
-    /**
+   /*
      * This method is a plumbing command that will sweep the local set of stored
      * objects and remove ones that are not pinned in order to reclaim hard disk
      * space See <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-repo-gc">
