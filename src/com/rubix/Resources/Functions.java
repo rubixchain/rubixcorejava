@@ -5,6 +5,7 @@ import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.forwardCheck;
 import static com.rubix.Resources.IPFSNetwork.listen;
+import static com.rubix.Resources.IPFSNetwork.*;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -48,10 +49,13 @@ public class Functions {
     public static String DATA_PATH = "";
     public static String TOKENS_PATH = "";
     public static String TOKENCHAIN_PATH = "";
+    public static String NFT_TOKENS_PATH = "";
+    public static String NFT_TOKENCHAIN_PATH = "";
     public static String LOGGER_PATH = "";
     public static String WALLET_DATA_PATH = "";
     public static String PAYMENTS_PATH = "";
     public static int RECEIVER_PORT, GOSSIP_SENDER, GOSSIP_RECEIVER, QUORUM_PORT, SENDER2Q1, SENDER2Q2, SENDER2Q3, SENDER2Q4, SENDER2Q5, SENDER2Q6, SENDER2Q7;
+    public static int BUYER_PORT,SELLER_PORT;
     public static int QUORUM_COUNT;
     public static int SEND_PORT;
     public static int IPFS_PORT;
@@ -59,6 +63,7 @@ public class Functions {
     public static String ADVISORY_IP = "";
     public static int APPLICATION_PORT;
     public static String EXPLORER_IP = "";
+    public static String NFT_EXPLORER_IP = "";
     public static String USERDID_IP = "";
     public static String configPath = "";
     public static String dirPath = "";
@@ -98,13 +103,17 @@ public class Functions {
 
             DATA_PATH = pathsArray.getJSONObject(0).getString("DATA_PATH");
             TOKENS_PATH = pathsArray.getJSONObject(0).getString("TOKENS_PATH");
+            NFT_TOKENS_PATH = pathsArray.getJSONObject(0).getString("NFT_TOKENS_PATH");
             LOGGER_PATH = pathsArray.getJSONObject(0).getString("LOGGER_PATH");
             TOKENCHAIN_PATH = pathsArray.getJSONObject(0).getString("TOKENCHAIN_PATH");
+            NFT_TOKENCHAIN_PATH = pathsArray.getJSONObject(0).getString("NFT_TOKENCHAIN_PATH");
             WALLET_DATA_PATH = pathsArray.getJSONObject(0).getString("WALLET_DATA_PATH");
             PAYMENTS_PATH = pathsArray.getJSONObject(0).getString("PAYMENTS_PATH");
 
             SEND_PORT = pathsArray.getJSONObject(1).getInt("SEND_PORT");
+            SELLER_PORT = pathsArray.getJSONObject(1).getInt("SELLER_PORT");
             RECEIVER_PORT = pathsArray.getJSONObject(1).getInt("RECEIVER_PORT");
+            BUYER_PORT = pathsArray.getJSONObject(1).getInt("BUYER_PORT");
             GOSSIP_RECEIVER = pathsArray.getJSONObject(1).getInt("GOSSIP_RECEIVER");
             GOSSIP_SENDER = pathsArray.getJSONObject(1).getInt("GOSSIP_SENDER");
             QUORUM_PORT = pathsArray.getJSONObject(1).getInt("QUORUM_PORT");
@@ -120,6 +129,7 @@ public class Functions {
 
             SYNC_IP = pathsArray.getJSONObject(2).getString("SYNC_IP");
             EXPLORER_IP = pathsArray.getJSONObject(2).getString("EXPLORER_IP");
+            NFT_EXPLORER_IP = pathsArray.getJSONObject(2).getString("NFT_EXPLORER_IP");
             USERDID_IP = pathsArray.getJSONObject(2).getString("USERDID_IP");
             ADVISORY_IP=pathsArray.getJSONObject(2).getString("ADVISORY_IP");
 
@@ -383,6 +393,21 @@ public class Functions {
         int[] finalpos = (int[]) P.get("posForSign");
         int[] p1Sign = getPrivatePosition(finalpos, privateIntegerArray1);
         return intArrayToStr(p1Sign);
+    }
+
+    public static void establishConnection(String connectObjectString) {
+        IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
+        JSONObject connectObject = null;
+        try {
+            connectObject = new JSONObject(connectObjectString);
+            String DID = connectObject.getString("did");
+            String appName = DID.concat(connectObject.getString("appName"));
+            String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", DID);
+            swarmConnectP2P(peerID, ipfs);
+            forward(appName, SEND_PORT, peerID);
+        } catch (JSONException e) {
+            FunctionsLogger.error("JSONException Occurred", (Throwable)e);
+        }
     }
 
     /**
@@ -826,13 +851,17 @@ public class Functions {
         File loggerFolder = new File(LOGGER_PATH);
         File tokensFolder = new File(TOKENS_PATH);
         File tokenChainsFolder = new File(TOKENCHAIN_PATH);
+        File nftTokensFolder = new File(NFT_TOKENS_PATH);
+        File nftTokenChainsFolder = new File(NFT_TOKENCHAIN_PATH);
         File walletDataFolder = new File(WALLET_DATA_PATH);
 
-        if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists() || !walletDataFolder.exists()) {
+        if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !nftTokensFolder.exists() || !nftTokenChainsFolder.exists() || !tokensFolder.exists() || !walletDataFolder.exists()) {
             dataFolder.delete();
             loggerFolder.delete();
             tokenChainsFolder.delete();
             tokensFolder.delete();
+            nftTokenChainsFolder.delete();
+            nftTokensFolder.delete();
             walletDataFolder.delete();
             JSONObject result = new JSONObject();
             result.put("message", "User not registered, create your Decentralised Identity!");

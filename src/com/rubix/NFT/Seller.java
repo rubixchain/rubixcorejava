@@ -133,9 +133,9 @@ public class Seller {
         SellerLogger.debug("alphaquorum " + alphaQuorum + " size " + alphaQuorum.length());
         SellerLogger.debug("betaquorum " + betaQuorum + " size " + betaQuorum.length());
         SellerLogger.debug("gammaquorum " + gammaQuorum + " size " + gammaQuorum.length());
-        ArrayList alphaPeersList = Functions.QuorumCheck(alphaQuorum, ipfs, alphaSize);
-        ArrayList betaPeersList = Functions.QuorumCheck(betaQuorum, ipfs, 7);
-        ArrayList gammaPeersList = Functions.QuorumCheck(gammaQuorum, ipfs, 7);
+        ArrayList alphaPeersList = Functions.QuorumCheck(alphaQuorum, alphaSize);
+        ArrayList betaPeersList = Functions.QuorumCheck(betaQuorum, 7);
+        ArrayList gammaPeersList = Functions.QuorumCheck(gammaQuorum, 7);
         SellerLogger.debug("alphaPeersList size " + alphaPeersList.size());
         SellerLogger.debug("betaPeersList size " + betaPeersList.size());
         SellerLogger.debug("gammaPeersList size " + gammaPeersList.size());
@@ -170,7 +170,7 @@ public class Seller {
         assetDetails.put("amount", amount);
         String buyerPeerId = Functions.getValues(Functions.DATA_PATH + "DataTable.json", "peerid", "didHash", buyerDidIpfsHash);
         SellerLogger.debug("Swarm connecting to " + buyerPeerId);
-        IPFSNetwork.swarmConnect(buyerPeerId, ipfs);
+        IPFSNetwork.swarmConnectP2P(buyerPeerId, ipfs);
         SellerLogger.debug("Swarm connected");
         String buyerWidIpfsHash = Functions.getValues(Functions.DATA_PATH + "DataTable.json", "walletHash", "didHash", buyerDidIpfsHash);
         Functions.nodeData(buyerDidIpfsHash, buyerWidIpfsHash, ipfs);
