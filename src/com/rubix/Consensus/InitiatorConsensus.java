@@ -93,10 +93,13 @@ public class InitiatorConsensus {
 
         // convert blockHash to a JSONObject
         JSONObject response = new JSONObject();
+        response.put("blockHash", blockObject);
 
         // convert blockObject string to json object 
         JSONObject blockObjectJson = new JSONObject(blockObject);
         JSONArray metadataArray = blockObjectJson.getJSONArray("metadata");
+
+        response.put("files", metadataArray.length());
 
         for (int i = 0; i < metadataArray.length(); i++) {
             JSONObject metadataObject = metadataArray.getJSONObject(i);
@@ -104,6 +107,9 @@ public class InitiatorConsensus {
             ArrayList dhtOwnersList = dhtOwnerCheck(metadata_hash);
             response.put(metadata_hash, dhtOwnersList.size());
         }
+
+        response.put("status", "Success");
+
         return response;
     }
 

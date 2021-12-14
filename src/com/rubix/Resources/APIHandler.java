@@ -1,5 +1,6 @@
 package com.rubix.Resources;
 
+import static com.rubix.Consensus.InitiatorConsensus.countQuorumSigns;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -158,6 +159,10 @@ public class APIHandler {
         sendMessage =  ProofCredits.create(detailsObject.toString(), ipfs);
         APILogger.info(sendMessage);
         return sendMessage;
+    }
+
+    public static JSONObject getBatchPins(String blockHash) throws Exception {
+        return countQuorumSigns(blockHash);
     }
 
 
