@@ -136,7 +136,6 @@ public class Functions {
         }
     }
 
-
     //? 
     public static void nodeData(String did, String wid, IPFS ipfs) throws IOException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");

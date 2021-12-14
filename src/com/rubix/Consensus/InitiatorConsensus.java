@@ -6,6 +6,7 @@ import static com.rubix.Resources.Functions.QUORUM_COUNT;
 import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.Functions.minQuorum;
 import static com.rubix.Resources.Functions.nodeData;
+import static com.rubix.Resources.IPFSNetwork.dhtOwnerCheck;
 import static com.rubix.Resources.IPFSNetwork.forward;
 import static com.rubix.Resources.IPFSNetwork.repo;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
@@ -86,6 +87,24 @@ public class InitiatorConsensus {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static JSONObject countQuorumSigns(String blockObject) throws JSONException, InterruptedException, IOException {
+
+        // convert blockHash to a JSONObject
+        JSONObject response = new JSONObject();
+
+        // convert blockObject string to json object 
+        JSONObject blockObjectJson = new JSONObject(blockObject);
+        JSONArray metadataArray = blockObjectJson.getJSONArray("metadata");
+
+        for (int i = 0; i < metadataArray.length(); i++) {
+            JSONObject metadataObject = metadataArray.getJSONObject(i);
+            String metadata_hash = metadataObject.getString("metadata_hash");
+            ArrayList dhtOwnersList = dhtOwnerCheck(metadata_hash);
+            response.put(metadata_hash, dhtOwnersList.size());
+        }
+        return response;
     }
 
 

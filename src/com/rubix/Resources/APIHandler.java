@@ -421,7 +421,6 @@ public class APIHandler {
         return resultArray;
     }
 
-
     /**
      * A call to get list transactions made by the user with the input Did
      * @param did DID of the contact
@@ -441,7 +440,6 @@ public class APIHandler {
         return resultArray;
     }
 
-
     public static int onlinePeersCount() throws JSONException, IOException, InterruptedException {
         JSONArray peersArray = peersOnlineStatus();
         int count = 0;
@@ -451,7 +449,6 @@ public class APIHandler {
         }
         return count;
     }
-
 
     public static ArrayList swarmPeersList() throws IOException, InterruptedException {
         String OS = getOsName();
@@ -489,6 +486,7 @@ public class APIHandler {
         }
         return peersArray;
     }
+    
     /**
      * A call to get the online/offline status of your contacts
      * @return List indicating online status of each DID contact
