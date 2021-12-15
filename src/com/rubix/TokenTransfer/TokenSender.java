@@ -31,6 +31,7 @@ import java.util.*;
 
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.*;
+import static com.rubix.LevelDb.DataBase.*;
 
 
 public class TokenSender {
@@ -510,8 +511,8 @@ public class TokenSender {
         transactionHistoryEntry.put(transactionRecord);
         updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString()); */
 
-        Database.putDataTransactionHistory(transactionRecord.getString("txn").toString(), transactionRecord.toString());
-        Database.putDataEssentialShare(transactionRecord.getString("txn"), essentialShareRecord.toString());
+        DataBase.putDataTransactionHistory(transactionRecord.getString("txn").toString(), transactionRecord.toString());
+        DataBase.putDataEssentialShare(transactionRecord.getString("txn"), essentialShareRecord.toString());
 
         for (int i = 0; i < tokens.length(); i++)
             Files.deleteIfExists(Paths.get(TOKENS_PATH + tokens.get(i)));

@@ -26,6 +26,7 @@ import java.util.Iterator;
 
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.*;
+import static com.rubix.LevelDb.DataBase.*;
 
 
 public class TokenReceiver {
@@ -353,8 +354,8 @@ public class TokenReceiver {
                         /* JSONArray transactionHistoryEntry = new JSONArray();
                         transactionHistoryEntry.put(transactionRecord);
                         updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString()); */
-                        Database.putDataTransactionHistory(transactionRecord.getString("txn").toString(), transactionRecord.toString());
-                        Database.putDataEssentialShare(transactionRecord.getString("txn"), essentialShareRecord.toString());
+                        DataBase.putDataTransactionHistory(transactionRecord.getString("txn").toString(), transactionRecord.toString());
+                        DataBase.putDataEssentialShare(transactionRecord.getString("txn"), essentialShareRecord.toString());
 
                         TokenReceiverLogger.info("Transaction ID: " + tid + "Transaction Successful");
                         output.println("Send Response");

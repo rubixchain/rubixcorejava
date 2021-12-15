@@ -16,6 +16,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static com.rubix.LevelDb.DataBase.*;
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 
@@ -145,7 +146,7 @@ public class APIHandler {
         } */
         JSONObject countResult = new JSONObject();
         JSONArray resultArray = new JSONArray();
-        String transactionHistory=Database.getDatabyTxnId(txnId);
+        String transactionHistory=DataBase.getDatabyTxnId(txnId);
         if(transactionHistory.length()==0)
         {
             countResult.put("Message", "No transactions found");

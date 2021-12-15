@@ -25,6 +25,7 @@ import java.util.List;
 
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.repo;
+import static com.rubix.LevelDb.DataBase.*;
 
 
 public class ProofCredits {
@@ -297,8 +298,8 @@ public class ProofCredits {
                     /* JSONArray transactionHistoryEntry = new JSONArray();
                     transactionHistoryEntry.put(transactionRecord);
                     updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString()); */
-                    Database.putDataTransactionHistory(transactionRecord.getString("txn").toString(), transactionRecord.toString());
-                    Database.putDataEssentialShare(transactionRecord.getString("txn"), essentialShareRecord.toString());
+                    DataBase.putDataTransactionHistory(transactionRecord.getString("txn").toString(), transactionRecord.toString());
+                    DataBase.putDataEssentialShare(transactionRecord.getString("txn"), essentialShareRecord.toString());
                     repo(ipfs);
 
 
