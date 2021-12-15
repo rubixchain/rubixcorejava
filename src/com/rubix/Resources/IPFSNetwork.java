@@ -330,8 +330,8 @@ public class IPFSNetwork {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
         List dhtlist = ipfs.dht.findprovs(dhtMultihash);
-
-        if (dhtlist.size() == 1 && dhtlist.toString().contains(previousOwner))
+        IPFSNetworkLogger.debug("Providers: " + dhtlist);
+        if (dhtlist.size() <= 2 && dhtlist.toString().contains(previousOwner))
             return true;
         return false;
     }
@@ -453,7 +453,7 @@ public class IPFSNetwork {
             }
 
             if (command.contains(listen) || command.contains(forward) || command.contains("swarm")
-                    || command.contains(p2p) || command.contains(shutdown)) {
+                    || command.contains(p2p) || command.contains(shutdown) || command.contains(bootstrap) || command.contains("findprovs")) {
                 p = new ProcessBuilder(commands);
                 process = p.start();
 
@@ -520,7 +520,7 @@ public class IPFSNetwork {
             }
 
             if (command.contains(listen) || command.contains(forward) || command.contains(p2p)
-                    || command.contains(shutdown)) {
+                    || command.contains(shutdown) || command.contains(bootstrap)) {
                 p = new ProcessBuilder(commands);
                 process = p.start();
 
@@ -554,6 +554,8 @@ public class IPFSNetwork {
         String output = swarmConnectProcess(multiAddress);
 
         if (!output.contains("success")) {
+            IPFSNetworkLogger.debug("Connecting via bootstrap ");
+            IPFSNetworkLogger.debug("Bootstraps  " + BOOTSTRAPS + "size " + BOOTSTRAPS.length());
 
             for (int i = 0; i < BOOTSTRAPS.length(); i++) {
                 if (!swarmConnected) {

@@ -1,5 +1,6 @@
 package com.rubix.TokenTransfer;
 
+import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 
@@ -103,9 +104,6 @@ public class TokenSender {
             }
         }
 
-        BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
-        String senderWidBin = PropImage.img2bin(senderWidImage);
-
 
         if (senderMutex) {
             APIResponse.put("did", senderDidIpfsHash);
@@ -145,7 +143,8 @@ public class TokenSender {
                 return APIResponse;
 
             }
-            add(TOKENS_PATH + tokens.get(i), ipfs);
+            String hash = add(TOKENS_PATH + tokens.get(i), ipfs);
+            pin(hash, ipfs);
             String tokenChainHash = add(TOKENCHAIN_PATH + tokens.get(i) + ".json", ipfs);
             allTokensChainsPushed.add(tokenChainHash);
         }
@@ -263,6 +262,7 @@ public class TokenSender {
         String consensusID = calculateHash(senderToken, "SHA3-256");
         writeToFile(LOGGER_PATH + "consensusID", consensusID, false);
         String consensusIDIPFSHash = IPFSNetwork.add(LOGGER_PATH + "consensusID", ipfs);
+        pin(consensusIDIPFSHash,ipfs);
         deleteFile(LOGGER_PATH + "consensusID");
 
         JSONObject ipfsObject = new JSONObject();
@@ -301,14 +301,6 @@ public class TokenSender {
 
         peerAuth = input.readLine();
 
-
-//            while ((peerAuth = input.readLine()) == null) {
-////                forward(receiverPeerId, port, receiverPeerId);
-////                senderSocket = new Socket("127.0.0.1", port);
-////                input = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
-////                output = new PrintStream(senderSocket.getOutputStream());
-////                output.println(senderPeerID);
-//            }
         if (!peerAuth.equals("200")) {
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             TokenSenderLogger.info("Sender Data Not Available");
@@ -359,9 +351,6 @@ public class TokenSender {
             return APIResponse;
 
         }
-
-        // output.println(senderDetails2Receiver);
-
 
         JSONObject dataObject = new JSONObject();
         dataObject.put("tid", tid);
@@ -441,7 +430,7 @@ public class TokenSender {
         if (!confirmation.equals("Successfully Pinned")) {
             TokenSenderLogger.warn("Multiple Owners for the token");
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
-            TokenSenderLogger.info("Tokens with multiple pins");
+
             output.close();
             input.close();
             senderSocket.close();
@@ -604,6 +593,8 @@ public class TokenSender {
 //        }
 
         TokenSenderLogger.info("Transaction Successful");
+        System.out.println("Verify Count: " + Authenticate.verifyCount);
+        Authenticate.verifyCount = 0;
         executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
         output.close();
         input.close();

@@ -11,5 +11,4 @@ public class ConsensusConstants {
     public static final String RBT = "RBT";
     public static final String RBD = "DATA_VALIDATION";
 
-
 }

@@ -20,9 +20,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
+import java.util.*;
 
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.*;
@@ -110,14 +108,11 @@ public class TokenReceiver {
             output.println("200");
 
             String data = input.readLine();
-            TokenReceiverLogger.debug("Token details received: " + data);
+            TokenReceiverLogger.debug("Token details received: ");
             JSONArray TokenDetailsArray = new JSONArray(data);
             JSONArray tokens = TokenDetailsArray.getJSONObject(0).getJSONArray("token");
             JSONArray tokenChains = TokenDetailsArray.getJSONObject(0).getJSONArray("tokenChain");
             String getCIDipfsHash = TokenDetailsArray.getJSONObject(1).getString("ipfsHash");
-            TokenReceiverLogger.debug("Checking providers for: " + getCIDipfsHash);
-            ArrayList dhtOwnersList = dhtOwnerCheck(getCIDipfsHash);
-            TokenReceiverLogger.debug("Providers: " + dhtOwnersList);
             TokenReceiverLogger.debug("IPFS get of consensusFile: " + getCIDipfsHash);
             String consensusID = get(getCIDipfsHash, ipfs);
 
@@ -127,11 +122,6 @@ public class TokenReceiver {
             String senderToken = TokenDetailsArray.getJSONObject(0).toString();
 
             String consensusIdCompare = calculateHash(senderToken, "SHA3-256");
-//            writeToFile(LOGGER_PATH + "consensusID", consensusID, false);
-//            String consensusIDIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "consensusID", ipfs);
-//            deleteFile(LOGGER_PATH + "consensusID");
-
-
 
             //Check IPFS get for all Tokens
             int ipfsGetFlag = 0;
@@ -159,8 +149,8 @@ public class TokenReceiver {
                 ss.close();
                 return APIResponse.toString();
             }
-            else if(!(dhtOwnersList.size() == 1 && dhtOwnersList.contains(senderPeerID))){
-                String errorMessage = "Consensus ID not unique: " + dhtOwnersList.size() + " owns the hash " + dhtOwnersList;
+            else if(IPFSNetwork.dhtEmpty(getCIDipfsHash, ipfs)){
+                String errorMessage = "Consensus ID issue";
                 output.println("421");
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", "null");
@@ -211,20 +201,16 @@ public class TokenReceiver {
 
             TokenReceiverLogger.debug("Consensus Status:  " + Status);
 
+
+            TokenReceiverLogger.debug("Verifying Quorum ...  ");
+            TokenReceiverLogger.debug("Please wait, this might take a few seconds");
+
             if (!Status.equals("Consensus Failed")) {
                 boolean yesQuorum = false;
                 if (Status.equals("Consensus Reached")) {
-//                String QuorumDetails = input.readLine();
-
-//                    TokenReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
                     quorumSignatures = new JSONObject(QuorumDetails);
-                    int alphaSize = quorumSignatures.length() - 10;
-
-//                    String selectQuorumHash = calculateHash(senderToken, "SHA3-256");
 
                     String verifyQuorumHash = calculateHash(getCIDipfsHash.concat(receiverDidIpfsHash), "SHA3-256");
-//                    TokenReceiverLogger.debug("Quorum Hash on Receiver Side " + verifyQuorumHash);
-//                    TokenReceiverLogger.debug("Quorum Signatures length : " + quorumSignatures.length());
 
                     Iterator<String> keys = quorumSignatures.keys();
                     while (keys.hasNext()) {
@@ -240,7 +226,6 @@ public class TokenReceiver {
                             quorumDataFolder.mkdirs();
                             IPFSNetwork.getImage(quorumDidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/DID.png");
                             IPFSNetwork.getImage(quorumWidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/PublicShare.png");
-//                            TokenReceiverLogger.debug("Quorum Data " + quorumDidIpfsHash + " Added");
                         }
                     }
 
@@ -269,8 +254,6 @@ public class TokenReceiver {
                 detailsForVerify.put("signature", senderSignature);
 
                 boolean yesSender = Authenticate.verifySignature(detailsForVerify.toString());
-//                TokenReceiverLogger.debug("Sender auth hash " + hash);
-//                TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + "Sender Auth : " + yesSender);
                 if (!(yesSender && yesQuorum)) {
                     output.println("420");
                     APIResponse.put("did", senderDidIpfsHash);

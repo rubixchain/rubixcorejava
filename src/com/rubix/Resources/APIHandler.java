@@ -165,7 +165,6 @@ public class APIHandler {
         return countQuorumSigns(blockHash);
     }
 
-
     /**
      * A call to get details of a transaction given its ID
      * @param txnId

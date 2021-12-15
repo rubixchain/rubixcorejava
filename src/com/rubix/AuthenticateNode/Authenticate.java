@@ -16,6 +16,7 @@ import static com.rubix.Resources.Functions.*;
 
 public class Authenticate {
     public static Logger AuthenticateLogger = Logger.getLogger(Authenticate.class);
+    public static int verifyCount = 0;
 
     /**
      * This method is used to authenticate a node in Rubix implementing text based two level NLSS.
@@ -29,8 +30,8 @@ public class Authenticate {
 
     public static boolean verifySignature(String detailString) throws IOException, JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        verifyCount++;
         IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
-        System.out.println(IPFS_PORT);
         JSONObject details = new JSONObject(detailString);
         String decentralizedID = details.getString("did");
         String hash = details.getString("hash");
@@ -61,7 +62,6 @@ public class Authenticate {
         StringBuilder decentralizedIDForAuth = new StringBuilder();
         for (int value : positionsLevelZero) decentralizedIDForAuth.append(senderDIDBin.charAt(value));
         if (recombinedResult.equals(decentralizedIDForAuth.toString())) {
-            AuthenticateLogger.info("Verification True");
             return true;
         } else {
             AuthenticateLogger.info("Verification Failed");
