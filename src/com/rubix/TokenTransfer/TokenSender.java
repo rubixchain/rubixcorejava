@@ -489,6 +489,8 @@ public class TokenSender {
         updateQuorum(quorumArray, signedQuorumList, true, type);
 
         JSONObject transactionRecord = new JSONObject();
+        //jsonobject to store essentialshare 
+        JSONObject essentialShareRecord= new JSONObject();
         transactionRecord.put("role", "Sender");
         transactionRecord.put("tokens", tokens);
         transactionRecord.put("txn", tid);
@@ -498,12 +500,18 @@ public class TokenSender {
         transactionRecord.put("Date", getCurrentUtcTime());
         transactionRecord.put("totalTime", totalTime);
         transactionRecord.put("comment", comment);
-        transactionRecord.put("essentialShare", InitiatorProcedure.essential);
+
+        //transactionRecord.put("essentialShare", InitiatorProcedure.essential);
+
+        essentialShareRecord.put("essentialShare", InitiatorProcedure.essential);
 
 
-        JSONArray transactionHistoryEntry = new JSONArray();
+        /* JSONArray transactionHistoryEntry = new JSONArray();
         transactionHistoryEntry.put(transactionRecord);
-        updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString());
+        updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString()); */
+
+        Database.putDataTransactionHistory(transactionRecord.getString("txn").toString(), transactionRecord.toString());
+        Database.putDataEssentialShare(transactionRecord.getString("txn"), essentialShareRecord.toString());
 
         for (int i = 0; i < tokens.length(); i++)
             Files.deleteIfExists(Paths.get(TOKENS_PATH + tokens.get(i)));
