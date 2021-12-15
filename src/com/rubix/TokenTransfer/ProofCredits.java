@@ -280,6 +280,8 @@ public class ProofCredits {
                     Date date = new Date();
                     LocalDate currentTime = LocalDate.parse(formatter.format(date).replace("/", "-"));
                     JSONObject transactionRecord = new JSONObject();
+                    //jsonobject to store essentialshare 
+                    JSONObject essentialShareRecord= new JSONObject();
                     transactionRecord.put("role", "Sender");
                     transactionRecord.put("tokens", token);
                     transactionRecord.put("txn", tid);
@@ -289,13 +291,14 @@ public class ProofCredits {
                     transactionRecord.put("Date", currentTime);
                     transactionRecord.put("totalTime", totalTime);
                     transactionRecord.put("comment", "minedtxn");
-                    transactionRecord.put("essentialShare", InitiatorProcedure.essential);
 
+                    essentialShareRecord.put("essentialShare", InitiatorProcedure.essential);
 
-                    JSONArray transactionHistoryEntry = new JSONArray();
+                    /* JSONArray transactionHistoryEntry = new JSONArray();
                     transactionHistoryEntry.put(transactionRecord);
-                    updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString());
-
+                    updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString()); */
+                    Database.putDataTransactionHistory(transactionRecord.getString("txn").toString(), transactionRecord.toString());
+                    Database.putDataEssentialShare(transactionRecord.getString("txn"), essentialShareRecord.toString());
                     repo(ipfs);
 
 
