@@ -1,3 +1,5 @@
+package com.rubix.LevelDb;
+
 import org.iq80.leveldb.DB;
 import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
 
@@ -15,7 +17,7 @@ import org.iq80.leveldb.Options;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class Database {
+public class DataBase {
 
     public static DB transactionHistory=null;
     public static DB essentialShare=null;
