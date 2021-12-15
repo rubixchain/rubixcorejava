@@ -61,6 +61,125 @@ public class TokenSender {
      * @throws JSONException            handles JSON Exceptions
      * @throws NoSuchAlgorithmException handles No Such Algorithm Exceptions
      */
+
+
+
+
+
+    public static boolean PingPong(){
+
+        boolean flag = false;
+            boolean integrityCheck=true;
+            String temp, peerID, transactionID, verifySenderHash, receiverDID, receiverPID, appName, senderPrivatePos, senderDidIpfsHash="", senderPID = "";
+            ServerSocket serverSocket = null;
+            Socket socket = null;
+            try {
+
+                peerID = getPeerID(DATA_PATH + "DID.json");
+                String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
+                appName = peerID.concat(role);
+
+                listen(appName, port);
+
+                TokenSenderLogger.debug("Quorum Listening on " + port + " appname "+appName);
+                 serverSocket = new ServerSocket(port);
+                 socket = serverSocket.accept();
+
+                BufferedReader dataReq = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                PrintStream dataResp = new PrintStream(socket.getOutputStream());
+                PrintStream out = new PrintStream(socket.getOutputStream());
+
+                JSONObject readSenderData;
+                String getData;
+                String qstReq;
+
+                //? check for incoming request for QST
+
+                qstReq = dataReq.readLine();
+                if (qstReq.contains("qstcmrequest")) {
+
+                    TokenSenderLogger.debug("Sender reqesting QuorumSignedTransactions.json and CreditMapping.json: " + qstReq);
+
+                    JSONArray qstContent = new JSONArray(readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json"));
+                    JSONObject qstObjectSend;
+                    JSONArray creditsArray = new JSONArray();
+                    String credits = "";
+                    if(qstContent.length() > 0) {
+                        qstObjectSend = qstContent.getJSONObject(qstContent.length() - 1);
+                        if(qstObjectSend.has("minestatus")) {
+                            credits = qstObjectSend.getString("credits");
+                            if (!credits.equals("")) {
+                                String creditContent = IPFSNetwork.get(credits, ipfs);
+                                creditsArray = new JSONArray(creditContent);
+                            }
+                        }
+                    }
+
+                    String cmFile = readFile(WALLET_DATA_PATH + "CreditMapping.json");
+                    JSONArray creditsMappingArray = new JSONArray(cmFile);
+                    JSONObject qResponse = new JSONObject();
+                    qResponse.put("Credits", creditsArray.toString());
+                    qResponse.put("CreditMapping", creditsMappingArray.toString());
+
+                    dataResp.println(qResponse.toString());
+                }
+
+                getData = in.readLine();
+                if (getData.contains("ping check")) {
+                    TokenSenderLogger.debug("Ping check from sender: " + getData);
+                    out.println("pong response");
+                }
+                else {
+                    TokenSenderLogger.debug("Received Details from initiator: " + getData);
+                    readSenderData = new JSONObject(getData);
+                    senderPrivatePos = readSenderData.getString("sign");
+                    senderDidIpfsHash = readSenderData.getString("senderDID");
+                    transactionID = readSenderData.getString("Tid");
+                    verifySenderHash = readSenderData.getString("Hash");
+                    receiverDID = readSenderData.getString("RID");
+
+                    senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", senderDidIpfsHash);
+                    receiverPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDID);
+
+                    String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", senderDidIpfsHash);
+
+                    nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
+                    String quorumHash = calculateHash(verifySenderHash.concat(receiverDID), "SHA3-256");
+
+
+                    TokenSenderLogger.debug("Checking providers for: " + verifySenderHash);
+                    ArrayList dhtOwnersList = dhtOwnerCheck(verifySenderHash);
+                    TokenSenderLogger.debug("Providers: " + dhtOwnersList);
+                    boolean consensusIDcheck = false;
+                    if(dhtOwnersList.size() <= 2 && dhtOwnersList.contains(senderPID))
+                        consensusIDcheck = true;
+                }
+            } catch (IOException e) {
+                TokenSenderLogger.error("IOException Occurred", e);
+            } catch (JSONException e) {
+                TokenSenderLogger.error("JSONException Occurred", e);
+            } catch (NullPointerException | InterruptedException e) {
+                TokenSenderLogger.error("NullPointer Exception Occurred ",e);
+            }
+
+            finally{
+                try {
+                    socket.close();
+                    serverSocket.close();
+                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                } catch (IOException e) {
+                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                    TokenSenderLogger.error("IOException Occurred", e);
+                }
+
+            }
+        
+
+
+        return flag;
+    }
+    
     public static JSONObject Send(String data, IPFS ipfs, int port) throws Exception {
 
 
