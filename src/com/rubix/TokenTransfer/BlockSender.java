@@ -78,7 +78,7 @@ public class BlockSender {
 
         JSONObject APIResponse = new JSONObject();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        String receiverPeerId;
+        // String receiverPeerId;
         JSONObject detailsObject = new JSONObject(data);
         // String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
@@ -265,10 +265,10 @@ public class BlockSender {
 
         // ? above code is verified for block sender logic
 
-        // JSONObject senderDetails2Receiver = new JSONObject();
-        // senderDetails2Receiver.put("sign", senderSign);
-        // senderDetails2Receiver.put("tid", tid);
-        // senderDetails2Receiver.put("comment", comment);
+        JSONObject senderDetails2Receiver = new JSONObject();
+        senderDetails2Receiver.put("sign", senderSign);
+        senderDetails2Receiver.put("tid", tid);
+        senderDetails2Receiver.put("comment", comment);
 
         // JSONArray tokenBindDetailsArray = new JSONArray();
         // JSONObject tokenDetails = new JSONObject();
@@ -402,8 +402,8 @@ public class BlockSender {
         if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
             // if (!(InitiatorProcedure.alphaReply.length() >= minQuorum(7))) {
             BlockSenderLogger.debug("Consensus Failed");
-            // senderDetails2Receiver.put("status", "Consensus Failed");
-            // senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
+            senderDetails2Receiver.put("status", "Consensus Failed");
+            senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
             // output.println(senderDetails2Receiver);
             // executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             output.close();
@@ -419,9 +419,9 @@ public class BlockSender {
 
         }
 
-        // BlockSenderLogger.debug("Consensus Reached");
-        // senderDetails2Receiver.put("status", "Consensus Reached");
-        // senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
+        BlockSenderLogger.debug("Consensus Reached");
+        senderDetails2Receiver.put("status", "Consensus Reached");
+        senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
 
         // output.println(senderDetails2Receiver);
         // output.println("Consensus Reached");
@@ -475,25 +475,25 @@ public class BlockSender {
         //     return APIResponse;
 
         // }
-        output.println(InitiatorProcedure.essential);
-        String respAuth = input.readLine();
+        // output.println(InitiatorProcedure.essential);
+        // String respAuth = input.readLine();
 
-        if (!respAuth.equals("Send Response")) {
+        // if (!respAuth.equals("Send Response")) {
 
-            // executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
-            output.close();
-            input.close();
-            senderSocket.close();
-            senderMutex = false;
-            updateQuorum(quorumArray, null, false, type);
-            APIResponse.put("did", senderDidIpfsHash);
-            APIResponse.put("tid", tid);
-            APIResponse.put("status", "Failed");
-            APIResponse.put("message", "Receiver process not over");
-            BlockSenderLogger.info("Incomplete Transaction");
-            return APIResponse;
+        //     // executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+        //     output.close();
+        //     input.close();
+        //     senderSocket.close();
+        //     senderMutex = false;
+        //     updateQuorum(quorumArray, null, false, type);
+        //     APIResponse.put("did", senderDidIpfsHash);
+        //     APIResponse.put("tid", tid);
+        //     APIResponse.put("status", "Failed");
+        //     APIResponse.put("message", "Receiver process not over");
+        //     BlockSenderLogger.info("Incomplete Transaction");
+        //     return APIResponse;
 
-        }
+        // }
 
         //? below code is verified for block sender logic
 
