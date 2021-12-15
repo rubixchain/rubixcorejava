@@ -335,6 +335,8 @@ public class TokenReceiver {
                         }
 
                         JSONObject transactionRecord = new JSONObject();
+                        //jsonobject to store essentialshare 
+                        JSONObject essentialShareRecord= new JSONObject();
                         transactionRecord.put("role", "Receiver");
                         transactionRecord.put("tokens", tokens);
                         transactionRecord.put("txn", tid);
@@ -344,11 +346,15 @@ public class TokenReceiver {
                         transactionRecord.put("Date", getCurrentUtcTime());
                         transactionRecord.put("totalTime", (endTime - startTime));
                         transactionRecord.put("comment", comment);
-                        transactionRecord.put("essentialShare", essentialShare);
+                        
+                        //transactionRecord.put("essentialShare", essentialShare);
+                        essentialShareRecord.put("essentialShare", essentialShare);
 
-                        JSONArray transactionHistoryEntry = new JSONArray();
+                        /* JSONArray transactionHistoryEntry = new JSONArray();
                         transactionHistoryEntry.put(transactionRecord);
-                        updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString());
+                        updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString()); */
+                        Database.putDataTransactionHistory(transactionRecord.getString("txn").toString(), transactionRecord.toString());
+                        Database.putDataEssentialShare(transactionRecord.getString("txn"), essentialShareRecord.toString());
 
                         TokenReceiverLogger.info("Transaction ID: " + tid + "Transaction Successful");
                         output.println("Send Response");
