@@ -135,23 +135,34 @@ public class APIHandler {
      * @throws JSONException handles JSON Exceptions
      */
     public static JSONArray transactionDetails(String txnId) throws JSONException {
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        /* String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONObject countResult = new JSONObject();
         JSONArray resultArray = new JSONArray();
         if (transactionHistory.length() == 0){
             countResult.put("Message", "No transactions found");
             resultArray.put(countResult);
             return resultArray;
+        } */
+        JSONObject countResult = new JSONObject();
+        JSONArray resultArray = new JSONArray();
+        String transactionHistory=Database.getDatabyTxnId(txnId);
+        if(transactionHistory.length()==0)
+        {
+            countResult.put("Message", "No transactions found");
+            resultArray.put(countResult);
+            return resultArray;
         }
 
-        JSONArray transArray = new JSONArray(transactionHistory);
+        /* JSONArray transArray = new JSONArray(transactionHistory);
         JSONObject obj = new JSONObject();
         for (int i = 0; i < transArray.length(); i++) {
             obj = transArray.getJSONObject(i);
             if (obj.get("txn").equals(txnId))
                 resultArray.put(obj);
-        }
-        APILogger.info("Transaction Details for : " + obj.toString());
+        } */
+        JSONObject resultTxnObj= new JSONObject(transactionHistory);
+        resultArray.put(resultTxnObj);
+        APILogger.info("Transaction Details for : " + resultTxnObj.getString("txn")+transactionHistory);
         return resultArray;
     }
 
