@@ -2,6 +2,7 @@ package com.rubix.TokenTransfer;
 
 import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.LevelDb.DataBase;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;

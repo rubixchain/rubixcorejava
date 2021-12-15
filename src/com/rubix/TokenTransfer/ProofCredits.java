@@ -3,6 +3,7 @@ package com.rubix.TokenTransfer;
 
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
+import com.rubix.LevelDb.DataBase;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;

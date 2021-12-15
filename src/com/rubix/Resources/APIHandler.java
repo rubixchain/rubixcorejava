@@ -1,5 +1,6 @@
 package com.rubix.Resources;
 
+import com.rubix.LevelDb.DataBase;
 import com.rubix.TokenTransfer.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
 import io.ipfs.api.*;
