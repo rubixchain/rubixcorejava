@@ -41,8 +41,8 @@ public class DataBase {
 
         try {
             Options options = new Options();
-            transactionHistory = factory.open(new File(WALLET_DATA_PATH + transactionHistory), options);
-            essentialShare = factory.open(new File(WALLET_DATA_PATH + essentialShare), options);
+            transactionHistory = factory.open(new File(WALLET_DATA_PATH + "transactionHistory"), options);
+            essentialShare = factory.open(new File(WALLET_DATA_PATH + "essentialShare"), options);
 
         } catch (IOException e) {
             e.printStackTrace();
