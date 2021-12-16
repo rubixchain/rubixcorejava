@@ -23,91 +23,84 @@ import org.json.simple.parser.JSONParser;
 
 public class DataBase {
 
-    public static DB transactionHistory=null;
-    public static DB essentialShare=null;
+    public static DB transactionHistory = null;
+    public static DB essentialShare = null;
     public static DB levelDb;
 
-    /* public static DB createDB(String dbName) throws IOException {
+    /*
+     * public static DB createDB(String dbName) throws IOException {
+     * pathSet();
+     * 
+     * Options options = new Options();
+     * levelDb = factory.open(new File(dbName), options);
+     * return levelDb;
+     * }
+     */
+    public static void createOrOpenDB() throws IOException {
         pathSet();
 
-        Options options = new Options();
-        levelDb = factory.open(new File(dbName), options);
-        return levelDb;
-    } */
-    public static void createOrOpenDB() throws IOException
-    {
-        pathSet();
+        try {
+            Options options = new Options();
+            transactionHistory = factory.open(new File(WALLET_DATA_PATH + transactionHistory), options);
+            essentialShare = factory.open(new File(WALLET_DATA_PATH + essentialShare), options);
 
-        Options options = new Options();
-        transactionHistory = factory.open(new File(WALLET_DATA_PATH+transactionHistory), options);
-        essentialShare=factory.open(new File(WALLET_DATA_PATH+essentialShare), options);
-        
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
-    public static void putDataTransactionHistory(String key,String value)
-    {
-        transactionHistory.put(key.getBytes(),value.getBytes());
+    public static void putDataTransactionHistory(String key, String value) {
+        transactionHistory.put(key.getBytes(), value.getBytes());
     }
 
-    public static void putDataEssentialShare(String key,String value)
-    {
-        essentialShare.put(key.getBytes(),value.getBytes());
+    public static void putDataEssentialShare(String key, String value) {
+        essentialShare.put(key.getBytes(), value.getBytes());
     }
 
-    
-
-    public static JSONObject getData(String key, DB database) throws JSONException
-    {
-        String value = new String (database.get(key.getBytes()));
+    public static JSONObject getData(String key, DB database) throws JSONException {
+        String value = new String(database.get(key.getBytes()));
         JSONObject jsonValue = new JSONObject(value);
         return jsonValue;
     }
 
-    public static String getDatabyTxnId(String txnId)
-    {
+    public static String getDatabyTxnId(String txnId) {
 
-        String resultTxn=null,txnHis,essShr;
-        JSONObject resultTxnObj= new JSONObject();
+        String resultTxn = null, txnHis, essShr;
+        JSONObject resultTxnObj = new JSONObject();
 
-        try{
-        txnHis=new String(transactionHistory.get(txnId.getBytes()));
-        essShr=new String(essentialShare.get(txnId.getBytes()));
-        
-        JSONObject tempTxnhis=new JSONObject(txnHis);
-        JSONObject tempEssShr=new JSONObject(essShr);
+        try {
+            txnHis = new String(transactionHistory.get(txnId.getBytes()));
+            essShr = new String(essentialShare.get(txnId.getBytes()));
 
-        
+            JSONObject tempTxnhis = new JSONObject(txnHis);
+            JSONObject tempEssShr = new JSONObject(essShr);
 
-        resultTxnObj.put("senderDID", tempTxnhis.get("senderDID"));
-        resultTxnObj.put("role", tempTxnhis.get("role"));
-        resultTxnObj.put("totalTime", tempTxnhis.get("totalTime"));
-        resultTxnObj.put("quorumList", tempTxnhis.get("quorumList"));
-        resultTxnObj.put("tokens", tempTxnhis.get("tokens"));
-        resultTxnObj.put("comment", tempTxnhis.get("comment"));
-        resultTxnObj.put("txn", tempTxnhis.get("txn"));
-        resultTxnObj.put("essentialShare",tempEssShr.get("essentailShare"));
-        resultTxnObj.put("receiverDID", tempTxnhis.get("receiverDID"));
-        resultTxnObj.put("Date", tempTxnhis.get("Date"));
+            resultTxnObj.put("senderDID", tempTxnhis.get("senderDID"));
+            resultTxnObj.put("role", tempTxnhis.get("role"));
+            resultTxnObj.put("totalTime", tempTxnhis.get("totalTime"));
+            resultTxnObj.put("quorumList", tempTxnhis.get("quorumList"));
+            resultTxnObj.put("tokens", tempTxnhis.get("tokens"));
+            resultTxnObj.put("comment", tempTxnhis.get("comment"));
+            resultTxnObj.put("txn", tempTxnhis.get("txn"));
+            resultTxnObj.put("essentialShare", tempEssShr.get("essentailShare"));
+            resultTxnObj.put("receiverDID", tempTxnhis.get("receiverDID"));
+            resultTxnObj.put("Date", tempTxnhis.get("Date"));
 
-        resultTxn= resultTxnObj.toString();
-        }
-        catch(NullPointerException e)
-        {
+            resultTxn = resultTxnObj.toString();
+        } catch (NullPointerException e) {
             return "No Transaction Found / Please check TransactionID";
-        }
-        catch(JSONException e)
-        {
+        } catch (JSONException e) {
             e.printStackTrace();
         }
         return resultTxn;
 
     }
 
-    public static void pushTxnFiletoDB()
-    {
+    public static void pushTxnFiletoDB() {
         FileReader fr;
         try {
-            fr = new FileReader(WALLET_DATA_PATH+"TransactionHistory.json");
+            fr = new FileReader(WALLET_DATA_PATH + "TransactionHistory.json");
             JSONParser jsonParser = new JSONParser();
             JSONArray jsonArray = (JSONArray) jsonParser.parse(fr);
             for (Object o : jsonArray) {
@@ -124,7 +117,7 @@ public class DataBase {
                 value1.put("receiverDID", obj.get("receiverDID"));
                 value1.put("Date", obj.get("Date"));
 
-                value2.put("essentialShare",obj.get("essentialShare"));
+                value2.put("essentialShare", obj.get("essentialShare"));
 
                 putDataTransactionHistory(obj.get("txn").toString(), value1.toString());
 
@@ -133,10 +126,8 @@ public class DataBase {
                 fr.close();
             }
         } catch (FileNotFoundException e) {
-            //TODO: handle exception
             e.printStackTrace();
-        } catch(Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
