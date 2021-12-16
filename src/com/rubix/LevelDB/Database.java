@@ -1,6 +1,8 @@
 package com.rubix.LevelDb;
 
 import org.iq80.leveldb.DB;
+import org.iq80.leveldb.DBIterator;
+
 import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
 
 import java.lang.StackWalker.Option;
@@ -36,7 +38,7 @@ public class DataBase {
      * return levelDb;
      * }
      */
-    public static void createOrOpenDB(){
+    public static void createOrOpenDB() {
         pathSet();
 
         try {
@@ -130,6 +132,52 @@ public class DataBase {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static String getAllTxn() {
+        String resultStr = null, valueES = null, valueTH = null;
+        ;
+        org.json.JSONArray resultArray = new org.json.JSONArray();
+
+        try {
+            DBIterator iteratorTH = transactionHistory.iterator();
+
+            while (iteratorTH.hasNext()) {
+                byte[] key = iteratorTH.peekNext().getKey();
+                valueTH = new String(transactionHistory.get(key));
+                valueES = new String(essentialShare.get(key));
+
+                JSONObject tempObj1 = new JSONObject(valueTH);
+                JSONObject tempObj2 = new JSONObject(valueES);
+
+                JSONObject resultObj = new JSONObject();
+
+                resultObj.put("senderDID", tempObj1.get("senderDID"));
+                resultObj.put("role", tempObj1.get("role"));
+                resultObj.put("totalTime", tempObj1.get("totalTime"));
+                resultObj.put("quorumList", tempObj1.get("quorumList"));
+                resultObj.put("tokens", tempObj1.get("tokens"));
+                resultObj.put("comment", tempObj1.get("comment"));
+                resultObj.put("txn", tempObj1.get("txn"));
+                resultObj.put("essentialShare", tempObj2.get("essentialShare"));
+                resultObj.put("receiverDID", tempObj1.get("receiverDID"));
+                resultObj.put("Date", tempObj1.get("Date"));
+
+                resultArray.put(resultObj);
+
+                resultStr = resultArray.toString();
+
+            }
+
+            resultStr = resultArray.toString();
+        } catch (NullPointerException e) {
+            resultStr = "No Transactions found";
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return resultStr;
+
     }
 
 }
