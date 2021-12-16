@@ -9,13 +9,17 @@ import java.util.function.Function;
 import javax.json.JsonObject;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 
 import static com.rubix.Resources.Functions.*;
 
 import org.iq80.leveldb.Options;
+import org.json.simple.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 public class DataBase {
 
@@ -97,6 +101,44 @@ public class DataBase {
         }
         return resultTxn;
 
+    }
+
+    public static void pushTxnFiletoDB()
+    {
+        FileReader fr;
+        try {
+            fr = new FileReader(WALLET_DATA_PATH+"TransactionHistory.json");
+            JSONParser jsonParser = new JSONParser();
+            JSONArray jsonArray = (JSONArray) jsonParser.parse(fr);
+            for (Object o : jsonArray) {
+                org.json.simple.JSONObject obj = (org.json.simple.JSONObject) o;
+                org.json.simple.JSONObject value1 = new org.json.simple.JSONObject();
+                org.json.simple.JSONObject value2 = new org.json.simple.JSONObject();
+                value1.put("senderDID", obj.get("senderDID"));
+                value1.put("role", obj.get("role"));
+                value1.put("totalTime", obj.get("totalTime"));
+                value1.put("quorumList", obj.get("quorumList"));
+                value1.put("tokens", obj.get("tokens"));
+                value1.put("comment", obj.get("comment"));
+                value1.put("txn", obj.get("txn"));
+                value1.put("receiverDID", obj.get("receiverDID"));
+                value1.put("Date", obj.get("Date"));
+
+                value2.put("essentialShare",obj.get("essentialShare"));
+
+                putDataTransactionHistory(obj.get("txn").toString(), value1.toString());
+
+                putDataEssentialShare(obj.get("txn").toString(), value2.toString());
+
+                fr.close();
+            }
+        } catch (FileNotFoundException e) {
+            //TODO: handle exception
+            e.printStackTrace();
+        } catch(Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
 }
