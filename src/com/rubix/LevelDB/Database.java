@@ -36,7 +36,7 @@ public class DataBase {
      * return levelDb;
      * }
      */
-    public static void createOrOpenDB() throws IOException {
+    public static void createOrOpenDB(){
         pathSet();
 
         try {
