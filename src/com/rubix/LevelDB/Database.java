@@ -83,7 +83,7 @@ public class DataBase {
             resultTxnObj.put("tokens", tempTxnhis.get("tokens"));
             resultTxnObj.put("comment", tempTxnhis.get("comment"));
             resultTxnObj.put("txn", tempTxnhis.get("txn"));
-            resultTxnObj.put("essentialShare", tempEssShr.get("essentailShare"));
+            resultTxnObj.put("essentialShare", tempEssShr.get("essentialShare"));
             resultTxnObj.put("receiverDID", tempTxnhis.get("receiverDID"));
             resultTxnObj.put("Date", tempTxnhis.get("Date"));
 
