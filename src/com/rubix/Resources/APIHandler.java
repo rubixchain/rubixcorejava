@@ -313,7 +313,8 @@ public class APIHandler {
             resultArray.put(countResult);
             return resultArray;
         }
-        String transactionHistory = readFile(path);
+        //String transactionHistory = readFile(path);
+        String transactionHistory=DataBase.sortedTxnDetails();
         JSONArray transArray = new JSONArray(transactionHistory);
         if (transArray.length() == 0){
             countResult.put("Message", "No transactions made yet");
