@@ -6,9 +6,10 @@ import org.iq80.leveldb.DBIterator;
 import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
 
 import java.lang.StackWalker.Option;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Function;
-
-import javax.json.JsonObject;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -180,6 +181,27 @@ public class DataBase {
 
     }
 
-    
+    public static String sortedTxnDetails(String txnDetails) {
+        String resultString = null;
+
+        try {
+            org.json.JSONArray jsonTxnDetails = new org.json.JSONArray(txnDetails);
+            List<JSONObject> list = new ArrayList<JSONObject>();
+            for (int i = 0; i < jsonTxnDetails.length(); i++) {
+                list.add(jsonTxnDetails.getJSONObject(i));
+            }
+            Collections.sort(list, new sortBasedOnDate());
+
+            org.json.JSONArray sortedArray = new org.json.JSONArray(list);
+
+            return sortedArray.toString();
+
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return resultString;
+    }
 
 }
