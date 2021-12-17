@@ -91,7 +91,7 @@ public class DataBase {
 
             resultTxn = resultTxnObj.toString();
         } catch (NullPointerException e) {
-            return "No Transaction Found / Please check TransactionID";
+            System.out.println("No Transaction Found / Please check TransactionID");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -171,7 +171,7 @@ public class DataBase {
 
             resultStr = resultArray.toString();
         } catch (NullPointerException e) {
-            resultStr = "No Transactions found";
+            System.out.println("No Transaction details found");
         } catch (JSONException e) {
             e.printStackTrace();
         }
