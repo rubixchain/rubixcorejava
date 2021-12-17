@@ -17,6 +17,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import javax.xml.crypto.Data;
+
 import static com.rubix.LevelDb.DataBase.*;
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
@@ -384,7 +386,8 @@ public class APIHandler {
      */
     public static JSONArray transactionsByComment(String comment) throws JSONException {
 
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        //String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        String transactionHistory=DataBase.getAllTxn();
         JSONArray transArray = new JSONArray(transactionHistory);
         JSONObject obj;
         JSONArray resultArray = new JSONArray();
