@@ -269,7 +269,8 @@ public class APIHandler {
             resultArray.put(countResult);
             return resultArray;
         }
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        //String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        String transactionHistory= DataBase.getAllTxn();
         JSONArray transArray = new JSONArray(transactionHistory);
         if (transArray.length() == 0){
             countResult.put("Message", "No Transactions made yet");
