@@ -181,14 +181,15 @@ public class APIHandler {
         JSONObject objectParser;
         JSONArray resultArray = new JSONArray();
         JSONObject accountDetails = new JSONObject();
-        File fileCheck1 = new File(WALLET_DATA_PATH + "TransactionHistory.json");
+        /* File fileCheck1 = new File(WALLET_DATA_PATH + "TransactionHistory.json");
         if (!fileCheck1.exists()) {
             accountDetails.put("message", "Transaction History file not found");
             resultArray.put(accountDetails);
             return resultArray;
         }
 
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json"); */
+        String transactionHistory=DataBase.sortedTxnDetails();
         JSONArray transArray = new JSONArray(transactionHistory);
 
         if(!(transArray.length() == 0)){
