@@ -415,7 +415,8 @@ public class APIHandler {
      * @throws JSONException handles JSON Exceptions
      */
     public static JSONArray transactionsByDID(String did) throws JSONException {
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        //String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        String transactionHistory=DataBase.sortedTxnDetails();
         JSONArray transArray = new JSONArray(transactionHistory);
         JSONArray resultArray = new JSONArray();
         for (int i = 0; i < transArray.length(); i++) {
