@@ -65,6 +65,16 @@ public class DataBase {
         essentialShare.put(key.getBytes(), value.getBytes());
     }
 
+    public static void putDataQuorumSignTxn(String key, String value)
+    {
+        quorumSignedTransaction.put(key.getBytes(), value.getBytes());
+    }
+    
+    public static void putDataQuorumSign(String key, String value)
+    {
+        quorumSign.put(key.getBytes(), value.getBytes());
+    }
+
     public static JSONObject getData(String key, DB database) throws JSONException {
         String value = new String(database.get(key.getBytes()));
         JSONObject jsonValue = new JSONObject(value);
