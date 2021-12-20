@@ -530,7 +530,8 @@ public class APIHandler {
      * @throws JSONException handles JSON Exceptions
      */
     public static JSONArray txnPerDay() throws JSONException {
-        String dataTable = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        //String dataTable = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        String dataTable=DataBase.sortedTxnDetails();
         JSONArray dataArray = new JSONArray(dataTable);
         HashSet<String> dateSet = new HashSet<>();
         for(int i = 0; i < dataArray.length(); i++)
