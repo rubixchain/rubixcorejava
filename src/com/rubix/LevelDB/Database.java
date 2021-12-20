@@ -181,8 +181,9 @@ public class DataBase {
 
     }
 
-    public static String sortedTxnDetails(String txnDetails) {
+    public static String sortedTxnDetails() {
         String resultString = null;
+        String txnDetails=getAllTxn();
 
         try {
             org.json.JSONArray jsonTxnDetails = new org.json.JSONArray(txnDetails);
