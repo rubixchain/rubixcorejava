@@ -265,12 +265,12 @@ public class APIHandler {
         Date endDate = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss").parse(endDateString);
         APILogger.debug("start date is "+startDate);
         APILogger.debug("end date is "+endDate);
-        File fileCheck1 = new File(WALLET_DATA_PATH + "TransactionHistory.json");
+        /* File fileCheck1 = new File(WALLET_DATA_PATH + "TransactionHistory.json");
         if (!fileCheck1.exists()) {
             countResult.put("Message", "File not found");
             resultArray.put(countResult);
             return resultArray;
-        }
+        } */
         //String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         String transactionHistory= DataBase.getAllTxn();
         JSONArray transArray = new JSONArray(transactionHistory);
@@ -305,14 +305,14 @@ public class APIHandler {
         JSONObject countResult = new JSONObject();
         JSONArray resultArray = new JSONArray();
 
-        String path = WALLET_DATA_PATH + "TransactionHistory.json";
+        /* String path = WALLET_DATA_PATH + "TransactionHistory.json";
         File transFile = new File(path);
         if (!transFile.exists()) {
             transFile.delete();
             countResult.put("Message", "File not found");
             resultArray.put(countResult);
             return resultArray;
-        }
+        } */
         //String transactionHistory = readFile(path);
         String transactionHistory=DataBase.sortedTxnDetails();
         JSONArray transArray = new JSONArray(transactionHistory);
@@ -350,13 +350,14 @@ public class APIHandler {
             return resultArray;
         }
 
-        File transactionFile = new File(WALLET_DATA_PATH + "TransactionHistory.json");
+        /* File transactionFile = new File(WALLET_DATA_PATH + "TransactionHistory.json");
         if (!transactionFile.exists()) {
             resultArray.put(countResult);
             return resultArray;
-        }
+        } */
 
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        //String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        String transactionHistory= DataBase.sortedTxnDetails();
         JSONArray transArray = new JSONArray(transactionHistory);
         if (transArray.length() == 0){
             resultArray.put(countResult);
