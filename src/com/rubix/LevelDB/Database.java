@@ -209,4 +209,18 @@ public class DataBase {
         return resultString;
     }
 
+    public static void closeDB()
+    {
+        try {
+            transactionHistory.close();
+            essentialShare.close();
+            quorumSignedTransaction.close();
+            quorumSign.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        
+    }
+
 }
