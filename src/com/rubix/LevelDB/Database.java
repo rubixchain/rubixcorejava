@@ -29,6 +29,8 @@ public class DataBase {
     public static DB transactionHistory = null;
     public static DB essentialShare = null;
     public static DB levelDb;
+    public static DB quorumSignedTransaction=null;
+    public static DB quorumSign=null;
 
     /*
      * public static DB createDB(String dbName) throws IOException {
@@ -46,6 +48,8 @@ public class DataBase {
             Options options = new Options();
             transactionHistory = factory.open(new File(WALLET_DATA_PATH + "transactionHistory"), options);
             essentialShare = factory.open(new File(WALLET_DATA_PATH + "essentialShare"), options);
+            quorumSignedTransaction=factory.open(new File(WALLET_DATA_PATH + "quorumSignedTransaction"),options);
+            quorumSign=factory.open(new File(WALLET_DATA_PATH + "quorumSign"),options);
 
         } catch (IOException e) {
             e.printStackTrace();
