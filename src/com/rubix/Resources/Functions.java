@@ -1,14 +1,20 @@
 package com.rubix.Resources;
 
-import com.rubix.AuthenticateNode.PropImage;
-import io.ipfs.api.*;
-import org.apache.log4j.*;
-import org.json.*;
+import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
+import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.forwardCheck;
+import static com.rubix.Resources.IPFSNetwork.listen;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -16,10 +22,21 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
 
-import static com.rubix.Resources.APIHandler.*;
-import static com.rubix.Resources.IPFSNetwork.*;
+import javax.imageio.ImageIO;
+
+import com.rubix.AuthenticateNode.PropImage;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.ipfs.api.IPFS;
 
 
 public class Functions {

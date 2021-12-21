@@ -13,7 +13,9 @@ import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.Functions.nodeData;
 import static com.rubix.Resources.Functions.readFile;
 import static com.rubix.Resources.Functions.writeToFile;
+import static com.rubix.Resources.IPFSNetwork.add;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.pin;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -122,6 +124,7 @@ public class APIHandler {
         }
 
         if(dataObject.has("blockHash")) {
+            APILogger.info("Block Transfer Initiated");
             UserResponse = BlockSender.Send(dataObject.toString(), ipfs, SEND_PORT);
         }
 
@@ -265,6 +268,20 @@ public class APIHandler {
         }
         resultArray.put(jsonObject);
         return resultArray.toString();
+    }
+
+    public static void addPublicData() {
+        String peerID = getPeerID(DATA_PATH + "DID.json");
+        String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
+        String walletHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", peerID);
+
+        add(DATA_PATH.concat(didHash).concat("/DID.png"), ipfs);
+        pin(didHash, ipfs);
+
+        add(DATA_PATH.concat(didHash).concat("/PublicShare.png"), ipfs);
+        pin(walletHash, ipfs);
+
+        APILogger.debug("Data Added and Pinned");
     }
 
     /**

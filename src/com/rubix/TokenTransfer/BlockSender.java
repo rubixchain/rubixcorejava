@@ -24,7 +24,6 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
@@ -36,6 +35,7 @@ import javax.imageio.ImageIO;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
+import com.rubix.DataConsensus.BlockCommitProcedure;
 import com.rubix.Resources.IPFSNetwork;
 
 import org.apache.log4j.Logger;
@@ -75,6 +75,8 @@ public class BlockSender {
      * @throws NoSuchAlgorithmException handles No Such Algorithm Exceptions
      */
     public static JSONObject Send(String data, IPFS ipfs, int port) throws Exception {
+
+        BlockSenderLogger.debug("Initiating Block Commit Procedure...");
 
         JSONObject APIResponse = new JSONObject();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -187,6 +189,7 @@ public class BlockSender {
 
             case 2: {
                 quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                BlockSenderLogger.debug("read quorumlist.json");
                 break;
             }
             case 3: {
@@ -310,17 +313,17 @@ public class BlockSender {
         // forward(receiverPeerId, port, receiverPeerId);
 
         // BlockSenderLogger.debug("Forwarded to " + receiverPeerId + " on " + port);
-        senderSocket = new Socket("127.0.0.1", port);
+        // senderSocket = new Socket("127.0.0.1", port);
 
-        input = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
-        output = new PrintStream(senderSocket.getOutputStream());
+        // input = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
+        // output = new PrintStream(senderSocket.getOutputStream());
 
         long startTime = System.currentTimeMillis();
 
-        output.println(senderPeerID);
-        BlockSenderLogger.debug("Sent PeerID");
+        // output.println(senderPeerID);
+        // BlockSenderLogger.debug("Sent PeerID");
 
-        peerAuth = input.readLine();
+        // peerAuth = input.readLine();
 
         // while ((peerAuth = input.readLine()) == null) {
         //// forward(receiverPeerId, port, receiverPeerId);
@@ -330,25 +333,25 @@ public class BlockSender {
         //// output = new PrintStream(senderSocket.getOutputStream());
         //// output.println(senderPeerID);
         // }
-        if (!peerAuth.equals("200")) {
-            // executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
-            BlockSenderLogger.info("Sender Data Not Available");
-            output.close();
-            input.close();
-            senderSocket.close();
-            senderMutex = false;
-            updateQuorum(quorumArray, null, false, type);
-            APIResponse.put("did", senderDidIpfsHash);
-            APIResponse.put("tid", tid);
-            APIResponse.put("status", "Failed");
-            APIResponse.put("message", "Sender Data Not Available");
-            return APIResponse;
+        // if (!peerAuth.equals("200")) {
+        //     // executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+        //     BlockSenderLogger.info("Sender Data Not Available");
+        //     output.close();
+        //     input.close();
+        //     senderSocket.close();
+        //     senderMutex = false;
+        //     updateQuorum(quorumArray, null, false, type);
+        //     APIResponse.put("did", senderDidIpfsHash);
+        //     APIResponse.put("tid", tid);
+        //     APIResponse.put("status", "Failed");
+        //     APIResponse.put("message", "Sender Data Not Available");
+        //     return APIResponse;
 
-        }
+        // }
 
         // output.println(tokenBindDetailsArray);
 
-        String tokenAuth = input.readLine();
+        // String tokenAuth = input.readLine();
 
         // if (!tokenAuth.equals("200")) {
         //     String errorMessage = null;
@@ -385,7 +388,7 @@ public class BlockSender {
 
         JSONObject dataObject = new JSONObject();
         dataObject.put("tid", tid);
-        // dataObject.put("message", consensusIDIPFSHash);
+        dataObject.put("message", blockHash);
         dataObject.put("blockHash", blockHash);
         dataObject.put("pvt", pvt);
         dataObject.put("senderDidIpfs", senderDidIpfsHash);
@@ -396,7 +399,7 @@ public class BlockSender {
 
         BlockSenderLogger.debug("dataobject " + dataObject.toString());
 
-        InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize);
+        BlockCommitProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize);
         BlockSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count "
                 + InitiatorConsensus.quorumResponse);
         if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
@@ -406,9 +409,9 @@ public class BlockSender {
             senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
             // output.println(senderDetails2Receiver);
             // executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
-            output.close();
-            input.close();
-            senderSocket.close();
+            // output.close();
+            // input.close();
+            // senderSocket.close();
             senderMutex = false;
             updateQuorum(quorumArray, null, false, type);
             APIResponse.put("did", senderDidIpfsHash);
@@ -435,9 +438,9 @@ public class BlockSender {
         if (!signatureAuth.equals("200")) {
             // executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             BlockSenderLogger.info("Authentication Failed");
-            output.close();
-            input.close();
-            senderSocket.close();
+            // output.close();
+            // input.close();
+            // senderSocket.close();
             senderMutex = false;
             updateQuorum(quorumArray, null, false, type);
             APIResponse.put("did", senderDidIpfsHash);
@@ -629,9 +632,9 @@ public class BlockSender {
 
         BlockSenderLogger.info("Transaction Successful");
         // executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
-        output.close();
-        input.close();
-        senderSocket.close();
+        // output.close();
+        // input.close();
+        // senderSocket.close();
         senderMutex = false;
         return APIResponse;
 

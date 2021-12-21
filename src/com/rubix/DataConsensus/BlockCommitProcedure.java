@@ -65,15 +65,20 @@ public class BlockCommitProcedure {
 
         int[][] shares = Split.get135Shares();
         BlockCommitProcedureLogger.debug("Payload Split Success");
+
+        JSONObject data1 = new JSONObject();
+        JSONObject data2 = new JSONObject();
+
+        try {
+
         essential = SeperateShares.getShare(shares, payload.toString().length(), 0);
         String Q1Share = SeperateShares.getShare(shares, payload.toString().length(), 1);
         String Q2Share = SeperateShares.getShare(shares, payload.toString().length(), 2);
         String Q3Share = SeperateShares.getShare(shares, payload.toString().length(), 3);
         String Q4Share = SeperateShares.getShare(shares, payload.toString().length(), 4);
-        JSONObject data1 = new JSONObject();
-        JSONObject data2 = new JSONObject();
         
-        try {
+        BlockCommitProcedureLogger.error("Created Shares Q1 to Q4");
+
             senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
@@ -87,8 +92,9 @@ public class BlockCommitProcedure {
             data2.put("Share3", Q3Share);
             data2.put("Share4", Q4Share);
         } catch (JSONException | IOException e) {
-            BlockCommitProcedureLogger.error("JSON Exception occurred", e);
+            BlockCommitProcedureLogger.error("JSON Exception occurred at getSignFromShares", e);
             e.printStackTrace();
+
         }
 
         JSONArray detailsForQuorum = new JSONArray();
