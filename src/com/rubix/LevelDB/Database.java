@@ -182,6 +182,8 @@ public class DataBase {
 
                 resultStr = resultArray.toString();
 
+                iteratorTH.next();
+
             }
 
             resultStr = resultArray.toString();
