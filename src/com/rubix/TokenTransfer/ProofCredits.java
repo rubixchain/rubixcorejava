@@ -63,8 +63,9 @@ public class ProofCredits {
 
 
         //Reading proofcredits.json
-        String jsonFilePath = WALLET_DATA_PATH + "QuorumSignedTransactions.json";
-        JSONArray records = new JSONArray(readFile(jsonFilePath));
+        //String jsonFilePath = WALLET_DATA_PATH + "QuorumSignedTransactions.json";
+        //JSONArray records = new JSONArray(readFile(jsonFilePath));
+        JSONArray records = new JSONArray(DataBase.sortedQstData());
         int balance = records.length();
         JSONArray prooftid = new JSONArray();
         int availableCredits = records.length();
