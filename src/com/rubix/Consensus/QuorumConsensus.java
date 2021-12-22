@@ -2,6 +2,7 @@ package com.rubix.Consensus;
 
 import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.LevelDb.DataBase;
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
@@ -85,10 +86,20 @@ public class QuorumConsensus implements Runnable {
                         creditsMapping.createNewFile();
                         writeToFile(creditsMapping.toString(), "[]", false);
                     }
-                    JSONArray qstContent = new JSONArray(readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json"));
+                    //JSONArray qstContent = new JSONArray(readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json"));
+                    JSONArray qstContent = new JSONArray(DataBase.sortedQstData());
                     JSONObject qstObjectSend = new JSONObject();
                     if(qstContent.length() > 0)
-                        qstObjectSend = qstContent.getJSONObject(qstContent.length() - 1);
+                    {
+                        JSONObject tempJsonObject = qstContent.getJSONObject(qstContent.length() - 1);
+                        qstObjectSend.put("senderdid", tempJsonObject.get("senderdid"));
+                        qstObjectSend.put("credits", tempJsonObject.get("credits"));
+                        qstObjectSend.put("sign", tempJsonObject.get("sign"));
+                        qstObjectSend.put("tid", tempJsonObject.get("tid"));
+                        qstObjectSend.put("minestatus", tempJsonObject.get("minestatus"));
+                        qstObjectSend.put("consensusID", tempJsonObject.get("consensusID"));
+                    }
+                        
 
                     String cmFileHash = IPFSNetwork.add(WALLET_DATA_PATH + "CreditMapping.json", ipfs);
 
