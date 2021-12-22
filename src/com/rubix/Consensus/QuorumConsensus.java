@@ -192,17 +192,29 @@ public class QuorumConsensus implements Runnable {
                                 writeToFile(WALLET_DATA_PATH + "CreditMapping.json", creditMappingArray.toString(), false);
 
                             }
+                            //get the qst data size
+                            JSONArray qstData= new JSONArray(DataBase.sortedQstData());
+                            int qstDatalength= qstData.length();
+
                             JSONObject storeDetailsQuorum = new JSONObject();
+                            JSONObject storedQuorumSign= new JSONObject();
                             storeDetailsQuorum.put("tid", transactionID);
                             storeDetailsQuorum.put("consensusID", verifySenderHash);
-                            storeDetailsQuorum.put("sign", senderPrivatePos);
                             storeDetailsQuorum.put("credits", credit);
                             storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
                             storeDetailsQuorum.put("recdid", receiverDID);
-                            JSONArray data = new JSONArray();
+                            storeDetailsQuorum.put("serialNoQst", qstDatalength++);
+
+                            storedQuorumSign.put("sign", senderPrivatePos);
+                            storedQuorumSign.put("serialNoQsign", qstDatalength++);
+
+                            DataBase.putDataQuorumSignTxn(transactionID, storeDetailsQuorum.toString());
+                            DataBase.putDataQuorumSign(transactionID, storedQuorumSign.toString());
+
+                            /* JSONArray data = new JSONArray();
                             data.put(storeDetailsQuorum);
                             QuorumConsensusLogger.debug("Quorum Share: " + credit);
-                            updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
+                            updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString()); */
                             deleteFile(LOGGER_PATH + "mycredit.txt");
                             writeToFile(LOGGER_PATH + "consenusIDhash", verifySenderHash, false);
                             String consenusIDhash = IPFSNetwork.add(LOGGER_PATH + "consenusIDhash", ipfs);
