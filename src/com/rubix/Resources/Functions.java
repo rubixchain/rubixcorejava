@@ -32,6 +32,7 @@ import java.util.Iterator;
 import javax.imageio.ImageIO;
 
 import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.LevelDb.DataBase;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -922,7 +923,7 @@ public class Functions {
      */
 
     public static Boolean integrityCheck(String consensusID){
-        File file = new File(WALLET_DATA_PATH+"QuorumSignedTransactions.json");
+        /* File file = new File(WALLET_DATA_PATH+"QuorumSignedTransactions.json");
         if(file.exists()) {
             if (getValues(file.getAbsolutePath(), "senderdid", "consensusID", consensusID).equals(""))
                 return true;
@@ -930,7 +931,28 @@ public class Functions {
                 return false;
         }
         else
-            return true;
+            return true; */
+
+        Boolean result=false;
+        try {
+			JSONArray qstDetails= new JSONArray(DataBase.sortedQstData());
+            for(int i=0;i<qstDetails.length();i++)
+            {
+                JSONObject tempObj= qstDetails.getJSONObject(i);
+                if(tempObj.get("consensusID").equals(consensusID))
+                {
+                    result = true;
+                }
+                else
+                {
+                    result = false;
+                }
+            }
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        return result;
     }
 
     /**
