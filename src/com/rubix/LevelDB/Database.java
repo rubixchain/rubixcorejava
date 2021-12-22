@@ -5,7 +5,6 @@ import org.iq80.leveldb.DBIterator;
 
 import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
 
-import java.lang.StackWalker.Option;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -151,7 +150,6 @@ public class DataBase {
 
     public static String getAllTxn() {
         String resultStr = null, valueES = null, valueTH = null;
-        ;
         org.json.JSONArray resultArray = new org.json.JSONArray();
 
         try {
@@ -180,7 +178,7 @@ public class DataBase {
 
                 resultArray.put(resultObj);
 
-                resultStr = resultArray.toString();
+                //resultStr = resultArray.toString();
 
                 iteratorTH.next();
 
@@ -216,6 +214,103 @@ public class DataBase {
         } catch (JSONException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+        }
+
+        return resultString;
+    }
+
+    public static void pushQstDatatoDB()
+    {
+        FileReader fr;
+        int counter=0;
+        try {
+            fr = new FileReader(WALLET_DATA_PATH + "QuorumSignedTransactions.json");
+            JSONParser jsonParser = new JSONParser();
+            JSONArray jsonArray = (JSONArray) jsonParser.parse(fr);
+            for (Object o : jsonArray) {
+                JSONObject obj1 = (JSONObject) o;
+                JSONObject obj2 = new JSONObject();
+                JSONObject obj3 = new JSONObject();
+                obj2.put("senderdid", obj1.get("senderdid"));
+                obj2.put("credits", obj1.get("credits"));
+                obj2.put("tid", obj1.get("tid"));
+                obj2.put("minestatus", obj1.get("minestatus"));
+                obj2.put("consensusID", obj1.get("consensusID"));
+                obj2.put("serialNoQst", counter);
+
+                obj3.put("sign", obj1.get("sign"));
+                obj3.put("serialNoQsign", counter);
+
+                quorumSignedTransaction.put(obj1.get("tid").toString().getBytes(), obj2.toString().getBytes());
+                quorumSign.put(obj1.get("tid").toString().getBytes(), obj3.toString().getBytes());
+                counter++;
+
+                fr.close();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static String getAllQstData() {
+        String result = null, valueQst = null, valueQsign = null;
+        org.json.JSONArray resultArray = new org.json.JSONArray();
+
+        try {
+            DBIterator iteratorQst = quorumSignedTransaction.iterator();
+            while (iteratorQst.hasNext()) {
+                byte[] key = iteratorQst.peekNext().getKey();
+                valueQst = new String(quorumSignedTransaction.get(key));
+                valueQsign = new String(quorumSign.get(key));
+
+                org.json.JSONObject obj1 = new org.json.JSONObject(valueQst);
+                org.json.JSONObject obj2 = new org.json.JSONObject(valueQsign);
+
+                org.json.JSONObject resultObj = new org.json.JSONObject();
+
+                resultObj.put("senderdid", obj1.get("senderdid"));
+                resultObj.put("credits", obj1.get("credits"));
+                resultObj.put("sign", obj2.get("sign"));
+                resultObj.put("tid", obj1.get("tid"));
+                resultObj.put("minestatus", obj1.get("minestatus"));
+                resultObj.put("consensusID", obj1.get("consensusID"));
+                resultObj.put("serialNoQst", obj1.get("serialNoQst"));
+                resultObj.put("serialNoQsign", obj2.get("serialNoQsign"));
+
+                resultArray.put(resultObj);
+
+                iteratorQst.next();
+
+            }
+            result = resultArray.toString();
+
+        } catch (Exception e) {
+            // TODO: handle exception
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+
+    public static String sortedQstData() {
+        String resultString = null;
+        String qstDetails = getAllQstData();
+
+        try {
+            org.json.JSONArray jsonQstDetails = new org.json.JSONArray(qstDetails);
+            List<org.json.JSONObject> list = new ArrayList<org.json.JSONObject>();
+            for (int i = 0; i < jsonQstDetails.length(); i++) {
+                list.add(jsonQstDetails.getJSONObject(i));
+            }
+            Collections.sort(list, new sortBasedOnSerialNo());
+
+            org.json.JSONArray sortedArray = new org.json.JSONArray(list);
+
+            return sortedArray.toString();
+        } catch (Exception e) {
+            // TODO: handle exception
         }
 
         return resultString;
