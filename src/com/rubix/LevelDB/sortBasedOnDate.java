@@ -9,6 +9,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class sortBasedOnDate implements Comparator<JSONObject>{
+
+    /*
+        Overiiden compare method to compare Json Object based on Date field
+        @return int value based on comparison
+    */
     @Override
     public int compare(JSONObject o1, JSONObject o2) {
         int compare=0;

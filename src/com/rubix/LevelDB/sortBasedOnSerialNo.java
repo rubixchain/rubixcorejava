@@ -7,6 +7,10 @@ import org.json.JSONObject;
 
 public class sortBasedOnSerialNo implements Comparator<JSONObject>{
 
+	/*
+        Overiiden compare method to compare Json Object based on SerialNo field
+        @return int value based on comparison
+    */
 	@Override
 	public int compare(JSONObject o1, JSONObject o2) {
         int compare=0;
