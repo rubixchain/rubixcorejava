@@ -32,14 +32,8 @@ public class DataBase {
     public static DB quorumSign=null;
 
     /*
-     * public static DB createDB(String dbName) throws IOException {
-     * pathSet();
-     * 
-     * Options options = new Options();
-     * levelDb = factory.open(new File(dbName), options);
-     * return levelDb;
-     * }
-     */
+        method to create or open LevelDB Database instance
+    */
     public static void createOrOpenDB() {
         pathSet();
 
@@ -56,30 +50,48 @@ public class DataBase {
 
     }
 
+    
+    /*
+        method to push data to TransactionHistory Database instance
+    */
     public static void putDataTransactionHistory(String key, String value) {
         transactionHistory.put(key.getBytes(), value.getBytes());
     }
 
+    /*
+        method to push EssentialShare data of TransactionHistory.jsonto EssentialShare Database instance
+    */
     public static void putDataEssentialShare(String key, String value) {
         essentialShare.put(key.getBytes(), value.getBytes());
     }
 
+    /*
+        method to push data to quorumSignedTransaction Database instance
+    */
     public static void putDataQuorumSignTxn(String key, String value)
     {
         quorumSignedTransaction.put(key.getBytes(), value.getBytes());
     }
     
+    /*
+        method to push data to quorumSign Database instance
+    */
     public static void putDataQuorumSign(String key, String value)
     {
         quorumSign.put(key.getBytes(), value.getBytes());
     }
 
-    public static JSONObject getData(String key, DB database) throws JSONException {
+
+    /* public static JSONObject getData(String key, DB database) throws JSONException {
         String value = new String(database.get(key.getBytes()));
         JSONObject jsonValue = new JSONObject(value);
         return jsonValue;
-    }
+    } */
 
+    /*
+        method to get TransactionHistroy Data based on the txnid
+        @return String TransactionHistory Data
+    */
     public static String getDatabyTxnId(String txnId) {
 
         String resultTxn = null, txnHis, essShr;
@@ -148,6 +160,10 @@ public class DataBase {
         }
     }
 
+    /*
+        method to get all TransactionHistroy Data 
+        @return String of all TransactionHistory data
+    */
     public static String getAllTxn() {
         String resultStr = null, valueES = null, valueTH = null;
         org.json.JSONArray resultArray = new org.json.JSONArray();
@@ -195,6 +211,10 @@ public class DataBase {
 
     }
 
+    /*
+        method to get all TransactionHistroy Data sorted
+        @return String of all TransactionHistory Data
+    */
     public static String sortedTxnDetails() {
         String resultString = null;
         String txnDetails=getAllTxn();
@@ -218,6 +238,7 @@ public class DataBase {
 
         return resultString;
     }
+
 
     public static void pushQstDatatoDB()
     {
@@ -254,6 +275,10 @@ public class DataBase {
         }
     }
 
+    /*
+        Method to get all QuorumSignedTransaction from DB
+        @return String of all QuorumSignedTransaction
+    */
     public static String getAllQstData() {
         String result = null, valueQst = null, valueQsign = null;
         org.json.JSONArray resultArray = new org.json.JSONArray();
@@ -294,6 +319,10 @@ public class DataBase {
         return result;
     }
 
+    /*
+        Method to get all QuorumSignedTransaction in Sorted order
+        @return String of all QuorumSignedTransaction
+    */
     public static String sortedQstData() {
         String resultString = null;
         String qstDetails = getAllQstData();
@@ -316,6 +345,9 @@ public class DataBase {
         return resultString;
     }
 
+    /*
+        method to close Database instance on shutdown of application
+    */
     public static void closeDB()
     {
         try {
