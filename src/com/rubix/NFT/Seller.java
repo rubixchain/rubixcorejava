@@ -48,8 +48,8 @@ public class Seller {
         int amount = detailsObject.getInt("amount");
         int type = detailsObject.getInt("type");
         String comment = detailsObject.getString("comment");
-        String eKey = detailsObject.getString("eKey");
-        String dKey = detailsObject.getString("dKey");
+        //String eKey = detailsObject.getString("eKey");
+        //String dKey = detailsObject.getString("dKey");
         String nftTokenIpfsHash = detailsObject.getString("nftToken");
         JSONArray alphaQuorum = new JSONArray();
         JSONArray betaQuorum = new JSONArray();
@@ -79,10 +79,10 @@ public class Seller {
             return APIResponse;
         }
         sellerMutex = true;
-        String nftTokenChainIpfsHash = null;
+        //String nftTokenChainIpfsHash = null;
         APIResponse = new JSONObject();
-        File nfttoken = new File(Functions.NFT_TOKENS_PATH );
-        File nfttokenchain = new File(Functions.NFT_TOKENCHAIN_PATH );
+        File nfttoken = new File(Functions.NFT_TOKENS_PATH+nftTokenIpfsHash);
+        File nfttokenchain = new File(Functions.NFT_TOKENCHAIN_PATH + nftTokenIpfsHash +".json");
         SellerLogger.debug("NFT Token : " + nfttoken + " and NFT TokenChain : " + nfttokenchain);
         if (!nfttoken.exists() || !nfttokenchain.exists() ) {
             SellerLogger.info("NFT Token Not Verified");
@@ -93,9 +93,9 @@ public class Seller {
             APIResponse.put("message", "Invalid NFT token");
             return APIResponse;
         }
-        IPFSNetwork.add(Functions.NFT_TOKENS_PATH + Functions.NFT_TOKENS_PATH, ipfs);
-        nftTokenChainIpfsHash = IPFSNetwork.add(Functions.NFT_TOKENCHAIN_PATH + Functions.NFT_TOKENCHAIN_PATH + ".json", ipfs);
-        String authSellerByBuyerHash = Functions.calculateHash(nftTokenIpfsHash + nftTokenIpfsHash + nftTokenChainIpfsHash+ amount + eKey + dKey + buyerDidIpfsHash, "SHA3-256");
+        IPFSNetwork.add(Functions.NFT_TOKENS_PATH + nftTokenIpfsHash, ipfs);
+        String nftTokenChainIpfsHash = IPFSNetwork.add(Functions.NFT_TOKENCHAIN_PATH + nftTokenIpfsHash + ".json", ipfs);
+        String authSellerByBuyerHash = Functions.calculateHash(nftTokenIpfsHash + nftTokenChainIpfsHash+ amount + buyerDidIpfsHash, "SHA3-256");
         String tid = Functions.calculateHash(authSellerByBuyerHash, "SHA3-256");
         SellerLogger.debug("Hash for Seller authentication to Buyer : " + authSellerByBuyerHash);
         SellerLogger.debug("TID on seller " + tid);
@@ -165,8 +165,6 @@ public class Seller {
         Functions.deleteFile(Functions.LOGGER_PATH + "nftID");
         SellerLogger.debug("nftID hash " + nftIdIpfsHash + " unique owner " + IPFSNetwork.dhtEmpty(nftIdIpfsHash, ipfs));
         JSONObject assetDetails = new JSONObject();
-        assetDetails.put("eKey", eKey);
-        assetDetails.put("dKey", dKey);
         assetDetails.put("amount", amount);
         String buyerPeerId = Functions.getValues(Functions.DATA_PATH + "DataTable.json", "peerid", "didHash", buyerDidIpfsHash);
         SellerLogger.debug("Swarm connecting to " + buyerPeerId);
@@ -382,10 +380,10 @@ public class Seller {
         int count = 0;
         int m;
         for (m = 0; m < amount; m++) {
-            FileWriter fileWriter = new FileWriter(Functions.TOKENS_PATH + Functions.TOKENS_PATH);
+            FileWriter fileWriter = new FileWriter(Functions.TOKENS_PATH + allRbxTokenContent.get(m));
             fileWriter.write(allRbxTokenContent.get(m));
             fileWriter.close();
-            IPFSNetwork.add(Functions.TOKENS_PATH + Functions.TOKENS_PATH, ipfs);
+            IPFSNetwork.add(Functions.TOKENS_PATH + allRbxTokenContent.get(m), ipfs);
             IPFSNetwork.pin(rbxTokens.getString(m), ipfs);
             count++;
         }
@@ -409,7 +407,7 @@ public class Seller {
                 obj2.put("comment", comment);
                 obj2.put("tid", tid);
                 arr1.put(obj2);
-                Functions.writeToFile(Functions.TOKENCHAIN_PATH + Functions.TOKENCHAIN_PATH + ".json", arr1.toString(), Boolean.valueOf(false));
+                Functions.writeToFile(Functions.TOKENCHAIN_PATH + allRbxTokenChainContent.get(m) + ".json", arr1.toString(), Boolean.valueOf(false));
             }
             JSONObject rbxPinData = new JSONObject();
             rbxPinData.put("status", "Pinned RBX");
@@ -478,10 +476,10 @@ public class Seller {
         JSONArray nftTransactionHistoryEntry = new JSONArray();
         nftTransactionHistoryEntry.put(nftTransactionRecord);
         Functions.updateJSON("add", Functions.WALLET_DATA_PATH + "nftTransactionHistory.json", nftTransactionHistoryEntry.toString());
-        Files.deleteIfExists(Paths.get(Functions.NFT_TOKENS_PATH + Functions.NFT_TOKENS_PATH, new String[0]));
+        Files.deleteIfExists(Paths.get(Functions.NFT_TOKENS_PATH + nftTokenIpfsHash, new String[0]));
         for (int n = 0; n < rbxTokens.length(); n++) {
             String bank = rbxTokenHeader.getString(n);
-            String bankFile = Functions.readFile(Functions.PAYMENTS_PATH + Functions.PAYMENTS_PATH + ".json");
+            String bankFile = Functions.readFile(Functions.PAYMENTS_PATH + bank + ".json");
             JSONArray bankArray = new JSONArray(bankFile);
             JSONObject tokenObject = new JSONObject();
             tokenObject.put("tokenHash", rbxTokens.getString(n));
