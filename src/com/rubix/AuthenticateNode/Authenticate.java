@@ -62,7 +62,8 @@ public class Authenticate {
             positionsLevelZero[k] = ((originalPos[k]) / 8);
 
         StringBuilder decentralizedIDForAuth = new StringBuilder();
-        for (int value : positionsLevelZero) decentralizedIDForAuth.append(senderDIDBin.charAt(value));
+        for (int value : positionsLevelZero) 
+            decentralizedIDForAuth.append(senderDIDBin.charAt(value));
         if (recombinedResult.equals(decentralizedIDForAuth.toString())) {
             return true;
         } else {
