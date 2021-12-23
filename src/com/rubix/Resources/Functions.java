@@ -1,20 +1,14 @@
 package com.rubix.Resources;
 
-import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
-import static com.rubix.Resources.IPFSNetwork.forwardCheck;
-import static com.rubix.Resources.IPFSNetwork.listen;
+import com.rubix.AuthenticateNode.PropImage;
+import io.ipfs.api.*;
+import org.apache.log4j.*;
+import org.json.*;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.io.*;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -22,21 +16,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
+import java.util.*;
 
-import javax.imageio.ImageIO;
-
-import com.rubix.AuthenticateNode.PropImage;
-
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import io.ipfs.api.IPFS;
+import static com.rubix.Resources.APIHandler.*;
+import static com.rubix.Resources.IPFSNetwork.*;
 
 
 public class Functions {
@@ -585,11 +568,8 @@ public class Functions {
             for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
-                    FunctionsLogger.debug("Quorum DID: "+ quorum.getString(i));
                     quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
-                    FunctionsLogger.debug("Quorum PID: "+ quorumPeer);
-                  // Commented by Anuradha K; A new method swamConnectP2P is implemented for swarm connection
-                    // IPFSNetwork.swarmConnect(quorumPeer,ipfs);
+
                     IPFSNetwork.swarmConnectP2P(quorumPeer,ipfs);
 
                 } catch (JSONException e) {
@@ -642,7 +622,6 @@ public class Functions {
     public static JSONObject randomPositions(String role, String hash, int numberOfPositions, int[] pvt1) throws JSONException {
 
         int u = 0, l = 0, m = 0;
-        long st = System.currentTimeMillis();
         int[] hashCharacters = new int[256];
         int[] randomPositions = new int[32];
         int[] randPos = new int[256];
@@ -687,8 +666,6 @@ public class Functions {
         JSONObject resultObject = new JSONObject();
         resultObject.put("originalPos", originalPos);
         resultObject.put("posForSign", posForSign);
-        long et = System.currentTimeMillis();
-        FunctionsLogger.debug("Time taken for randomPositions Calculation " + (et - st));
         return resultObject;
     }
 
@@ -725,7 +702,7 @@ public class Functions {
             FunctionsLogger.error("IOException Occurred", e);
             e.printStackTrace();
         }
-        FunctionsLogger.debug("File Deletion successful");
+
     }
 
 
@@ -767,13 +744,7 @@ public class Functions {
     public static void launch() {
         pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-
-        try {
-            executeIPFSCommands("ipfs daemon --enable-gc");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        executeIPFSCommands("ipfs daemon --enable-gc");
 
         FunctionsLogger.debug("Enabled ipfs GC");
     }
