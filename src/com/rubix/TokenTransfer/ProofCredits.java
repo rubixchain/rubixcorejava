@@ -59,14 +59,35 @@ public class ProofCredits {
         new JSONObject();
         JSONObject resJsonData_credit;
 
+        //Clean up old File
+        String qstFile = readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json");
+        JSONArray qstArray = new JSONArray(qstFile);
+        File usedCreditsFile = new File(WALLET_DATA_PATH + "MinedCreditsHistory.json");
+        if (!usedCreditsFile.exists()) {
+            writeToFile(String.valueOf(usedCreditsFile), "[]", false);
+        }
 
-        //Reading proofcredits.json
-        String jsonFilePath = WALLET_DATA_PATH + "QuorumSignedTransactions.json";
-        JSONArray records = new JSONArray(readFile(jsonFilePath));
-        int balance = records.length();
-        JSONArray prooftid = new JSONArray();
-        int availableCredits = records.length();
+        JSONArray newQstArrayReplace = new JSONArray();
+        JSONArray minedArray = new JSONArray(readFile(WALLET_DATA_PATH + "MinedCreditsHistory.json"));
+        if(qstArray.getJSONObject(0).has("minestatus")) {
+            for (int i = 0; i < qstArray.length(); i++) {
+                if (qstArray.getJSONObject(i).has("minestatus")) {
+                    if (qstArray.getJSONObject(i).getBoolean("minestatus"))
+                        minedArray.put(qstArray.getJSONObject(i));
+                    else {
+                        qstArray.getJSONObject(i).remove("minestatus");
+                        newQstArrayReplace.put(qstArray.getJSONObject(i));
+                    }
+                }
 
+            }
+            writeToFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json", newQstArrayReplace.toString(), false);
+            writeToFile(WALLET_DATA_PATH + "MinedCreditsHistory.json", minedArray.toString(), false);
+        }
+
+        JSONArray newQstArray = new JSONArray(readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json"));
+        int availableCredits = newQstArray.length();
+        ProofCreditsLogger.debug("Credits available: " + availableCredits);
         String GET_URL_credit = SYNC_IP + "/getlevel";
         URL URLobj_credit = new URL(GET_URL_credit);
         HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
@@ -82,12 +103,6 @@ public class ProofCredits {
             }
             in_credit.close();
             ProofCreditsLogger.debug("response from service " + response_credit.toString());
-
-            //JSONObject responseJSON=new JSONObject(response.toString());
-            //resJsonData= responseJSON.getJSONArray("data");
-            //creditUsed = responseJSON.getInt("credits");
-
-
             resJsonData_credit = new JSONObject(response_credit.toString());
             int level_credit = resJsonData_credit.getInt("level");
             creditsRequired = (int) Math.pow(2, (2 + level_credit));
@@ -102,7 +117,6 @@ public class ProofCredits {
         if (availableCredits >= creditsRequired) {
 
             //String GET_URL = SYNC_IP+"/getInfo?count="+availableCredits;
-
             String GET_URL = SYNC_IP + "/minetoken";
             URL URLobj = new URL(GET_URL);
             HttpURLConnection con = (HttpURLConnection) URLobj.openConnection();
@@ -146,6 +160,7 @@ public class ProofCredits {
                 if (resJsonData.getJSONObject(0).getInt("level") == 1)
                     creditUsed = 10;
 
+                JSONArray prooftid = new JSONArray();
                 String comments = resJsonData.toString() + prooftid;
 
                 String authSenderByRecHash = calculateHash(token + receiverDidIpfsHash + comments, "SHA3-256");
@@ -229,14 +244,14 @@ public class ProofCredits {
                     ProofCreditsLogger.debug("token mined " + token);
 
                     int counter = 0;
-                    for (int i = 0; i < balance; i++) {
-                        JSONObject temp = records.getJSONObject(i);
+
+                    for (int i = 0; i < availableCredits; i++) {
+                        JSONObject temp = newQstArray.getJSONObject(i);
                         if (counter < creditUsed) {
                             prooftid.put(temp.getString("tid"));
                             counter++;
                         }
                     }
-
 
                     for (int i = 0; i < token.length(); i++) {
                         writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
@@ -251,13 +266,19 @@ public class ProofCredits {
                         updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
                     }
 
-                    File usedCreditsFile = new File(WALLET_DATA_PATH + "MinedCreditsHistory.json");
-                    if(!usedCreditsFile.exists()){
-                        writeToFile(String.valueOf(usedCreditsFile), "[]", false);
-                    }
-                    writeToFile(String.valueOf(usedCreditsFile), records.toString(), false);
 
-                    ProofCreditsLogger.debug("Updated balance of node : " + (balance - creditUsed));
+                    String creditsHistory = readFile(WALLET_DATA_PATH + "MinedCreditsHistory.json");
+                    JSONArray creditsHistoryArray = new JSONArray(creditsHistory);
+                    for (int i = 0; i < creditUsed; i++)
+                        creditsHistoryArray.put(newQstArray.getJSONObject(i));
+                    writeToFile(String.valueOf(usedCreditsFile), creditsHistoryArray.toString(), false);
+
+
+                    for (int i = 0; i < creditUsed; i++)
+                        newQstArray.remove(i);
+                    writeToFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json", newQstArray.toString(), false);
+
+                    ProofCreditsLogger.debug("Updated balance of node : " + (availableCredits - creditUsed));
                     long endtime = System.currentTimeMillis();
                     totalTime = endtime - starttime;
                     Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
@@ -325,7 +346,6 @@ public class ProofCredits {
                         JSONObject jsonObject = new JSONObject();
                         jsonObject.put("inputString", populate);
                         String postJsonData = jsonObject.toString();
-
                         // Send post request
                         connection_Explorer.setDoOutput(true);
                         DataOutputStream wr = new DataOutputStream(connection_Explorer.getOutputStream());
@@ -418,7 +438,7 @@ public class ProofCredits {
             APIResponse.put("did", receiverDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
-            APIResponse.put("message", "Insufficent proofs");
+            APIResponse.put("message", "Insufficient proofs");
             ProofCreditsLogger.warn("Insufficient proof credits to mine");
             return APIResponse;
         }
