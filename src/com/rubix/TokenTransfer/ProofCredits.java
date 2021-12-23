@@ -1,32 +1,18 @@
 package com.rubix.TokenTransfer;
 
 
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.EXPLORER_IP;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.PAYMENTS_PATH;
-import static com.rubix.Resources.Functions.QuorumCheck;
-import static com.rubix.Resources.Functions.QuorumSwarmConnect;
-import static com.rubix.Resources.Functions.SEND_PORT;
-import static com.rubix.Resources.Functions.SYNC_IP;
-import static com.rubix.Resources.Functions.TOKENCHAIN_PATH;
-import static com.rubix.Resources.Functions.TOKENS_PATH;
-import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
-import static com.rubix.Resources.Functions.calculateHash;
-import static com.rubix.Resources.Functions.deleteFile;
-import static com.rubix.Resources.Functions.getQuorum;
-import static com.rubix.Resources.Functions.minQuorum;
-import static com.rubix.Resources.Functions.mineUpdate;
-import static com.rubix.Resources.Functions.readFile;
-import static com.rubix.Resources.Functions.updateJSON;
-import static com.rubix.Resources.Functions.updateQuorum;
-import static com.rubix.Resources.Functions.writeToFile;
-import static com.rubix.Resources.IPFSNetwork.repo;
+import com.rubix.Consensus.InitiatorConsensus;
+import com.rubix.Consensus.InitiatorProcedure;
+import com.rubix.Resources.Functions;
+import com.rubix.Resources.IPFSNetwork;
+import io.ipfs.api.IPFS;
+import org.apache.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import javax.net.ssl.HttpsURLConnection;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.DateFormat;
@@ -37,17 +23,8 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.net.ssl.HttpsURLConnection;
-
-import org.apache.log4j.*;
-import org.json.*;
-
-import com.rubix.Consensus.InitiatorConsensus;
-import com.rubix.Consensus.InitiatorProcedure;
-import com.rubix.Resources.Functions;
-import com.rubix.Resources.IPFSNetwork;
-
-import io.ipfs.api.*;
+import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.IPFSNetwork.repo;
 
 
 public class ProofCredits {
@@ -58,8 +35,8 @@ public class ProofCredits {
     private static ArrayList alphaPeersList;
     private static ArrayList betaPeersList;
     private static ArrayList gammaPeersList;
-    private static int sizeOfQuorum=0;
-    private static int alphaSize=0;
+    private static int sizeOfQuorum = 0;
+    private static int alphaSize = 0;
 
     public static JSONObject create(String data, IPFS ipfs) throws IOException, JSONException {
 
@@ -68,35 +45,49 @@ public class ProofCredits {
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
         int type = detailsObject.getInt("type");
-        int creditUsed=0;
-        long totalTime=0;
+        int creditUsed = 0;
+        long totalTime = 0;
 
         JSONArray alphaQuorum = new JSONArray();
-        JSONArray betaQuorum=new JSONArray();
-        JSONArray gammaQuorum=new JSONArray();
+        JSONArray betaQuorum = new JSONArray();
+        JSONArray gammaQuorum = new JSONArray();
 
 
-        int level = 0,tokenNumber = 0,availableCredits = 0, balance=0,creditsRequired=500000,level_credit=0;
+        int creditsRequired = 50000, level;
         long starttime = System.currentTimeMillis();
         JSONArray resJsonData = new JSONArray();
         new JSONObject();
         JSONObject resJsonData_credit;
 
-
-        //Reading proofcredits.json
-        String jsonFilePath = WALLET_DATA_PATH+"QuorumSignedTransactions.json";
-        JSONArray records = new JSONArray(readFile(jsonFilePath));
-        balance = records.length();
-        JSONArray prooftid = new JSONArray();
-        for (int i = 0; i < balance; i++) {
-            JSONObject temp = records.getJSONObject(i);
-            if(temp.getBoolean("minestatus")==false) {
-                availableCredits++;
-               //prooftid.put(temp.getString("tid"));
-                // records.getJSONObject(i).put("minestatus",true);
-            }
+        //Clean up old File
+        String qstFile = readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json");
+        JSONArray qstArray = new JSONArray(qstFile);
+        File usedCreditsFile = new File(WALLET_DATA_PATH + "MinedCreditsHistory.json");
+        if (!usedCreditsFile.exists()) {
+            writeToFile(String.valueOf(usedCreditsFile), "[]", false);
         }
 
+        JSONArray newQstArrayReplace = new JSONArray();
+        JSONArray minedArray = new JSONArray(readFile(WALLET_DATA_PATH + "MinedCreditsHistory.json"));
+        if(qstArray.getJSONObject(0).has("minestatus")) {
+            for (int i = 0; i < qstArray.length(); i++) {
+                if (qstArray.getJSONObject(i).has("minestatus")) {
+                    if (qstArray.getJSONObject(i).getBoolean("minestatus"))
+                        minedArray.put(qstArray.getJSONObject(i));
+                    else {
+                        qstArray.getJSONObject(i).remove("minestatus");
+                        newQstArrayReplace.put(qstArray.getJSONObject(i));
+                    }
+                }
+
+            }
+            writeToFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json", newQstArrayReplace.toString(), false);
+            writeToFile(WALLET_DATA_PATH + "MinedCreditsHistory.json", minedArray.toString(), false);
+        }
+
+        JSONArray newQstArray = new JSONArray(readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json"));
+        int availableCredits = newQstArray.length();
+        ProofCreditsLogger.debug("Credits available: " + availableCredits);
         String GET_URL_credit = SYNC_IP + "/getlevel";
         URL URLobj_credit = new URL(GET_URL_credit);
         HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
@@ -112,27 +103,20 @@ public class ProofCredits {
             }
             in_credit.close();
             ProofCreditsLogger.debug("response from service " + response_credit.toString());
-
-            //JSONObject responseJSON=new JSONObject(response.toString());
-            //resJsonData= responseJSON.getJSONArray("data");
-            //creditUsed = responseJSON.getInt("credits");
-
-
-             resJsonData_credit = new JSONObject(response_credit.toString());
-             level_credit = resJsonData_credit.getInt("level");
-             creditsRequired =(int) Math.pow(2,(2+level_credit));
-             ProofCreditsLogger.debug("credits required "  + creditsRequired);
+            resJsonData_credit = new JSONObject(response_credit.toString());
+            int level_credit = resJsonData_credit.getInt("level");
+            creditsRequired = (int) Math.pow(2, (2 + level_credit));
+            ProofCreditsLogger.debug("credits required " + creditsRequired);
 
         } else
             ProofCreditsLogger.debug("GET request not worked");
 
 
-        ProofCreditsLogger.debug("credits required " + creditsRequired+ " available credits "+ availableCredits);
+        ProofCreditsLogger.debug("credits required " + creditsRequired + " available credits " + availableCredits);
 
-        if (availableCredits>=creditsRequired) {
+        if (availableCredits >= creditsRequired) {
 
             //String GET_URL = SYNC_IP+"/getInfo?count="+availableCredits;
-
             String GET_URL = SYNC_IP + "/minetoken";
             URL URLobj = new URL(GET_URL);
             HttpURLConnection con = (HttpURLConnection) URLobj.openConnection();
@@ -169,66 +153,66 @@ public class ProofCredits {
                 for (int i = 0; i < resJsonData.length(); i++) {
                     token.put(Functions.mineToken(resJsonData.getJSONObject(i).getInt("level"), resJsonData.getJSONObject(i).getInt("token")));
 
-                    creditUsed+=(int) Math.pow(2,(2+resJsonData.getJSONObject(i).getInt("level")));
+                    creditUsed += (int) Math.pow(2, (2 + resJsonData.getJSONObject(i).getInt("level")));
 
                 }
 
-                if(resJsonData.getJSONObject(0).getInt("level")==1)
+                if (resJsonData.getJSONObject(0).getInt("level") == 1)
                     creditUsed = 10;
 
+                JSONArray prooftid = new JSONArray();
                 String comments = resJsonData.toString() + prooftid;
 
                 String authSenderByRecHash = calculateHash(token + receiverDidIpfsHash + comments, "SHA3-256");
                 String tid = calculateHash(authSenderByRecHash, "SHA3-256");
 
-                writeToFile(LOGGER_PATH+"tempbeta", tid.concat(receiverDidIpfsHash), false);
-                String betaHash = IPFSNetwork.add(LOGGER_PATH+"tempbeta", ipfs);
-                deleteFile(LOGGER_PATH+"tempbeta");
+                writeToFile(LOGGER_PATH + "tempbeta", tid.concat(receiverDidIpfsHash), false);
+                String betaHash = IPFSNetwork.add(LOGGER_PATH + "tempbeta", ipfs);
+                deleteFile(LOGGER_PATH + "tempbeta");
 
-                writeToFile(LOGGER_PATH+"tempgamma", tid.concat(receiverDidIpfsHash), false);
-                String gammaHash = IPFSNetwork.add(LOGGER_PATH+"tempgamma", ipfs);
-                deleteFile(LOGGER_PATH+"tempgamma");
+                writeToFile(LOGGER_PATH + "tempgamma", tid.concat(receiverDidIpfsHash), false);
+                String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
+                deleteFile(LOGGER_PATH + "tempgamma");
 
                 JSONArray quorumArray;
-              // JSONArray quorumArray= getQuorum(betaHash,gammaHash,receiverDidIpfsHash,receiverDidIpfsHash,token.length());
-              // JSONArray  quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                // JSONArray quorumArray= getQuorum(betaHash,gammaHash,receiverDidIpfsHash,receiverDidIpfsHash,token.length());
+                // JSONArray  quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
 
                 switch (type) {
-                  	case 2: {
-                		quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
-                		break;
-                	}
+                    case 2: {
+                        quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                        break;
+                    }
                     default: {
-                    	quorumArray= getQuorum(betaHash,gammaHash,receiverDidIpfsHash,receiverDidIpfsHash,token.length());
-                	}
+                        quorumArray = getQuorum(betaHash, gammaHash, receiverDidIpfsHash, receiverDidIpfsHash, token.length());
+                    }
                 }
-              
-              QuorumSwarmConnect(quorumArray,ipfs);
 
-                alphaSize=quorumArray.length()-14;
+                QuorumSwarmConnect(quorumArray, ipfs);
 
-                for(int i=0;i<alphaSize;i++)
+                alphaSize = quorumArray.length() - 14;
+
+                for (int i = 0; i < alphaSize; i++)
                     alphaQuorum.put(quorumArray.getString(i));
 
-                for(int i=0;i<7;i++)
-                {
-                    betaQuorum.put(quorumArray.getString(alphaSize+i));
-                    gammaQuorum.put(quorumArray.getString(alphaSize+7+i));
+                for (int i = 0; i < 7; i++) {
+                    betaQuorum.put(quorumArray.getString(alphaSize + i));
+                    gammaQuorum.put(quorumArray.getString(alphaSize + 7 + i));
                 }
 
-                ProofCreditsLogger.debug("alphaquorum " + alphaQuorum + " size " +alphaQuorum.length());
-                ProofCreditsLogger.debug("betaquorum "+betaQuorum + " size "+betaQuorum.length());
-                ProofCreditsLogger.debug("gammaquorum "+gammaQuorum + " size "+gammaQuorum.length());
+                ProofCreditsLogger.debug("alphaquorum " + alphaQuorum + " size " + alphaQuorum.length());
+                ProofCreditsLogger.debug("betaquorum " + betaQuorum + " size " + betaQuorum.length());
+                ProofCreditsLogger.debug("gammaquorum " + gammaQuorum + " size " + gammaQuorum.length());
 
 
-                alphaPeersList=QuorumCheck(alphaQuorum,alphaSize);
-                betaPeersList= QuorumCheck(betaQuorum,7);
-                gammaPeersList=QuorumCheck(gammaQuorum,7);
+                alphaPeersList = QuorumCheck(alphaQuorum, alphaSize);
+                betaPeersList = QuorumCheck(betaQuorum, 7);
+                gammaPeersList = QuorumCheck(gammaQuorum, 7);
 
                 // quorumPeersList = QuorumCheck(quorumArray, ipfs);
 
-                if (alphaPeersList.size()<minQuorum(alphaSize)||betaPeersList.size()<5||gammaPeersList.size()<5) {
-                    updateQuorum(quorumArray,null,false,type);
+                if (alphaPeersList.size() < minQuorum(alphaSize) || betaPeersList.size() < 5 || gammaPeersList.size() < 5) {
+                    updateQuorum(quorumArray, null, false, type);
                     APIResponse.put("did", receiverDidIpfsHash);
                     APIResponse.put("tid", "null");
                     APIResponse.put("status", "Failed");
@@ -248,7 +232,7 @@ public class ProofCredits {
                 dataObject.put("betaList", betaPeersList);
                 dataObject.put("gammaList", gammaPeersList);
 
-                InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3,alphaSize);
+                InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3, alphaSize);
 
                 if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
                     APIResponse.put("did", receiverDidIpfsHash);
@@ -260,21 +244,20 @@ public class ProofCredits {
                     ProofCreditsLogger.debug("token mined " + token);
 
                     int counter = 0;
-                    for (int i = 0; i < balance; i++) {
-                        JSONObject temp = records.getJSONObject(i);
-                        if (temp.getBoolean("minestatus") == false && (counter < creditUsed)) {
+
+                    for (int i = 0; i < availableCredits; i++) {
+                        JSONObject temp = newQstArray.getJSONObject(i);
+                        if (counter < creditUsed) {
                             prooftid.put(temp.getString("tid"));
-                            records.getJSONObject(i).put("minestatus", true);
                             counter++;
                         }
                     }
 
-
                     for (int i = 0; i < token.length(); i++) {
-                        writeToFile(LOGGER_PATH+"tempToken", token.getString(i), false);
-                        String tokenHash = IPFSNetwork.add(LOGGER_PATH+"tempToken", ipfs);
+                        writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
+                        String tokenHash = IPFSNetwork.add(LOGGER_PATH + "tempToken", ipfs);
                         writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
-                        deleteFile(LOGGER_PATH+"tempToken");
+                        deleteFile(LOGGER_PATH + "tempToken");
                         writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", "[]", false);
                         JSONObject temp = new JSONObject();
                         temp.put("tokenHash", tokenHash);
@@ -283,21 +266,28 @@ public class ProofCredits {
                         updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
                     }
 
-                        writeToFile(jsonFilePath,records.toString(),false);
-//                    FileWriter File = new FileWriter(jsonFilePath);
-//                    File.write(records.toString());
-//                    File.close();
 
-                    ProofCreditsLogger.debug("Updated balance of node : " + (balance - creditUsed));
+                    String creditsHistory = readFile(WALLET_DATA_PATH + "MinedCreditsHistory.json");
+                    JSONArray creditsHistoryArray = new JSONArray(creditsHistory);
+                    for (int i = 0; i < creditUsed; i++)
+                        creditsHistoryArray.put(newQstArray.getJSONObject(i));
+                    writeToFile(String.valueOf(usedCreditsFile), creditsHistoryArray.toString(), false);
+
+
+                    for (int i = 0; i < creditUsed; i++)
+                        newQstArray.remove(i);
+                    writeToFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json", newQstArray.toString(), false);
+
+                    ProofCreditsLogger.debug("Updated balance of node : " + (availableCredits - creditUsed));
                     long endtime = System.currentTimeMillis();
-                    totalTime=endtime-starttime;
+                    totalTime = endtime - starttime;
                     Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
                     JSONArray signedQuorumList = new JSONArray();
                     while (keys.hasNext())
                         signedQuorumList.put(keys.next());
 
-                    updateQuorum(quorumArray,signedQuorumList,true,type);
-                    mineUpdate(receiverDidIpfsHash,creditUsed);
+                    updateQuorum(quorumArray, signedQuorumList, true, type);
+                    mineUpdate(receiverDidIpfsHash, creditUsed);
                     APIResponse.put("did", receiverDidIpfsHash);
                     APIResponse.put("tid", tid);
                     APIResponse.put("token", token);
@@ -305,7 +295,7 @@ public class ProofCredits {
                     APIResponse.put("quorumlist", signedQuorumList);
                     APIResponse.put("time", totalTime);
                     APIResponse.put("status", "Success");
-                    APIResponse.put("message", token.length()+" tokens mined");
+                    APIResponse.put("message", token.length() + " tokens mined");
 
                     DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
                     Date date = new Date();
@@ -314,7 +304,7 @@ public class ProofCredits {
                     transactionRecord.put("role", "Sender");
                     transactionRecord.put("tokens", token);
                     transactionRecord.put("txn", tid);
-                    transactionRecord.put("quorumList",signedQuorumList);
+                    transactionRecord.put("quorumList", signedQuorumList);
                     transactionRecord.put("senderDID", receiverDidIpfsHash);
                     transactionRecord.put("receiverDID", receiverDidIpfsHash);
                     transactionRecord.put("Date", currentTime);
@@ -349,14 +339,13 @@ public class ProofCredits {
                         dataToSend.put("bank_id", "01");
                         dataToSend.put("user_did", receiverDidIpfsHash);
                         dataToSend.put("token_id", token);
-                        dataToSend.put("level",level);
+                        dataToSend.put("level", level);
                         dataToSend.put("denomination", 1);
                         String populate = dataToSend.toString();
 
                         JSONObject jsonObject = new JSONObject();
                         jsonObject.put("inputString", populate);
                         String postJsonData = jsonObject.toString();
-
                         // Send post request
                         connection_Explorer.setDoOutput(true);
                         DataOutputStream wr = new DataOutputStream(connection_Explorer.getOutputStream());
@@ -385,7 +374,7 @@ public class ProofCredits {
                         List<String> tokenList = new ArrayList<>();
                         for (int i = 0; i < token.length(); i++)
                             tokenList.add(token.getString(i));
-                        String urlTxn = EXPLORER_IP+"/CreateOrUpdateRubixTransaction";
+                        String urlTxn = EXPLORER_IP + "/CreateOrUpdateRubixTransaction";
                         URL objTxn = new URL(urlTxn);
                         HttpsURLConnection conTxn = (HttpsURLConnection) objTxn.openConnection();
 
@@ -445,13 +434,11 @@ public class ProofCredits {
                 ProofCreditsLogger.warn("error from mine service");
                 return APIResponse;
             }
-        }
-        else
-        {
+        } else {
             APIResponse.put("did", receiverDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
-            APIResponse.put("message", "Insufficent proofs");
+            APIResponse.put("message", "Insufficient proofs");
             ProofCreditsLogger.warn("Insufficient proof credits to mine");
             return APIResponse;
         }
