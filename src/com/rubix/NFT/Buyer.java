@@ -134,8 +134,6 @@ public class Buyer {
             String assetData = input.readLine();
             BuyerLogger.debug("Received asset details from Seller");
             JSONObject assetDetails = new JSONObject(assetData);
-            String eKey = assetDetails.getString("eKey");
-            String dKey = assetDetails.getString("dKey");
             int amount = assetDetails.getInt("amount");
             JSONArray rbxTokens = FractionChooser.calculate(amount);
             JSONArray rbxTokenHeader = FractionChooser.tokenHeader;
@@ -155,8 +153,8 @@ public class Buyer {
                 return APIResponse.toString();
             }
             for (int i = 0; i < rbxTokens.length(); i++) {
-                File rbxtoken = new File(Functions.TOKENS_PATH);
-                File rbxtokenchain = new File(Functions.TOKENCHAIN_PATH);
+                File rbxtoken = new File(Functions.TOKENS_PATH+rbxTokens.get(i));
+                File rbxtokenchain = new File(Functions.TOKENCHAIN_PATH+rbxTokens.get(i)+".json");
                 BuyerLogger.debug("" + rbxtoken + " and " + rbxtoken);
                 if (!rbxtoken.exists() || !rbxtokenchain.exists()) {
                     output.println("421");
@@ -172,8 +170,8 @@ public class Buyer {
                     ss.close();
                     return APIResponse.toString();
                 }
-                IPFSNetwork.add(Functions.TOKENS_PATH, ipfs);
-                String tokenChainHash = IPFSNetwork.add(Functions.TOKENCHAIN_PATH, ipfs);
+                IPFSNetwork.add(Functions.TOKENS_PATH+rbxTokens.get(i), ipfs);
+                String tokenChainHash = IPFSNetwork.add(Functions.TOKENCHAIN_PATH+rbxTokens.get(i)+".json", ipfs);
                 rbxTokensChainsPushed.add(tokenChainHash);
             }
             JSONObject rbxTokenDetails = new JSONObject();
@@ -181,7 +179,7 @@ public class Buyer {
             rbxTokenDetails.put("rbxTokenChains", rbxTokensChainsPushed);
             rbxTokenDetails.put("rbxTokenHeader", rbxTokenHeader);
             String pvt = Functions.DATA_PATH+ buyerDidIpfsHash + "PrivateShare.png";
-            String buyerSign = Functions.getSignFromShares(pvt, Functions.calculateHash("" + rbxTokens + rbxTokens + rbxTokensChainsPushed.toString(), "SHA3-256"));
+            String buyerSign = Functions.getSignFromShares(pvt, Functions.calculateHash(rbxTokens + rbxTokenHeader + rbxTokensChainsPushed.toString(), "SHA3-256"));
             JSONObject rbxData = new JSONObject();
             rbxData.put("rbxTokenDetails", rbxTokenDetails);
             rbxData.put("authBuyerBySeller", buyerSign);
@@ -256,7 +254,7 @@ public class Buyer {
                     BuyerLogger.debug("Verified Quorum Count " + quorumSignVerifyCount);
                     yesQuorum = (quorumSignVerifyCount >= quorumSignatures.length());
                 }
-                String hash = Functions.calculateHash(nftToken + nftToken + nftTokenChain + amount + eKey + dKey + buyerDidIpfsHash, "SHA3-256");
+                String hash = Functions.calculateHash(nftToken + nftTokenChain + amount + buyerDidIpfsHash, "SHA3-256");
                 JSONObject detailsForVerify = new JSONObject();
                 detailsForVerify.put("did", sellerDidIpfsHash);
                 detailsForVerify.put("hash", hash);
@@ -283,10 +281,10 @@ public class Buyer {
                 output.println("200");
                 String nftUnpinStatus = input.readLine();
                 if (nftUnpinStatus.equals("Unpinned NFT")) {
-                    FileWriter fileWriter = new FileWriter(Functions.NFT_TOKENS_PATH );
+                    FileWriter fileWriter = new FileWriter(Functions.NFT_TOKENS_PATH+nftToken);
                     fileWriter.write(nftTokenContent);
                     fileWriter.close();
-                    IPFSNetwork.add(Functions.NFT_TOKENS_PATH , ipfs);
+                    IPFSNetwork.add(Functions.NFT_TOKENS_PATH + nftToken, ipfs);
                     IPFSNetwork.pin(nftToken, ipfs);
                 
                     try {
@@ -321,7 +319,7 @@ public class Buyer {
                         newRecord.put("comment", comment);
                         newRecord.put("tid", tid);
                         currentNftTokenChain.put(newRecord);
-                        Functions.writeToFile(Functions.NFT_TOKENCHAIN_PATH, currentNftTokenChain.toString(), Boolean.valueOf(false));
+                        Functions.writeToFile(Functions.NFT_TOKENCHAIN_PATH+nftTokenChain+".json", currentNftTokenChain.toString(), Boolean.valueOf(false));
                         Iterator<String> keys = quorumSignatures.keys();
                         JSONArray quorumList = new JSONArray();
                         while (keys.hasNext())
@@ -333,8 +331,6 @@ public class Buyer {
                         nftTransactionRecord.put("amount", amount);
                         nftTransactionRecord.put("rbxTokens", rbxTokens);
                         nftTransactionRecord.put("nftToken", nftToken);
-                        nftTransactionRecord.put("eKey", eKey);
-                        nftTransactionRecord.put("dKey", dKey);
                         nftTransactionRecord.put("txn", tid);
                         nftTransactionRecord.put("quorumList", quorumList);
                         nftTransactionRecord.put("Date", Functions.getCurrentUtcTime());
@@ -346,9 +342,9 @@ public class Buyer {
                         Functions.updateJSON("add", Functions.WALLET_DATA_PATH + "nftTransactionHistory.json", nftTransactionHistoryEntry.toString());
                         int k;
                         for (k = 0; k < rbxTokens.length(); k++)
-                            Files.deleteIfExists(Paths.get(Functions.TOKENS_PATH, new String[0]));
+                            Files.deleteIfExists(Paths.get(Functions.TOKENS_PATH+rbxTokens.get(i), new String[0]));
                         for (k = 0; k < amount; k++)
-                            Functions.updateJSON("remove", Functions.PAYMENTS_PATH, rbxTokens.getString(k));
+                            Functions.updateJSON("remove", Functions.PAYMENTS_PATH+rbxTokenHeader.getString(k), rbxTokens.getString(k));
                         BuyerLogger.info("Transaction ID: " + tid + "Transaction Successful");
                         output.println("Send Response");
                         APIResponse.put("sellerDID", sellerDidIpfsHash);
