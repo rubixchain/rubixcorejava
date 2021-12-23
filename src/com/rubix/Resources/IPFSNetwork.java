@@ -1,5 +1,30 @@
 package com.rubix.Resources;
 
+import static com.rubix.Constants.IPFSConstants.bootstrap;
+import static com.rubix.Constants.IPFSConstants.daemon;
+import static com.rubix.Constants.IPFSConstants.forward;
+import static com.rubix.Constants.IPFSConstants.listen;
+import static com.rubix.Constants.IPFSConstants.p2p;
+import static com.rubix.Constants.IPFSConstants.shutdown;
+import static com.rubix.Resources.Functions.BOOTSTRAPS;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.getOsName;
+
+import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.imageio.ImageIO;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONException;
+
 import io.ipfs.api.IPFS;
 import io.ipfs.api.MerkleNode;
 import io.ipfs.api.NamedStreamable;
@@ -65,6 +90,7 @@ public class IPFSNetwork {
     }
 
     public static String checkSwarmConnect() {
+        IPFSNetworkLogger.debug("check swarm peers request");
         String response = executeIPFSCommandsResponse("ipfs swarm peers");
         return response;
     }
@@ -188,6 +214,7 @@ public class IPFSNetwork {
                 sb.append(line);
                 sb.append("\n");
             }
+            IPFSNetworkLogger.debug(command + " output: " + sb.toString());
             if (!OS.contains("Windows"))
                 P.waitFor();
             br.close();
@@ -426,6 +453,7 @@ public class IPFSNetwork {
     }
 
     public static String executeIPFSCommandsResponse(String command) {
+        IPFSNetworkLogger.debug("executeIPFSCommandsResponse for command " + command);
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String OS = getOsName();
         String result;
@@ -453,7 +481,8 @@ public class IPFSNetwork {
             }
 
             if (command.contains(listen) || command.contains(forward) || command.contains("swarm")
-                    || command.contains(p2p) || command.contains(shutdown)) {
+                    || command.contains(p2p) || command.contains(shutdown) || command.contains(bootstrap)) {
+                IPFSNetworkLogger.debug("executing command " + command);
                 p = new ProcessBuilder(commands);
                 process = p.start();
 
@@ -471,7 +500,8 @@ public class IPFSNetwork {
 
                 return result;
             } else {
-                return "wrong command ".concat(command);
+                IPFSNetworkLogger.debug("unhandled command " + command);
+                return "wrong command";
             }
 
         } catch (IOException e) {
@@ -483,7 +513,7 @@ public class IPFSNetwork {
             result = e.toString();
             e.printStackTrace();
         }
-
+        IPFSNetworkLogger.debug("return string ");
         return result;
     }
 
@@ -520,7 +550,7 @@ public class IPFSNetwork {
             }
 
             if (command.contains(listen) || command.contains(forward) || command.contains(p2p)
-                    || command.contains(shutdown)) {
+                    || command.contains(shutdown) || command.contains(bootstrap)) {
                 p = new ProcessBuilder(commands);
                 process = p.start();
 
@@ -549,27 +579,34 @@ public class IPFSNetwork {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String bootNode;
         boolean swarmConnected = false;
+        IPFSNetworkLogger.debug("swarm connect p2p" + peerid);
 
         MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
         String output = swarmConnectProcess(multiAddress);
 
         if (!output.contains("success")) {
+            IPFSNetworkLogger.debug("Connecting via bootstrap ");
+            IPFSNetworkLogger.debug("Bootstraps  " + BOOTSTRAPS + "size " + BOOTSTRAPS.length());
 
             for (int i = 0; i < BOOTSTRAPS.length(); i++) {
                 if (!swarmConnected) {
                     bootNode = String.valueOf(BOOTSTRAPS.get(i));
                     bootNode = bootNode.substring(bootNode.length() - 46);
+                    IPFSNetworkLogger.debug("bootnode is " + bootNode);
 
                     multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
                     output = swarmConnectProcess(multiAddress);
                     if (!output.contains("success")) {
-                        IPFSNetworkLogger.debug("swarm attempt failed with " + peerid);
+                        IPFSNetworkLogger.debug("swarm attempt failed");
                     } else {
+                        IPFSNetworkLogger.debug("Connected via bootstrap node: " + bootNode);
                         swarmConnected = true;
                     }
 
                 }
             }
+        } else {
+            IPFSNetworkLogger.debug("Swarm Connected p2p : " + peerid);
         }
 
     }
