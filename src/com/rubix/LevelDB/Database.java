@@ -372,6 +372,10 @@ public class DataBase {
         
     }
 
+    /*
+        Method to get length of TransactionHistory DB
+        @return int value which is size of DB
+    */
     public static int getTxnHisDBLength()
     {
         List<String> tempList = new ArrayList<String>();
@@ -391,6 +395,10 @@ public class DataBase {
         return tempList.size();
     }
 
+    /*
+        Method to get length of EssentialShare DB
+        @return int value which is size of DB
+    */
     public static int getEssShareDBLength()
     {
         List<String> tempList = new ArrayList<String>();
@@ -410,6 +418,10 @@ public class DataBase {
         return tempList.size();
     }
 
+    /*
+        Method to get length of QuorumSignedTransaction DB
+        @return int value which is size of DB
+    */
     public static int getQstDBLength()
     {
         List<String> tempList = new ArrayList<String>();
@@ -429,6 +441,10 @@ public class DataBase {
         return tempList.size();
     }
 
+    /*
+        Method to get length of QuorumSign DB
+        @return int value which is size of DB
+    */
     public static int getQsDBLength()
     {
         List<String> tempList = new ArrayList<String>();
@@ -448,6 +464,11 @@ public class DataBase {
         return tempList.size();
     }
 
+    /*
+        Method to check if TransactionHistory and EssentialShare DB are empty
+        @return int value , 1 if empty and 0 if not empty
+     */
+
      public static int checkTransactionHistoryDBEmpty()
      {
          int result=0;
@@ -460,6 +481,10 @@ public class DataBase {
          return result;
      }
 
+     /*
+        Method to check if QuorumSignedTransaction and QuorumSign DB are empty
+        @return int value , 1 if empty and 0 if not empty
+     */
      public static int checkQuorumSignedTxnDBEmpty()
      {
         int result=0;
