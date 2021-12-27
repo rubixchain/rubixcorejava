@@ -258,9 +258,9 @@ public class DataBase {
             JSONParser jsonParser = new JSONParser();
             JSONArray jsonArray = (JSONArray) jsonParser.parse(fr);
             for (Object o : jsonArray) {
-                JSONObject obj1 = (JSONObject) o;
-                JSONObject obj2 = new JSONObject();
-                JSONObject obj3 = new JSONObject();
+                org.json.simple.JSONObject obj1 = (org.json.simple.JSONObject) o;
+                org.json.simple.JSONObject obj2 = new org.json.simple.JSONObject();
+                org.json.simple.JSONObject obj3 = new org.json.simple.JSONObject();
                 obj2.put("senderdid", obj1.get("senderdid"));
                 obj2.put("credits", obj1.get("credits"));
                 obj2.put("tid", obj1.get("tid"));
