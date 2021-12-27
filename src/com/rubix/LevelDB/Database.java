@@ -125,6 +125,11 @@ public class DataBase {
 
     }
 
+
+    /*
+        This method pushes the TransactionHistory Data from 
+        JSON file to TransactionHistory and EssentialShare DB
+    */
     public static void pushTxnFiletoDB() {
         FileReader fr;
         try {
@@ -240,6 +245,10 @@ public class DataBase {
     }
 
 
+    /*
+        This method pushes the QST Data from 
+        JSON file to quorumSignedTransaction and quorumSign DB
+    */
     public static void pushQstDatatoDB()
     {
         FileReader fr;
