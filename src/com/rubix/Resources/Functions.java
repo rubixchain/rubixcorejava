@@ -828,6 +828,10 @@ public class Functions {
         File tokensFolder = new File(TOKENS_PATH);
         File tokenChainsFolder = new File(TOKENCHAIN_PATH);
         File walletDataFolder = new File(WALLET_DATA_PATH);
+        File transactionHistoryFolder = new File(WALLET_DATA_PATH+"transactionHistory");
+        File essentialShareFolder= new File(WALLET_DATA_PATH+"essentialShare");
+        File quorumSignedTransaction= new File(WALLET_DATA_PATH+"quorumSignedTransaction");
+        File quorumSign= new File(WALLET_DATA_PATH+"quorumSign");
 
         if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists() || !walletDataFolder.exists()) {
             dataFolder.delete();
