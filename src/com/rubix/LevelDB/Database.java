@@ -451,38 +451,25 @@ public class DataBase {
      public static int checkTransactionHistoryDBEmpty()
      {
          int result=0;
-                 
-         try {
-            org.json.JSONArray transactionHistoryArray= new org.json.JSONArray(getAllTxn());
-            if(transactionHistoryArray.length()==0)
+            
+            if(getTxnHisDBLength()==0 || getEssShareDBLength()==0)
             {
                 result=1;
             }
-            
-        } catch (JSONException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
 
          return result;
      }
 
      public static int checkQuorumSignedTxnDBEmpty()
      {
-         int result=0;
-        try {
-            org.json.JSONArray transactionHistoryArray= new org.json.JSONArray(getAllQstData());
-            if(transactionHistoryArray.length()==0)
-            {
-                result=1;
-            }
+        int result=0;
             
-        } catch (JSONException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        if(getQstDBLength()==0 || getQsDBLength()==0)
+        {
+            result=1;
         }
 
-         return result;
+     return result;
      }
 
 }
