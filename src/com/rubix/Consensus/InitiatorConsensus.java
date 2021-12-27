@@ -120,6 +120,7 @@ public class InitiatorConsensus {
 
                     try {
                         swarmConnectP2P(quorumID[j],ipfs);
+                        syncDataTable(null, quorumID[j]);
                         String quorumDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", quorumID[j]);
                         String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", quorumID[j]);
                         nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
@@ -135,8 +136,6 @@ public class InitiatorConsensus {
                         JSONObject quorumDetails = new JSONObject(qVerification[j]);
                         String data1 = quorumDetails.getString("CreditMapping");
                         JSONArray cmContent = new JSONArray(data1);
-
-
                         String data2 = quorumDetails.getString("Credits");
                         JSONArray creditsArray = new JSONArray(data2);
                         if(creditsArray.length() > 0) {

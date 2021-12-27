@@ -69,6 +69,7 @@ public class TokenReceiver {
             long startTime = System.currentTimeMillis();
 
             senderPeerID = input.readLine();
+            syncDataTable(null, senderPeerID);
             String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
             String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", senderPeerID);
 
@@ -209,14 +210,10 @@ public class TokenReceiver {
                     }
 
                     for (String quorumDidIpfsHash : quorumDID) {
+                    	syncDataTable(quorumDidIpfsHash, null);
                         String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", quorumDidIpfsHash);
 
-                        File quorumDataFolder = new File(DATA_PATH + quorumDidIpfsHash + "/");
-                        if (!quorumDataFolder.exists()) {
-                            quorumDataFolder.mkdirs();
-                            IPFSNetwork.getImage(quorumDidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/DID.png");
-                            IPFSNetwork.getImage(quorumWidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/PublicShare.png");
-                        } 
+                        nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
                     }
 
                     for (int i = 0; i < quorumSignatures.length(); i++) {

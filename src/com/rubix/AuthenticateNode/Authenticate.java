@@ -38,7 +38,7 @@ public class Authenticate {
         String decentralizedID = details.getString("did");
         String hash = details.getString("hash");
         String signature = details.getString("signature");
-
+        syncDataTable(decentralizedID, null);
         String walletIdIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", decentralizedID);
         nodeData(decentralizedID, walletIdIpfsHash, ipfs);
 

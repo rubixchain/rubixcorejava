@@ -123,7 +123,9 @@ public class QuorumConsensus implements Runnable {
                     transactionID = readSenderData.getString("Tid");
                     verifySenderHash = readSenderData.getString("Hash");
                     receiverDID = readSenderData.getString("RID");
-
+                    
+                    syncDataTable(senderDidIpfsHash, null);
+                    
                     senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", senderDidIpfsHash);
                     String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", senderDidIpfsHash);
 
@@ -163,13 +165,14 @@ public class QuorumConsensus implements Runnable {
                                 shareWriter.close();
                                 File readCredit = new File(LOGGER_PATH + "mycredit.txt");
                                 String credit = add(readCredit.toString(), ipfs);
-
+                                pin(credit, ipfs);
                                 // adding credit to credit mapping
                                 JSONArray CreditBody = new JSONArray(creditval);
-                                JSONObject creditMappingObject = new JSONObject();
+                                //JSONObject creditMappingObject = new JSONObject();
                                 JSONArray creditMappingArray = new JSONArray();
 
                                 for (int i = 0; i < CreditBody.length(); i++) {
+                                	JSONObject creditMappingObject = new JSONObject();
                                     JSONObject object = CreditBody.getJSONObject(i);
                                     String key = object.getString("did");
                                     String sign = object.getString("sign");
@@ -182,9 +185,9 @@ public class QuorumConsensus implements Runnable {
 
                                     creditMappingArray.put(creditMappingObject);
 
-                                    writeToFile(WALLET_DATA_PATH + "CreditMapping.json", creditMappingArray.toString(), false);
-
                                 }
+                                writeToFile(WALLET_DATA_PATH + "CreditMapping.json", creditMappingArray.toString(), false);
+
                                 JSONObject storeDetailsQuorum = new JSONObject();
                                 storeDetailsQuorum.put("tid", transactionID);
                                 storeDetailsQuorum.put("consensusID", verifySenderHash);

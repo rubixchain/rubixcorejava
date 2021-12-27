@@ -561,14 +561,22 @@ public class IPFSNetwork {
                 if (!swarmConnected) {
                     bootNode = String.valueOf(BOOTSTRAPS.get(i));
                     bootNode = bootNode.substring(bootNode.length() - 46);
-
-                    multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
+                    
+                    multiAddress = new MultiAddress("/ipfs/" + bootNode);
                     output = swarmConnectProcess(multiAddress);
-                    if (!output.contains("success")) {
+                    
+                    if (output.contains("success")) {
+                      multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
+                      output = swarmConnectProcess(multiAddress);
+                      if (!output.contains("success")) {
                         IPFSNetworkLogger.debug("swarm attempt failed with " + peerid);
-                    } else {
+                      } else {
+                        IPFSNetworkLogger.debug("swarm Connected : " + peerid);
                         swarmConnected = true;
-                    }
+                      } 
+                    } else {
+                      IPFSNetworkLogger.debug("bootstrap connection failed! " + bootNode);
+                    } 
 
                 }
             }

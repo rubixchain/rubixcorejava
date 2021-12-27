@@ -296,6 +296,7 @@ public class TokenSender {
            // Date date = new Date();
 
         	// LocalDate currentTime = LocalDate.parse(formatter.format(date).replace("/", "-"));
+        	syncDataTable(receiverDidIpfsHash, null);
             receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
 
             TokenSenderLogger.debug("Swarm connecting to " + receiverPeerId);
