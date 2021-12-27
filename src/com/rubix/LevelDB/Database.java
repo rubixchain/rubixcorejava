@@ -473,7 +473,7 @@ public class DataBase {
      {
          int result=0;
             
-            if(getTxnHisDBLength()==0 || getEssShareDBLength()==0)
+            if(getTxnHisDBLength()==0 && getEssShareDBLength()==0)
             {
                 result=1;
             }
@@ -489,7 +489,7 @@ public class DataBase {
      {
         int result=0;
             
-        if(getQstDBLength()==0 || getQsDBLength()==0)
+        if(getQstDBLength()==0 && getQsDBLength()==0)
         {
             result=1;
         }
