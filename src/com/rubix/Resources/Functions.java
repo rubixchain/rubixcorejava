@@ -1070,6 +1070,30 @@ public class Functions {
         }
     }
     
+    /** To Sync DataTable.json, if required */
+    public static void syncDataTable(String did, String peerId) {
+        try {
+          String dataTableData = readFile(DATA_PATH + "DataTable.json");
+          boolean isObjectValid = false;
+          JSONArray dataTable = new JSONArray(dataTableData);
+          for (int i = 0; i < dataTable.length(); i++) {
+            JSONObject dataTableObject = dataTable.getJSONObject(i);
+            if ((did != null && dataTableObject.getString("didHash").equals(did)) 
+            		|| 
+            	(peerId != null && dataTableObject.getString("peerid").equals(peerId))) {
+              isObjectValid = true;
+              break;
+            } 
+          } 
+          if (!isObjectValid) {
+            FunctionsLogger.debug("Syncing Datatable.json!");
+            APIHandler.networkInfo();
+          } 
+        } catch (Exception e) {
+          FunctionsLogger.error("Exception Occured", e);
+          e.printStackTrace();
+        } 
+      }
 //    /**
 //     * This method checks if Quorum is available for consensus
 //     *
