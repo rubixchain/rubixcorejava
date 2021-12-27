@@ -885,6 +885,25 @@ public class Functions {
             result.put("status", "Failed");
             return result.toString();
         }
+
+        if(!transactionHistoryFolder.exists() || !essentialShareFolder.exists())
+        {
+            JSONObject result = new JSONObject();
+            result.put("message", "User not registered, create your Decentralised Identity!");
+            result.put("info", "transactionHistory and essentialShare Folders missing in Wallet Data folder");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+
+        if(!quorumSignedTransaction.exists() || !quorumSign.exists())
+        {
+            JSONObject result = new JSONObject();
+            result.put("message", "User not registered, create your Decentralised Identity!");
+            result.put("info", "quorumSignedTransaction and quorumSign Folders missing in Wallet Data folder");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+
         JSONObject returnObject = new JSONObject();
         returnObject.put("message", "User successfully registered!");
         returnObject.put("status", "Success");
