@@ -1,21 +1,10 @@
 package com.rubix.Resources;
 
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.IPFS_PORT;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.SEND_PORT;
-import static com.rubix.Resources.Functions.SYNC_IP;
-import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
-import static com.rubix.Resources.Functions.getOsName;
-import static com.rubix.Resources.Functions.getPeerID;
-import static com.rubix.Resources.Functions.getValues;
-import static com.rubix.Resources.Functions.nodeData;
-import static com.rubix.Resources.Functions.readFile;
-import static com.rubix.Resources.Functions.writeToFile;
-import static com.rubix.Resources.IPFSNetwork.add;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
-import static com.rubix.Resources.IPFSNetwork.pin;
-
+import com.rubix.TokenTransfer.ProofCredits;
+import com.rubix.TokenTransfer.TokenSender;
+import io.ipfs.api.*;
+import org.apache.log4j.*;
+import org.json.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -25,27 +14,10 @@ import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static com.rubix.Resources.Functions.*;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
-import static com.rubix.NFT.Seller.*;
-import com.rubix.TokenTransfer.ProofCredits;
-import com.rubix.TokenTransfer.TokenSender;
-
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import io.ipfs.api.IPFS;
-import io.ipfs.api.Peer;
+import static com.rubix.Resources.IPFSNetwork.*;
 
 public class APIHandler {
     private static final Logger APILogger = Logger.getLogger(APIHandler.class);
@@ -69,33 +41,30 @@ public class APIHandler {
 
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
-        APILogger.debug("Debug Check 1");
 
 
         JSONObject dataObject = new JSONObject(data);
         String recDID = dataObject.getString("receiverDidIpfsHash");
-        APILogger.debug("Debug Check 2");
 
-//        String dataTableData = readFile(DATA_PATH + "DataTable.json");
-//        boolean isObjectValid = false;
-//        JSONArray dataTable = new JSONArray(dataTableData);
-//        // check value matches any of the data in the data table
-//        for (int i = 0; i < dataTable.length(); i++) {
-//            JSONObject dataTableObject = dataTable.getJSONObject(i);
-//            if (dataTableObject.getString("didHash").equals(recDID)) {
-//                isObjectValid = true;
-//            }
-//        }
-//        if(!isObjectValid)
-//            networkInfo();
+        String dataTableData = readFile(DATA_PATH + "DataTable.json");
+        boolean isObjectValid = false;
+        JSONArray dataTable = new JSONArray(dataTableData);
+        // check value matches any of the data in the data table
+        for (int i = 0; i < dataTable.length(); i++) {
+            JSONObject dataTableObject = dataTable.getJSONObject(i);
+            if (dataTableObject.getString("didHash").equals(recDID)) {
+                isObjectValid = true;
+            }
+        }
+        if(!isObjectValid)
+            networkInfo();
 
-        APILogger.debug("Debug Check 3");
 //        String comments = dataObject.getString("comments");
         JSONArray tokens = dataObject.getJSONArray("tokens");
 //        JSONArray tokenHeader = dataObject.getJSONArray("tokenHeader");
 //        int amount = dataObject.getInt("amount");
 
-        APILogger.debug("Debug Check 4");
+
         JSONObject sendMessage = new JSONObject();
         if (recDID.length() != 46) {
             sendMessage.put("did", senDID);
@@ -120,44 +89,18 @@ public class APIHandler {
 //        detailsObject.put("tokenHeader", tokenHeader);
 //        detailsObject.put("amount", amount);
         dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-        APILogger.debug("Initiating Transfer");
         sendMessage =  TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
 
         APILogger.info(sendMessage);
         return sendMessage;
     }
 
-
-    public static JSONObject sendNft(String data) throws Exception {
-        Functions.pathSet();
-        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        networkInfo();
-        String sellerPeerID = Functions.getPeerID(DATA_PATH + "DID.json");
-        String sellerDID = Functions.getValues(DATA_PATH + "DID.json", "didHash", "peerid", sellerPeerID);
-        JSONObject dataObject = new JSONObject(data);
-        String buyerDID = dataObject.getString("buyerDidIpfsHash");
-        String nftTokenIpfsHash = dataObject.getString("nftToken");
-        JSONObject sendMessage = new JSONObject();
-        if (buyerDID.length() != 46) {
-            sendMessage.put("did", sellerDID);
-            sendMessage.put("tid", "null");
-            sendMessage.put("status", "Failed");
-            sendMessage.put("message", "Invalid Receiver Did Entered");
-            return sendMessage;
-        }
-        if (nftTokenIpfsHash.length() != 46) {
-            sendMessage.put("did", sellerDID);
-            sendMessage.put("tid", "null");
-            sendMessage.put("status", "Failed");
-            sendMessage.put("message", "Invalid NFT Token Entered");
-            return sendMessage;
-        }
-        dataObject.put("pvt", Functions.DATA_PATH + sellerDID + "/PrivateShare.png");
-        sendMessage = Send(dataObject.toString(), ipfs, Functions.SELLER_PORT);
-        APILogger.info(sendMessage);
-        return sendMessage;
-    }
-
+    /**
+     * An API call to mine tokens
+     * @param type Type of quorum Selection
+     * @return JSONObject with status message
+     * @throws Exception throws Exception
+     */
     public static JSONObject create(int type) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -206,9 +149,6 @@ public class APIHandler {
         }
 
         JSONArray transArray = new JSONArray(transactionHistory);
-        for (int i = 0; i < transArray.length(); i++) {
-            transArray.getJSONObject(i).remove("essentialShare");
-        }
         JSONObject obj = new JSONObject();
         for (int i = 0; i < transArray.length(); i++) {
             obj = transArray.getJSONObject(i);
@@ -217,29 +157,6 @@ public class APIHandler {
         }
         APILogger.info("Transaction Details for : " + obj.toString());
         return resultArray;
-    }
-
-    /**
-     * A call to get details of a nft transaction given its ID
-     * @param txnId
-     * @return Transaction Details
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONObject nftTransactionDetails(String txnId) throws JSONException {
-        String nftTansactionHistory = readFile(WALLET_DATA_PATH + "nftTransactionHistory.json");
-        JSONObject obj = new JSONObject();
-        if (nftTansactionHistory.length() == 0) {
-            obj.put("Message", "No transactions found");
-            return obj;
-        }
-        JSONArray nftTransArray = new JSONArray(nftTansactionHistory);
-        for (int i = 0; i < nftTransArray.length(); i++) {
-            obj = nftTransArray.getJSONObject(i);
-            if (obj.get("txn").equals(txnId))
-                break;
-        }
-        APILogger.info("NFT Transaction Details for : " + obj.toString());
-        return obj;
     }
 
     /**
@@ -262,9 +179,6 @@ public class APIHandler {
 
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONArray transArray = new JSONArray(transactionHistory);
-        for (int i = 0; i < transArray.length(); i++) {
-            transArray.getJSONObject(i).remove("essentialShare");
-        }
 
         if(!(transArray.length() == 0)){
             for (int i = 0; i < transArray.length(); i++) {
@@ -287,39 +201,9 @@ public class APIHandler {
         return resultArray;
     }
 
-    public static JSONArray nftInformation() throws JSONException {
-        int txnAsSeller = 0, txnAsBuyer = 0;
-        JSONArray resultArray = new JSONArray();
-        JSONObject accountDetails = new JSONObject();
-        File fileCheck1 = new File(WALLET_DATA_PATH + "nftTransactionHistory.json");
-        if (!fileCheck1.exists()) {
-            accountDetails.put("message", "NFT Transaction History file not found");
-            resultArray.put(accountDetails);
-            return resultArray;
-        }
-        String nftTransactionHistory = readFile(WALLET_DATA_PATH + "nftTransactionHistory.json");
-        JSONArray nftTransArray = new JSONArray(nftTransactionHistory);
-        if (nftTransArray.length() != 0)
-            for (int i = 0; i < nftTransArray.length(); i++) {
-                JSONObject objectParser = nftTransArray.getJSONObject(i);
-                if (objectParser.get("role").equals("Seller")) {
-                    txnAsSeller++;
-                } else {
-                    txnAsBuyer++;
-                }
-            }
-        String sellerPeerID = getPeerID(DATA_PATH + "DID.json");
-        String did = getValues(DATA_PATH + "DID.json", "didHash", "peerid", sellerPeerID);
-        String wid = getValues(DATA_PATH + "DID.json", "walletHash", "peerid", sellerPeerID);
-        accountDetails.put("did", did);
-        accountDetails.put("wid", wid);
-        accountDetails.put("sellerTxn", txnAsSeller);
-        accountDetails.put("buyerTxn", txnAsBuyer);
-        accountDetails.put("totalNftTxn", txnAsBuyer + txnAsSeller);
-        resultArray.put(accountDetails);
-        return resultArray;
-    }
-
+    /**
+     * A method to add and host your DID ans Public share to ipfs
+     */
     public static void addPublicData(){
         String peerID = getPeerID(DATA_PATH + "DID.json");
         String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
@@ -395,9 +279,6 @@ public class APIHandler {
         }
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONArray transArray = new JSONArray(transactionHistory);
-        for (int i = 0; i < transArray.length(); i++) {
-            transArray.getJSONObject(i).remove("essentialShare");
-        }
         if (transArray.length() == 0){
             countResult.put("Message", "No Transactions made yet");
             resultArray.put(countResult);
@@ -413,52 +294,6 @@ public class APIHandler {
             dateTH = c.getTime();
             APILogger.debug("dateFromTxnHistory "+dateTH);
             if (dateTH.after(startDate)&&dateTH.before(endDate))
-                resultArray.put(transArray.getJSONObject(i));
-        }
-        return resultArray;
-    }
-
-    /**
-     * A call to get list of nft transactions between two mentioned dates
-     * @param s Start Date
-     * @param e End Date
-     * @return List of transactions
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray nftTransactionsByDate(String s, String e) throws JSONException, ParseException {
-        JSONArray resultArray = new JSONArray();
-        String strDateFormat = "yyyy-MMM-dd HH:mm:ss";
-        SimpleDateFormat objSDF = new SimpleDateFormat(strDateFormat);
-        Date date1 = (new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy")).parse(s);
-        String startDateString = objSDF.format(date1);
-        Date date2 = (new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy")).parse(e);
-        String endDateString = objSDF.format(date2);
-        JSONObject countResult = new JSONObject();
-        Date startDate = (new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss")).parse(startDateString);
-        Date endDate = (new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss")).parse(endDateString);
-        APILogger.debug("start date is " + startDate);
-        APILogger.debug("end date is " + endDate);
-        File fileCheck1 = new File(WALLET_DATA_PATH + "nftTransactionHistory.json");
-        if (!fileCheck1.exists()) {
-            countResult.put("Message", "File not found");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-        String transactionHistory = readFile(WALLET_DATA_PATH + "nftTransactionHistory.json");
-        JSONArray transArray = new JSONArray(transactionHistory);
-        if (transArray.length() == 0) {
-            countResult.put("Message", "No Transactions made yet");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-        for (int i = 0; i < transArray.length(); i++) {
-            String dateFromTxnHistoryString = transArray.getJSONObject(i).get("Date").toString();
-            Date dateTH = (new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy")).parse(dateFromTxnHistoryString);
-            String dateTHS = objSDF.format(dateTH);
-            Calendar c = Calendar.getInstance();
-            c.setTime(objSDF.parse(dateTHS));
-            dateTH = c.getTime();
-            if (dateTH.after(startDate) && dateTH.before(endDate))
                 resultArray.put(transArray.getJSONObject(i));
         }
         return resultArray;
@@ -485,10 +320,6 @@ public class APIHandler {
         }
         String transactionHistory = readFile(path);
         JSONArray transArray = new JSONArray(transactionHistory);
-        // remove essentialShare from each object of the array
-        for (int i = 0; i < transArray.length(); i++) {
-            transArray.getJSONObject(i).remove("essentialShare");
-        }
         if (transArray.length() == 0){
             countResult.put("Message", "No transactions made yet");
             resultArray.put(countResult);
@@ -504,40 +335,6 @@ public class APIHandler {
         for( int i = 1; i <= n; i++)
             resultArray.put(transArray.getJSONObject(transArray.length() - i));
 
-        return resultArray;
-    }
-
-    /**
-     * A call to get list of last n nft transactions
-     * @param n Count
-     * @return List of transactions
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray nftTransactionsByCount(int n) throws JSONException {
-        JSONObject countResult = new JSONObject();
-        JSONArray resultArray = new JSONArray();
-        String path = WALLET_DATA_PATH + "nftTransactionHistory.json";
-        File transFile = new File(path);
-        if (!transFile.exists()) {
-            transFile.delete();
-            countResult.put("Message", "File not found");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-        String transactionHistory = readFile(path);
-        JSONArray transArray = new JSONArray(transactionHistory);
-        if (transArray.length() == 0) {
-            countResult.put("Message", "No transactions made yet");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-        if (n >= transArray.length()) {
-            for (int j = transArray.length() - 1; j >= 0; j--)
-                resultArray.put(transArray.get(j));
-            return resultArray;
-        }
-        for (int i = 1; i <= n; i++)
-            resultArray.put(transArray.getJSONObject(transArray.length() - i));
         return resultArray;
     }
 
@@ -565,12 +362,6 @@ public class APIHandler {
 
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONArray transArray = new JSONArray(transactionHistory);
-        for (int i = 0; i < transArray.length(); i++) {
-            transArray.getJSONObject(i).remove("essentialShare");
-        }
-        for (int i = 0; i < transArray.length(); i++) {
-            transArray.getJSONObject(i).remove("essentialShare");
-        }
         if (transArray.length() == 0){
             resultArray.put(countResult);
             return resultArray;
@@ -582,40 +373,6 @@ public class APIHandler {
             resultArray.put(object);
         }
 
-        return resultArray;
-    }
-
-
-    /**
-     * A call to get list nft transactions within a range
-     * @param start start index
-     * @param end end index
-     * @return List of transactions
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray nftTransactionsByRange(int start, int end) throws JSONException {
-        JSONObject countResult = new JSONObject();
-        JSONArray resultArray = new JSONArray();
-        if (start <= 0 || end <= 0) {
-            countResult.put("Message", "Count can't be null or negative");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-        File transactionFile = new File(WALLET_DATA_PATH + "nftTransactionHistory.json");
-        if (!transactionFile.exists()) {
-            resultArray.put(countResult);
-            return resultArray;
-        }
-        String transactionHistory = Functions.readFile(WALLET_DATA_PATH + "nftTransactionHistory.json");
-        JSONArray transArray = new JSONArray(transactionHistory);
-        if (transArray.length() == 0) {
-            resultArray.put(countResult);
-            return resultArray;
-        }
-        for (int i = start; i < end; i++) {
-            JSONObject object = transArray.getJSONObject(i);
-            resultArray.put(object);
-        }
         return resultArray;
     }
 
@@ -636,9 +393,6 @@ public class APIHandler {
 
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONArray transArray = new JSONArray(transactionHistory);
-        for (int i = 0; i < transArray.length(); i++) {
-            transArray.getJSONObject(i).remove("essentialShare");
-        }
         JSONObject obj;
         JSONArray resultArray = new JSONArray();
         for (int i = 0; i < transArray.length(); i++) {
@@ -655,30 +409,6 @@ public class APIHandler {
         return resultArray;
     }
 
-    /**
-     * A call to get list nft transactions with the mentioned comment
-     * @param comment Comment
-     * @return List of transactions
-     * @throws JSONException handles JSON Exceptions
-     */
-
-    public static JSONArray nftTransactionsByComment(String comment) throws JSONException {
-        String transactionHistory = readFile(WALLET_DATA_PATH + "nftTransactionHistory.json");
-        JSONArray transArray = new JSONArray(transactionHistory);
-        JSONArray resultArray = new JSONArray();
-        for (int i = 0; i < transArray.length(); i++) {
-            JSONObject obj = transArray.getJSONObject(i);
-            if (obj.get("comment").equals(comment))
-                resultArray.put(obj);
-        }
-        if (resultArray.length() < 1) {
-            JSONObject returnObject = new JSONObject();
-            returnObject.put("Message", "No transactions found with the comment " + comment);
-            resultArray.put(returnObject);
-        }
-        return resultArray;
-    }
-
 
     /**
      * A call to get list transactions made by the user with the input Did
@@ -689,9 +419,6 @@ public class APIHandler {
     public static JSONArray transactionsByDID(String did) throws JSONException {
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONArray transArray = new JSONArray(transactionHistory);
-        for (int i = 0; i < transArray.length(); i++) {
-            transArray.getJSONObject(i).remove("essentialShare");
-        }
         JSONArray resultArray = new JSONArray();
         for (int i = 0; i < transArray.length(); i++) {
             JSONObject didObject = transArray.getJSONObject(i);
@@ -699,23 +426,6 @@ public class APIHandler {
                resultArray.put(didObject);
         }
 
-        return resultArray;
-    }
-    /**
-     * A call to get list nft transactions made by the user with the input Did
-     * @param did DID of the contact
-     * @return List of transactions committed with the user DID
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray nftTransactionsByDID(String did) throws JSONException {
-        String transactionHistory = readFile(WALLET_DATA_PATH + "nftTransactionHistory.json");
-        JSONArray transArray = new JSONArray(transactionHistory);
-        JSONArray resultArray = new JSONArray();
-        for (int i = 0; i < transArray.length(); i++) {
-            JSONObject didObject = transArray.getJSONObject(i);
-            if (didObject.get("sellerDID").equals(did) || didObject.get("buyerDID").equals(did))
-                resultArray.put(didObject);
-        }
         return resultArray;
     }
 
@@ -844,32 +554,6 @@ public class APIHandler {
         }
 
         return new JSONArray().put(datesTxn);
-    }
-
-    /**
-     * A call to list out number of nft transactions made per day
-     * @return List of transactions committed on every date
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray nftTxnPerDay() throws JSONException {
-        String dataTable = readFile(WALLET_DATA_PATH + "nftTransactionHistory.json");
-        JSONArray dataArray = new JSONArray(dataTable);
-        HashSet<String> dateSet = new HashSet<>();
-        for (int i = 0; i < dataArray.length(); i++)
-            dateSet.add(dataArray.getJSONObject(i).getString("Date"));
-        JSONObject datesTxn = new JSONObject();
-        Iterator<String> dateIterator = dateSet.iterator();
-        while (dateIterator.hasNext()) {
-            String date = dateIterator.next();
-            int count = 0;
-            for (int j = 0; j < dataArray.length(); j++) {
-                JSONObject object = dataArray.getJSONObject(j);
-                if (date.equals(object.getString("Date")))
-                    count++;
-            }
-            datesTxn.put(date, count);
-        }
-        return (new JSONArray()).put(datesTxn);
     }
 
     public static JSONObject syncNetworkNodes() throws JSONException, IOException {
