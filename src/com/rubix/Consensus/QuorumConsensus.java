@@ -78,7 +78,7 @@ public class QuorumConsensus implements Runnable {
                 qstReq = dataReq.readLine();
                 if (qstReq.contains("qstcmrequest")) {
 
-                    QuorumConsensusLogger.debug("Sender reqesting QuorumSignedTransactions.json and CreditMapping.json: " + qstReq);
+                    QuorumConsensusLogger.debug("Sender reqesting QuorumSignedTransactions and CreditMapping.json: " + qstReq);
 
                     File creditsMapping = new File(WALLET_DATA_PATH + "CreditMapping.json");
                     if(!creditsMapping.exists()) {
