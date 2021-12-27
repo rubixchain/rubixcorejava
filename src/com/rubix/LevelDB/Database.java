@@ -7,6 +7,7 @@ import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 
@@ -370,5 +371,118 @@ public class DataBase {
         }
         
     }
+
+    public static int getTxnHisDBLength()
+    {
+        List<String> tempList = new ArrayList<String>();
+        try {
+            DBIterator iteratorTH= transactionHistory.iterator();
+            while(iteratorTH.hasNext())
+            {
+                byte[] key=iteratorTH.peekNext().getKey();
+                String tempKey= new String(key);
+                tempList.add(tempKey);
+                iteratorTH.next();
+            }
+        } catch (Exception e) {
+            //TODO: handle exception
+        }
+
+        return tempList.size();
+    }
+
+    public static int getEssShareDBLength()
+    {
+        List<String> tempList = new ArrayList<String>();
+        try {
+            DBIterator iteratorES= essentialShare.iterator();
+            while(iteratorES.hasNext())
+            {
+                byte[] key=iteratorES.peekNext().getKey();
+                String tempKey= new String(key);
+                tempList.add(tempKey);
+                iteratorES.next();
+            }
+        } catch (Exception e) {
+            //TODO: handle exception
+        }
+
+        return tempList.size();
+    }
+
+    public static int getQstDBLength()
+    {
+        List<String> tempList = new ArrayList<String>();
+        try {
+            DBIterator iteratorQst= quorumSignedTransaction.iterator();
+            while(iteratorQst.hasNext())
+            {
+                byte[] key=iteratorQst.peekNext().getKey();
+                String tempKey= new String(key);
+                tempList.add(tempKey);
+                iteratorQst.next();
+            }
+        } catch (Exception e) {
+            //TODO: handle exception
+        }
+
+        return tempList.size();
+    }
+
+    public static int getQsDBLength()
+    {
+        List<String> tempList = new ArrayList<String>();
+        try {
+            DBIterator iteratorQs= quorumSign.iterator();
+            while(iteratorQs.hasNext())
+            {
+                byte[] key=iteratorQs.peekNext().getKey();
+                String tempKey= new String(key);
+                tempList.add(tempKey);
+                iteratorQs.next();
+            }
+        } catch (Exception e) {
+            //TODO: handle exception
+        }
+
+        return tempList.size();
+    }
+
+     public static int checkTransactionHistoryDBEmpty()
+     {
+         int result=0;
+                 
+         try {
+            org.json.JSONArray transactionHistoryArray= new org.json.JSONArray(getAllTxn());
+            if(transactionHistoryArray.length()==0)
+            {
+                result=1;
+            }
+            
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+         return result;
+     }
+
+     public static int checkQuorumSignedTxnDBEmpty()
+     {
+         int result=0;
+        try {
+            org.json.JSONArray transactionHistoryArray= new org.json.JSONArray(getAllQstData());
+            if(transactionHistoryArray.length()==0)
+            {
+                result=1;
+            }
+            
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+         return result;
+     }
 
 }
