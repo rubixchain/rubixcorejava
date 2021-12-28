@@ -465,8 +465,8 @@ public class Seller {
         nftTransactionRecord.put("amount", amount);
         nftTransactionRecord.put("rbxTokens", rbxTokens);
         nftTransactionRecord.put("nftToken", nftTokenIpfsHash);
-        nftTransactionRecord.put("eKey", eKey);
-        nftTransactionRecord.put("dKey", dKey);
+        //nftTransactionRecord.put("eKey", eKey);
+        //nftTransactionRecord.put("dKey", dKey);
         nftTransactionRecord.put("txn", tid);
         nftTransactionRecord.put("quorumList", signedQuorumList);
         nftTransactionRecord.put("Date", Functions.getCurrentUtcTime());
