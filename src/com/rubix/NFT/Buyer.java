@@ -179,7 +179,7 @@ public class Buyer {
             rbxTokenDetails.put("rbxTokenChains", rbxTokensChainsPushed);
             rbxTokenDetails.put("rbxTokenHeader", rbxTokenHeader);
             String pvt = Functions.DATA_PATH+ buyerDidIpfsHash + "PrivateShare.png";
-            String buyerSign = Functions.getSignFromShares(pvt, Functions.calculateHash(rbxTokens + rbxTokenHeader + rbxTokensChainsPushed.toString(), "SHA3-256"));
+            String buyerSign = Functions.getSignFromShares(pvt, Functions.calculateHash(rbxTokens.toString() + rbxTokenHeader.toString() + rbxTokensChainsPushed.toString(), "SHA3-256"));
             JSONObject rbxData = new JSONObject();
             rbxData.put("rbxTokenDetails", rbxTokenDetails);
             rbxData.put("authBuyerBySeller", buyerSign);
@@ -342,7 +342,7 @@ public class Buyer {
                         Functions.updateJSON("add", Functions.WALLET_DATA_PATH + "nftTransactionHistory.json", nftTransactionHistoryEntry.toString());
                         int k;
                         for (k = 0; k < rbxTokens.length(); k++)
-                            Files.deleteIfExists(Paths.get(Functions.TOKENS_PATH+rbxTokens.get(i), new String[0]));
+                            Files.deleteIfExists(Paths.get(Functions.TOKENS_PATH+rbxTokens.get(k), new String[0]));
                         for (k = 0; k < amount; k++)
                             Functions.updateJSON("remove", Functions.PAYMENTS_PATH+rbxTokenHeader.getString(k), rbxTokens.getString(k));
                         BuyerLogger.info("Transaction ID: " + tid + "Transaction Successful");
