@@ -27,10 +27,11 @@ public class sortBasedOnDate implements Comparator<JSONObject>{
         catch(JSONException e)
         {
             e.printStackTrace();
+
         }
         catch(ParseException e)
         {
-            e.printStackTrace();
+            System.out.println("Exception : "+e.toString());
         }
         return compare;
     }
