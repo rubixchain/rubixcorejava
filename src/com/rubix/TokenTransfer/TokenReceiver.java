@@ -2,8 +2,10 @@ package com.rubix.TokenTransfer;
 
 import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
+
 import com.rubix.LevelDb.DataBase;
 import com.rubix.Resources.Functions;
+
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
@@ -18,12 +20,13 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.*;
@@ -71,6 +74,7 @@ public class TokenReceiver {
             long startTime = System.currentTimeMillis();
 
             senderPeerID = input.readLine();
+            syncDataTable(null, senderPeerID);
             String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
             String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", senderPeerID);
 
@@ -108,32 +112,24 @@ public class TokenReceiver {
                 ss.close();
                 return APIResponse.toString();
             }
-            TokenReceiverLogger.debug("Sender details authenticated");
+           // TokenReceiverLogger.debug("Sender details authenticated");
             output.println("200");
 
             String data = input.readLine();
-            TokenReceiverLogger.debug("Token details received: " + data);
-            JSONArray TokenDetailsArray = new JSONArray(data);
-            JSONArray tokens = TokenDetailsArray.getJSONObject(0).getJSONArray("token");
-            JSONArray tokenChains = TokenDetailsArray.getJSONObject(0).getJSONArray("tokenChain");
-            String getCIDipfsHash = TokenDetailsArray.getJSONObject(1).getString("ipfsHash");
-            TokenReceiverLogger.debug("Checking providers for: " + getCIDipfsHash);
-            ArrayList dhtOwnersList = dhtOwnerCheck(getCIDipfsHash);
-            TokenReceiverLogger.debug("Providers: " + dhtOwnersList);
-            TokenReceiverLogger.debug("IPFS get of consensusFile: " + getCIDipfsHash);
-            String consensusID = get(getCIDipfsHash, ipfs);
-
-
+           // TokenReceiverLogger.debug("Token details received: ");
+            JSONObject TokenDetails = new JSONObject(data);
+            JSONArray tokens = TokenDetails.getJSONArray("token");
+            JSONArray tokenChains = TokenDetails.getJSONArray("tokenChain");
+            JSONArray tokenHeader = TokenDetails.getJSONArray("tokenHeader");
             int tokenCount = tokens.length();
 
-            String senderToken = TokenDetailsArray.getJSONObject(0).toString();
+            String senderToken = TokenDetails.toString();
 
-            String consensusIdCompare = calculateHash(senderToken, "SHA3-256");
-//            writeToFile(LOGGER_PATH + "consensusID", consensusID, false);
-//            String consensusIDIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "consensusID", ipfs);
-//            deleteFile(LOGGER_PATH + "consensusID");
-
-
+            
+            String consensusID = calculateHash(senderToken, "SHA3-256");
+            writeToFile(LOGGER_PATH+"consensusID", consensusID, false);
+            String consensusIDIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "consensusID", ipfs);
+            deleteFile(LOGGER_PATH+"consensusID");
 
             //Check IPFS get for all Tokens
             int ipfsGetFlag = 0;
@@ -146,59 +142,42 @@ public class TokenReceiver {
                 allTokenContent.add(TokenContent);
                 ipfsGetFlag++;
             }
-            if(!consensusID.equals(consensusIdCompare)){
-                String errorMessage = "Consensus ID not unique: Hashes do not match - " + "Sent " +  consensusID + " Recalculated " + consensusIdCompare;
-                output.println("420");
-                APIResponse.put("did", senderDidIpfsHash);
-                APIResponse.put("tid", "null");
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", errorMessage);
-                TokenReceiverLogger.debug(errorMessage);
-                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-                output.close();
-                input.close();
-                sk.close();
-                ss.close();
-                return APIResponse.toString();
-            }
-            else if(!(dhtOwnersList.size() == 1 && dhtOwnersList.contains(senderPeerID))){
-                String errorMessage = "Consensus ID not unique: " + dhtOwnersList.size() + " owns the hash " + dhtOwnersList;
-                output.println("421");
-                APIResponse.put("did", senderDidIpfsHash);
-                APIResponse.put("tid", "null");
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", errorMessage);
-                TokenReceiverLogger.debug(errorMessage);
-                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-                output.close();
-                input.close();
-                sk.close();
-                ss.close();
-                return APIResponse.toString();
-            }
-            else if(!(ipfsGetFlag == tokenCount)){
-                String errorMessage = "Tokens not verified";
-                output.println("422");
-                APIResponse.put("did", senderDidIpfsHash);
-                APIResponse.put("tid", "null");
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", errorMessage);
-                TokenReceiverLogger.debug(errorMessage);
-                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-                output.close();
-                input.close();
-                sk.close();
-                ss.close();
-                return APIResponse.toString();
-            }
-
             repo(ipfs);
+
+            if (!IPFSNetwork.dhtEmpty(consensusIDIPFSHash, ipfs)) {
+            	  TokenReceiverLogger.debug("consensus ID not unique" + consensusIDIPFSHash);
+                  output.println("420");
+                  APIResponse.put("did", senderDidIpfsHash);
+                  APIResponse.put("tid", "null");
+                  APIResponse.put("status", "Failed");
+                  APIResponse.put("message", "Consensus ID not unique");
+                  TokenReceiverLogger.info("Consensus ID not unique");
+                  IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                  output.close();
+                  input.close();
+                  sk.close();
+                  ss.close();
+                  return APIResponse.toString();
+            }
+            if (!(ipfsGetFlag == tokenCount)) {
+            	  output.println("421");
+                  APIResponse.put("did", senderDidIpfsHash);
+                  APIResponse.put("tid", "null");
+                  APIResponse.put("status", "Failed");
+                  APIResponse.put("message", "Tokens not verified");
+                  TokenReceiverLogger.info("Tokens not verified");
+                  IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                  output.close();
+                  input.close();
+                  sk.close();
+                  ss.close();
+                  return APIResponse.toString();
+            }
+            
             output.println("200");
 
 
             String senderDetails = input.readLine();
-
-
             JSONObject SenderDetails = new JSONObject(senderDetails);
             String senderSignature = SenderDetails.getString("sign");
             String tid = SenderDetails.getString("tid");
@@ -213,20 +192,21 @@ public class TokenReceiver {
 
             TokenReceiverLogger.debug("Consensus Status:  " + Status);
 
+            TokenReceiverLogger.debug("Verifying Quorum ...  ");
+            TokenReceiverLogger.debug("Please wait, this might take a few seconds");
+            
             if (!Status.equals("Consensus Failed")) {
                 boolean yesQuorum = false;
                 if (Status.equals("Consensus Reached")) {
-//                String QuorumDetails = input.readLine();
-
-//                    TokenReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
+                	TokenReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
                     quorumSignatures = new JSONObject(QuorumDetails);
                     int alphaSize = quorumSignatures.length() - 10;
-
-//                    String selectQuorumHash = calculateHash(senderToken, "SHA3-256");
-
-                    String verifyQuorumHash = calculateHash(getCIDipfsHash.concat(receiverDidIpfsHash), "SHA3-256");
-//                    TokenReceiverLogger.debug("Quorum Hash on Receiver Side " + verifyQuorumHash);
-//                    TokenReceiverLogger.debug("Quorum Signatures length : " + quorumSignatures.length());
+                    String selectQuorumHash = calculateHash(senderToken, "SHA3-256");
+                    String verifyQuorumHash = calculateHash(selectQuorumHash.concat(receiverDidIpfsHash), "SHA3-256");
+                    TokenReceiverLogger.debug("1: " + selectQuorumHash);
+                    TokenReceiverLogger.debug("2: " + receiverDidIpfsHash);
+                    TokenReceiverLogger.debug("Quorum Hash on Receiver Side " + verifyQuorumHash);
+                    TokenReceiverLogger.debug("Quorum Signatures length : " + quorumSignatures.length());
 
                     Iterator<String> keys = quorumSignatures.keys();
                     while (keys.hasNext()) {
@@ -235,15 +215,10 @@ public class TokenReceiver {
                     }
 
                     for (String quorumDidIpfsHash : quorumDID) {
+                    	syncDataTable(quorumDidIpfsHash, null);
                         String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", quorumDidIpfsHash);
 
-                        File quorumDataFolder = new File(DATA_PATH + quorumDidIpfsHash + "/");
-                        if (!quorumDataFolder.exists()) {
-                            quorumDataFolder.mkdirs();
-                            IPFSNetwork.getImage(quorumDidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/DID.png");
-                            IPFSNetwork.getImage(quorumWidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/PublicShare.png");
-//                            TokenReceiverLogger.debug("Quorum Data " + quorumDidIpfsHash + " Added");
-                        }
+                        nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
                     }
 
                     for (int i = 0; i < quorumSignatures.length(); i++) {
@@ -271,21 +246,20 @@ public class TokenReceiver {
                 detailsForVerify.put("signature", senderSignature);
 
                 boolean yesSender = Authenticate.verifySignature(detailsForVerify.toString());
-//                TokenReceiverLogger.debug("Sender auth hash " + hash);
-//                TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + "Sender Auth : " + yesSender);
+                TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + "Sender Auth : " + yesSender);
                 if (!(yesSender && yesQuorum)) {
-                    output.println("420");
-                    APIResponse.put("did", senderDidIpfsHash);
-                    APIResponse.put("tid", tid);
-                    APIResponse.put("status", "Failed");
-                    APIResponse.put("message", "Sender / Quorum not verified");
-                    TokenReceiverLogger.info("Sender / Quorum not verified");
-                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-                    output.close();
-                    input.close();
-                    sk.close();
-                    ss.close();
-                    return APIResponse.toString();
+                	 output.println("420");
+                     APIResponse.put("did", senderDidIpfsHash);
+                     APIResponse.put("tid", tid);
+                     APIResponse.put("status", "Failed");
+                     APIResponse.put("message", "Sender / Quorum not verified");
+                     TokenReceiverLogger.info("Sender / Quorum not verified");
+                     IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                     output.close();
+                     input.close();
+                     sk.close();
+                     ss.close();
+                     return APIResponse.toString();
                 }
 
                 repo(ipfs);
@@ -364,9 +338,10 @@ public class TokenReceiver {
                         APIResponse.put("tid", tid);
                         APIResponse.put("status", "Success");
                         APIResponse.put("tokens", tokens);
+                        APIResponse.put("tokenHeader", tokenHeader);
                         APIResponse.put("comment", comment);
                         APIResponse.put("message", "Transaction Successful");
-//                        TokenReceiverLogger.info(" Transaction Successful");
+                        TokenReceiverLogger.info(" Transaction Successful");
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
                         output.close();
                         input.close();

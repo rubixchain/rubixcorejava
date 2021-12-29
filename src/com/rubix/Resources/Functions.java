@@ -1,6 +1,5 @@
 package com.rubix.Resources;
 
-import static com.rubix.Resources.APIHandler.networkInfo;
 import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.forwardCheck;
@@ -15,8 +14,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -42,7 +39,6 @@ import org.json.JSONObject;
 
 import io.ipfs.api.IPFS;
 
-
 public class Functions {
 
     public static boolean mutex = false;
@@ -52,7 +48,8 @@ public class Functions {
     public static String LOGGER_PATH = "";
     public static String WALLET_DATA_PATH = "";
     public static String PAYMENTS_PATH = "";
-    public static int RECEIVER_PORT, GOSSIP_SENDER, GOSSIP_RECEIVER, QUORUM_PORT, SENDER2Q1, SENDER2Q2, SENDER2Q3, SENDER2Q4, SENDER2Q5, SENDER2Q6, SENDER2Q7;
+    public static int RECEIVER_PORT, GOSSIP_SENDER, GOSSIP_RECEIVER, QUORUM_PORT, SENDER2Q1, SENDER2Q2, SENDER2Q3,
+            SENDER2Q4, SENDER2Q5, SENDER2Q6, SENDER2Q7;
     public static int QUORUM_COUNT;
     public static int SEND_PORT;
     public static int IPFS_PORT;
@@ -122,23 +119,20 @@ public class Functions {
             SYNC_IP = pathsArray.getJSONObject(2).getString("SYNC_IP");
             EXPLORER_IP = pathsArray.getJSONObject(2).getString("EXPLORER_IP");
             USERDID_IP = pathsArray.getJSONObject(2).getString("USERDID_IP");
-            ADVISORY_IP=pathsArray.getJSONObject(2).getString("ADVISORY_IP");
+            ADVISORY_IP = pathsArray.getJSONObject(2).getString("ADVISORY_IP");
 
             CONSENSUS_STATUS = pathsArray.getJSONObject(3).getBoolean("CONSENSUS_STATUS");
             QUORUM_COUNT = pathsArray.getJSONObject(3).getInt("QUORUM_COUNT");
 
             QUORUM_MEMBERS = pathsArray.getJSONObject(4);
 
-            BOOTSTRAPS =pathsArray.getJSONArray(5);
-
+            BOOTSTRAPS = pathsArray.getJSONArray(5);
 
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
 
-
-    //? 
     public static void nodeData(String did, String wid, IPFS ipfs) throws IOException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         File dataFolder = new File(DATA_PATH + did + "/");
@@ -178,7 +172,6 @@ public class Functions {
         }
     }
 
-
     /**
      * This method gets the currently logged in username
      *
@@ -213,16 +206,15 @@ public class Functions {
         return lineID;
     }
 
-
     /**
-     * This method calculates different types of hashes as mentioned in the passed parameters for the mentioned message
+     * This method calculates different types of hashes as mentioned in the passed
+     * parameters for the mentioned message
      *
      * @param message   Input string to be hashed
      * @param algorithm Specification of the algorithm used for hashing
      * @return (String) hash
      */
 
-    //? rubix-crypto
     public static String calculateHash(String message, String algorithm) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         MessageDigest digest = null;
@@ -283,12 +275,12 @@ public class Functions {
         StringBuilder outputHexString = new StringBuilder();
         for (byte b : inputHash) {
             String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) outputHexString.append('0');
+            if (hex.length() == 1)
+                outputHexString.append('0');
             outputHexString.append(hex);
         }
         return outputHexString.toString();
     }
-
 
     /**
      * This method returns the content of the file passed to it
@@ -311,14 +303,15 @@ public class Functions {
         return fileContent.toString();
     }
 
-
     /**
      * This method writes the mentioned data into the file passed to it
-     * This also allows to take a decision on whether or not to append the data to the already existing content in the file
+     * This also allows to take a decision on whether or not to append the data to
+     * the already existing content in the file
      *
      * @param filePath     Location of the file to be read and written into
      * @param data         Data to be added
-     * @param appendStatus Decides whether or not to append the new data into the already existing data
+     * @param appendStatus Decides whether or not to append the new data into the
+     *                     already existing data
      */
 
     public synchronized static void writeToFile(String filePath, String data, Boolean appendStatus) {
@@ -358,7 +351,6 @@ public class Functions {
         String p1 = intArrayToStr(p1Sign);
         return p1;
     }
-
 
     /**
      * This function will sign on JSON data with private share
@@ -401,9 +393,7 @@ public class Functions {
         } catch (JSONException e) {
             FunctionsLogger.error("JSONException Occurred", e);
         }
-
     }
-
 
     /**
      * This function converts any integer to its binary form
@@ -491,7 +481,8 @@ public class Functions {
     }
 
     /**
-     * This method gets you a required data from a JSON file with a tag to be compared with
+     * This method gets you a required data from a JSON file with a tag to be
+     * compared with
      *
      * @param filePath Location of the JSON file
      * @param get      Data to be fetched from the file
@@ -528,7 +519,8 @@ public class Functions {
     }
 
     /**
-     * This function calculates the minimum number of quorum peers required for consensus to work
+     * This function calculates the minimum number of quorum peers required for
+     * consensus to work
      *
      * @return Minimum number of quorum count for consensus to work
      */
@@ -537,14 +529,14 @@ public class Functions {
     }
 
     /**
-     * This function calculates the minimum number of quorum peers required for consensus to work
+     * This function calculates the minimum number of quorum peers required for
+     * consensus to work
      *
      * @return Minimum number of quorum count for consensus to work
      */
     public static int minQuorum(int count) {
         return (((count - 1) / 3) * 2) + 1;
     }
-
 
     /**
      * This method checks if Quorum is available for consensus
@@ -556,13 +548,14 @@ public class Functions {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         ArrayList<String> peers = new ArrayList<>();
 
-        if (quorum.length()>=minQuorum(size)) {
+        if (quorum.length() >= minQuorum(size)) {
             for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
                     quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
                     if (checkSwarmConnect().contains(quorumPeer)) {
                         peers.add(quorumPeer);
+                        FunctionsLogger.debug(quorumPeer + " added to list");
                     }
                 } catch (JSONException e) {
                     FunctionsLogger.error("JSON Exception Occurred", e);
@@ -570,8 +563,8 @@ public class Functions {
                 }
             }
 
-                FunctionsLogger.debug("Quorum Peer IDs : " + peers);
-                return peers;
+            FunctionsLogger.debug("Quorum Peer IDs : " + peers);
+            return peers;
         } else
             return null;
     }
@@ -580,29 +573,26 @@ public class Functions {
      * This method is to connect to quorum nodes for consensus
      *
      * @param quorum JSONArray is list of quorum nodes didHash
-     * @param ipfs      ipfs instance
+     * @param ipfs   ipfs instance
      */
-
 
     public static void QuorumSwarmConnect(JSONArray quorum, IPFS ipfs) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
-            for (int i = 0; i < quorum.length(); i++) {
-                String quorumPeer;
-                try {
-                    quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
+        for (int i = 0; i < quorum.length(); i++) {
+            String quorumPeer;
+            try {
+                quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
 
-                    IPFSNetwork.swarmConnectP2P(quorumPeer,ipfs);
+                IPFSNetwork.swarmConnectP2P(quorumPeer, ipfs);
 
-                } catch (JSONException e) {
-                    FunctionsLogger.error("JSON Exception Occurred", e);
-                    e.printStackTrace();
-                }
+            } catch (JSONException e) {
+                FunctionsLogger.error("JSON Exception Occurred", e);
+                e.printStackTrace();
             }
+        }
 
     }
-
-
 
     /**
      * This method identifies the Peer ID of the system by IPFS during installation
@@ -610,7 +600,6 @@ public class Functions {
      * @param filePath Location of the file in which your IPFS Peer ID is stored
      * @return Your system's Peer ID assigned by IPFS
      */
-
 
     public static String getPeerID(String filePath) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -629,8 +618,6 @@ public class Functions {
         return peerid;
     }
 
-
-
     public static int[] getPrivatePosition(int[] positions, int[] privateArray) {
         int[] PrivatePosition = new int[positions.length];
         for (int k = 0; k < positions.length; k++) {
@@ -641,7 +628,8 @@ public class Functions {
         return PrivatePosition;
     }
 
-    public static JSONObject randomPositions(String role, String hash, int numberOfPositions, int[] pvt1) throws JSONException {
+    public static JSONObject randomPositions(String role, String hash, int numberOfPositions, int[] pvt1)
+            throws JSONException {
 
         int u = 0, l = 0, m = 0;
         int[] hashCharacters = new int[256];
@@ -698,18 +686,19 @@ public class Functions {
      * @param positionsCount  Number of positions required
      * @return Extended array of positions
      */
-//    public static int[] finalPositions(int[] randomPositions, int positionsCount) {
-//        int[] finalPositions = new int[positionsCount * 64];
-//        int u = 0;
-//        for (int k = 0; k < positionsCount; k++) {
-//            for (int p = 0; p < 64; p++) {
-//                finalPositions[u] = randomPositions[k];
-//                randomPositions[k]++;
-//                u++;
-//            }
-//        }
-//        return finalPositions;
-//    }
+    // public static int[] finalPositions(int[] randomPositions, int positionsCount)
+    // {
+    // int[] finalPositions = new int[positionsCount * 64];
+    // int u = 0;
+    // for (int k = 0; k < positionsCount; k++) {
+    // for (int p = 0; p < 64; p++) {
+    // finalPositions[u] = randomPositions[k];
+    // randomPositions[k]++;
+    // u++;
+    // }
+    // }
+    // return finalPositions;
+    // }
 
     /**
      * This function deletes the mentioned file
@@ -727,69 +716,50 @@ public class Functions {
 
     }
 
-
-//    /**
-//     * This functions picks the required number of quorum members from the mentioned file
-//     *
-//     * @param filePath Location of the file
-//     * @param hash     Data from which positions are chosen
-//     * @return List of chosen members from the file
-//     */
-//    public static ArrayList<String> quorumChooser(String filePath, String hash) {
-//        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-//        ArrayList<String> quorumList = new ArrayList();
-//        try {
-//            String fileContent = readFile(filePath);
-//            JSONArray blockHeight = new JSONArray(fileContent);
-//
-//            int[] hashCharacters = new int[256];
-//            var randomPositions = new ArrayList<Integer>();
-//            HashSet<Integer> positionSet = new HashSet<>();
-//            for (int k = 0; positionSet.size() != 7; k++) {
-//                hashCharacters[k] = Character.getNumericValue(hash.charAt(k));
-//                randomPositions.add((((2402 + hashCharacters[k]) * 2709) + ((k + 2709) + hashCharacters[(k)])) % blockHeight.length());
-//                positionSet.add(randomPositions.get(k));
-//            }
-//
-//            for (Integer integer : positionSet)
-//                quorumList.add(blockHeight.getJSONObject(integer).getString("peer-id"));
-//        } catch (JSONException e) {
-//            FunctionsLogger.error("JSON Exception Occurred", e);
-//            e.printStackTrace();
-//        }
-//        return quorumList;
-//    }
+    // /**
+    // * This functions picks the required number of quorum members from the
+    // mentioned file
+    // *
+    // * @param filePath Location of the file
+    // * @param hash Data from which positions are chosen
+    // * @return List of chosen members from the file
+    // */
+    // public static ArrayList<String> quorumChooser(String filePath, String hash) {
+    // PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+    // ArrayList<String> quorumList = new ArrayList();
+    // try {
+    // String fileContent = readFile(filePath);
+    // JSONArray blockHeight = new JSONArray(fileContent);
+    //
+    // int[] hashCharacters = new int[256];
+    // var randomPositions = new ArrayList<Integer>();
+    // HashSet<Integer> positionSet = new HashSet<>();
+    // for (int k = 0; positionSet.size() != 7; k++) {
+    // hashCharacters[k] = Character.getNumericValue(hash.charAt(k));
+    // randomPositions.add((((2402 + hashCharacters[k]) * 2709) + ((k + 2709) +
+    // hashCharacters[(k)])) % blockHeight.length());
+    // positionSet.add(randomPositions.get(k));
+    // }
+    //
+    // for (Integer integer : positionSet)
+    // quorumList.add(blockHeight.getJSONObject(integer).getString("peer-id"));
+    // } catch (JSONException e) {
+    // FunctionsLogger.error("JSON Exception Occurred", e);
+    // e.printStackTrace();
+    // }
+    // return quorumList;
+    // }
 
     /**
-     * This function is to be initially called to setup the environment of your project
+     * This function is to be initially called to setup the environment of your
+     * project
      */
     public static void launch() {
         pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        int syncFlag = 0;
-        try {
-            executeIPFSCommands("ipfs daemon --enable-gc");
-            if (!SYNC_IP.contains("127.0.0.1")) {
-                networkInfo();
-                syncFlag = 1;
-            }
+        executeIPFSCommands("ipfs daemon --enable-gc");
 
-        } catch (MalformedURLException e) {
-            FunctionsLogger.error("MalformedURL Exception Occurred", e);
-            e.printStackTrace();
-        } catch (ProtocolException e) {
-            FunctionsLogger.error("Protocol Exception Occurred", e);
-            e.printStackTrace();
-        } catch (IOException e) {
-            FunctionsLogger.error("IO Exception Occurred", e);
-            e.printStackTrace();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        if (syncFlag == 1)
-            FunctionsLogger.info("Synced Successfully!");
-        else
-            FunctionsLogger.info("Not synced! Try again after sometime.");
+        FunctionsLogger.debug("Enabled ipfs GC");
     }
 
     /**
@@ -798,7 +768,6 @@ public class Functions {
      * @return A message
      * @throws JSONException handle all JSON Exceptions
      */
-    //? self-test
     public static String checkDirectory() throws JSONException {
         setDir();
         File mainDir = new File(dirPath);
@@ -833,7 +802,8 @@ public class Functions {
         File quorumSignedTransaction= new File(WALLET_DATA_PATH+"quorumSignedTransaction");
         File quorumSign= new File(WALLET_DATA_PATH+"quorumSign");
 
-        if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists() || !walletDataFolder.exists()) {
+        if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists()
+                || !walletDataFolder.exists()) {
             dataFolder.delete();
             loggerFolder.delete();
             tokenChainsFolder.delete();
@@ -914,8 +884,8 @@ public class Functions {
      * This method is used generate new token given level and tokenNumber
      * New token is the multi hash of hash of token number and hex of level
      *
-     * @param level level in token tree
-     * @param tokenNumber  unique number for particular level in token tree
+     * @param level       level in token tree
+     * @param tokenNumber unique number for particular level in token tree
      * @return mined token
      */
 
@@ -923,12 +893,11 @@ public class Functions {
 
         String tokenHash = calculateHash(String.valueOf(tokenNumber), "SHA-256");
         String levelHex = Integer.toHexString(level);
-        if(level<16)
-        levelHex=String.valueOf(0).concat(levelHex);
+        if (level < 16)
+            levelHex = String.valueOf(0).concat(levelHex);
         String token = String.valueOf(0) + levelHex + tokenHash;
         return token;
     }
-
 
     public static String toBinary(int x, int len) {
         if (len > 0) {
@@ -945,18 +914,9 @@ public class Functions {
      * @return true if data is unique , false otherwise
      */
 
-    public static Boolean integrityCheck(String consensusID){
-        /* File file = new File(WALLET_DATA_PATH+"QuorumSignedTransactions.json");
-        if(file.exists()) {
-            if (getValues(file.getAbsolutePath(), "senderdid", "consensusID", consensusID).equals(""))
-                return true;
-            else
-                return false;
-        }
-        else
-            return true; */
 
-        Boolean result=false;
+    public static Boolean integrityCheck(String consensusID){
+       Boolean result=false;
         try {
 			JSONArray qstDetails= new JSONArray(DataBase.sortedQstData());
             for(int i=0;i<qstDetails.length();i++)
@@ -985,25 +945,24 @@ public class Functions {
     public static Date getCurrentUtcTime() throws ParseException {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss");
         SimpleDateFormat localDateFormat = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss");
-        return localDateFormat.parse( simpleDateFormat.format(new Date()) );
+        return localDateFormat.parse(simpleDateFormat.format(new Date()));
     }
-
 
     /**
      * This method is used to update quorum credits in server
      *
-     * @param quorumArray jsonarray of all quorum
-     * @param signedQuorumList  jsonarray of all signedquorum
-     * @param status boolean for consensus status
-     * @param type transaction type : default to 1
+     * @param quorumArray      jsonarray of all quorum
+     * @param signedQuorumList jsonarray of all signedquorum
+     * @param status           boolean for consensus status
+     * @param type             transaction type : default to 1
      * @return mined token
      */
 
+    public static void updateQuorum(JSONArray quorumArray, JSONArray signedQuorumList, boolean status, int type)
+            throws IOException, JSONException {
 
-    public static void updateQuorum(JSONArray quorumArray,JSONArray signedQuorumList,boolean status,int type) throws IOException, JSONException {
-
-        if (type==1) {
-            String urlQuorumUpdate = ADVISORY_IP+"/updateQuorum";
+        if (type == 1) {
+            String urlQuorumUpdate = ADVISORY_IP + "/updateQuorum";
             URL objQuorumUpdate = new URL(urlQuorumUpdate);
             HttpURLConnection conQuorumUpdate = (HttpURLConnection) objQuorumUpdate.openConnection();
 
@@ -1015,8 +974,8 @@ public class Functions {
 
             JSONObject dataToSendQuorumUpdate = new JSONObject();
             dataToSendQuorumUpdate.put("completequorum", quorumArray);
-            dataToSendQuorumUpdate.put("signedquorum",signedQuorumList);
-            dataToSendQuorumUpdate.put("status",status);
+            dataToSendQuorumUpdate.put("signedquorum", signedQuorumList);
+            dataToSendQuorumUpdate.put("status", status);
             String populateQuorumUpdate = dataToSendQuorumUpdate.toString();
 
             conQuorumUpdate.setDoOutput(true);
@@ -1042,22 +1001,21 @@ public class Functions {
         }
     }
 
-
     /**
      * This method is used get getquorum from advisory node
      *
-     * @param betaHash betahash in string form
-     * @param gammaHash gammahash in string form
-     * @param senderDidIpfsHash didhash of sender
+     * @param betaHash            betahash in string form
+     * @param gammaHash           gammahash in string form
+     * @param senderDidIpfsHash   didhash of sender
      * @param receiverDidIpfsHash didhash of receiver
-     * @param tokenslength tokens amount for picking quorum
+     * @param tokenslength        tokens amount for picking quorum
      * @return JSONArray of quorum nodes
      */
 
-
-    public static JSONArray getQuorum(String betaHash,String gammaHash,String senderDidIpfsHash,String receiverDidIpfsHash,int tokenslength) throws IOException, JSONException {
+    public static JSONArray getQuorum(String betaHash, String gammaHash, String senderDidIpfsHash,
+            String receiverDidIpfsHash, int tokenslength) throws IOException, JSONException {
         JSONArray quorumArray;
-        String urlQuorumPick = ADVISORY_IP+"/getQuorum";
+        String urlQuorumPick = ADVISORY_IP + "/getQuorum";
         URL objQuorumPick = new URL(urlQuorumPick);
         HttpURLConnection conQuorumPick = (HttpURLConnection) objQuorumPick.openConnection();
 
@@ -1072,7 +1030,7 @@ public class Functions {
         dataToSendQuorumPick.put("gammahash", gammaHash);
         dataToSendQuorumPick.put("sender", senderDidIpfsHash);
         dataToSendQuorumPick.put("receiver", receiverDidIpfsHash);
-        dataToSendQuorumPick.put("tokencount",tokenslength);
+        dataToSendQuorumPick.put("tokencount", tokenslength);
         String populateQuorumPick = dataToSendQuorumPick.toString();
 
         conQuorumPick.setDoOutput(true);
@@ -1094,7 +1052,7 @@ public class Functions {
             responseQuorumPick.append(outputQuorumPick);
         }
         inQuorumPick.close();
-
+        FunctionsLogger.debug(" responsequorumpick " + responseQuorumPick.toString());
         quorumArray = new JSONArray(responseQuorumPick.toString());
         return quorumArray;
     }
@@ -1107,8 +1065,8 @@ public class Functions {
      * @return JSONArray of quorum nodes
      */
 
-    public static void mineUpdate(String didHash,int credits) throws IOException, JSONException {
-        String urlMineUpdate = ADVISORY_IP+"/updatemine";
+    public static void mineUpdate(String didHash, int credits) throws IOException, JSONException {
+        String urlMineUpdate = ADVISORY_IP + "/updatemine";
         URL objMineUpdate = new URL(urlMineUpdate);
         HttpURLConnection conMineUpdate = (HttpURLConnection) objMineUpdate.openConnection();
 
@@ -1120,7 +1078,7 @@ public class Functions {
 
         JSONObject dataToSendMineUpdate = new JSONObject();
         dataToSendMineUpdate.put("didhash", didHash);
-        dataToSendMineUpdate.put("credits",credits);
+        dataToSendMineUpdate.put("credits", credits);
         String populateMineUpdate = dataToSendMineUpdate.toString();
 
         conMineUpdate.setDoOutput(true);
@@ -1145,9 +1103,9 @@ public class Functions {
 
     }
 
-    public static int checkHeartBeat(String peerId,String appName)  {
+    public static int checkHeartBeat(String peerId, String appName) {
 
-        if(forwardCheck(appName, QUORUM_PORT , peerId)) {
+        if (forwardCheck(appName, QUORUM_PORT, peerId)) {
             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + peerId);
             return 1;
         }
@@ -1157,42 +1115,67 @@ public class Functions {
             return 0;
         }
     }
-    
-//    /**
-//     * This method checks if Quorum is available for consensus
-//     *
-//     * @param quorum List of peers
-//     * @param ipfs   IPFS instance
-//     * @return final list of all available Quorum peers
-//     */
-//    public static ArrayList<String> checkQuorum(JSONArray quorum, IPFS ipfs,int size) {
-//        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-//        ArrayList<String> peers = new ArrayList<>();
-//
-//        if (quorum.length()>=minQuorum(size)) {
-//        	/**Swarm connect - sticky connection */
-//        	QuorumSwarmConnect(quorum, ipfs);
-//            for (int i = 0; i < quorum.length(); i++) {
-//                String quorumPeer;
-//                try {
-//                    quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
-//                    if (checkSwarmConnect().contains(quorumPeer)) {
-//                        peers.add(quorumPeer);
-//                        FunctionsLogger.debug(quorumPeer);
-//                    }else {
-//                    	FunctionsLogger.debug("cannot connect to Peer : " + quorumPeer);
-//                    }
-//                } catch (JSONException e) {
-//                    FunctionsLogger.error("JSON Exception Occurred", e);
-//                    e.printStackTrace();
-//                }
-//            }
-//
-//                FunctionsLogger.debug("Quorum Peer IDs : " + peers);
-//                return peers;
-//        } else
-//            return null;
-//    }
+
+    /** To Sync DataTable.json, if required */
+    public static void syncDataTable(String did, String peerId) {
+        try {
+            String dataTableData = readFile(DATA_PATH + "DataTable.json");
+            boolean isObjectValid = false;
+            JSONArray dataTable = new JSONArray(dataTableData);
+            for (int i = 0; i < dataTable.length(); i++) {
+                JSONObject dataTableObject = dataTable.getJSONObject(i);
+                if ((did != null && dataTableObject.getString("didHash").equals(did))
+                        ||
+                        (peerId != null && dataTableObject.getString("peerid").equals(peerId))) {
+                    isObjectValid = true;
+                    break;
+                }
+            }
+            if (!isObjectValid) {
+                FunctionsLogger.debug("Syncing Datatable.json!");
+                APIHandler.networkInfo();
+            }
+        } catch (Exception e) {
+            FunctionsLogger.error("Exception Occured", e);
+            e.printStackTrace();
+        }
+    }
+    // /**
+    // * This method checks if Quorum is available for consensus
+    // *
+    // * @param quorum List of peers
+    // * @param ipfs IPFS instance
+    // * @return final list of all available Quorum peers
+    // */
+    // public static ArrayList<String> checkQuorum(JSONArray quorum, IPFS ipfs,int
+    // size) {
+    // PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+    // ArrayList<String> peers = new ArrayList<>();
+    //
+    // if (quorum.length()>=minQuorum(size)) {
+    // /**Swarm connect - sticky connection */
+    // QuorumSwarmConnect(quorum, ipfs);
+    // for (int i = 0; i < quorum.length(); i++) {
+    // String quorumPeer;
+    // try {
+    // quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
+    // quorum.getString(i));
+    // if (checkSwarmConnect().contains(quorumPeer)) {
+    // peers.add(quorumPeer);
+    // FunctionsLogger.debug(quorumPeer);
+    // }else {
+    // FunctionsLogger.debug("cannot connect to Peer : " + quorumPeer);
+    // }
+    // } catch (JSONException e) {
+    // FunctionsLogger.error("JSON Exception Occurred", e);
+    // e.printStackTrace();
+    // }
+    // }
+    //
+    // FunctionsLogger.debug("Quorum Peer IDs : " + peers);
+    // return peers;
+    // } else
+    // return null;
+    // }
 
 }
-
