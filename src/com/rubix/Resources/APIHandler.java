@@ -1,6 +1,8 @@
 package com.rubix.Resources;
 
-import static com.rubix.Consensus.InitiatorConsensus.countQuorumSigns;
+import static com.rubix.Constants.ConsensusConstants.PRIMARY;
+import static com.rubix.Constants.ConsensusConstants.SECONDARY;
+import static com.rubix.Constants.ConsensusConstants.TRANS_TYPE;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -33,7 +35,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
-import com.rubix.TokenTransfer.BlockSender;
 import com.rubix.TokenTransfer.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
 
@@ -53,14 +54,13 @@ public class APIHandler {
 
     /**
      * Initiates a transfer between two nodes
+     * 
      * @param data Data specific to token transfer
      * @return Message from the sender with transaction details
-     * @throws JSONException handles JSON Exceptions
+     * @throws JSONException            handles JSON Exceptions
      * @throws NoSuchAlgorithmException handles Invalid Algorithms Exceptions
-     * @throws IOException handles IO Exceptions
+     * @throws IOException              handles IO Exceptions
      */
-
-
 
     public static JSONObject send(String data) throws Exception {
         Functions.pathSet();
@@ -68,72 +68,95 @@ public class APIHandler {
 
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+        JSONObject sendMessage = new JSONObject();
+        String dataTableData = readFile(DATA_PATH + "DataTable.json");
+        boolean isObjectValid = false;
+        JSONArray dataTable = new JSONArray(dataTableData);
+        String recDID;
+        String blockHash;
+        JSONArray tokens;
 
         JSONObject dataObject = new JSONObject(data);
-        JSONObject UserResponse = new JSONObject();
 
-        dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        // check if receiverDidIpfsHash is present in the dataObject
+        if (dataObject.has("receiverDidIpfsHash") && dataObject.has("tokens")) {
 
-        if(dataObject.has("receiverDidIpfsHash")) {
-            
-            String recDID = dataObject.getString("receiverDidIpfsHash");
+            dataObject.put(TRANS_TYPE, PRIMARY);
 
-            String dataTableData = readFile(DATA_PATH + "DataTable.json");
-            boolean isObjectValid = false;
-            JSONArray dataTable = new JSONArray(dataTableData);
-            // check value matches any of the data in the data table
+            recDID = dataObject.getString("receiverDidIpfsHash");
+            tokens = dataObject.getJSONArray("tokens");
+
+            if (tokens.length() < 1) {
+                sendMessage.put("did", senDID);
+                sendMessage.put("tid", "null");
+                sendMessage.put("status", "Failed");
+                sendMessage.put("message", "Invalid amount");
+                return sendMessage;
+            }
+
+            if (recDID.length() != 46) {
+                sendMessage.put("did", senDID);
+                sendMessage.put("tid", "null");
+                sendMessage.put("status", "Failed");
+                sendMessage.put("message", "Invalid Receiver Did Entered");
+                return sendMessage;
+            }
+
             for (int i = 0; i < dataTable.length(); i++) {
                 JSONObject dataTableObject = dataTable.getJSONObject(i);
                 if (dataTableObject.getString("didHash").equals(recDID)) {
                     isObjectValid = true;
                 }
             }
-            if(!isObjectValid)
+            if (!isObjectValid)
                 networkInfo();
 
-            if (recDID.length() != 46) {
-            UserResponse.put("did", senDID);
-            UserResponse.put("tid", "null");
-            UserResponse.put("status", "Failed");
-            UserResponse.put("message", "Invalid Receiver Did Entered");
-            return UserResponse;
+        } else if (dataObject.has("blockHash")) {
+
+            dataObject.put(TRANS_TYPE, SECONDARY);
+
+            blockHash = dataObject.getString("blockHash");
+            if (blockHash.length() != 46) {
+                sendMessage.put("did", senDID);
+                sendMessage.put("tid", "null");
+                sendMessage.put("status", "Failed");
+                sendMessage.put("message", "Invalid Block Hash Entered");
+                return sendMessage;
             }
 
-            // String comments = dataObject.getString("comments");
-            JSONArray tokens = dataObject.getJSONArray("tokens");
-            // JSONArray tokenHeader = dataObject.getJSONArray("tokenHeader");
-            // int amount = dataObject.getInt("amount");
+        } else {
+            sendMessage.put("did", senDID);
+            sendMessage.put("tid", "null");
+            sendMessage.put("status", "Failed");
+            sendMessage.put("message", "Invalid Data Entered");
+            return sendMessage;
 
-            if (tokens.length() < 1) {
-                UserResponse.put("did", senDID);
-                UserResponse.put("tid", "null");
-                UserResponse.put("status", "Failed");
-                UserResponse.put("message", "Invalid amount");
-                return UserResponse;
-            }
-
-            // detailsObject.put("tokens", tokens);
-            // detailsObject.put("receiverDidIpfsHash", recDID);
-            // detailsObject.put("comment", comments);
-            // detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-            // detailsObject.put("tokenHeader", tokenHeader);
-            // detailsObject.put("amount", amount);
-            UserResponse = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
-
-            // sendMessage = TokenSender.Send(detailsObject.toString(), ipfs, SEND_PORT);
         }
 
-        if(dataObject.has("blockHash")) {
-            APILogger.info("Block Transfer Initiated");
-            UserResponse = BlockSender.Send(dataObject.toString(), ipfs, SEND_PORT);
-        }
+        // String comments = dataObject.getString("comments");
+        // JSONArray tokenHeader = dataObject.getJSONArray("tokenHeader");
+        // int amount = dataObject.getInt("amount");
 
+        // detailsObject.put("tokens", tokens);
+        // detailsObject.put("receiverDidIpfsHash", recDID);
+        // detailsObject.put("comment", comments);
+        // detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        // detailsObject.put("tokenHeader", tokenHeader);
+        // detailsObject.put("amount", amount);
+        dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
 
-        APILogger.info(UserResponse);
-        return UserResponse;
+        APILogger.info(sendMessage);
+        return sendMessage;
     }
 
-
+    /**
+     * An API call to mine tokens
+     * 
+     * @param type Type of quorum Selection
+     * @return JSONObject with status message
+     * @throws Exception throws Exception
+     */
     public static JSONObject create(int type) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -151,7 +174,7 @@ public class APIHandler {
                 isObjectValid = true;
             }
         }
-        if(!isObjectValid)
+        if (!isObjectValid)
             networkInfo();
 
         JSONObject sendMessage = new JSONObject();
@@ -159,17 +182,14 @@ public class APIHandler {
         detailsObject.put("receiverDidIpfsHash", senDID);
         detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
         detailsObject.put("type", type);
-        sendMessage =  ProofCredits.create(detailsObject.toString(), ipfs);
+        sendMessage = ProofCredits.create(detailsObject.toString(), ipfs);
         APILogger.info(sendMessage);
         return sendMessage;
     }
 
-    public static JSONObject getBatchPins(String blockHash) throws Exception {
-        return countQuorumSigns(blockHash);
-    }
-
     /**
      * A call to get details of a transaction given its ID
+     * 
      * @param txnId
      * @return Transaction Details
      * @throws JSONException handles JSON Exceptions
@@ -178,7 +198,7 @@ public class APIHandler {
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONObject countResult = new JSONObject();
         JSONArray resultArray = new JSONArray();
-        if (transactionHistory.length() == 0){
+        if (transactionHistory.length() == 0) {
             countResult.put("Message", "No transactions found");
             resultArray.put(countResult);
             return resultArray;
@@ -188,8 +208,11 @@ public class APIHandler {
         JSONObject obj = new JSONObject();
         for (int i = 0; i < transArray.length(); i++) {
             obj = transArray.getJSONObject(i);
-            if (obj.get("txn").equals(txnId))
+            if (obj.get("txn").equals(txnId)) {
+                obj.remove("essentialShare");
                 resultArray.put(obj);
+            }
+
         }
         APILogger.info("Transaction Details for : " + obj.toString());
         return resultArray;
@@ -197,6 +220,7 @@ public class APIHandler {
 
     /**
      * A call to get the account information
+     * 
      * @return Detailed explanation of the account information of the user
      * @throws JSONException handles JSON Exceptions
      */
@@ -216,12 +240,13 @@ public class APIHandler {
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONArray transArray = new JSONArray(transactionHistory);
 
-        if(!(transArray.length() == 0)){
+        if (!(transArray.length() == 0)) {
             for (int i = 0; i < transArray.length(); i++) {
                 objectParser = transArray.getJSONObject(i);
                 if (objectParser.get("role").equals("Sender"))
                     txnAsSender++;
-                else txnAsReceiver++;
+                else
+                    txnAsReceiver++;
             }
         }
 
@@ -238,7 +263,25 @@ public class APIHandler {
     }
 
     /**
+     * A method to add and host your DID ans Public share to ipfs
+     */
+    public static void addPublicData() {
+        String peerID = getPeerID(DATA_PATH + "DID.json");
+        String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
+        String walletHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", peerID);
+
+        add(DATA_PATH.concat(didHash).concat("/DID.png"), ipfs);
+        pin(didHash, ipfs);
+
+        add(DATA_PATH.concat(didHash).concat("/PublicShare.png"), ipfs);
+        pin(walletHash, ipfs);
+
+        APILogger.debug("Data Added and Pinned");
+    }
+
+    /**
      * A call to sync all the nodes in the network
+     * 
      * @return Message if failed or succeeded
      * @throws IOException
      */
@@ -270,22 +313,9 @@ public class APIHandler {
         return resultArray.toString();
     }
 
-    public static void addPublicData() {
-        String peerID = getPeerID(DATA_PATH + "DID.json");
-        String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
-        String walletHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", peerID);
-
-        add(DATA_PATH.concat(didHash).concat("/DID.png"), ipfs);
-        pin(didHash, ipfs);
-
-        add(DATA_PATH.concat(didHash).concat("/PublicShare.png"), ipfs);
-        pin(walletHash, ipfs);
-
-        APILogger.debug("Data Added and Pinned");
-    }
-
     /**
      * A call to get list transactions between two mentioned dates
+     * 
      * @param s Start Date
      * @param e End Date
      * @return List of transactions
@@ -293,17 +323,17 @@ public class APIHandler {
      */
     public static JSONArray transactionsByDate(String s, String e) throws JSONException, ParseException {
         JSONArray resultArray = new JSONArray();
-        String strDateFormat = "yyyy-MMM-dd HH:mm:ss"; //Date format is Specified
+        String strDateFormat = "yyyy-MMM-dd HH:mm:ss"; // Date format is Specified
         SimpleDateFormat objSDF = new SimpleDateFormat(strDateFormat);
-        Date date1=new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(s);
-        String startDateString= objSDF.format(date1);
-        Date date2=new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(e);
-        String endDateString= objSDF.format(date2);
+        Date date1 = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(s);
+        String startDateString = objSDF.format(date1);
+        Date date2 = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(e);
+        String endDateString = objSDF.format(date2);
         JSONObject countResult = new JSONObject();
         Date startDate = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss").parse(startDateString);
         Date endDate = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss").parse(endDateString);
-        APILogger.debug("start date is "+startDate);
-        APILogger.debug("end date is "+endDate);
+        APILogger.debug("start date is " + startDate);
+        APILogger.debug("end date is " + endDate);
         File fileCheck1 = new File(WALLET_DATA_PATH + "TransactionHistory.json");
         if (!fileCheck1.exists()) {
             countResult.put("Message", "File not found");
@@ -312,28 +342,31 @@ public class APIHandler {
         }
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONArray transArray = new JSONArray(transactionHistory);
-        if (transArray.length() == 0){
+        if (transArray.length() == 0) {
             countResult.put("Message", "No Transactions made yet");
             resultArray.put(countResult);
             return resultArray;
         }
-        for (int i=0;i<transArray.length();i++)
-        {
+        for (int i = 0; i < transArray.length(); i++) {
             String dateFromTxnHistoryString = transArray.getJSONObject(i).get("Date").toString();
-            Date dateTH=new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(dateFromTxnHistoryString);
-            String dateTHS= objSDF.format(dateTH);
-            Calendar c= Calendar.getInstance();
+            Date dateTH = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(dateFromTxnHistoryString);
+            String dateTHS = objSDF.format(dateTH);
+            Calendar c = Calendar.getInstance();
             c.setTime(objSDF.parse(dateTHS));
             dateTH = c.getTime();
-            APILogger.debug("dateFromTxnHistory "+dateTH);
-            if (dateTH.after(startDate)&&dateTH.before(endDate))
+            APILogger.debug("dateFromTxnHistory " + dateTH);
+            if (dateTH.after(startDate) && dateTH.before(endDate)) {
+                transArray.getJSONObject(i).remove("essentialShare");
                 resultArray.put(transArray.getJSONObject(i));
+            }
+
         }
         return resultArray;
     }
 
     /**
      * A call to get list of last n transactions
+     * 
      * @param n Count
      * @return List of transactions
      * @throws JSONException handles JSON Exceptions
@@ -353,28 +386,32 @@ public class APIHandler {
         }
         String transactionHistory = readFile(path);
         JSONArray transArray = new JSONArray(transactionHistory);
-        if (transArray.length() == 0){
+        if (transArray.length() == 0) {
             countResult.put("Message", "No transactions made yet");
             resultArray.put(countResult);
             return resultArray;
         }
 
         if (n >= transArray.length()) {
-            for (int i = transArray.length()-1; i>=0; i--)
+            for (int i = transArray.length() - 1; i >= 0; i--) {
+                transArray.getJSONObject(i).remove("essentialShare");
                 resultArray.put(transArray.get(i));
+            }
             return resultArray;
         }
 
-        for( int i = 1; i <= n; i++)
+        for (int i = 1; i <= n; i++) {
+            transArray.getJSONObject(i).remove("essentialShare");
             resultArray.put(transArray.getJSONObject(transArray.length() - i));
-
+        }
         return resultArray;
     }
 
     /**
      * A call to get list transactions within a range
+     * 
      * @param start start index
-     * @param end end index
+     * @param end   end index
      * @return List of transactions
      * @throws JSONException handles JSON Exceptions
      */
@@ -395,14 +432,14 @@ public class APIHandler {
 
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONArray transArray = new JSONArray(transactionHistory);
-        if (transArray.length() == 0){
+        if (transArray.length() == 0) {
             resultArray.put(countResult);
             return resultArray;
         }
 
-
-        for(int i = start; i < end; i++){
+        for (int i = start; i < end; i++) {
             JSONObject object = transArray.getJSONObject(i);
+            object.remove("essentialShare");
             resultArray.put(object);
         }
 
@@ -412,12 +449,13 @@ public class APIHandler {
     /**
      * A call to close all open IPFS streams
      */
-    public static void closeStreams(){
+    public static void closeStreams() {
         executeIPFSCommands("ipfs p2p close --all");
     }
 
     /**
      * A call to get list transactions with the mentioned comment
+     * 
      * @param comment Comment
      * @return List of transactions
      * @throws JSONException handles JSON Exceptions
@@ -430,10 +468,13 @@ public class APIHandler {
         JSONArray resultArray = new JSONArray();
         for (int i = 0; i < transArray.length(); i++) {
             obj = transArray.getJSONObject(i);
-            if (obj.get("comment").equals(comment))
+            if (obj.get("comment").equals(comment)) {
+                obj.remove("essentialShare");
                 resultArray.put(obj);
+            }
+
         }
-        if(resultArray.length() < 1){
+        if (resultArray.length() < 1) {
             JSONObject returnObject = new JSONObject();
             returnObject.put("Message", "No transactions found with the comment " + comment);
             resultArray.put(returnObject);
@@ -444,6 +485,7 @@ public class APIHandler {
 
     /**
      * A call to get list transactions made by the user with the input Did
+     * 
      * @param did DID of the contact
      * @return List of transactions committed with the user DID
      * @throws JSONException handles JSON Exceptions
@@ -454,8 +496,9 @@ public class APIHandler {
         JSONArray resultArray = new JSONArray();
         for (int i = 0; i < transArray.length(); i++) {
             JSONObject didObject = transArray.getJSONObject(i);
+            didObject.remove("essentialShare");
             if (didObject.get("senderDID").equals(did) || didObject.get("receiverDID").equals(did))
-               resultArray.put(didObject);
+                resultArray.put(didObject);
         }
 
         return resultArray;
@@ -464,8 +507,8 @@ public class APIHandler {
     public static int onlinePeersCount() throws JSONException, IOException, InterruptedException {
         JSONArray peersArray = peersOnlineStatus();
         int count = 0;
-        for (int i = 0; i < peersArray.length(); i++){
-            if(peersArray.getJSONObject(i).getString("onlineStatus").contains("online"))
+        for (int i = 0; i < peersArray.length(); i++) {
+            if (peersArray.getJSONObject(i).getString("onlineStatus").contains("online"))
                 count++;
         }
         return count;
@@ -474,11 +517,10 @@ public class APIHandler {
     public static ArrayList swarmPeersList() throws IOException, InterruptedException {
         String OS = getOsName();
         String[] command = new String[3];
-        if(OS.contains("Mac") || OS.contains("Linux")){
+        if (OS.contains("Mac") || OS.contains("Linux")) {
             command[0] = "bash";
             command[1] = "-c";
-        }
-        else if(OS.contains("Windows")){
+        } else if (OS.contains("Windows")) {
             command[0] = "cmd.exe";
             command[1] = "/c";
         }
@@ -489,7 +531,7 @@ public class APIHandler {
 
         ArrayList peersArray = new ArrayList();
         String line;
-        while((line = br.readLine()) != null) {
+        while ((line = br.readLine()) != null) {
             peersArray.add(line);
         }
         if (!OS.contains("Windows"))
@@ -498,21 +540,22 @@ public class APIHandler {
         P.destroy();
 
         ArrayList peersIdentities = new ArrayList();
-        if(peersArray.size() != 0){
+        if (peersArray.size() != 0) {
             List<Peer> k = ipfs.swarm.peers();
-            for(int i = 0; i < k.size(); i++)
+            for (int i = 0; i < k.size(); i++)
                 peersIdentities.add(k.get(i).toString().substring(0, 46));
 
             return peersIdentities;
         }
         return peersArray;
     }
-    
+
     /**
      * A call to get the online/offline status of your contacts
+     * 
      * @return List indicating online status of each DID contact
      * @throws JSONException handles JSON Exceptions
-     * @throws IOException handles IO Exceptions
+     * @throws IOException   handles IO Exceptions
      */
     public static JSONArray peersOnlineStatus() throws JSONException, IOException, InterruptedException {
         ArrayList peersArray = swarmPeersList();
@@ -520,16 +563,15 @@ public class APIHandler {
         JSONArray dataArray = new JSONArray(dataTable);
         JSONArray onlinePeers = new JSONArray();
 
-        for(int i = 0; i < dataArray.length(); i++){
+        for (int i = 0; i < dataArray.length(); i++) {
             JSONObject peerObject = dataArray.getJSONObject(i);
             String peerID = peerObject.getString("peerid");
-            if(peersArray.contains(peerID)){
+            if (peersArray.contains(peerID)) {
                 JSONObject onlinePeersObject = new JSONObject();
                 onlinePeersObject.put("did", getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID));
                 onlinePeersObject.put("onlineStatus", "online");
                 onlinePeers.put(onlinePeersObject);
-            }
-            else{
+            } else {
                 JSONObject onlinePeersObject = new JSONObject();
                 onlinePeersObject.put("did", getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID));
                 onlinePeersObject.put("onlineStatus", "offline");
@@ -543,6 +585,7 @@ public class APIHandler {
 
     /**
      * A call to list out all contacts in the user wallet
+     * 
      * @return A list of user wallet contacts
      * @throws JSONException handles JSON Exceptions
      */
@@ -550,7 +593,7 @@ public class APIHandler {
         String dataTable = readFile(DATA_PATH + "DataTable.json");
         JSONArray dataArray = new JSONArray(dataTable);
         JSONArray didArray = new JSONArray();
-        for (int i = 0; i < dataArray.length(); i++){
+        for (int i = 0; i < dataArray.length(); i++) {
             didArray.put(dataArray.getJSONObject(i).getString("didHash"));
         }
         return didArray;
@@ -558,6 +601,7 @@ public class APIHandler {
 
     /**
      * A call to list out number of transactions made per day
+     * 
      * @return List of transactions committed on every date
      * @throws JSONException handles JSON Exceptions
      */
@@ -565,18 +609,18 @@ public class APIHandler {
         String dataTable = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONArray dataArray = new JSONArray(dataTable);
         HashSet<String> dateSet = new HashSet<>();
-        for(int i = 0; i < dataArray.length(); i++)
+        for (int i = 0; i < dataArray.length(); i++)
             dateSet.add(dataArray.getJSONObject(i).getString("Date"));
 
         JSONObject datesTxn = new JSONObject();
         Iterator<String> dateIterator = dateSet.iterator();
-        while (dateIterator.hasNext()){
+        while (dateIterator.hasNext()) {
             String date = dateIterator.next();
             int count = 0;
-            for(int i = 0; i < dataArray.length(); i++){
+            for (int i = 0; i < dataArray.length(); i++) {
                 JSONObject object = dataArray.getJSONObject(i);
 
-                if(date.equals(object.getString("Date"))){
+                if (date.equals(object.getString("Date"))) {
                     count++;
                 }
             }
@@ -592,7 +636,8 @@ public class APIHandler {
         JSONArray dataArray = new JSONArray(dataTable);
 
         for (int i = 0; i < dataArray.length(); i++)
-            nodeData(dataArray.getJSONObject(i).getString("didHash"), dataArray.getJSONObject(i).getString("walletHash"), ipfs);
+            nodeData(dataArray.getJSONObject(i).getString("didHash"),
+                    dataArray.getJSONObject(i).getString("walletHash"), ipfs);
 
         return new JSONObject("{\"message\":\"Synced all nodes\"}");
     }
