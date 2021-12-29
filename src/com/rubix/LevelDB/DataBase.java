@@ -265,7 +265,9 @@ public class DataBase {
                 obj2.put("senderdid", obj1.get("senderdid"));
                 obj2.put("credits", obj1.get("credits"));
                 obj2.put("tid", obj1.get("tid"));
-                obj2.put("minestatus", obj1.get("minestatus"));
+                if(obj1.containsKey("minestatus"))
+                {
+                obj2.put("minestatus", obj1.get("minestatus"));}
                 obj2.put("consensusID", obj1.get("consensusID"));
                 obj2.put("serialNoQst", counter);
 
