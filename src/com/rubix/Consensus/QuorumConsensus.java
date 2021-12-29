@@ -1,5 +1,8 @@
 package com.rubix.Consensus;
 
+import static com.rubix.Constants.ConsensusConstants.DATA;
+import static com.rubix.Constants.ConsensusConstants.PRIMARY;
+import static com.rubix.Constants.ConsensusConstants.TRANS_TYPE;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -10,13 +13,12 @@ import static com.rubix.Resources.Functions.getPeerID;
 import static com.rubix.Resources.Functions.getSignFromShares;
 import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.Functions.nodeData;
-import static com.rubix.Resources.Functions.readFile;
+import static com.rubix.Resources.Functions.syncDataTable;
 import static com.rubix.Resources.Functions.updateJSON;
 import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.add;
-import static com.rubix.Resources.IPFSNetwork.dhtEmpty;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.listen;
+import static com.rubix.Resources.IPFSNetwork.pin;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -33,7 +35,6 @@ import com.rubix.Resources.IPFSNetwork;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.ipfs.api.IPFS;
@@ -68,13 +69,11 @@ public class QuorumConsensus implements Runnable {
     public void run() {
         while (true) {
             PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-            boolean integrityCheck = true;
-            String temp, peerID, transactionID, verifySenderHash, receiverDID, receiverPID, appName, senderPrivatePos,
-                    senderDidIpfsHash = "", senderPID = "";
+            String peerID, transactionID, verifySenderHash, appName;
             ServerSocket serverSocket = null;
             Socket socket = null;
-
             try {
+
                 peerID = getPeerID(DATA_PATH + "DID.json");
                 String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
                 appName = peerID.concat(role);
@@ -85,78 +84,97 @@ public class QuorumConsensus implements Runnable {
                 serverSocket = new ServerSocket(port);
                 socket = serverSocket.accept();
 
-                BufferedReader dataReq = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                PrintStream dataResp = new PrintStream(socket.getOutputStream());
                 PrintStream out = new PrintStream(socket.getOutputStream());
 
-                JSONObject readSenderData;
+                Thread validate = new ValidationHandler(socket, in, out, ipfs, peerID, didHash, appName);
+                validate.start();
+
+            } catch (IOException e) {
+                QuorumConsensusLogger.error("IOException Occurred", e);
+            } catch (NullPointerException e) {
+                QuorumConsensusLogger.error("NullPointer Exception Occurred ", e);
+            }
+        }
+
+    }
+}
+
+class ValidationHandler extends Thread {
+
+    public static Logger ValidationHandler = Logger.getLogger(ValidationHandler.class);
+
+    final Socket socket;
+    final BufferedReader in;
+    final PrintStream out;
+    final IPFS ipfs;
+    final String peerID;
+    final String didHash;
+    final String appName;
+
+    public ValidationHandler(Socket socket, BufferedReader in, PrintStream out, IPFS ipfs, String peerID,
+            String didHash,
+            String appName) {
+        this.socket = socket;
+        this.in = in;
+        this.out = out;
+        this.ipfs = ipfs;
+        this.peerID = peerID;
+        this.didHash = didHash;
+        this.appName = appName;
+        this.start();
+    }
+
+    boolean integrityCheck = true;
+    String temp = "";
+    String transactionID = "";
+    String verifySenderHash = "";
+    String blockHash = "";
+    String senderPrivatePos = "";
+    String senderDidIpfsHash = "";
+    String senderPID = "";
+    String getData = "";
+    String receiverDID = "";
+
+    JSONObject readSenderData;
+
+    public void run() {
+
+        while (true) {
+
+            try {
+
                 String getData;
-                String qstReq;
 
-                qstReq = dataReq.readLine();
-                if (qstReq.contains("qstcmrequest")) {
-
-                    QuorumConsensusLogger
-                            .debug("Sender reqesting QuorumSignedTransactions.json and CreditMapping.json: " + qstReq);
-
-                    File creditsMapping = new File(WALLET_DATA_PATH + "CreditMapping.json");
-                    if (!creditsMapping.exists()) {
-                        QuorumConsensusLogger.debug("File doesn't exist");
-                        creditsMapping.createNewFile();
-                        writeToFile(creditsMapping.toString(), "[]", false);
-                    }
-                    JSONArray qstContent = new JSONArray(readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json"));
-                    JSONObject qstObjectSend;
-                    JSONArray creditsArray = new JSONArray();
-                    String credits = "";
-                    if (qstContent.length() > 0) {
-                        qstObjectSend = qstContent.getJSONObject(qstContent.length() - 1);
-                        if (!qstObjectSend.has("minestatus")) {
-                            QuorumConsensusLogger.debug("Entering Credits Security");
-                            credits = qstObjectSend.getString("credits");
-                            if (!credits.equals("")) {
-                                String creditContent = IPFSNetwork.get(credits, ipfs);
-                                creditsArray = new JSONArray(creditContent);
-                            }
-                        }
-                    }
-
-                    String cmFile = readFile(WALLET_DATA_PATH + "CreditMapping.json");
-                    JSONArray creditsMappingArray = new JSONArray(cmFile);
-                    JSONObject qResponse = new JSONObject();
-                    qResponse.put("Credits", creditsArray.toString());
-                    qResponse.put("CreditMapping", creditsMappingArray.toString());
-
-                    dataResp.println(qResponse.toString());
-                }
-
+                // TODO: check if initiator is sending ping check to see if it is alive
                 getData = in.readLine();
                 if (getData.contains("ping check")) {
-                    QuorumConsensusLogger.debug("Ping check from sender: " + getData);
+                    ValidationHandler.debug("Ping check from sender: " + getData);
                     out.println("pong response");
                 } else {
-                    QuorumConsensusLogger.debug("Received Details from initiator: " + getData);
+                    ValidationHandler.debug("Received Details from initiator: " + getData);
                     readSenderData = new JSONObject(getData);
                     senderPrivatePos = readSenderData.getString("sign");
                     senderDidIpfsHash = readSenderData.getString("senderDID");
                     transactionID = readSenderData.getString("Tid");
                     verifySenderHash = readSenderData.getString("Hash");
-                    receiverDID = readSenderData.getString("RID");
+
+                    syncDataTable(senderDidIpfsHash, null);
 
                     senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", senderDidIpfsHash);
-                    receiverPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDID);
-
                     String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
                             senderDidIpfsHash);
 
                     nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
-                    String quorumHash = calculateHash(verifySenderHash.concat(receiverDID), "SHA3-256");
 
                     JSONObject detailsToVerify = new JSONObject();
                     detailsToVerify.put("did", senderDidIpfsHash);
                     detailsToVerify.put("hash", verifySenderHash);
                     detailsToVerify.put("signature", senderPrivatePos);
+
+                    writeToFile(LOGGER_PATH + "tempverifysenderhash", verifySenderHash, false);
+                    String verifySenderIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "tempverifysenderhash", ipfs);
+                    deleteFile(LOGGER_PATH + "tempverifysenderhash");
 
                     // QuorumConsensusLogger.debug("Checking providers for: " + verifySenderHash);
                     // ArrayList dhtOwnersList = dhtOwnerCheck(verifySenderHash);
@@ -165,31 +183,53 @@ public class QuorumConsensus implements Runnable {
                     // if(dhtOwnersList.size() <= 2 && dhtOwnersList.contains(senderPID))
                     // consensusIDcheck = true;
 
-                    if (Authenticate.verifySignature(detailsToVerify.toString())) {
-                        QuorumConsensusLogger.debug("Quorum Authenticated Sender");
-                        if (!dhtEmpty(verifySenderHash, ipfs)) {
-                            QuorumConsensusLogger.debug("ConsensusID pass");
+                    // if for data, primary or secondary token condition starts here
+
+                    if (readSenderData.getString(TRANS_TYPE) == DATA) {
+
+                        blockHash = readSenderData.getString("blockHash");
+                        String quorumHash = calculateHash(verifySenderHash.concat(blockHash), "SHA3-256");
+
+                        if (Authenticate.verifySignature(detailsToVerify.toString())) {
+                            ValidationHandler.debug("Quorum Authenticated Sender");
+
+                            ValidationHandler.debug("ConsensusID pass");
                             String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
                                     quorumHash);
+
                             out.println(QuorumSignature);
                             String creditval;
                             creditval = in.readLine();
-                            QuorumConsensusLogger.debug("credit value " + creditval);
+                            ValidationHandler.debug("credit value " + creditval);
 
-                            if (!creditval.equals("null")) { // commented as per test for multiple consensus threads
+                            if (!creditval.equals("null")) {
+
+                                // ? quorum pinning blockHash and files from sender
+                                IPFSNetwork.pin(blockHash, ipfs);
+
+                                String blockHashData = IPFSNetwork.get(blockHash, ipfs);
+                                JSONObject blockDataObject = new JSONObject(blockHashData);
+                                JSONArray blockArray = new JSONArray(blockDataObject.getJSONObject("metadata"));
+
+                                for (int i = 0; i < blockArray.length(); i++) {
+                                    JSONObject blockObject = blockArray.getJSONObject(i);
+                                    String blockFileHash = blockObject.getString("file_uid");
+                                    IPFSNetwork.pin(blockFileHash, ipfs);
+                                }
 
                                 FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
                                 shareWriter.write(creditval);
                                 shareWriter.close();
                                 File readCredit = new File(LOGGER_PATH + "mycredit.txt");
                                 String credit = add(readCredit.toString(), ipfs);
-
+                                pin(credit, ipfs);
                                 // adding credit to credit mapping
                                 JSONArray CreditBody = new JSONArray(creditval);
-                                JSONObject creditMappingObject = new JSONObject();
+                                // JSONObject creditMappingObject = new JSONObject();
                                 JSONArray creditMappingArray = new JSONArray();
 
                                 for (int i = 0; i < CreditBody.length(); i++) {
+                                    JSONObject creditMappingObject = new JSONObject();
                                     JSONObject object = CreditBody.getJSONObject(i);
                                     String key = object.getString("did");
                                     String sign = object.getString("sign");
@@ -202,10 +242,93 @@ public class QuorumConsensus implements Runnable {
 
                                     creditMappingArray.put(creditMappingObject);
 
-                                    writeToFile(WALLET_DATA_PATH + "CreditMapping.json", creditMappingArray.toString(),
-                                            false);
+                                }
+                                writeToFile(WALLET_DATA_PATH + "CreditMapping.json", creditMappingArray.toString(),
+                                        false);
+
+                                JSONObject storeDetailsQuorum = new JSONObject();
+                                storeDetailsQuorum.put("tid", transactionID);
+                                storeDetailsQuorum.put("consensusID", verifySenderHash);
+                                storeDetailsQuorum.put("sign", senderPrivatePos);
+                                storeDetailsQuorum.put("credits", credit);
+                                storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
+                                storeDetailsQuorum.put("blockHash", blockHash);
+                                JSONArray data = new JSONArray();
+                                data.put(storeDetailsQuorum);
+                                ValidationHandler.debug("Quorum Share: " + credit);
+                                updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
+                                deleteFile(LOGGER_PATH + "mycredit.txt");
+                                writeToFile(LOGGER_PATH + "consenusIDhash", verifySenderHash, false);
+                                String consenusIDhash = IPFSNetwork.add(LOGGER_PATH + "consenusIDhash", ipfs);
+                                deleteFile(LOGGER_PATH + "consenusIDhash");
+                                ValidationHandler.debug("added consensus ID " + consenusIDhash);
+
+                            } else {
+                                JSONObject storeDetailsQuorum = new JSONObject();
+                                storeDetailsQuorum.put("tid", transactionID);
+                                storeDetailsQuorum.put("consensusID", verifySenderHash);
+                                storeDetailsQuorum.put("sign", senderPrivatePos);
+                                storeDetailsQuorum.put("credits", "");
+                                storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
+                                storeDetailsQuorum.put("blockHash", blockHash);
+                                JSONArray data = new JSONArray();
+                                data.put(storeDetailsQuorum);
+                                updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
+                            }
+
+                        } else {
+                            ValidationHandler.debug("Sender Authentication Failure - Quorum");
+                            out.println("Auth_Failed");
+                        }
+                    }
+
+                    if (readSenderData.getString(TRANS_TYPE) == PRIMARY) {
+
+                        receiverDID = readSenderData.getString("RID");
+                        String quorumHash = calculateHash(verifySenderHash.concat(receiverDID), "SHA3-256");
+
+                        if (Authenticate.verifySignature(detailsToVerify.toString())) {
+                            ValidationHandler.debug("Quorum Authenticated Sender");
+
+                            ValidationHandler.debug("ConsensusID pass");
+                            String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
+                                    quorumHash);
+                            out.println(QuorumSignature);
+                            String creditval;
+                            creditval = in.readLine();
+                            ValidationHandler.debug("credit value " + creditval);
+
+                            if (!creditval.equals("null")) { // commented as per test for multiple consensus threads
+
+                                FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
+                                shareWriter.write(creditval);
+                                shareWriter.close();
+                                File readCredit = new File(LOGGER_PATH + "mycredit.txt");
+                                String credit = add(readCredit.toString(), ipfs);
+                                pin(credit, ipfs);
+                                // adding credit to credit mapping
+                                JSONArray CreditBody = new JSONArray(creditval);
+                                // JSONObject creditMappingObject = new JSONObject();
+                                JSONArray creditMappingArray = new JSONArray();
+
+                                for (int i = 0; i < CreditBody.length(); i++) {
+                                    JSONObject creditMappingObject = new JSONObject();
+                                    JSONObject object = CreditBody.getJSONObject(i);
+                                    String key = object.getString("did");
+                                    String sign = object.getString("sign");
+                                    String creditHash = calculateHash(sign, "SHA3-256");
+
+                                    creditMappingObject.put("did", key);
+                                    creditMappingObject.put("sign", sign);
+                                    creditMappingObject.put("hash", creditHash);
+                                    creditMappingObject.put("tid", transactionID);
+
+                                    creditMappingArray.put(creditMappingObject);
 
                                 }
+                                writeToFile(WALLET_DATA_PATH + "CreditMapping.json", creditMappingArray.toString(),
+                                        false);
+
                                 JSONObject storeDetailsQuorum = new JSONObject();
                                 storeDetailsQuorum.put("tid", transactionID);
                                 storeDetailsQuorum.put("consensusID", verifySenderHash);
@@ -215,13 +338,14 @@ public class QuorumConsensus implements Runnable {
                                 storeDetailsQuorum.put("recdid", receiverDID);
                                 JSONArray data = new JSONArray();
                                 data.put(storeDetailsQuorum);
-                                QuorumConsensusLogger.debug("Quorum Share: " + credit);
+                                ValidationHandler.debug("Quorum Share: " + credit);
                                 updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
                                 deleteFile(LOGGER_PATH + "mycredit.txt");
                                 writeToFile(LOGGER_PATH + "consenusIDhash", verifySenderHash, false);
                                 String consenusIDhash = IPFSNetwork.add(LOGGER_PATH + "consenusIDhash", ipfs);
                                 deleteFile(LOGGER_PATH + "consenusIDhash");
-                                QuorumConsensusLogger.debug("added consensus ID " + consenusIDhash);
+                                ValidationHandler.debug("added consensus ID " + consenusIDhash);
+
                             } else {
                                 JSONObject storeDetailsQuorum = new JSONObject();
                                 storeDetailsQuorum.put("tid", transactionID);
@@ -234,35 +358,17 @@ public class QuorumConsensus implements Runnable {
                                 data.put(storeDetailsQuorum);
                                 updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
                             }
+
                         } else {
-                            QuorumConsensusLogger.debug("Sender Authentication Failure - ConsensusID");
+                            ValidationHandler.debug("Sender Authentication Failure - Quorum");
                             out.println("Auth_Failed");
                         }
-                    } else {
-                        QuorumConsensusLogger.debug("Sender Authentication Failure - Quorum");
-                        out.println("Auth_Failed");
                     }
                 }
-            } catch (IOException e) {
-                QuorumConsensusLogger.error("IOException Occurred", e);
-            } catch (JSONException e) {
-                QuorumConsensusLogger.error("JSONException Occurred", e);
-            } catch (NullPointerException e) {
-                QuorumConsensusLogger.error("NullPointer Exception Occurred ", e);
+            } catch (Exception e) {
+                ValidationHandler.debug("Exception in Quorum Consensus: " + e);
             }
 
-            finally {
-                try {
-                    socket.close();
-                    serverSocket.close();
-                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-                } catch (IOException e) {
-                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-                    QuorumConsensusLogger.error("IOException Occurred", e);
-                }
-
-            }
         }
-
     }
 }
