@@ -21,7 +21,7 @@ import javax.xml.crypto.Data;
 
 import static com.rubix.LevelDb.DataBase.*;
 import static com.rubix.Resources.Functions.*;
-import static com.rubix.Resources.IPFSNetwork.*;
+import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 
 public class APIHandler {
     private static final Logger APILogger = Logger.getLogger(APIHandler.class);
@@ -95,16 +95,12 @@ public class APIHandler {
         dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
         sendMessage =  TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
 
+//        sendMessage =  TokenSender.Send(detailsObject.toString(), ipfs, SEND_PORT);
         APILogger.info(sendMessage);
         return sendMessage;
     }
 
-    /**
-     * An API call to mine tokens
-     * @param type Type of quorum Selection
-     * @return JSONObject with status message
-     * @throws Exception throws Exception
-     */
+
     public static JSONObject create(int type) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -215,23 +211,6 @@ public class APIHandler {
 
         resultArray.put(accountDetails);
         return resultArray;
-    }
-
-    /**
-     * A method to add and host your DID ans Public share to ipfs
-     */
-    public static void addPublicData(){
-        String peerID = getPeerID(DATA_PATH + "DID.json");
-        String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
-        String walletHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", peerID);
-
-        add(DATA_PATH.concat(didHash).concat("/DID.png"), ipfs);
-        pin(didHash, ipfs);
-
-        add(DATA_PATH.concat(didHash).concat("/PublicShare.png"), ipfs);
-        pin(walletHash, ipfs);
-
-        APILogger.debug("Data Added and Pinned");
     }
 
     /**

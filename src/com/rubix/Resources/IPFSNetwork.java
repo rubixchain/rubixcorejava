@@ -330,8 +330,8 @@ public class IPFSNetwork {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
         List dhtlist = ipfs.dht.findprovs(dhtMultihash);
-        IPFSNetworkLogger.debug("Providers: " + dhtlist);
-        if (dhtlist.size() <= 2 && dhtlist.toString().contains(previousOwner))
+
+        if (dhtlist.size() == 1 && dhtlist.toString().contains(previousOwner))
             return true;
         return false;
     }
@@ -453,7 +453,7 @@ public class IPFSNetwork {
             }
 
             if (command.contains(listen) || command.contains(forward) || command.contains("swarm")
-                    || command.contains(p2p) || command.contains(shutdown) || command.contains(bootstrap) || command.contains("findprovs")) {
+                    || command.contains(p2p) || command.contains(shutdown)) {
                 p = new ProcessBuilder(commands);
                 process = p.start();
 
@@ -520,7 +520,7 @@ public class IPFSNetwork {
             }
 
             if (command.contains(listen) || command.contains(forward) || command.contains(p2p)
-                    || command.contains(shutdown) || command.contains(bootstrap)) {
+                    || command.contains(shutdown)) {
                 p = new ProcessBuilder(commands);
                 process = p.start();
 
@@ -554,29 +554,19 @@ public class IPFSNetwork {
         String output = swarmConnectProcess(multiAddress);
 
         if (!output.contains("success")) {
-            IPFSNetworkLogger.debug("Connecting via bootstrap ");
-            IPFSNetworkLogger.debug("Bootstraps  " + BOOTSTRAPS + "size " + BOOTSTRAPS.length());
 
             for (int i = 0; i < BOOTSTRAPS.length(); i++) {
                 if (!swarmConnected) {
                     bootNode = String.valueOf(BOOTSTRAPS.get(i));
                     bootNode = bootNode.substring(bootNode.length() - 46);
-                    
-                    multiAddress = new MultiAddress("/ipfs/" + bootNode);
+
+                    multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
                     output = swarmConnectProcess(multiAddress);
-                    
-                    if (output.contains("success")) {
-                      multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
-                      output = swarmConnectProcess(multiAddress);
-                      if (!output.contains("success")) {
+                    if (!output.contains("success")) {
                         IPFSNetworkLogger.debug("swarm attempt failed with " + peerid);
-                      } else {
-                        IPFSNetworkLogger.debug("swarm Connected : " + peerid);
-                        swarmConnected = true;
-                      } 
                     } else {
-                      IPFSNetworkLogger.debug("bootstrap connection failed! " + bootNode);
-                    } 
+                        swarmConnected = true;
+                    }
 
                 }
             }
