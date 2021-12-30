@@ -311,11 +311,7 @@ public class DataBase {
                 resultObj.put("credits", obj1.get("credits"));
                 resultObj.put("sign", obj2.get("sign"));
                 resultObj.put("tid", obj1.get("tid"));
-                if(obj1.has("minestatus"))
-                {
-                resultObj.put("minestatus", obj1.get("minestatus"));    
-                }
-
+                resultObj.put("minestatus", obj1.get("minestatus"));
                 resultObj.put("consensusID", obj1.get("consensusID"));
                 resultObj.put("serialNoQst", obj1.get("serialNoQst"));
                 resultObj.put("serialNoQsign", obj2.get("serialNoQsign"));
