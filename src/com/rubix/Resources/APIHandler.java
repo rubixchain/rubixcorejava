@@ -1,7 +1,7 @@
 package com.rubix.Resources;
 
+import static com.rubix.Constants.ConsensusConstants.DATA;
 import static com.rubix.Constants.ConsensusConstants.PRIMARY;
-import static com.rubix.Constants.ConsensusConstants.SECONDARY;
 import static com.rubix.Constants.ConsensusConstants.TRANS_TYPE;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
@@ -75,11 +75,9 @@ public class APIHandler {
         String recDID;
         String blockHash;
         JSONArray tokens;
-
         JSONObject dataObject = new JSONObject(data);
 
-        // check if receiverDidIpfsHash is present in the dataObject
-        if (dataObject.has("receiverDidIpfsHash") && dataObject.has("tokens")) {
+        if (dataObject.has("receiverDidIpfsHash")) {
 
             dataObject.put(TRANS_TYPE, PRIMARY);
 
@@ -113,7 +111,7 @@ public class APIHandler {
 
         } else if (dataObject.has("blockHash")) {
 
-            dataObject.put(TRANS_TYPE, SECONDARY);
+            dataObject.put(TRANS_TYPE, DATA);
 
             blockHash = dataObject.getString("blockHash");
             if (blockHash.length() != 46) {
@@ -133,17 +131,8 @@ public class APIHandler {
 
         }
 
-        // String comments = dataObject.getString("comments");
-        // JSONArray tokenHeader = dataObject.getJSONArray("tokenHeader");
-        // int amount = dataObject.getInt("amount");
-
-        // detailsObject.put("tokens", tokens);
-        // detailsObject.put("receiverDidIpfsHash", recDID);
-        // detailsObject.put("comment", comments);
-        // detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-        // detailsObject.put("tokenHeader", tokenHeader);
-        // detailsObject.put("amount", amount);
         dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        APILogger.info("Initiating transaction for:" + dataObject.toString());
         sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
 
         APILogger.info(sendMessage);

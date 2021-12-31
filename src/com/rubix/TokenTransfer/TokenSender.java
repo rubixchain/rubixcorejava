@@ -172,11 +172,19 @@ public class TokenSender {
             allTokensChainsPushed.add(tokenChainHash);
         }
 
+        TokenSenderLogger.debug("All tokens added");
+
         // check if detailsObject contains TRANC_TYPE
         if (!detailsObject.has(TRANS_TYPE)) {
             APIResponse.put("ERROR", "TRANS_TYPE not found");
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", "null");
+            APIResponse.put("status", "Failed");
+            APIResponse.put("message", "TRANS_TYPE not found");
             return APIResponse;
         }
+
+        TokenSenderLogger.debug("Initiating transaction type:" + detailsObject.has(TRANS_TYPE));
 
         if (detailsObject.getString(TRANS_TYPE) == PRIMARY) {
 
