@@ -1,23 +1,14 @@
 package com.rubix.Resources;
 
-import static com.rubix.Resources.APIHandler.networkInfo;
-import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
-import static com.rubix.Resources.IPFSNetwork.forwardCheck;
-import static com.rubix.Resources.IPFSNetwork.listen;
+import com.rubix.AuthenticateNode.PropImage;
+import io.ipfs.api.*;
+import org.apache.log4j.*;
+import org.json.*;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.URL;
+import java.io.*;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -25,21 +16,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
+import java.util.*;
 
-import javax.imageio.ImageIO;
-
-import com.rubix.AuthenticateNode.PropImage;
-
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import io.ipfs.api.IPFS;
+import static com.rubix.Resources.APIHandler.*;
+import static com.rubix.Resources.IPFSNetwork.*;
 
 
 public class Functions {
@@ -137,7 +117,6 @@ public class Functions {
     }
 
 
-    //? 
     public static void nodeData(String did, String wid, IPFS ipfs) throws IOException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         File dataFolder = new File(DATA_PATH + did + "/");
@@ -221,7 +200,6 @@ public class Functions {
      * @return (String) hash
      */
 
-    //? rubix-crypto
     public static String calculateHash(String message, String algorithm) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         MessageDigest digest = null;
@@ -562,6 +540,7 @@ public class Functions {
                     quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
                     if (checkSwarmConnect().contains(quorumPeer)) {
                         peers.add(quorumPeer);
+                        FunctionsLogger.debug(quorumPeer + " added to list");
                     }
                 } catch (JSONException e) {
                     FunctionsLogger.error("JSON Exception Occurred", e);
@@ -765,30 +744,9 @@ public class Functions {
     public static void launch() {
         pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        int syncFlag = 0;
-        try {
-            executeIPFSCommands("ipfs daemon --enable-gc");
-            if (!SYNC_IP.contains("127.0.0.1")) {
-                networkInfo();
-                syncFlag = 1;
-            }
+        executeIPFSCommands("ipfs daemon --enable-gc");
 
-        } catch (MalformedURLException e) {
-            FunctionsLogger.error("MalformedURL Exception Occurred", e);
-            e.printStackTrace();
-        } catch (ProtocolException e) {
-            FunctionsLogger.error("Protocol Exception Occurred", e);
-            e.printStackTrace();
-        } catch (IOException e) {
-            FunctionsLogger.error("IO Exception Occurred", e);
-            e.printStackTrace();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        if (syncFlag == 1)
-            FunctionsLogger.info("Synced Successfully!");
-        else
-            FunctionsLogger.info("Not synced! Try again after sometime.");
+        FunctionsLogger.debug("Enabled ipfs GC");
     }
 
     /**
@@ -797,7 +755,6 @@ public class Functions {
      * @return A message
      * @throws JSONException handle all JSON Exceptions
      */
-    //? self-test
     public static String checkDirectory() throws JSONException {
         setDir();
         File mainDir = new File(dirPath);
@@ -1049,7 +1006,7 @@ public class Functions {
             responseQuorumPick.append(outputQuorumPick);
         }
         inQuorumPick.close();
-
+        FunctionsLogger.debug(" responsequorumpick " + responseQuorumPick.toString());
         quorumArray = new JSONArray(responseQuorumPick.toString());
         return quorumArray;
     }
@@ -1113,6 +1070,71 @@ public class Functions {
         }
     }
     
+    /** To Sync DataTable.json, if required */
+    public static void syncDataTable(String did, String peerId) {
+        try {
+          String dataTableData = readFile(DATA_PATH + "DataTable.json");
+          boolean isObjectValid = false;
+          JSONArray dataTable = new JSONArray(dataTableData);
+          for (int i = 0; i < dataTable.length(); i++) {
+            JSONObject dataTableObject = dataTable.getJSONObject(i);
+            if ((did != null && dataTableObject.getString("didHash").equals(did)) 
+            		|| 
+            	(peerId != null && dataTableObject.getString("peerid").equals(peerId))) {
+              isObjectValid = true;
+              break;
+            } 
+          } 
+          if (!isObjectValid) {
+            FunctionsLogger.debug("Syncing Datatable.json!");
+            APIHandler.networkInfo();
+          } 
+        } catch (Exception e) {
+          FunctionsLogger.error("Exception Occured", e);
+          e.printStackTrace();
+        } 
+      }
+/**This function will release the port in linux based machines if the port is already in use */
+      public static void releasePorts(int port) {
+        String s;
+        Process p;
+        try {
+            p = Runtime.getRuntime().exec("lsof -ti :" + port);
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(p.getInputStream()));
+            while ((s = br.readLine()) != null)
+                FunctionsLogger.debug("Port "+port+" is in using, killing PID "+s);
+                p = Runtime.getRuntime().exec("kill -9 " + s);
+            p.waitFor();
+            p.destroy();
+        } catch (Exception e) {
+
+        }
+    }
+
+    public static void portStatusWindows(int port) {
+        String s;
+        Process p;
+        try{
+            Runtime rt = Runtime.getRuntime();
+            Process proc = rt.exec("cmd /c netstat -ano | findstr "+port);
+
+            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            if ((s = stdInput.readLine()) != null) {
+            int index=s.lastIndexOf(" ");
+            String sc=s.substring(index, s.length());
+            System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this port and retry transcation");
+            FunctionsLogger.debug("Port "+port+" is locked by PID "+sc);
+            }
+        }
+      catch(Exception e){
+        System.out.println("Something Went wrong with server");
+        }
+    }
+
+
+
+
 //    /**
 //     * This method checks if Quorum is available for consensus
 //     *
