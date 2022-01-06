@@ -1,6 +1,6 @@
 package com.rubix.Resources;
 
-import com.rubix.TokenTransfer.ProofCredits;
+import com.rubix.Mining.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
 import io.ipfs.api.*;
 import org.apache.log4j.*;

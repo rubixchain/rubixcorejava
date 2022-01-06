@@ -70,6 +70,9 @@ public class TokenReceiver {
 
             senderPeerID = input.readLine();
             syncDataTable(null, senderPeerID);
+            
+            swarmConnectP2P(senderPeerID, ipfs);
+            
             String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
             String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", senderPeerID);
 

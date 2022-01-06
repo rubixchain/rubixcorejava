@@ -1094,45 +1094,61 @@ public class Functions {
           e.printStackTrace();
         } 
       }
-/**This function will release the port in linux based machines if the port is already in use */
-      public static void releasePorts(int port) {
-        String s;
-        Process p;
-        try {
-            p = Runtime.getRuntime().exec("lsof -ti :" + port);
-            BufferedReader br = new BufferedReader(
-                    new InputStreamReader(p.getInputStream()));
-            while ((s = br.readLine()) != null)
-                FunctionsLogger.debug("Port "+port+" is in using, killing PID "+s);
-                p = Runtime.getRuntime().exec("kill -9 " + s);
-            p.waitFor();
-            p.destroy();
-        } catch (Exception e) {
+    
+    /**This function will release the port in linux based machines if the port is already in use */
+    public static void releasePorts(int port) {
+      String processStr;
+      Process processId;
+      try {
+    	  processId = Runtime.getRuntime().exec("lsof -ti :" + port);
+          long currentPid = ProcessHandle.current().pid();
+          BufferedReader br = new BufferedReader(
+                  new InputStreamReader(processId.getInputStream()));
+       
+          processId = Runtime.getRuntime().exec("pgrep ipfs"); 
+          BufferedReader ipfsPidBr = new BufferedReader(new InputStreamReader(processId.getInputStream()));
+          
+          processStr=br.readLine();
+          while (processStr  != null && (String.valueOf(currentPid)!= processStr || (ipfsPidBr.readLine() != processStr))) {
+        	  FunctionsLogger.debug("Port "+port+" is in using, killing PID "+processStr);
+        	  processId = Runtime.getRuntime().exec("kill -9 " + processStr);
+        	
+          }
+          processId.waitFor();
+          processId.destroy();
+        
+      } catch (Exception e) {
+          FunctionsLogger.error("Exception Occured at releasePort",e);
+          e.printStackTrace();
+      }
+  }
 
-        }
-    }
-
-    public static void portStatusWindows(int port) {
-        String s;
-        Process p;
-        try{
-            Runtime rt = Runtime.getRuntime();
-            Process proc = rt.exec("cmd /c netstat -ano | findstr "+port);
-
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            if ((s = stdInput.readLine()) != null) {
-            int index=s.lastIndexOf(" ");
-            String sc=s.substring(index, s.length());
-            System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this port and retry transcation");
-            FunctionsLogger.debug("Port "+port+" is locked by PID "+sc);
-            }
-        }
-      catch(Exception e){
-        System.out.println("Something Went wrong with server");
-        }
-    }
-
-
+  public static void portStatusWindows(int port) {
+      String processStr;
+      Process p;
+      try{
+          Runtime rt = Runtime.getRuntime();
+          Process proc = rt.exec("cmd /c netstat -ano | findstr "+port);
+          long currentPid = ProcessHandle.current().pid();
+          BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+          processStr = stdInput.readLine();
+          if (processStr != null && String.valueOf(currentPid)!= processStr) {
+          int index=processStr.lastIndexOf(" ");
+          String sc=processStr.substring(index, processStr.length());
+          //System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this port and retry transcation");
+              if(sc != String.valueOf(currentPid)){
+                  FunctionsLogger.debug("Port "+port+" is locked by PID "+sc);
+              }else{
+                  FunctionsLogger.debug("Port "+port+" is locked by current jar with PID "+sc);
+              }
+          
+          }
+      }
+    catch(Exception e){
+          FunctionsLogger.error("Exception occured at portStatusWindows",e); 
+          e.printStackTrace();
+      }
+  }
 
 
 //    /**

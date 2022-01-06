@@ -95,7 +95,7 @@ public class TokenSender {
         TokenSenderLogger.debug("sender peer id"+senderPeerID);
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
         TokenSenderLogger.debug("sender did ipfs hash"+senderDidIpfsHash);
-        TokenSenderLogger.debug("path is" + DATA_PATH+senderDidIpfsHash);
+       // TokenSenderLogger.debug("path is" + DATA_PATH+senderDidIpfsHash);
 
      //   BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
      //   String senderWidBin = PropImage.img2bin(senderWidImage);
@@ -128,7 +128,7 @@ public class TokenSender {
         for (int i = 0; i < tokens.length(); i++) {
             File token = new File(TOKENS_PATH + tokens.get(i));
             File tokenchain = new File(TOKENCHAIN_PATH+tokens.get(i)+".json");
-            TokenSenderLogger.debug(token +" and " +tokenchain);
+//            TokenSenderLogger.debug(token +" and " +tokenchain);
             if (!(token.exists() && tokenchain.exists())) {
                 TokenSenderLogger.info("Tokens Not Verified");
                 senderMutex = false;
