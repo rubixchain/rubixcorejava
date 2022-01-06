@@ -17,7 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static com.rubix.Resources.Functions.*;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.*;
 
 public class APIHandler {
     private static final Logger APILogger = Logger.getLogger(APIHandler.class);
@@ -91,12 +91,16 @@ public class APIHandler {
         dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
         sendMessage =  TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
 
-//        sendMessage =  TokenSender.Send(detailsObject.toString(), ipfs, SEND_PORT);
         APILogger.info(sendMessage);
         return sendMessage;
     }
 
-
+    /**
+     * An API call to mine tokens
+     * @param type Type of quorum Selection
+     * @return JSONObject with status message
+     * @throws Exception throws Exception
+     */
     public static JSONObject create(int type) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -148,8 +152,11 @@ public class APIHandler {
         JSONObject obj = new JSONObject();
         for (int i = 0; i < transArray.length(); i++) {
             obj = transArray.getJSONObject(i);
-            if (obj.get("txn").equals(txnId))
-                resultArray.put(obj);
+            if (obj.get("txn").equals(txnId)) {
+            	obj.remove("essentialShare");
+            	resultArray.put(obj);
+            }
+                
         }
         APILogger.info("Transaction Details for : " + obj.toString());
         return resultArray;
@@ -195,6 +202,23 @@ public class APIHandler {
 
         resultArray.put(accountDetails);
         return resultArray;
+    }
+
+    /**
+     * A method to add and host your DID ans Public share to ipfs
+     */
+    public static void addPublicData(){
+        String peerID = getPeerID(DATA_PATH + "DID.json");
+        String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
+        String walletHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", peerID);
+
+        add(DATA_PATH.concat(didHash).concat("/DID.png"), ipfs);
+        pin(didHash, ipfs);
+
+        add(DATA_PATH.concat(didHash).concat("/PublicShare.png"), ipfs);
+        pin(walletHash, ipfs);
+
+        APILogger.debug("Data Added and Pinned");
     }
 
     /**
@@ -272,8 +296,11 @@ public class APIHandler {
             c.setTime(objSDF.parse(dateTHS));
             dateTH = c.getTime();
             APILogger.debug("dateFromTxnHistory "+dateTH);
-            if (dateTH.after(startDate)&&dateTH.before(endDate))
-                resultArray.put(transArray.getJSONObject(i));
+            if (dateTH.after(startDate)&&dateTH.before(endDate)) {
+            	transArray.getJSONObject(i).remove("essentialShare"); 
+            	resultArray.put(transArray.getJSONObject(i));	
+            }
+                
         }
         return resultArray;
     }
@@ -306,14 +333,17 @@ public class APIHandler {
         }
 
         if (n >= transArray.length()) {
-            for (int i = transArray.length()-1; i>=0; i--)
-                resultArray.put(transArray.get(i));
+            for (int i = transArray.length()-1; i>=0; i--) {
+            	transArray.getJSONObject(i).remove("essentialShare"); 
+            	resultArray.put(transArray.get(i));
+            }
             return resultArray;
         }
 
-        for( int i = 1; i <= n; i++)
-            resultArray.put(transArray.getJSONObject(transArray.length() - i));
-
+        for( int i = 1; i <= n; i++) {
+        	transArray.getJSONObject(i).remove("essentialShare"); 
+        	resultArray.put(transArray.getJSONObject(transArray.length() - i));	
+        }
         return resultArray;
     }
 
@@ -349,6 +379,7 @@ public class APIHandler {
 
         for(int i = start; i < end; i++){
             JSONObject object = transArray.getJSONObject(i);
+        	object.remove("essentialShare"); 
             resultArray.put(object);
         }
 
@@ -376,8 +407,11 @@ public class APIHandler {
         JSONArray resultArray = new JSONArray();
         for (int i = 0; i < transArray.length(); i++) {
             obj = transArray.getJSONObject(i);
-            if (obj.get("comment").equals(comment))
-                resultArray.put(obj);
+            if (obj.get("comment").equals(comment)) {
+            	obj.remove("essentialShare");
+                resultArray.put(obj);	
+            }
+            
         }
         if(resultArray.length() < 1){
             JSONObject returnObject = new JSONObject();
@@ -401,6 +435,7 @@ public class APIHandler {
         JSONArray resultArray = new JSONArray();
         for (int i = 0; i < transArray.length(); i++) {
             JSONObject didObject = transArray.getJSONObject(i);
+            didObject.remove("essentialShare");
             if (didObject.get("senderDID").equals(did) || didObject.get("receiverDID").equals(did))
                resultArray.put(didObject);
         }

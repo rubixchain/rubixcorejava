@@ -1,3 +1,7 @@
 .vscode/settings.json
 .DS_Store
 rubixcorejava.jar
+tests/thunder-tests/thunderActivity.db
+tests/thunder-tests/thunderclient.db
+tests/thunder-tests/thunderCollection.db
+tests/thunder-tests/thunderEnvironment.db
