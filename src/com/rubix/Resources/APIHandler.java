@@ -153,6 +153,10 @@ public class APIHandler {
         for (int i = 0; i < transArray.length(); i++) {
             obj = transArray.getJSONObject(i);
             if (obj.get("txn").equals(txnId)) {
+            	
+            	JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                obj.put("amount", tokensArray.length());
+            	
             	obj.remove("essentialShare");
             	resultArray.put(obj);
             }
@@ -287,9 +291,12 @@ public class APIHandler {
             resultArray.put(countResult);
             return resultArray;
         }
+        JSONObject obj = new JSONObject();
         for (int i=0;i<transArray.length();i++)
         {
-            String dateFromTxnHistoryString = transArray.getJSONObject(i).get("Date").toString();
+        	obj = transArray.getJSONObject(i);
+        	
+            String dateFromTxnHistoryString = obj.get("Date").toString();
             Date dateTH=new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(dateFromTxnHistoryString);
             String dateTHS= objSDF.format(dateTH);
             Calendar c= Calendar.getInstance();
@@ -297,8 +304,12 @@ public class APIHandler {
             dateTH = c.getTime();
             APILogger.debug("dateFromTxnHistory "+dateTH);
             if (dateTH.after(startDate)&&dateTH.before(endDate)) {
-            	transArray.getJSONObject(i).remove("essentialShare"); 
-            	resultArray.put(transArray.getJSONObject(i));	
+            	obj.remove("essentialShare"); 
+            	
+            	JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                obj.put("amount", tokensArray.length());
+            	
+            	resultArray.put(obj);	
             }
                 
         }
@@ -326,6 +337,7 @@ public class APIHandler {
         }
         String transactionHistory = readFile(path);
         JSONArray transArray = new JSONArray(transactionHistory);
+        JSONObject obj = new JSONObject();
         if (transArray.length() == 0){
             countResult.put("Message", "No transactions made yet");
             resultArray.put(countResult);
@@ -334,15 +346,25 @@ public class APIHandler {
 
         if (n >= transArray.length()) {
             for (int i = transArray.length()-1; i>=0; i--) {
-            	transArray.getJSONObject(i).remove("essentialShare"); 
-            	resultArray.put(transArray.get(i));
+            	obj = transArray.getJSONObject(i);
+            	obj.remove("essentialShare"); 
+
+            	JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                obj.put("amount", tokensArray.length());
+            	
+            	resultArray.put(obj);
             }
             return resultArray;
         }
 
         for( int i = 1; i <= n; i++) {
-        	transArray.getJSONObject(i).remove("essentialShare"); 
-        	resultArray.put(transArray.getJSONObject(transArray.length() - i));	
+        	
+        	obj = transArray.getJSONObject(transArray.length() - i);
+        	obj.remove("essentialShare"); 
+        	JSONArray tokensArray = (JSONArray) obj.get("tokens");
+            obj.put("amount", tokensArray.length());
+        	
+        	resultArray.put(obj);
         }
         return resultArray;
     }
@@ -380,6 +402,9 @@ public class APIHandler {
         for(int i = start; i < end; i++){
             JSONObject object = transArray.getJSONObject(i);
         	object.remove("essentialShare"); 
+        	JSONArray tokensArray = (JSONArray) object.get("tokens");
+        	object.put("amount", tokensArray.length());
+        	
             resultArray.put(object);
         }
 
@@ -407,9 +432,13 @@ public class APIHandler {
         JSONArray resultArray = new JSONArray();
         for (int i = 0; i < transArray.length(); i++) {
             obj = transArray.getJSONObject(i);
+            
             if (obj.get("comment").equals(comment)) {
             	obj.remove("essentialShare");
-                resultArray.put(obj);	
+            
+            	JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                obj.put("amount", tokensArray.length());
+            	resultArray.put(obj);	
             }
             
         }
@@ -436,6 +465,9 @@ public class APIHandler {
         for (int i = 0; i < transArray.length(); i++) {
             JSONObject didObject = transArray.getJSONObject(i);
             didObject.remove("essentialShare");
+        	JSONArray tokensArray = (JSONArray) didObject.get("tokens");
+        	didObject.put("amount", tokensArray.length());
+        
             if (didObject.get("senderDID").equals(did) || didObject.get("receiverDID").equals(did))
                resultArray.put(didObject);
         }
