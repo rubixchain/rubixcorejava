@@ -101,6 +101,7 @@ public class TokenSender {
             return APIResponse;
         }
 
+        JSONArray tokenPreviousSender = new JSONArray();
         for (int i = 0; i < tokens.length(); i++) {
             File token = new File(TOKENS_PATH + tokens.get(i));
             File tokenchain = new File(TOKENCHAIN_PATH + tokens.get(i) + ".json");
@@ -119,6 +120,17 @@ public class TokenSender {
             String tokenChainHash = add(TOKENCHAIN_PATH + tokens.get(i) + ".json", ipfs);
             allTokensChainsPushed.add(tokenChainHash);
 
+
+            String tokenChainFileContent = readFile(TOKENCHAIN_PATH + tokens.get(i) + ".json");
+            JSONArray tokenChainFileArray = new JSONArray(tokenChainFileContent);
+            ArrayList previousSenderArray = new ArrayList();
+            for(int j = 0; j < tokenChainFileArray.length(); j++){
+                previousSenderArray.add(tokenChainFileArray.getJSONObject(j).getString("sender"));
+            }
+            JSONObject previousSenderObject = new JSONObject();
+            previousSenderObject.put("token", hash);
+            previousSenderObject.put("sender", previousSenderArray);
+            tokenPreviousSender.put(previousSenderObject);
         }
 
         String authSenderByRecHash = calculateHash(tokens.toString() + allTokensChainsPushed.toString() + receiverDidIpfsHash + comment, "SHA3-256");
@@ -322,7 +334,10 @@ public class TokenSender {
 
         }
 
-        output.println(tokenDetails);
+        JSONObject tokenObject = new JSONObject();
+        tokenObject.put("tokenDetails", tokenDetails);
+        tokenObject.put("previousSender", tokenPreviousSender);
+        output.println(tokenObject);
 
         String tokenAuth;
         try {
@@ -344,6 +359,15 @@ public class TokenSender {
         }
         if (tokenAuth != null && (!tokenAuth.equals("200"))) {
             switch (tokenAuth) {
+                case "420":
+                    String doubleSpent = input.readLine();
+                    String owners = input.readLine();
+                    JSONArray ownersArray = new JSONArray(owners);
+                    TokenSenderLogger.info("Multiple Owners for " + doubleSpent);
+                    APIResponse.put("message", "Multiple Owners for " + doubleSpent);
+                    APIResponse.put("Owners", ownersArray);
+                    removeToken();
+                    break;
                 case "421":
                     TokenSenderLogger.info("Consensus ID not unique");
                     APIResponse.put("message", "Consensus ID not unique");

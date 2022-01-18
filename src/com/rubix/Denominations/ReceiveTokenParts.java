@@ -165,7 +165,7 @@ public class ReceiveTokenParts {
             calculateCID.put("sender", sender);
             boolean chequeCheckFlag = true;
 
-            float amount = TokenDetailsArray.getJSONObject(1).getFloat("amount");
+            double amount = TokenDetailsArray.getJSONObject(1).getDouble("amount");
             String senderToken = calculateCID.toString();
 
 
@@ -203,83 +203,23 @@ public class ReceiveTokenParts {
                 }
             }
 
-//            JSONObject lastChainObject = tokenChainContent.getJSONObject(tokenChainContent.length()-1);
-//            if(!lastChainObject.has("amount")){
-//
-//            }
-//            if (tokenChainContent.length() > 1) {
-//                TokenPartReceiverLogger.debug("Checking owners ...");
-//                if (IPFSNetwork.dhtEmpty(getCIDipfsHash, ipfs)) {
-//
-//                    JSONObject lastObject = tokenChainContent.getJSONObject(tokenChainContent.length() - 1);
-//                    if(lastObject.has("amount")) {
-//                        JSONObject object1 = tokenChainContent.getJSONObject(tokenChainContent.length() - 2);
-//                        String a = object1.getString("senderSign").concat(object1.getString("sender")).concat(object1.getString("comment").concat(object1.getString("tid")).concat(String.valueOf(object1.getFloat("amount"))));
-//
-//                        JSONObject object2 = tokenChainContent.getJSONObject(tokenChainContent.length() - 1);
-//                        String b = object2.getString("senderSign").concat(object2.getString("sender")).concat(object2.getString("comment").concat(object2.getString("tid")).concat(String.valueOf(object2.getFloat("amount"))));
-//
-//                        if (!object1.getString("nextHash").equals(calculateHash(b, "SHA3-256"))) {
-//                            TokenPartReceiverLogger.debug(object1.getString("nextHash") + " " + b);
-//                            chainHashFlag = false;
-//                        }
-//
-//                        if (!object2.getString("previousHash").equals(calculateHash(a, "SHA3-256"))) {
-//                            TokenPartReceiverLogger.debug(object2.getString("previousHash") + " " + a);
-//                            chainHashFlag = false;
-//                        }
-//                    }
-//
-//                } else {
-//                    TokenPartReceiverLogger.debug("Token cheques not pinned / members not online");
-//                    chequeCheckFlag = false;
-//                }
-//            } else if (tokenChainContent.length() == 1) {
-//                TokenPartReceiverLogger.debug("Checking owners ...");
-//                if (IPFSNetwork.dhtEmpty(getCIDipfsHash, ipfs)) {
-//
-//                    JSONObject object = tokenChainContent.getJSONObject(0);
-//                    String prevHash = object.getString("previousHash");
-//                    String prevHashReCal = calculateHash(new JSONObject().toString(), "SHA3-256");
-//                    if (!prevHash.equals(prevHashReCal)) {
-//                        TokenPartReceiverLogger.debug(prevHash + " " + prevHashReCal);
-//                        chainHashFlag = false;
-//                    }
-//
-//                } else {
-//                    TokenPartReceiverLogger.debug("Token cheques not pinned / members not online - length = 1");
-//                    chequeCheckFlag = false;
-//                }
-//            } else {
-//                TokenPartReceiverLogger.debug("Checking owners ...");
-//                if (IPFSNetwork.dhtEmpty(getCIDipfsHash, ipfs)) {
-//                    TokenPartReceiverLogger.debug("IPFS get of consensusFile: " + getCIDipfsHash);
-//
-//
-//                } else {
-//                    TokenPartReceiverLogger.debug("No cheques sent yet consensus ID pinned");
-//                    chequeCheckFlag = false;
-//                }
-//            }
-//            TokenPartReceiverLogger.debug(chainHashFlag);
-            float availableParts = 0;
+            double availableParts = 0;
             for (int i = 0; i < tokenChainContent.length(); i++) {
                 if (tokenChainContent.getJSONObject(i).has("role")) {
                     if (tokenChainContent.getJSONObject(i).getString("role").equals("Receiver") && tokenChainContent.getJSONObject(i).getString("receiver").equals(senderDidIpfsHash)) {
                         if (tokenChainContent.getJSONObject(i).has("amount"))
-                            availableParts += tokenChainContent.getJSONObject(i).getFloat("amount");
+                            availableParts += tokenChainContent.getJSONObject(i).getDouble("amount");
                     } else if (tokenChainContent.getJSONObject(i).getString("role").equals("Sender") && tokenChainContent.getJSONObject(i).getString("sender").equals(senderDidIpfsHash)) {
                         if (tokenChainContent.getJSONObject(i).has("amount"))
-                            availableParts -= tokenChainContent.getJSONObject(i).getFloat("amount");
+                            availableParts -= tokenChainContent.getJSONObject(i).getDouble("amount");
                     }
                 }
             }
 
             availableParts += amount;
 
-//            String consensusIdCompare = calculateHash(senderDidIpfsHash.concat(tokens), "SHA3-256");
-
             String TokenContent = get(tokens, ipfs);
+
             if (!chequeCheckFlag) {
 
                 String errorMessage = "Issue with cheque tokens - Either issues cheques not pinned/token pinned with no cheques issued";
