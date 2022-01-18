@@ -87,12 +87,16 @@ public class ProofCredits {
 
         ProofCreditsLogger.debug("credits required " + creditsRequired + " available credits " + availableCredits);
 
-        boolean oldCreditsFlag = false;
-        for (int i = 0; i < creditsRequired; i++)
-            if (!newQstArray.getJSONObject(i).has("creditHash"))
-                oldCreditsFlag = true;
 
         if (availableCredits >= creditsRequired) {
+
+            boolean oldCreditsFlag = false;
+            for (int i = 0; i < creditsRequired; i++)
+                if (!newQstArray.getJSONObject(i).has("creditHash"))
+                    oldCreditsFlag = true;
+
+            ProofCreditsLogger.debug("Credits Old: " + oldCreditsFlag);
+
 
             //String GET_URL = SYNC_IP+"/getInfo?count="+availableCredits;
             String GET_URL = SYNC_IP + "/minetoken";
@@ -193,6 +197,7 @@ public class ProofCredits {
 
                 JSONArray signedQuorumList = new JSONArray();
                 if (!oldCreditsFlag) {
+                    ProofCreditsLogger.debug("New Credits");
                     //Send QST for verification
                     String qstContent = readFile(WALLET_DATA_PATH.concat("QuorumSignedTransactions.json"));
                     JSONArray qstArray = new JSONArray(qstContent);
@@ -243,9 +248,9 @@ public class ProofCredits {
                     dataObject.put("gammaList", gammaPeersList);
                     dataObject.put("qstDetails", qstObject);
 
-                    SetDetails.consensusSetDetails(dataObject.toString(), ipfs, SEND_PORT + 3, alphaSize);
+                    InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3, alphaSize, "new-credits-mining");
 
-                    if (!(MineInitiator.quorumSignature.length() >= 3 * minQuorum(7))) {
+                    if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
                         APIResponse.put("did", receiverDidIpfsHash);
                         APIResponse.put("tid", "null");
                         APIResponse.put("status", "Failed");
@@ -269,6 +274,8 @@ public class ProofCredits {
 
                     }
                 } else {
+                    ProofCreditsLogger.debug("Old Credits");
+
                     JSONObject dataObject = new JSONObject();
                     dataObject.put("tid", tid);
                     dataObject.put("message", comments);
@@ -280,7 +287,7 @@ public class ProofCredits {
                     dataObject.put("betaList", betaPeersList);
                     dataObject.put("gammaList", gammaPeersList);
 
-                    InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3, alphaSize);
+                    InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3, alphaSize, "");
 
                     if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
                         APIResponse.put("did", receiverDidIpfsHash);
@@ -342,7 +349,7 @@ public class ProofCredits {
                 ProofCreditsLogger.debug("Updated balance of node : " + (availableCredits - creditUsed));
                 long endtime = System.currentTimeMillis();
                 totalTime = endtime - starttime;
-                Iterator<String> keys = MineInitiator.quorumSignature.keys();
+                Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
 
                 while (keys.hasNext())
                     signedQuorumList.put(keys.next());
@@ -371,11 +378,6 @@ public class ProofCredits {
                 transactionRecord.put("Date", currentTime);
                 transactionRecord.put("totalTime", totalTime);
                 transactionRecord.put("comment", "minedtxn");
-
-                if (!oldCreditsFlag)
-                    transactionRecord.put("essentialShare", SetDetails.essential);
-                else
-                    transactionRecord.put("essentialShare", InitiatorProcedure.essential);
 
 
                 JSONArray transactionHistoryEntry = new JSONArray();

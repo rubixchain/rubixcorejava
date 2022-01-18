@@ -1,5 +1,6 @@
 package com.rubix.Resources;
 
+import com.rubix.Denominations.SendTokenParts;
 import com.rubix.Mining.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
 import io.ipfs.api.*;
@@ -61,8 +62,6 @@ public class APIHandler {
 
 //        String comments = dataObject.getString("comments");
         JSONArray tokens = dataObject.getJSONArray("tokens");
-//        JSONArray tokenHeader = dataObject.getJSONArray("tokenHeader");
-//        int amount = dataObject.getInt("amount");
 
 
         JSONObject sendMessage = new JSONObject();
@@ -82,18 +81,61 @@ public class APIHandler {
             return sendMessage;
         }
 
-//        detailsObject.put("tokens", tokens);
-//        detailsObject.put("receiverDidIpfsHash", recDID);
-//        detailsObject.put("comment", comments);
-//        detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-//        detailsObject.put("tokenHeader", tokenHeader);
-//        detailsObject.put("amount", amount);
         dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
         sendMessage =  TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
 
         APILogger.info(sendMessage);
         return sendMessage;
     }
+
+    /**
+     * A call to send tokens in parts
+     * @param data Data specific to token transfer
+     * @return Message from the sender with transaction details
+     * @throws Exception throws Exception
+     */
+    public static JSONObject sendParts(String data) throws Exception {
+        Functions.pathSet();
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        APILogger.debug("Sending Parts");
+        Functions.pathSet();
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+
+        String senderPeerID = getPeerID(DATA_PATH + "DID.json");
+        String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+
+
+        JSONObject dataObject = new JSONObject(data);
+        String recDID = dataObject.getString("receiverDidIpfsHash");
+
+        String dataTableData = readFile(DATA_PATH + "DataTable.json");
+        boolean isObjectValid = false;
+        JSONArray dataTable = new JSONArray(dataTableData);
+        // check value matches any of the data in the data table
+        for (int i = 0; i < dataTable.length(); i++) {
+            JSONObject dataTableObject = dataTable.getJSONObject(i);
+            if (dataTableObject.getString("didHash").equals(recDID)) {
+                isObjectValid = true;
+            }
+        }
+        if(!isObjectValid)
+            networkInfo();
+
+        JSONObject sendMessage = new JSONObject();
+        if (recDID.length() != 46) {
+            sendMessage.put("did", senDID);
+            sendMessage.put("tid", "null");
+            sendMessage.put("status", "Failed");
+            sendMessage.put("message", "Invalid Receiver Did Entered");
+            return sendMessage;
+        }
+        dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        sendMessage =  SendTokenParts.Send(dataObject.toString(), ipfs, 9999);
+
+        APILogger.info(sendMessage);
+        return sendMessage;
+    }
+
 
     /**
      * An API call to mine tokens
@@ -153,10 +195,6 @@ public class APIHandler {
         for (int i = 0; i < transArray.length(); i++) {
             obj = transArray.getJSONObject(i);
             if (obj.get("txn").equals(txnId)) {
-            	
-            	JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                obj.put("amount", tokensArray.length());
-            	
             	obj.remove("essentialShare");
             	resultArray.put(obj);
             }
@@ -203,6 +241,7 @@ public class APIHandler {
         accountDetails.put("wid", wid);
         accountDetails.put("senderTxn", txnAsSender);
         accountDetails.put("receiverTxn", txnAsReceiver);
+        accountDetails.put("totalTxn", txnAsSender+txnAsReceiver);
 
         resultArray.put(accountDetails);
         return resultArray;
@@ -222,7 +261,6 @@ public class APIHandler {
         add(DATA_PATH.concat(didHash).concat("/PublicShare.png"), ipfs);
         pin(walletHash, ipfs);
 
-        APILogger.debug("Data Added and Pinned");
     }
 
     /**
@@ -304,11 +342,7 @@ public class APIHandler {
             dateTH = c.getTime();
             APILogger.debug("dateFromTxnHistory "+dateTH);
             if (dateTH.after(startDate)&&dateTH.before(endDate)) {
-            	obj.remove("essentialShare"); 
-            	
-            	JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                obj.put("amount", tokensArray.length());
-            	
+            	obj.remove("essentialShare");
             	resultArray.put(obj);	
             }
                 
@@ -347,12 +381,8 @@ public class APIHandler {
         if (n >= transArray.length()) {
             for (int i = transArray.length()-1; i>=0; i--) {
             	obj = transArray.getJSONObject(i);
-            	obj.remove("essentialShare"); 
-
-            	JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                obj.put("amount", tokensArray.length());
-            	
-            	resultArray.put(obj);
+            	obj.remove("essentialShare");
+                resultArray.put(obj);
             }
             return resultArray;
         }
@@ -360,11 +390,8 @@ public class APIHandler {
         for( int i = 1; i <= n; i++) {
         	
         	obj = transArray.getJSONObject(transArray.length() - i);
-        	obj.remove("essentialShare"); 
-        	JSONArray tokensArray = (JSONArray) obj.get("tokens");
-            obj.put("amount", tokensArray.length());
-        	
-        	resultArray.put(obj);
+        	obj.remove("essentialShare");
+            resultArray.put(obj);
         }
         return resultArray;
     }
@@ -385,6 +412,12 @@ public class APIHandler {
             return resultArray;
         }
 
+        if(start > end){
+            countResult.put("Message", "Invalid ranges");
+            resultArray.put(countResult);
+            return resultArray;
+        }
+
         File transactionFile = new File(WALLET_DATA_PATH + "TransactionHistory.json");
         if (!transactionFile.exists()) {
             resultArray.put(countResult);
@@ -399,16 +432,66 @@ public class APIHandler {
         }
 
 
-        for(int i = start; i < end; i++){
-            JSONObject object = transArray.getJSONObject(i);
-        	object.remove("essentialShare"); 
-        	JSONArray tokensArray = (JSONArray) object.get("tokens");
-        	object.put("amount", tokensArray.length());
-        	
-            resultArray.put(object);
+        if(!(end < transArray.length())) {
+            for (int i = start; i < transArray.length(); i++) {
+                JSONObject object = transArray.getJSONObject(i);
+                object.remove("essentialShare");
+                resultArray.put(object);
+            }
+        }else{
+            if(start == end){
+                JSONObject object = transArray.getJSONObject(start);
+                object.remove("essentialShare");
+                resultArray.put(object);
+            }
+            for (int i = start; i < end; i++) {
+                JSONObject object = transArray.getJSONObject(i);
+                object.remove("essentialShare");
+                resultArray.put(object);
+            }
         }
 
         return resultArray;
+    }
+
+    /**
+     *
+     */
+    public static JSONObject creditsInfo(){
+//        String thFile = WALLET_DATA_PATH.concat("TransactionHistory.json");
+        String qstFile = WALLET_DATA_PATH.concat("QuorumSignedTransactions.json");
+        String mineFile = WALLET_DATA_PATH.concat("MinedCreditsHistory.json");
+
+//        File txnFile = new File(thFile);
+        File quorumFile = new File(qstFile);
+        File minedFile = new File(mineFile);
+
+//        int txnCount = 0;
+//        if(txnFile.exists()){
+//            String transactionFile = readFile(WALLET_DATA_PATH.concat("TransactionHistory.json"));
+//            JSONArray txnArray = new JSONArray(transactionFile);
+//            txnCount = txnArray.length();
+//
+//        }
+        int spentCredits = 0;
+        int unspentCredits = 0;
+        if(quorumFile.exists()){
+            String qFile = readFile(qstFile);
+            JSONArray qArray = new JSONArray(qFile);
+            unspentCredits = qArray.length();
+        }
+        if(minedFile.exists()){
+            String mFile = readFile(mineFile);
+            JSONArray mArray = new JSONArray(mFile);
+            spentCredits = mArray.length();
+        }
+
+        JSONObject returnObject = new JSONObject();
+//        returnObject.put("txnCount",txnCount);
+        returnObject.put("spentCredits",spentCredits);
+        returnObject.put("unspentCredits",unspentCredits);
+
+        return returnObject;
     }
 
     /**
@@ -435,10 +518,7 @@ public class APIHandler {
             
             if (obj.get("comment").equals(comment)) {
             	obj.remove("essentialShare");
-            
-            	JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                obj.put("amount", tokensArray.length());
-            	resultArray.put(obj);	
+                resultArray.put(obj);
             }
             
         }
@@ -465,9 +545,7 @@ public class APIHandler {
         for (int i = 0; i < transArray.length(); i++) {
             JSONObject didObject = transArray.getJSONObject(i);
             didObject.remove("essentialShare");
-        	JSONArray tokensArray = (JSONArray) didObject.get("tokens");
-        	didObject.put("amount", tokensArray.length());
-        
+
             if (didObject.get("senderDID").equals(did) || didObject.get("receiverDID").equals(did))
                resultArray.put(didObject);
         }

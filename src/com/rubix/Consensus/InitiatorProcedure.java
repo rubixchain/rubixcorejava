@@ -28,7 +28,7 @@ public class InitiatorProcedure {
      * @param ipfs IPFS instance
      * @param PORT port for forwarding to quorum
      */
-    public static void consensusSetUp(String data,IPFS ipfs, int PORT,int alphaSize) throws JSONException {
+    public static void consensusSetUp(String data,IPFS ipfs, int PORT,int alphaSize, String operation) throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         JSONObject dataObject = new JSONObject(data);
@@ -91,15 +91,18 @@ public class InitiatorProcedure {
 
         InitiatorProcedureLogger.debug("Invoking Consensus");
 
-
         JSONObject dataSend = new JSONObject();
         dataSend.put("hash",authQuorumHash);
         dataSend.put("details",detailsForQuorum);
 
+        if(operation.equals("new-credits-mining")) {
+            JSONObject qstDetails = dataObject.getJSONObject("qstDetails");
+            dataSend.put("qstDetails", qstDetails);
+        }
 
         Thread alphaThread = new Thread(()->{
             try {
-                alphaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT,0,"alpha",alphaList,alphaSize,alphaSize);
+                alphaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT,0,"alpha",alphaList,alphaSize,alphaSize, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -107,7 +110,7 @@ public class InitiatorProcedure {
 
         Thread betaThread = new Thread(()->{
             try {
-                betaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+100,1,"beta",betaList,alphaSize,7);
+                betaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+100,1,"beta",betaList,alphaSize,7, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -115,7 +118,7 @@ public class InitiatorProcedure {
 
         Thread gammaThread = new Thread(()->{
             try {
-                gammaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+107,2,"gamma",gammaList,alphaSize,7);
+                gammaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+107,2,"gamma",gammaList,alphaSize,7, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }

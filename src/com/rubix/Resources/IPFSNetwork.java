@@ -330,7 +330,6 @@ public class IPFSNetwork {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
         List dhtlist = ipfs.dht.findprovs(dhtMultihash);
-        IPFSNetworkLogger.debug("Providers: " + dhtlist);
         if (dhtlist.size() <= 2 && dhtlist.toString().contains(previousOwner))
             return true;
         return false;
@@ -339,14 +338,14 @@ public class IPFSNetwork {
     public static boolean dhtEmpty(String MultiHash, IPFS ipfs) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
-        List dhtlist = null;
+        List dhtList;
         try {
-            dhtlist = ipfs.dht.findprovs(dhtMultihash);
+            dhtList = ipfs.dht.findprovs(dhtMultihash);
 
         } catch (IOException e) {
             return true;
         }
-        if (dhtlist.toString().contains("Type=4"))
+        if (dhtList.toString().contains("Type=4"))
             return false;
         return true;
     }

@@ -1,14 +1,18 @@
 package com.rubix.Resources;
 
 import com.rubix.AuthenticateNode.PropImage;
-import io.ipfs.api.*;
-import org.apache.log4j.*;
-import org.json.*;
+import io.ipfs.api.IPFS;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.net.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -16,9 +20,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
 
-import static com.rubix.Resources.APIHandler.*;
 import static com.rubix.Resources.IPFSNetwork.*;
 
 
@@ -101,14 +106,14 @@ public class Functions {
             SYNC_IP = pathsArray.getJSONObject(2).getString("SYNC_IP");
             EXPLORER_IP = pathsArray.getJSONObject(2).getString("EXPLORER_IP");
             USERDID_IP = pathsArray.getJSONObject(2).getString("USERDID_IP");
-            ADVISORY_IP=pathsArray.getJSONObject(2).getString("ADVISORY_IP");
+            ADVISORY_IP = pathsArray.getJSONObject(2).getString("ADVISORY_IP");
 
             CONSENSUS_STATUS = pathsArray.getJSONObject(3).getBoolean("CONSENSUS_STATUS");
             QUORUM_COUNT = pathsArray.getJSONObject(3).getInt("QUORUM_COUNT");
 
             QUORUM_MEMBERS = pathsArray.getJSONObject(4);
 
-            BOOTSTRAPS =pathsArray.getJSONArray(5);
+            BOOTSTRAPS = pathsArray.getJSONArray(5);
 
 
         } catch (JSONException e) {
@@ -533,7 +538,7 @@ public class Functions {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         ArrayList<String> peers = new ArrayList<>();
 
-        if (quorum.length()>=minQuorum(size)) {
+        if (quorum.length() >= minQuorum(size)) {
             for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
@@ -548,8 +553,8 @@ public class Functions {
                 }
             }
 
-                FunctionsLogger.debug("Quorum Peer IDs : " + peers);
-                return peers;
+            FunctionsLogger.debug("Quorum Peer IDs : " + peers);
+            return peers;
         } else
             return null;
     }
@@ -558,28 +563,27 @@ public class Functions {
      * This method is to connect to quorum nodes for consensus
      *
      * @param quorum JSONArray is list of quorum nodes didHash
-     * @param ipfs      ipfs instance
+     * @param ipfs   ipfs instance
      */
 
 
     public static void QuorumSwarmConnect(JSONArray quorum, IPFS ipfs) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
-            for (int i = 0; i < quorum.length(); i++) {
-                String quorumPeer;
-                try {
-                    quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
+        for (int i = 0; i < quorum.length(); i++) {
+            String quorumPeer;
+            try {
+                quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
 
-                    IPFSNetwork.swarmConnectP2P(quorumPeer,ipfs);
+                IPFSNetwork.swarmConnectP2P(quorumPeer, ipfs);
 
-                } catch (JSONException e) {
-                    FunctionsLogger.error("JSON Exception Occurred", e);
-                    e.printStackTrace();
-                }
+            } catch (JSONException e) {
+                FunctionsLogger.error("JSON Exception Occurred", e);
+                e.printStackTrace();
             }
+        }
 
     }
-
 
 
     /**
@@ -606,7 +610,6 @@ public class Functions {
         }
         return peerid;
     }
-
 
 
     public static int[] getPrivatePosition(int[] positions, int[] privateArray) {
@@ -847,8 +850,8 @@ public class Functions {
      * This method is used generate new token given level and tokenNumber
      * New token is the multi hash of hash of token number and hex of level
      *
-     * @param level level in token tree
-     * @param tokenNumber  unique number for particular level in token tree
+     * @param level       level in token tree
+     * @param tokenNumber unique number for particular level in token tree
      * @return mined token
      */
 
@@ -856,8 +859,8 @@ public class Functions {
 
         String tokenHash = calculateHash(String.valueOf(tokenNumber), "SHA-256");
         String levelHex = Integer.toHexString(level);
-        if(level<16)
-        levelHex=String.valueOf(0).concat(levelHex);
+        if (level < 16)
+            levelHex = String.valueOf(0).concat(levelHex);
         String token = String.valueOf(0) + levelHex + tokenHash;
         return token;
     }
@@ -878,15 +881,14 @@ public class Functions {
      * @return true if data is unique , false otherwise
      */
 
-    public static Boolean integrityCheck(String consensusID){
-        File file = new File(WALLET_DATA_PATH+"QuorumSignedTransactions.json");
-        if(file.exists()) {
+    public static Boolean integrityCheck(String consensusID) {
+        File file = new File(WALLET_DATA_PATH + "QuorumSignedTransactions.json");
+        if (file.exists()) {
             if (getValues(file.getAbsolutePath(), "senderdid", "consensusID", consensusID).equals(""))
                 return true;
             else
                 return false;
-        }
-        else
+        } else
             return true;
     }
 
@@ -897,25 +899,25 @@ public class Functions {
     public static Date getCurrentUtcTime() throws ParseException {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss");
         SimpleDateFormat localDateFormat = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss");
-        return localDateFormat.parse( simpleDateFormat.format(new Date()) );
+        return localDateFormat.parse(simpleDateFormat.format(new Date()));
     }
 
 
     /**
      * This method is used to update quorum credits in server
      *
-     * @param quorumArray jsonarray of all quorum
-     * @param signedQuorumList  jsonarray of all signedquorum
-     * @param status boolean for consensus status
-     * @param type transaction type : default to 1
+     * @param quorumArray      jsonarray of all quorum
+     * @param signedQuorumList jsonarray of all signedquorum
+     * @param status           boolean for consensus status
+     * @param type             transaction type : default to 1
      * @return mined token
      */
 
 
-    public static void updateQuorum(JSONArray quorumArray,JSONArray signedQuorumList,boolean status,int type) throws IOException, JSONException {
+    public static void updateQuorum(JSONArray quorumArray, JSONArray signedQuorumList, boolean status, int type) throws IOException, JSONException {
 
-        if (type==1) {
-            String urlQuorumUpdate = ADVISORY_IP+"/updateQuorum";
+        if (type == 1) {
+            String urlQuorumUpdate = ADVISORY_IP + "/updateQuorum";
             URL objQuorumUpdate = new URL(urlQuorumUpdate);
             HttpURLConnection conQuorumUpdate = (HttpURLConnection) objQuorumUpdate.openConnection();
 
@@ -927,8 +929,8 @@ public class Functions {
 
             JSONObject dataToSendQuorumUpdate = new JSONObject();
             dataToSendQuorumUpdate.put("completequorum", quorumArray);
-            dataToSendQuorumUpdate.put("signedquorum",signedQuorumList);
-            dataToSendQuorumUpdate.put("status",status);
+            dataToSendQuorumUpdate.put("signedquorum", signedQuorumList);
+            dataToSendQuorumUpdate.put("status", status);
             String populateQuorumUpdate = dataToSendQuorumUpdate.toString();
 
             conQuorumUpdate.setDoOutput(true);
@@ -958,18 +960,18 @@ public class Functions {
     /**
      * This method is used get getquorum from advisory node
      *
-     * @param betaHash betahash in string form
-     * @param gammaHash gammahash in string form
-     * @param senderDidIpfsHash didhash of sender
+     * @param betaHash            betahash in string form
+     * @param gammaHash           gammahash in string form
+     * @param senderDidIpfsHash   didhash of sender
      * @param receiverDidIpfsHash didhash of receiver
-     * @param tokenslength tokens amount for picking quorum
+     * @param tokenslength        tokens amount for picking quorum
      * @return JSONArray of quorum nodes
      */
 
 
-    public static JSONArray getQuorum(String betaHash,String gammaHash,String senderDidIpfsHash,String receiverDidIpfsHash,int tokenslength) throws IOException, JSONException {
+    public static JSONArray getQuorum(String betaHash, String gammaHash, String senderDidIpfsHash, String receiverDidIpfsHash, int tokenslength) throws IOException, JSONException {
         JSONArray quorumArray;
-        String urlQuorumPick = ADVISORY_IP+"/getQuorum";
+        String urlQuorumPick = ADVISORY_IP + "/getQuorum";
         URL objQuorumPick = new URL(urlQuorumPick);
         HttpURLConnection conQuorumPick = (HttpURLConnection) objQuorumPick.openConnection();
 
@@ -984,7 +986,7 @@ public class Functions {
         dataToSendQuorumPick.put("gammahash", gammaHash);
         dataToSendQuorumPick.put("sender", senderDidIpfsHash);
         dataToSendQuorumPick.put("receiver", receiverDidIpfsHash);
-        dataToSendQuorumPick.put("tokencount",tokenslength);
+        dataToSendQuorumPick.put("tokencount", tokenslength);
         String populateQuorumPick = dataToSendQuorumPick.toString();
 
         conQuorumPick.setDoOutput(true);
@@ -1019,8 +1021,8 @@ public class Functions {
      * @return JSONArray of quorum nodes
      */
 
-    public static void mineUpdate(String didHash,int credits) throws IOException, JSONException {
-        String urlMineUpdate = ADVISORY_IP+"/updatemine";
+    public static void mineUpdate(String didHash, int credits) throws IOException, JSONException {
+        String urlMineUpdate = ADVISORY_IP + "/updatemine";
         URL objMineUpdate = new URL(urlMineUpdate);
         HttpURLConnection conMineUpdate = (HttpURLConnection) objMineUpdate.openConnection();
 
@@ -1032,7 +1034,7 @@ public class Functions {
 
         JSONObject dataToSendMineUpdate = new JSONObject();
         dataToSendMineUpdate.put("didhash", didHash);
-        dataToSendMineUpdate.put("credits",credits);
+        dataToSendMineUpdate.put("credits", credits);
         String populateMineUpdate = dataToSendMineUpdate.toString();
 
         conMineUpdate.setDoOutput(true);
@@ -1057,98 +1059,163 @@ public class Functions {
 
     }
 
-    public static int checkHeartBeat(String peerId,String appName)  {
+    public static int checkHeartBeat(String peerId, String appName) {
 
-        if(forwardCheck(appName, QUORUM_PORT , peerId)) {
+        if (forwardCheck(appName, QUORUM_PORT, peerId)) {
             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + peerId);
             return 1;
-        }
-
-        else {
+        } else {
             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + peerId);
             return 0;
         }
     }
-    
-    /** To Sync DataTable.json, if required */
+
+    /**
+     * To Sync DataTable.json, if required
+     */
     public static void syncDataTable(String did, String peerId) {
         try {
-          String dataTableData = readFile(DATA_PATH + "DataTable.json");
-          boolean isObjectValid = false;
-          JSONArray dataTable = new JSONArray(dataTableData);
-          for (int i = 0; i < dataTable.length(); i++) {
-            JSONObject dataTableObject = dataTable.getJSONObject(i);
-            if ((did != null && dataTableObject.getString("didHash").equals(did)) 
-            		|| 
-            	(peerId != null && dataTableObject.getString("peerid").equals(peerId))) {
-              isObjectValid = true;
-              break;
-            } 
-          } 
-          if (!isObjectValid) {
-            FunctionsLogger.debug("Syncing Datatable.json!");
-            APIHandler.networkInfo();
-          } 
+            String dataTableData = readFile(DATA_PATH + "DataTable.json");
+            boolean isObjectValid = false;
+            JSONArray dataTable = new JSONArray(dataTableData);
+            for (int i = 0; i < dataTable.length(); i++) {
+                JSONObject dataTableObject = dataTable.getJSONObject(i);
+                if ((did != null && dataTableObject.getString("didHash").equals(did))
+                        ||
+                        (peerId != null && dataTableObject.getString("peerid").equals(peerId))) {
+                    isObjectValid = true;
+                    break;
+                }
+            }
+            if (!isObjectValid) {
+                FunctionsLogger.debug("Syncing Datatable.json!");
+                APIHandler.networkInfo();
+            }
         } catch (Exception e) {
-          FunctionsLogger.error("Exception Occured", e);
-          e.printStackTrace();
-        } 
-      }
-    
-    /**This function will release the port in linux based machines if the port is already in use */
-    public static void releasePorts(int port) {
-      String processStr;
-      Process processId;
-      try {
-    	  processId = Runtime.getRuntime().exec("lsof -ti :" + port);
-          long currentPid = ProcessHandle.current().pid();
-          BufferedReader br = new BufferedReader(
-                  new InputStreamReader(processId.getInputStream()));
-       
-          processId = Runtime.getRuntime().exec("pgrep ipfs"); 
-          BufferedReader ipfsPidBr = new BufferedReader(new InputStreamReader(processId.getInputStream()));
-          
-          processStr=br.readLine();
-          while (processStr  != null && (String.valueOf(currentPid)!= processStr || (ipfsPidBr.readLine() != processStr))) {
-        	  FunctionsLogger.debug("Port "+port+" is in using, killing PID "+processStr);
-        	  processId = Runtime.getRuntime().exec("kill -9 " + processStr);
-        	
-          }
-          processId.waitFor();
-          processId.destroy();
-        
-      } catch (Exception e) {
-          FunctionsLogger.error("Exception Occured at releasePort",e);
-          e.printStackTrace();
-      }
-  }
+            FunctionsLogger.error("Exception Occured", e);
+            e.printStackTrace();
+        }
+    }
 
-  public static void portStatusWindows(int port) {
-      String processStr;
-      Process p;
-      try{
-          Runtime rt = Runtime.getRuntime();
-          Process proc = rt.exec("cmd /c netstat -ano | findstr "+port);
-          long currentPid = ProcessHandle.current().pid();
-          BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-          processStr = stdInput.readLine();
-          if (processStr != null && String.valueOf(currentPid)!= processStr) {
-          int index=processStr.lastIndexOf(" ");
-          String sc=processStr.substring(index, processStr.length());
-          //System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this port and retry transcation");
-              if(sc != String.valueOf(currentPid)){
-                  FunctionsLogger.debug("Port "+port+" is locked by PID "+sc);
-              }else{
-                  FunctionsLogger.debug("Port "+port+" is locked by current jar with PID "+sc);
-              }
-          
-          }
-      }
-    catch(Exception e){
-          FunctionsLogger.error("Exception occured at portStatusWindows",e); 
-          e.printStackTrace();
-      }
-  }
+    /**
+     * This function will release the port in linux based machines if the port is already in use
+     */
+    public static void releasePorts(int port) {
+        String processStr;
+        Process processId;
+        try {
+            processId = Runtime.getRuntime().exec("lsof -ti :" + port);
+            long currentPid = ProcessHandle.current().pid();
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(processId.getInputStream()));
+
+            processId = Runtime.getRuntime().exec("pgrep ipfs");
+            BufferedReader ipfsPidBr = new BufferedReader(new InputStreamReader(processId.getInputStream()));
+
+            processStr = br.readLine();
+            while (processStr != null && (String.valueOf(currentPid) != processStr || (ipfsPidBr.readLine() != processStr))) {
+                FunctionsLogger.debug("Port " + port + " is in using, killing PID " + processStr);
+                processId = Runtime.getRuntime().exec("kill -9 " + processStr);
+
+            }
+            processId.waitFor();
+            processId.destroy();
+
+        } catch (Exception e) {
+            FunctionsLogger.error("Exception Occured at releasePort", e);
+            e.printStackTrace();
+        }
+    }
+
+    public static void portStatusWindows(int port) {
+        String processStr;
+        Process p;
+        try {
+            Runtime rt = Runtime.getRuntime();
+            Process proc = rt.exec("cmd /c netstat -ano | findstr " + port);
+            long currentPid = ProcessHandle.current().pid();
+            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            processStr = stdInput.readLine();
+            if (processStr != null && String.valueOf(currentPid) != processStr) {
+                int index = processStr.lastIndexOf(" ");
+                String sc = processStr.substring(index, processStr.length());
+                //System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this port and retry transcation");
+                if (sc != String.valueOf(currentPid)) {
+                    FunctionsLogger.debug("Port " + port + " is locked by PID " + sc);
+                } else {
+                    FunctionsLogger.debug("Port " + port + " is locked by current jar with PID " + sc);
+                }
+
+            }
+        } catch (Exception e) {
+            FunctionsLogger.error("Exception occured at portStatusWindows", e);
+            e.printStackTrace();
+        }
+    }
+
+    public static void removeToken() {
+        String bnkFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
+        JSONArray bnkArray = new JSONArray(bnkFile);
+        JSONObject removeToken = bnkArray.getJSONObject(0);
+        bnkArray.remove(0);
+        writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bnkArray.toString(), false);
+
+        File doubleSpentFile = new File(PAYMENTS_PATH.concat("DoubleSpent.json"));
+        if (!doubleSpentFile.exists()) {
+            try {
+                doubleSpentFile.createNewFile();
+            } catch (IOException e) {
+                FunctionsLogger.debug("File couldn't be created");
+            }
+            JSONArray removeArray = new JSONArray();
+            removeArray.put(removeToken);
+            writeToFile(PAYMENTS_PATH.concat("DoubleSpent.json"), removeArray.toString(), false);
+        } else {
+            String removeFile = readFile(PAYMENTS_PATH.concat("DoubleSpent.json"));
+            JSONArray removeArray = new JSONArray(removeFile);
+            removeArray.put(removeToken);
+            writeToFile(PAYMENTS_PATH.concat("DoubleSpent.json"), removeArray.toString(), false);
+        }
+
+    }
+
+    public static void tokenBank() {
+        pathSet();
+        String bank = readFile(PAYMENTS_PATH.concat("BNK00.json"));
+        JSONArray bankArray = new JSONArray(bank);
+
+        ArrayList<String> bankDuplicates = new ArrayList<>();
+        for (int i = 0; i < bankArray.length(); i++) {
+            if (!bankDuplicates.contains(bankArray.getJSONObject(i).getString("tokenHash")))
+                bankDuplicates.add(bankArray.getJSONObject(i).getString("tokenHash"));
+        }
+
+        if (bankDuplicates.size() < bankArray.length()) {
+            FunctionsLogger.debug("Duplicates Found. Cleaning up ...");
+
+            JSONArray newBank = new JSONArray();
+            for (int i = 0; i < bankDuplicates.size(); i++) {
+                JSONObject tokenObject = new JSONObject();
+                tokenObject.put("tokenHash", bankDuplicates.get(i));
+                newBank.put(tokenObject);
+            }
+            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), newBank.toString(), false);
+        }
+
+        File tokensPath = new File(TOKENS_PATH);
+        String contents[] = tokensPath.list();
+        ArrayList tokenFiles = new ArrayList();
+        for(int i=0; i<contents.length; i++) {
+            if(!contents[i].contains("PARTS"))
+                tokenFiles.add(contents[i]);
+        }
+
+        for (int i = 0; i < tokenFiles.size(); i++){
+            if(!bankDuplicates.contains(tokenFiles.get(i).toString()))
+                deleteFile(TOKENS_PATH.concat(tokenFiles.get(i).toString()));
+        }
+
+    }
 
 
 //    /**

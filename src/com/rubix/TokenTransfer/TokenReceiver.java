@@ -15,6 +15,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -68,11 +69,26 @@ public class TokenReceiver {
             PrintStream output = new PrintStream(sk.getOutputStream());
             long startTime = System.currentTimeMillis();
 
-            senderPeerID = input.readLine();
+            try {
+                senderPeerID= input.readLine();
+            }catch (SocketException e) {
+                TokenReceiverLogger.warn("Sender Stream Null - Sender Details");
+                APIResponse.put("did", "");
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Sender Stream Null - Sender Details");
+
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+
+            }
             syncDataTable(null, senderPeerID);
-            
+
             swarmConnectP2P(senderPeerID, ipfs);
-            
+
             String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
             String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid", senderPeerID);
 
@@ -110,20 +126,34 @@ public class TokenReceiver {
                 ss.close();
                 return APIResponse.toString();
             }
-           // TokenReceiverLogger.debug("Sender details authenticated");
+           TokenReceiverLogger.debug("Sender details authenticated");
             output.println("200");
 
-            String data = input.readLine();
-           // TokenReceiverLogger.debug("Token details received: ");
-            JSONObject TokenDetails = new JSONObject(data);
+            String tokenDetails;
+            try {
+                tokenDetails= input.readLine();
+            }catch (SocketException e) {
+                TokenReceiverLogger.warn("Sender Stream Null - Token Details");
+                APIResponse.put("did", "");
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Sender Stream Null - Token Details");
+
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+
+            }
+            JSONObject TokenDetails = new JSONObject(tokenDetails);
             JSONArray tokens = TokenDetails.getJSONArray("token");
             JSONArray tokenChains = TokenDetails.getJSONArray("tokenChain");
             JSONArray tokenHeader = TokenDetails.getJSONArray("tokenHeader");
             int tokenCount = tokens.length();
 
-            String senderToken = TokenDetails.toString();
 
-            
+            String senderToken = TokenDetails.toString();
             String consensusID = calculateHash(senderToken, "SHA3-256");
             writeToFile(LOGGER_PATH+"consensusID", consensusID, false);
             String consensusIDIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "consensusID", ipfs);
@@ -142,9 +172,10 @@ public class TokenReceiver {
             }
             repo(ipfs);
 
+
             if (!IPFSNetwork.dhtEmpty(consensusIDIPFSHash, ipfs)) {
             	  TokenReceiverLogger.debug("consensus ID not unique" + consensusIDIPFSHash);
-                  output.println("420");
+                  output.println("421");
                   APIResponse.put("did", senderDidIpfsHash);
                   APIResponse.put("tid", "null");
                   APIResponse.put("status", "Failed");
@@ -158,7 +189,7 @@ public class TokenReceiver {
                   return APIResponse.toString();
             }
             if (!(ipfsGetFlag == tokenCount)) {
-            	  output.println("421");
+            	  output.println("422");
                   APIResponse.put("did", senderDidIpfsHash);
                   APIResponse.put("tid", "null");
                   APIResponse.put("status", "Failed");
@@ -171,11 +202,27 @@ public class TokenReceiver {
                   ss.close();
                   return APIResponse.toString();
             }
-            
+
             output.println("200");
 
 
-            String senderDetails = input.readLine();
+            String senderDetails;
+            try {
+                senderDetails= input.readLine();
+            }catch (SocketException e) {
+                TokenReceiverLogger.warn("Sender Stream Null - Sender Details");
+                APIResponse.put("did", "");
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Sender Stream Null - Sender Details");
+
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+
+            }
             JSONObject SenderDetails = new JSONObject(senderDetails);
             String senderSignature = SenderDetails.getString("sign");
             String tid = SenderDetails.getString("tid");
@@ -186,13 +233,11 @@ public class TokenReceiver {
             BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
             SenWalletBin = PropImage.img2bin(senderWidImage);
 
-            // String Status = input.readLine();
-
             TokenReceiverLogger.debug("Consensus Status:  " + Status);
 
             TokenReceiverLogger.debug("Verifying Quorum ...  ");
             TokenReceiverLogger.debug("Please wait, this might take a few seconds");
-            
+
             if (!Status.equals("Consensus Failed")) {
                 boolean yesQuorum = false;
                 if (Status.equals("Consensus Reached")) {
@@ -264,8 +309,24 @@ public class TokenReceiver {
                 TokenReceiverLogger.debug("Sender and Quorum Verified");
                 output.println("200");
 
-                String readServer = input.readLine();
-                if (readServer.equals("Unpinned")) {
+                String pinDetails;
+                try {
+                    pinDetails = input.readLine();
+                }catch (SocketException e) {
+                    TokenReceiverLogger.warn("Sender Stream Null - Pinning Status");
+                    APIResponse.put("did", "");
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Sender Stream Null - Pinning Status");
+
+                    output.close();
+                    input.close();
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
+
+                }
+                if (pinDetails.equals("Unpinned")) {
                     int count = 0;
                     for (int i = 0; i < tokenCount; i++) {
                         FileWriter fileWriter;
@@ -282,7 +343,23 @@ public class TokenReceiver {
                         TokenReceiverLogger.debug("Pinned All Tokens");
                         output.println("Successfully Pinned");
 
-                        String essentialShare = input.readLine();
+                        String essentialShare;
+                        try {
+                            essentialShare = input.readLine();
+                        }catch (SocketException e) {
+                            TokenReceiverLogger.warn("Sender Stream Null - EShare Details");
+                            APIResponse.put("did", "");
+                            APIResponse.put("tid", "null");
+                            APIResponse.put("status", "Failed");
+                            APIResponse.put("message", "Sender Stream Null - EShare Details");
+
+                            output.close();
+                            input.close();
+                            sk.close();
+                            ss.close();
+                            return APIResponse.toString();
+
+                        }
                         long endTime = System.currentTimeMillis();
 
                         for (int i = 0; i < tokenCount; i++) {
