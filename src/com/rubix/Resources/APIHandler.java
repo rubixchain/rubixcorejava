@@ -33,7 +33,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.rubix.Denominations.SendTokenParts;
-import com.rubix.Mining.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
 
 import org.apache.log4j.Logger;
@@ -190,7 +189,14 @@ public class APIHandler {
         detailsObject.put("receiverDidIpfsHash", senDID);
         detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
         detailsObject.put("type", type);
-        sendMessage = ProofCredits.create(detailsObject.toString(), ipfs);
+
+        final String CLASS_TO_LOAD = "main.java.Utils";
+
+        try {
+            sendMessage = com.rubix.mining.ProofCredits.create(detailsObject.toString(), ipfs);
+        } catch (Exception e) {
+            APILogger.error(e.getMessage());
+        }
         APILogger.info(sendMessage);
         return sendMessage;
     }
