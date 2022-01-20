@@ -1,27 +1,56 @@
 package com.rubix.TokenTransfer;
 
-import com.rubix.AuthenticateNode.Authenticate;
-import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Resources.IPFSNetwork;
-import io.ipfs.api.IPFS;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import static com.rubix.Resources.Functions.DATA_PATH;
+import static com.rubix.Resources.Functions.IPFS_PORT;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.RECEIVER_PORT;
+import static com.rubix.Resources.Functions.TOKENCHAIN_PATH;
+import static com.rubix.Resources.Functions.TOKENS_PATH;
+import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
+import static com.rubix.Resources.Functions.calculateHash;
+import static com.rubix.Resources.Functions.deleteFile;
+import static com.rubix.Resources.Functions.getCurrentUtcTime;
+import static com.rubix.Resources.Functions.getPeerID;
+import static com.rubix.Resources.Functions.getValues;
+import static com.rubix.Resources.Functions.nodeData;
+import static com.rubix.Resources.Functions.pathSet;
+import static com.rubix.Resources.Functions.syncDataTable;
+import static com.rubix.Resources.Functions.updateJSON;
+import static com.rubix.Resources.Functions.writeToFile;
+import static com.rubix.Resources.IPFSNetwork.add;
+import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.get;
+import static com.rubix.Resources.IPFSNetwork.listen;
+import static com.rubix.Resources.IPFSNetwork.pin;
+import static com.rubix.Resources.IPFSNetwork.repo;
+import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import static com.rubix.Resources.Functions.*;
-import static com.rubix.Resources.IPFSNetwork.*;
+import javax.imageio.ImageIO;
 
+import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Resources.IPFSNetwork;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.ipfs.api.IPFS;
 
 public class TokenReceiver {
     public static Logger TokenReceiverLogger = Logger.getLogger(TokenReceiver.class);
@@ -94,7 +123,7 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Sender details not available in network , please sync");
                 TokenReceiverLogger.info("Sender details not available in datatable");
-                /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);*/
+                /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID); */
 
                 output.close();
                 input.close();
@@ -102,7 +131,6 @@ public class TokenReceiver {
                 ss.close();
                 return APIResponse.toString();
             }
-
 
             nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
             File senderDIDFile = new File(DATA_PATH + senderDidIpfsHash + "/DID.png");
@@ -113,7 +141,7 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Sender details not available");
                 TokenReceiverLogger.info("Sender details not available");
-                /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);*/
+                /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID); */
 
                 output.close();
                 input.close();
@@ -153,25 +181,32 @@ public class TokenReceiver {
             boolean tokenOwners = true;
 
             ArrayList ownersArray = new ArrayList();
+            ArrayList previousSender = new ArrayList();
+            JSONArray ownersReceived = new JSONArray();
             for (int i = 0; i < tokens.length(); ++i) {
                 try {
                     TokenReceiverLogger.debug("Checking owners for " + tokens.getString(i) + " Please wait...");
                     ownersArray = IPFSNetwork.dhtOwnerCheck(tokens.getString(i));
+
                     if (ownersArray.size() > 2) {
-                        ArrayList previousSender = null;
+
                         for (int j = 0; j < previousSendersArray.length(); j++) {
                             if (previousSendersArray.getJSONObject(j).getString("token").equals(tokens.getString(i)))
-                                previousSender = (ArrayList) previousSendersArray.getJSONObject(j).get("sender");
+                                ownersReceived = previousSendersArray.getJSONObject(j).getJSONArray("sender");
                         }
 
+                        for (int j = 0; j < ownersReceived.length(); j++) {
+                            previousSender.add(ownersReceived.getString(j));
+                        }
                         TokenReceiverLogger.debug("Previous Owners: " + previousSender);
 
-                        for(int j = 0; j < ownersArray.size(); j++){
-                            if(!previousSender.contains(ownersArray.get(j).toString()))
+                        for (int j = 0; j < ownersArray.size(); j++) {
+                            if (!previousSender.contains(ownersArray.get(j).toString()))
                                 tokenOwners = false;
                         }
                     }
                 } catch (IOException e) {
+
                     TokenReceiverLogger.debug("Ipfs dht find did not execute");
                 }
             }
@@ -182,7 +217,7 @@ public class TokenReceiver {
             String consensusIDIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "consensusID", ipfs);
             deleteFile(LOGGER_PATH + "consensusID");
 
-            //Check IPFS get for all Tokens
+            // Check IPFS get for all Tokens
             int ipfsGetFlag = 0;
             ArrayList<String> allTokenContent = new ArrayList<>();
             ArrayList<String> allTokenChainContent = new ArrayList<>();
@@ -247,7 +282,6 @@ public class TokenReceiver {
 
             output.println("200");
 
-
             String senderDetails;
             try {
                 senderDetails = input.readLine();
@@ -301,7 +335,8 @@ public class TokenReceiver {
 
                     for (String quorumDidIpfsHash : quorumDID) {
                         syncDataTable(quorumDidIpfsHash, null);
-                        String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", quorumDidIpfsHash);
+                        String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
+                                quorumDidIpfsHash);
 
                         nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
                     }
@@ -323,7 +358,9 @@ public class TokenReceiver {
                 for (int i = 0; i < tokenCount; i++)
                     allTokensChainsPushed.add(tokenChains.getString(i));
 
-                String hash = calculateHash(tokens.toString() + allTokensChainsPushed.toString() + receiverDidIpfsHash + comment, "SHA3-256");
+                String hash = calculateHash(
+                        tokens.toString() + allTokensChainsPushed.toString() + receiverDidIpfsHash + comment,
+                        "SHA3-256");
 
                 JSONObject detailsForVerify = new JSONObject();
                 detailsForVerify.put("did", senderDidIpfsHash);
@@ -441,7 +478,8 @@ public class TokenReceiver {
 
                         JSONArray transactionHistoryEntry = new JSONArray();
                         transactionHistoryEntry.put(transactionRecord);
-                        updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString());
+                        updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json",
+                                transactionHistoryEntry.toString());
 
                         TokenReceiverLogger.info("Transaction ID: " + tid + "Transaction Successful");
                         output.println("Send Response");

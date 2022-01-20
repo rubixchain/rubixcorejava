@@ -100,9 +100,13 @@ public class SendTokenParts {
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
         double amount = detailsObject.getDouble("amount");
+        Number numberFormat = amount;
+        amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
         int type = detailsObject.getInt("type");
         String comment = detailsObject.getString("comment");
         double wholeAmount = amount;
+        numberFormat = wholeAmount;
+        wholeAmount = Double.parseDouble(df.format(numberFormat.doubleValue()));
 
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
@@ -206,10 +210,15 @@ public class SendTokenParts {
                     }
                 }
                 availableParts = 1 - (senderCount - receiverCount);
+                numberFormat = availableParts;
+                availableParts = Double.parseDouble(df.format(numberFormat.doubleValue()));
                 TokenPartsSenderLogger.debug("Amount Available to spend: " + availableParts);
 
                 if (amount > availableParts)
                     amount = availableParts;
+
+                numberFormat = amount;
+                amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
             }
         }
 
@@ -348,36 +357,6 @@ public class SendTokenParts {
         senderDetails2Receiver.put("tid", tid);
         senderDetails2Receiver.put("comment", comment);
 
-        String newTokenChain = readFile(PART_TOKEN_CHAIN_PATH + tokens + ".json");
-        chainArray = new JSONArray(newTokenChain);
-        String tokenChainHash2;
-        JSONObject newLastObject = new JSONObject();
-        if (chainArray.length() == 0) {
-            newLastObject.put("previousHash", calculateHash(new JSONObject().toString(), "SHA3-256"));
-
-        } else {
-            JSONObject secondLastObject = chainArray.getJSONObject(chainArray.length() - 1);
-            secondLastObject.put("nextHash", calculateHash(tid, "SHA3-256"));
-
-            newLastObject.put("previousHash",
-                    calculateHash(chainArray.getJSONObject(chainArray.length() - 1).getString("tid"), "SHA3-256"));
-        }
-        newLastObject.put("senderSign", senderSign);
-        newLastObject.put("sender", senderDidIpfsHash);
-        newLastObject.put("receiver", receiverDidIpfsHash);
-        newLastObject.put("comment", comment);
-        newLastObject.put("tid", tid);
-        newLastObject.put("nextHash", "");
-        newLastObject.put("role", "Sender");
-        newLastObject.put("amount", amount);
-        chainArray.put(newLastObject);
-        writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
-        tokenChainHash2 = add(PART_TOKEN_CHAIN_PATH + tokens + ".json", ipfs);
-
-        TokenPartsSenderLogger.debug("Token Chosen to be sent: " + tokens);
-        TokenPartsSenderLogger.debug("Token chain hash: " + tokenChainHash2);
-
-        JSONArray tokenBindDetailsArray = new JSONArray();
         JSONObject tokenDetails = new JSONObject();
         tokenDetails.put("token", tokens);
         tokenDetails.put("tokenChain", tokenChainHash1);
@@ -393,13 +372,6 @@ public class SendTokenParts {
         TokenPartsSenderLogger.debug("********Consensus ID*********:  " + consensusIDIPFSHash);
         // pin(consensusIDIPFSHash,ipfs);
         deleteFile(LOGGER_PATH + "consensusID");
-
-        JSONObject ipfsObject = new JSONObject();
-        ipfsObject.put("ipfsHash", consensusIDIPFSHash);
-        ipfsObject.put("amount", amount);
-        ipfsObject.put("getTokenChain", tokenChainHash2);
-        tokenBindDetailsArray.put(tokenDetails);
-        tokenBindDetailsArray.put(ipfsObject);
 
         receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
         swarmConnectP2P(receiverPeerId, ipfs);
@@ -458,6 +430,47 @@ public class SendTokenParts {
             return APIResponse;
 
         }
+
+        String newTokenChain = readFile(PART_TOKEN_CHAIN_PATH + tokens + ".json");
+        chainArray = new JSONArray(newTokenChain);
+
+        JSONObject newLastObject = new JSONObject();
+        if (chainArray.length() == 0) {
+            newLastObject.put("previousHash", calculateHash(new JSONObject().toString(), "SHA3-256"));
+
+        } else {
+            JSONObject secondLastObject = chainArray.getJSONObject(chainArray.length() - 1);
+            secondLastObject.put("nextHash", calculateHash(tid, "SHA3-256"));
+
+            newLastObject.put("previousHash",
+                    calculateHash(chainArray.getJSONObject(chainArray.length() - 1).getString("tid"), "SHA3-256"));
+        }
+
+        numberFormat = amount;
+        amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+
+        String tokenChainHash2;
+        newLastObject.put("senderSign", senderSign);
+        newLastObject.put("sender", senderDidIpfsHash);
+        newLastObject.put("receiver", receiverDidIpfsHash);
+        newLastObject.put("comment", comment);
+        newLastObject.put("tid", tid);
+        newLastObject.put("nextHash", "");
+        newLastObject.put("role", "Sender");
+        newLastObject.put("amount", amount);
+        chainArray.put(newLastObject);
+        writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+        tokenChainHash2 = add(PART_TOKEN_CHAIN_PATH + tokens + ".json", ipfs);
+
+        TokenPartsSenderLogger.debug("Token Chosen to be sent: " + tokens);
+        TokenPartsSenderLogger.debug("Token chain hash: " + tokenChainHash2);
+        JSONArray tokenBindDetailsArray = new JSONArray();
+        JSONObject ipfsObject = new JSONObject();
+        ipfsObject.put("ipfsHash", consensusIDIPFSHash);
+        ipfsObject.put("amount", amount);
+        ipfsObject.put("getTokenChain", tokenChainHash2);
+        tokenBindDetailsArray.put(tokenDetails);
+        tokenBindDetailsArray.put(ipfsObject);
 
         output.println(tokenBindDetailsArray);
 
@@ -769,7 +782,10 @@ public class SendTokenParts {
                 }
             }
         }
-        if ((senderCount - receiverCount) > 0) {
+        availableParts = senderCount - receiverCount;
+        numberFormat = availableParts;
+        availableParts = Double.parseDouble(df.format(numberFormat.doubleValue()));
+        if (availableParts > 0) {
             availableParts = 1 - (senderCount - receiverCount);
 
             if (availableParts == 0) {
@@ -784,7 +800,7 @@ public class SendTokenParts {
                 deleteFile(PART_TOKEN_CHAIN_PATH.concat(tokens));
             }
         }
-        if ((senderCount - receiverCount) == 0) {
+        if (availableParts == 0) {
             TokenPartsSenderLogger.debug("Wholly Spent, Removing token from parts");
             String partFileContent2 = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
             JSONArray partContentArray2 = new JSONArray(partFileContent2);
@@ -821,6 +837,9 @@ public class SendTokenParts {
         transactionRecord.put("totalTime", totalTime);
         transactionRecord.put("comment", comment);
         transactionRecord.put("essentialShare", InitiatorProcedure.essential);
+        numberFormat = amount;
+        amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+        transactionRecord.put("amount", amount);
 
         JSONArray transactionHistoryEntry = new JSONArray();
         transactionHistoryEntry.put(transactionRecord);
@@ -930,13 +949,12 @@ public class SendTokenParts {
 
         senderMutex = false;
         double newAmount = wholeAmount - amount;
-        newAmount = (double) ((newAmount * 1e4) / 1e4);
-        Number n = newAmount;
-        Double d = n.doubleValue();
-
-        if (newAmount != 0) {
+        newAmount = ((newAmount * 1e4) / 1e4);
+        numberFormat = newAmount;
+        newAmount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+        if (newAmount > 0) {
             JSONObject detailsObjectNew = new JSONObject(data);
-            detailsObjectNew.put("amount", d);
+            detailsObjectNew.put("amount", newAmount);
             SendTokenParts.Send(detailsObjectNew.toString(), ipfs, 9999);
         }
         TokenPartsSenderLogger.info("Transaction Successful");

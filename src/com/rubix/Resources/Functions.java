@@ -13,6 +13,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -1229,11 +1231,15 @@ public class Functions {
     }
 
     public static double getPartsBalance() throws JSONException {
+        pathSet();
+        DecimalFormat df = new DecimalFormat("#.####");
+        df.setRoundingMode(RoundingMode.CEILING);
+
         double balance = 0;
         String didFile = readFile(DATA_PATH.concat("DID.json"));
         JSONArray didArray = new JSONArray(didFile);
         String myDID = didArray.getJSONObject(0).getString("didHash");
-        pathSet();
+
         File partsFile = new File(PAYMENTS_PATH + "PartsToken.json");
         if (partsFile.exists()) {
             String PART_TOKEN_CHAIN_PATH = TOKENCHAIN_PATH.concat("/PARTS/");
@@ -1290,10 +1296,55 @@ public class Functions {
 
         String bal = String.format("%.3f", balance);
         double finalBalance = Double.parseDouble(bal);
+        Number numberFormat = finalBalance;
+        finalBalance = Double.parseDouble(df.format(numberFormat.doubleValue()));
         return finalBalance;
     }
 
+    public static double checkTokenPartBalance(String tokenHash) throws JSONException {
+        pathSet();
+        DecimalFormat df = new DecimalFormat("#.####");
+        df.setRoundingMode(RoundingMode.CEILING);
+
+        double balance = 0;
+        String didFile = readFile(DATA_PATH.concat("DID.json"));
+        JSONArray didArray = new JSONArray(didFile);
+        String myDID = didArray.getJSONObject(0).getString("didHash");
+
+        double parts = 0;
+
+        String tokenChainFile = readFile(PAYMENTS_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
+        JSONArray tokenChainArray = new JSONArray(tokenChainFile);
+
+        double availableParts = 0, senderCount = 0, receiverCount = 0;
+        for (int k = 0; k < tokenChainArray.length(); k++) {
+            if (tokenChainArray.getJSONObject(k).has("role")) {
+                if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender")
+                        && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
+                    senderCount += tokenChainArray.getJSONObject(k).getDouble("amount");
+                } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver")
+                        && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
+                    receiverCount += tokenChainArray.getJSONObject(k).getDouble("amount");
+                }
+            }
+        }
+        availableParts = 1 - (senderCount - receiverCount);
+        parts += availableParts;
+
+        parts = ((parts * 1e4) / 1e4);
+        balance = balance + parts;
+
+        Number numberFormat = balance;
+        balance = Double.parseDouble(df.format(numberFormat.doubleValue()));
+        return balance;
+    }
+
     public static double getBalance() throws JSONException {
+        pathSet();
+
+        DecimalFormat df = new DecimalFormat("#.####");
+        df.setRoundingMode(RoundingMode.CEILING);
+
         double balance = 0;
         String tokenMapFile = readFile(PAYMENTS_PATH + "TokenMap.json");
         JSONArray tokenMapArray = new JSONArray(tokenMapFile);
@@ -1310,7 +1361,6 @@ public class Functions {
             balance = balance + value;
         }
 
-        pathSet();
         File partsFile = new File(PAYMENTS_PATH + "PartsToken.json");
         if (partsFile.exists()) {
             String PART_TOKEN_CHAIN_PATH = TOKENCHAIN_PATH.concat("/PARTS/");
@@ -1367,6 +1417,8 @@ public class Functions {
 
         String bal = String.format("%.3f", balance);
         double finalBalance = Double.parseDouble(bal);
+        Number numberFormat = finalBalance;
+        finalBalance = Double.parseDouble(df.format(numberFormat.doubleValue()));
         return finalBalance;
     }
 
@@ -1407,5 +1459,4 @@ public class Functions {
     // } else
     // return null;
     // }
-
 }

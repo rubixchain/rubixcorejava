@@ -1,18 +1,23 @@
 package com.rubix.Consensus;
 
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.calculateHash;
+import static com.rubix.Resources.Functions.getSignFromShares;
+import static com.rubix.Resources.Functions.minQuorum;
+
+import java.io.IOException;
+
 import com.rubix.Constants.ConsensusConstants;
 import com.rubix.SplitandStore.SeperateShares;
 import com.rubix.SplitandStore.Split;
-import io.ipfs.api.IPFS;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-
-import static com.rubix.Resources.Functions.*;
+import io.ipfs.api.IPFS;
 
 public class InitiatorProcedure {
     public static String essential;
@@ -24,11 +29,13 @@ public class InitiatorProcedure {
 
     /**
      * This function sets up the initials before the consensus
+     * 
      * @param data Data required for hashing and signing
      * @param ipfs IPFS instance
      * @param PORT port for forwarding to quorum
      */
-    public static void consensusSetUp(String data,IPFS ipfs, int PORT,int alphaSize, String operation) throws JSONException {
+    public static void consensusSetUp(String data, IPFS ipfs, int PORT, int alphaSize, String operation)
+            throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         JSONObject dataObject = new JSONObject(data);
@@ -41,8 +48,8 @@ public class InitiatorProcedure {
         JSONArray alphaList = dataObject.getJSONArray("alphaList");
         JSONArray betaList = dataObject.getJSONArray("betaList");
         JSONArray gammaList = dataObject.getJSONArray("gammaList");
-        String authSenderByQuorumHash="", authQuorumHash="";
-        authSenderByQuorumHash = calculateHash(message , "SHA3-256");
+        String authSenderByQuorumHash = "", authQuorumHash = "";
+        authSenderByQuorumHash = calculateHash(message, "SHA3-256");
         authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
         InitiatorProcedureLogger.debug("Sender by Quorum Hash" + authSenderByQuorumHash);
         InitiatorProcedureLogger.debug("Quorum Auth Hash" + authQuorumHash);
@@ -92,44 +99,49 @@ public class InitiatorProcedure {
         InitiatorProcedureLogger.debug("Invoking Consensus");
 
         JSONObject dataSend = new JSONObject();
-        dataSend.put("hash",authQuorumHash);
-        dataSend.put("details",detailsForQuorum);
+        dataSend.put("hash", authQuorumHash);
+        dataSend.put("details", detailsForQuorum);
 
-        if(operation.equals("new-credits-mining")) {
+        if (operation.equals("new-credits-mining")) {
             JSONObject qstDetails = dataObject.getJSONObject("qstDetails");
             dataSend.put("qstDetails", qstDetails);
         }
 
-        Thread alphaThread = new Thread(()->{
+        Thread alphaThread = new Thread(() -> {
             try {
-                alphaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT,0,"alpha",alphaList,alphaSize,alphaSize, operation);
+                alphaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT, 0, "alpha", alphaList, alphaSize,
+                        alphaSize, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         });
 
-        Thread betaThread = new Thread(()->{
+        Thread betaThread = new Thread(() -> {
             try {
-                betaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+100,1,"beta",betaList,alphaSize,7, operation);
+                betaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 100, 1, "beta", betaList,
+                        alphaSize, 7, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         });
 
-        Thread gammaThread = new Thread(()->{
+        Thread gammaThread = new Thread(() -> {
             try {
-                gammaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+107,2,"gamma",gammaList,alphaSize,7, operation);
+                gammaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 107, 2, "gamma", gammaList,
+                        alphaSize, 7, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         });
 
-        InitiatorConsensus.quorumSignature=new JSONObject();
+        InitiatorConsensus.quorumSignature = new JSONObject();
         InitiatorConsensus.finalQuorumSignsArray = new JSONArray();
         alphaThread.start();
         betaThread.start();
         gammaThread.start();
-        while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2* minQuorum(7))) {}
-        InitiatorProcedureLogger.debug("ABG Consensus completed with length " +InitiatorConsensus.quorumSignature.length());
+        while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+        }
+        InitiatorProcedureLogger
+                .debug("ABG Consensus completed with length " + InitiatorConsensus.quorumSignature.length());
     }
 }

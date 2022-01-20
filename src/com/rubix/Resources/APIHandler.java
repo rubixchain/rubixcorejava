@@ -189,14 +189,7 @@ public class APIHandler {
         detailsObject.put("receiverDidIpfsHash", senDID);
         detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
         detailsObject.put("type", type);
-
-        final String CLASS_TO_LOAD = "main.java.Utils";
-
-        try {
-            sendMessage = com.rubix.mining.ProofCredits.create(detailsObject.toString(), ipfs);
-        } catch (Exception e) {
-            APILogger.error(e.getMessage());
-        }
+        sendMessage = com.rubix.mining.ProofCredits.create(detailsObject.toString(), ipfs);
         APILogger.info(sendMessage);
         return sendMessage;
     }
@@ -227,8 +220,10 @@ public class APIHandler {
 
                 if (obj.has("amount"))
                     obj.put("amount", obj.getDouble("amount"));
-                else
-                    obj.put("amount", obj.getJSONArray("tokens").length());
+                else {
+                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                    obj.put("amount", tokensArray.length());
+                }
 
                 resultArray.put(obj);
             }
@@ -362,29 +357,30 @@ public class APIHandler {
         }
         String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
         JSONArray transArray = new JSONArray(transactionHistory);
+        APILogger.debug(transArray.length());
         if (transArray.length() == 0) {
             countResult.put("Message", "No Transactions made yet");
             resultArray.put(countResult);
             return resultArray;
         }
-        JSONObject obj = new JSONObject();
+        JSONObject obj;
         for (int i = 0; i < transArray.length(); i++) {
             obj = transArray.getJSONObject(i);
-
             String dateFromTxnHistoryString = obj.get("Date").toString();
             Date dateTH = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(dateFromTxnHistoryString);
             String dateTHS = objSDF.format(dateTH);
             Calendar c = Calendar.getInstance();
             c.setTime(objSDF.parse(dateTHS));
             dateTH = c.getTime();
-            APILogger.debug("dateFromTxnHistory " + dateTH);
             if (dateTH.after(startDate) && dateTH.before(endDate)) {
                 obj.remove("essentialShare");
 
                 if (obj.has("amount"))
                     obj.put("amount", obj.getDouble("amount"));
-                else
-                    obj.put("amount", obj.getJSONArray("tokens").length());
+                else {
+                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                    obj.put("amount", tokensArray.length());
+                }
 
                 resultArray.put(obj);
             }
@@ -428,8 +424,10 @@ public class APIHandler {
                 obj.remove("essentialShare");
                 if (obj.has("amount"))
                     obj.put("amount", obj.getDouble("amount"));
-                else
-                    obj.put("amount", obj.getJSONArray("tokens").length());
+                else {
+                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                    obj.put("amount", tokensArray.length());
+                }
                 resultArray.put(obj);
             }
             return resultArray;
@@ -441,8 +439,10 @@ public class APIHandler {
             obj.remove("essentialShare");
             if (obj.has("amount"))
                 obj.put("amount", obj.getDouble("amount"));
-            else
-                obj.put("amount", obj.getJSONArray("tokens").length());
+            else {
+                JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                obj.put("amount", tokensArray.length());
+            }
 
             resultArray.put(obj);
         }
@@ -491,8 +491,10 @@ public class APIHandler {
                 obj.remove("essentialShare");
                 if (obj.has("amount"))
                     obj.put("amount", obj.getDouble("amount"));
-                else
-                    obj.put("amount", obj.getJSONArray("tokens").length());
+                else {
+                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                    obj.put("amount", tokensArray.length());
+                }
 
                 resultArray.put(obj);
             }
@@ -502,8 +504,10 @@ public class APIHandler {
                 obj.remove("essentialShare");
                 if (obj.has("amount"))
                     obj.put("amount", obj.getDouble("amount"));
-                else
-                    obj.put("amount", obj.getJSONArray("tokens").length());
+                else {
+                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                    obj.put("amount", tokensArray.length());
+                }
 
                 resultArray.put(obj);
             }
@@ -512,8 +516,10 @@ public class APIHandler {
                 obj.remove("essentialShare");
                 if (obj.has("amount"))
                     obj.put("amount", obj.getDouble("amount"));
-                else
-                    obj.put("amount", obj.getJSONArray("tokens").length());
+                else {
+                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                    obj.put("amount", tokensArray.length());
+                }
 
                 resultArray.put(obj);
             }
@@ -591,8 +597,10 @@ public class APIHandler {
                 obj.remove("essentialShare");
                 if (obj.has("amount"))
                     obj.put("amount", obj.getDouble("amount"));
-                else
-                    obj.put("amount", obj.getJSONArray("tokens").length());
+                else {
+                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                    obj.put("amount", tokensArray.length());
+                }
 
                 resultArray.put(obj);
             }
@@ -624,8 +632,10 @@ public class APIHandler {
 
             if (obj.has("amount"))
                 obj.put("amount", obj.getDouble("amount"));
-            else
-                obj.put("amount", obj.getJSONArray("tokens").length());
+            else {
+                JSONArray tokensArray = (JSONArray) obj.get("tokens");
+                obj.put("amount", tokensArray.length());
+            }
 
             resultArray.put(obj);
 
