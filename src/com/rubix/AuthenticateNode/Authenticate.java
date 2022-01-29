@@ -1,42 +1,32 @@
 package com.rubix.AuthenticateNode;
 
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.IPFS_PORT;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.getValues;
-import static com.rubix.Resources.Functions.nodeData;
-import static com.rubix.Resources.Functions.randomPositions;
-import static com.rubix.Resources.Functions.strToIntArray;
-import static com.rubix.Resources.Functions.syncDataTable;
+import io.ipfs.api.IPFS;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
-import javax.imageio.ImageIO;
+import static com.rubix.Resources.APIHandler.networkInfo;
+import static com.rubix.Resources.Functions.*;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import io.ipfs.api.IPFS;
 
 public class Authenticate {
     public static Logger AuthenticateLogger = Logger.getLogger(Authenticate.class);
     public static int verifyCount = 0;
 
     /**
-     * This method is used to authenticate a node in Rubix implementing text based
-     * two level NLSS.
-     * <P>
-     * It is customized for 32 positions verification. The position can be changed
-     * by
+     * This method is used to authenticate a node in Rubix implementing text based two level NLSS.
+     * <P>It is customized for 32 positions verification. The position can be changed by
      * modifying the numberofpositions for integer array sizes accordingly
-     * 
      * @param detailString Details for verification
      * @return boolean returns true if verified and false if not verified
-     * @throws IOException   handles IO Exception
+     * @throws IOException handles IO Exception
      * @throws JSONException handles JSON Exception
      */
 
@@ -61,7 +51,7 @@ public class Authenticate {
         int[] SenderSign = strToIntArray(signature);
         JSONObject P = randomPositions("verifier", hash, 32, SenderSign);
         int[] posForSign = (int[]) P.get("posForSign");
-        int[] originalPos = (int[]) P.get("originalPos");
+        int[] originalPos =(int[]) P.get("originalPos");
         for (int positionsLevelTwoTrail : posForSign)
             senderWalletID.append(walletID.charAt(positionsLevelTwoTrail));
 
@@ -72,8 +62,7 @@ public class Authenticate {
             positionsLevelZero[k] = ((originalPos[k]) / 8);
 
         StringBuilder decentralizedIDForAuth = new StringBuilder();
-        for (int value : positionsLevelZero)
-            decentralizedIDForAuth.append(senderDIDBin.charAt(value));
+        for (int value : positionsLevelZero) decentralizedIDForAuth.append(senderDIDBin.charAt(value));
         if (recombinedResult.equals(decentralizedIDForAuth.toString())) {
             return true;
         } else {
@@ -84,3 +73,4 @@ public class Authenticate {
     }
 
 }
+

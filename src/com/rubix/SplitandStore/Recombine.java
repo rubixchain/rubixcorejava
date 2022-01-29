@@ -1,21 +1,22 @@
 package com.rubix.SplitandStore;
 
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+
+import static com.rubix.Resources.Functions.LOGGER_PATH;
 
 public class Recombine {
 
     public static Logger RecombineLogger = Logger.getLogger(Recombine.class);
 
-    public static String recombine(int[] Share1, int[] Share2, int[] Share3) {
+
+    public static String recombine(int[] Share1, int[] Share2, int[] Share3)
+    {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         StringBuilder recStr = new StringBuilder();
         int payloadlength = 205; // fix the payload size here ( 33070 )
 
-        // reconstruction with ideal contrast secret sharing, just shown an example of
-        // combining share1(essential share), share2 and share3
+        //reconstruction with ideal contrast secret sharing, just shown an example of combining share1(essential share), share2 and share3
         int[] K = new int[8 * payloadlength];
 
         int m = 8;
@@ -23,8 +24,7 @@ public class Recombine {
         int[] COMB = new int[K.length * m];
         int[] REC_K = new int[K.length]; // Reconstructed K
 
-        // if you need to combine share1(essential share), share3 and share4, replace
-        // the value of s0=0, s1=2 and s2=3;
+        // if you need to combine share1(essential share), share3 and share4, replace the value of s0=0, s1=2 and s2=3;
         for (j = 0; j < K.length * m; j++) {
 
             if (Share1[j] == 1 | Share2[j] == 1 | Share3[j] == 1)
@@ -33,14 +33,14 @@ public class Recombine {
                 COMB[j] = 0;
 
         }
-        /*
-         * System.out.println("The secret COMB");
-         * for(j=0;j<K.length*m;j++)
-         * {
-         * System.out.print(COMB[j]);
-         * }
-         * System.out.println();
-         */
+/*
+System.out.println("The secret COMB");
+            for(j=0;j<K.length*m;j++)
+            {
+                System.out.print(COMB[j]);
+            }
+            System.out.println();
+*/
 
         int count = 0;
         int val = 0;
@@ -58,21 +58,17 @@ public class Recombine {
             }
         }
 
-        // Prints the secret matrix (K) and reconstructed K (REC_K) in console
-        //
-        // System.out.println("The Reconstructed Matrix");
-        // for(j=0;j<K.length;j++)
-        // {
-        // System.out.print(REC_K[j]);
-        // }
-        // System.out.println();
-        //
+//Prints the secret matrix (K) and reconstructed K (REC_K) in console
+//
+//        System.out.println("The Reconstructed Matrix");
+//        for(j=0;j<K.length;j++)
+//        {
+//            System.out.print(REC_K[j]);
+//        }
+//        System.out.println();
+//
 
-        /*
-         * this statement
-         * .............................................................................
-         * .................................
-         */
+        /* this statement ..............................................................................................................*/
 
         for (count1 = 0; count1 < payloadlength; count1++) {
             int dec_value = 0;

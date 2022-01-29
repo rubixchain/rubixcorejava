@@ -1,35 +1,15 @@
 package com.rubix.Denominations;
 
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.IPFS_PORT;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.RECEIVER_PORT;
-import static com.rubix.Resources.Functions.TOKENCHAIN_PATH;
-import static com.rubix.Resources.Functions.TOKENS_PATH;
-import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
-import static com.rubix.Resources.Functions.calculateHash;
-import static com.rubix.Resources.Functions.deleteFile;
-import static com.rubix.Resources.Functions.getCurrentUtcTime;
-import static com.rubix.Resources.Functions.getPeerID;
-import static com.rubix.Resources.Functions.getValues;
-import static com.rubix.Resources.Functions.nodeData;
-import static com.rubix.Resources.Functions.pathSet;
-import static com.rubix.Resources.Functions.readFile;
-import static com.rubix.Resources.Functions.updateJSON;
-import static com.rubix.Resources.Functions.writeToFile;
-import static com.rubix.Resources.IPFSNetwork.add;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
-import static com.rubix.Resources.IPFSNetwork.get;
-import static com.rubix.Resources.IPFSNetwork.listen;
-import static com.rubix.Resources.IPFSNetwork.pin;
-import static com.rubix.Resources.IPFSNetwork.repo;
+import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.Resources.IPFSNetwork;
+import io.ipfs.api.IPFS;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.*;
 import java.math.RoundingMode;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -38,21 +18,15 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import com.rubix.AuthenticateNode.Authenticate;
-import com.rubix.Resources.IPFSNetwork;
+import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.IPFSNetwork.*;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import io.ipfs.api.IPFS;
 
 public class ReceiveTokenParts {
     public static Logger TokenPartReceiverLogger = Logger.getLogger(ReceiveTokenParts.class);
     private static final JSONObject APIResponse = new JSONObject();
     private static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
+
 
     /**
      * Receiver Node: To receive a valid token from an authentic sender
@@ -64,7 +38,7 @@ public class ReceiveTokenParts {
     public static String receive() {
         pathSet();
 
-        DecimalFormat df = new DecimalFormat("#.####");
+        DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.CEILING);
 
         String PART_TOKEN_CHAIN_PATH = TOKENCHAIN_PATH.concat("PARTS/");
@@ -82,6 +56,8 @@ public class ReceiveTokenParts {
 
         try {
 
+            repo(ipfs);
+
             int quorumSignVerifyCount = 0;
             JSONObject quorumSignatures = null;
 
@@ -96,8 +72,7 @@ public class ReceiveTokenParts {
 
             listen(receiverPeerID.concat("parts"), port);
             ss = new ServerSocket(port);
-            TokenPartReceiverLogger.debug(
-                    "Part Receiver Listening on " + partFolder + " with app name " + receiverPeerID.concat("parts"));
+            TokenPartReceiverLogger.debug("Part Receiver Listening on " + port + " with app name " + receiverPeerID.concat("parts"));
 
             sk = ss.accept();
             BufferedReader input = new BufferedReader(new InputStreamReader(sk.getInputStream()));
@@ -134,7 +109,7 @@ public class ReceiveTokenParts {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Sender details not available in network , please sync");
                 TokenPartReceiverLogger.info("Sender details not available in datatable");
-                /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID); */
+                /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);*/
 
                 output.close();
                 input.close();
@@ -142,6 +117,7 @@ public class ReceiveTokenParts {
                 ss.close();
                 return APIResponse.toString();
             }
+
 
             nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
             File senderDIDFile = new File(DATA_PATH + senderDidIpfsHash + "/DID.png");
@@ -186,8 +162,7 @@ public class ReceiveTokenParts {
             String tokenChains = TokenDetailsArray.getJSONObject(0).getString("tokenChain");
             String sender = TokenDetailsArray.getJSONObject(0).getString("sender");
 
-            JSONArray tokenChainContent = new JSONArray(
-                    get(TokenDetailsArray.getJSONObject(1).getString("getTokenChain"), ipfs));
+            JSONArray tokenChainContent = new JSONArray(get(TokenDetailsArray.getJSONObject(1).getString("getTokenChain"), ipfs));
             TokenPartReceiverLogger.debug("Token Chosen to be sent: " + tokens);
             TokenPartReceiverLogger.debug("Token chain hash: " + tokenChains);
 
@@ -198,9 +173,15 @@ public class ReceiveTokenParts {
             boolean chequeCheckFlag = true;
 
             double amount = TokenDetailsArray.getJSONObject(1).getDouble("amount");
-            Number numberFormat = amount;
+
+            amount = ((amount*1e4)/1e4);
+            String bal = String.format("%.3f", amount);
+            double finalBalance = Double.parseDouble(bal);
+            Number numberFormat = finalBalance;
             amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+
             String senderToken = calculateCID.toString();
+
 
             String consensusID = calculateHash(senderToken, "SHA3-256");
             writeToFile(LOGGER_PATH + "consensusID", consensusID, false);
@@ -208,41 +189,49 @@ public class ReceiveTokenParts {
             TokenPartReceiverLogger.debug("********Consensus ID*********:  " + getCIDipfsHash);
             deleteFile(LOGGER_PATH + "consensusID");
 
-            // boolean ownersFlag = true;
-            // if (!IPFSNetwork.dhtEmpty(getCIDipfsHash, ipfs)){
-            // ownersFlag = false;
-            // }
-
             boolean chainFlag = true;
             for (int i = 0; i < tokenChainContent.length(); i++) {
                 String previousHash = tokenChainContent.getJSONObject(i).getString("previousHash");
                 String nextHash = tokenChainContent.getJSONObject(i).getString("nextHash");
                 String rePreviousHash, reNextHash;
-                if (i == 0) {
-                    rePreviousHash = calculateHash(new JSONObject().toString(), "SHA3-256");
-                    reNextHash = calculateHash(tokenChainContent.getJSONObject(i + 1).getString("tid"), "SHA3-256");
-                } else if (i == tokenChainContent.length() - 1) {
-                    rePreviousHash = calculateHash(tokenChainContent.getJSONObject(i - 1).getString("tid"), "SHA3-256");
-                    reNextHash = "";
-                } else {
-                    rePreviousHash = calculateHash(tokenChainContent.getJSONObject(i - 1).getString("tid"), "SHA3-256");
-                    reNextHash = calculateHash(tokenChainContent.getJSONObject(i + 1).getString("tid"), "SHA3-256");
-                }
+                if(tokenChainContent.length() > 1) {
+                    if (i == 0) {
+                        rePreviousHash = "";
+                        String rePrev = calculateHash(new JSONObject().toString(), "SHA3-256");
+                        reNextHash = calculateHash(tokenChainContent.getJSONObject(i + 1).getString("tid"), "SHA3-256");
 
-                if (!(rePreviousHash.equals(previousHash) && reNextHash.equals(nextHash))) {
-                    chainFlag = false;
+                        if (!( (rePreviousHash.equals(previousHash) || rePrev.equals(previousHash) ) && reNextHash.equals(nextHash))) {
+                            chainFlag = false;
+                        }
+
+                    } else if (i == tokenChainContent.length() - 1) {
+                        rePreviousHash = calculateHash(tokenChainContent.getJSONObject(i - 1).getString("tid"), "SHA3-256");
+                        reNextHash = "";
+
+                        if (!(rePreviousHash.equals(previousHash) && reNextHash.equals(nextHash))) {
+                            chainFlag = false;
+                        }
+
+                    } else {
+                        rePreviousHash = calculateHash(tokenChainContent.getJSONObject(i - 1).getString("tid"), "SHA3-256");
+                        reNextHash = calculateHash(tokenChainContent.getJSONObject(i + 1).getString("tid"), "SHA3-256");
+
+                        if (!(rePreviousHash.equals(previousHash) && reNextHash.equals(nextHash))) {
+                            chainFlag = false;
+                        }
+
+                    }
+
+
                 }
             }
-
             double availableParts = 0;
             for (int i = 0; i < tokenChainContent.length(); i++) {
                 if (tokenChainContent.getJSONObject(i).has("role")) {
-                    if (tokenChainContent.getJSONObject(i).getString("role").equals("Receiver")
-                            && tokenChainContent.getJSONObject(i).getString("receiver").equals(senderDidIpfsHash)) {
+                    if (tokenChainContent.getJSONObject(i).getString("role").equals("Receiver") && tokenChainContent.getJSONObject(i).getString("receiver").equals(senderDidIpfsHash)) {
                         if (tokenChainContent.getJSONObject(i).has("amount"))
                             availableParts += tokenChainContent.getJSONObject(i).getDouble("amount");
-                    } else if (tokenChainContent.getJSONObject(i).getString("role").equals("Sender")
-                            && tokenChainContent.getJSONObject(i).getString("sender").equals(senderDidIpfsHash)) {
+                    } else if (tokenChainContent.getJSONObject(i).getString("role").equals("Sender") && tokenChainContent.getJSONObject(i).getString("sender").equals(senderDidIpfsHash)) {
                         if (tokenChainContent.getJSONObject(i).has("amount"))
                             availableParts -= tokenChainContent.getJSONObject(i).getDouble("amount");
                     }
@@ -250,7 +239,10 @@ public class ReceiveTokenParts {
             }
 
             availableParts += amount;
-            numberFormat = availableParts;
+            availableParts = ((availableParts*1e4)/1e4);
+            bal = String.format("%.3f", availableParts);
+            finalBalance = Double.parseDouble(bal);
+            numberFormat = finalBalance;
             availableParts = Double.parseDouble(df.format(numberFormat.doubleValue()));
 
             String TokenContent = get(tokens, ipfs);
@@ -271,22 +263,21 @@ public class ReceiveTokenParts {
                 ss.close();
                 return APIResponse.toString();
             }
-            // else if (!consensusID.equals(consensusIdCompare)) {
-            // String errorMessage = "Consensus ID not unique: Hashes do not match - " +
-            // "Sent " + consensusID + " Recalculated " + consensusIdCompare;
-            // output.println("420");
-            // APIResponse.put("did", senderDidIpfsHash);
-            // APIResponse.put("tid", "null");
-            // APIResponse.put("status", "Failed");
-            // APIResponse.put("message", errorMessage);
-            // TokenPartReceiverLogger.debug(errorMessage);
-            // executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-            // output.close();
-            // input.close();
-            // sk.close();
-            // ss.close();
-            // return APIResponse.toString();
-            // }
+//            else if (!consensusID.equals(consensusIdCompare)) {
+//                String errorMessage = "Consensus ID not unique: Hashes do not match - " + "Sent " + consensusID + " Recalculated " + consensusIdCompare;
+//                output.println("420");
+//                APIResponse.put("did", senderDidIpfsHash);
+//                APIResponse.put("tid", "null");
+//                APIResponse.put("status", "Failed");
+//                APIResponse.put("message", errorMessage);
+//                TokenPartReceiverLogger.debug(errorMessage);
+//                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+//                output.close();
+//                input.close();
+//                sk.close();
+//                ss.close();
+//                return APIResponse.toString();
+//            }
             else if (!chainFlag) {
 
                 String errorMessage = "Broken Cheque Chain";
@@ -302,7 +293,8 @@ public class ReceiveTokenParts {
                 sk.close();
                 ss.close();
                 return APIResponse.toString();
-            } else if (availableParts > 1) {
+            }
+            else if (availableParts > 1) {
 
                 String errorMessage = "Token wholly spent already";
                 output.println("422");
@@ -325,6 +317,7 @@ public class ReceiveTokenParts {
             try {
                 senderDetails = input.readLine();
             } catch (SocketException e) {
+
 
                 TokenPartReceiverLogger.warn("Sender Stream Null - Sender Details");
                 APIResponse.put("did", "");
@@ -354,17 +347,15 @@ public class ReceiveTokenParts {
             if (!Status.equals("Consensus Failed")) {
                 boolean yesQuorum = false;
                 if (Status.equals("Consensus Reached")) {
-                    // TokenPartReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
+//                    TokenPartReceiverLogger.debug("Quorum Signatures: " + QuorumDetails);
                     quorumSignatures = new JSONObject(QuorumDetails);
                     int alphaSize = quorumSignatures.length() - 10;
 
                     String hash = calculateHash(senderToken, "SHA3-256");
                     String verifyQuorumHash = calculateHash(hash.concat(receiverDidIpfsHash), "SHA3-256");
                     TokenPartReceiverLogger.debug("Verify Quorum Hash: " + verifyQuorumHash);
-                    // TokenPartReceiverLogger.debug("Quorum Hash on Receiver Side " +
-                    // verifyQuorumHash);
-                    // TokenPartReceiverLogger.debug("Quorum Signatures length : " +
-                    // quorumSignatures.length());
+//                    TokenPartReceiverLogger.debug("Quorum Hash on Receiver Side " + verifyQuorumHash);
+//                    TokenPartReceiverLogger.debug("Quorum Signatures length : " + quorumSignatures.length());
 
                     Iterator<String> keys = quorumSignatures.keys();
                     while (keys.hasNext()) {
@@ -373,15 +364,13 @@ public class ReceiveTokenParts {
                     }
 
                     for (String quorumDidIpfsHash : quorumDID) {
-                        String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
-                                quorumDidIpfsHash);
+                        String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", quorumDidIpfsHash);
 
                         File quorumDataFolder = new File(DATA_PATH + quorumDidIpfsHash + "/");
                         if (!quorumDataFolder.exists()) {
                             quorumDataFolder.mkdirs();
                             IPFSNetwork.getImage(quorumDidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/DID.png");
-                            IPFSNetwork.getImage(quorumWidIpfsHash, ipfs,
-                                    DATA_PATH + quorumDidIpfsHash + "/PublicShare.png");
+                            IPFSNetwork.getImage(quorumWidIpfsHash, ipfs, DATA_PATH + quorumDidIpfsHash + "/PublicShare.png");
                         }
                     }
 
@@ -446,7 +435,7 @@ public class ReceiveTokenParts {
                 }
                 if (pinDetails.equals("Unpinned")) {
                     File tokenFile = new File(PART_TOKEN_PATH + tokens);
-                    if (!tokenFile.exists())
+                    if(!tokenFile.exists())
                         tokenFile.createNewFile();
                     FileWriter fileWriter;
                     fileWriter = new FileWriter(PART_TOKEN_PATH + tokens);
@@ -456,6 +445,7 @@ public class ReceiveTokenParts {
                     pin(tokenHash, ipfs);
 
                     TokenPartReceiverLogger.debug("Pinned All Tokens");
+
 
                     output.println("Successfully Pinned");
 
@@ -484,36 +474,18 @@ public class ReceiveTokenParts {
                     chequeObject.put("receiver", receiverDidIpfsHash);
                     chequeObject.put("parent-token", tokens);
                     chequeObject.put("parent-chain", tokenChains);
-                    numberFormat = amount;
+                    amount = ((amount*1e4)/1e4);
+                    bal = String.format("%.3f", amount);
+                    finalBalance = Double.parseDouble(bal);
+                    numberFormat = finalBalance;
                     amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+
                     chequeObject.put("amount", amount);
                     chequeObject.put("tid", tid);
                     writeToFile(LOGGER_PATH.concat(tokens), chequeObject.toString(), false);
                     String chequeHash = IPFSNetwork.add(LOGGER_PATH.concat(tokens), ipfs);
                     deleteFile(LOGGER_PATH.concat(tokens));
 
-                    // File chainFile = new
-                    // File(PART_TOKEN_CHAIN_PATH.concat(tokens).concat(".json"));
-                    // if (chainFile.exists()) {
-                    //
-                    // }
-                    // JSONObject newPartObject = new JSONObject();
-                    // newPartObject.put("senderSign", senderSignature);
-                    // newPartObject.put("sender", senderDidIpfsHash);
-                    // newPartObject.put("comment", comment);
-                    // newPartObject.put("tid", tid);
-                    // newPartObject.put("nextHash", "");
-                    // newPartObject.put("previousHash",
-                    // calculateHash(tokenChainContent.getJSONObject(tokenChainContent.length()-1).getString("tid"),
-                    // "SHA3-256"));
-                    // newPartObject.put("amount", amount);
-                    // newPartObject.put("cheque", chequeHash);
-                    // newPartObject.put("role", "Receiver");
-                    // tokenChainContent.put(newPartObject);
-                    // writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json",
-                    // tokenChainContent.toString(), false);
-
-                    //
                     JSONObject newPartObject = new JSONObject();
                     newPartObject.put("senderSign", senderSignature);
                     newPartObject.put("sender", senderDidIpfsHash);
@@ -521,98 +493,33 @@ public class ReceiveTokenParts {
                     newPartObject.put("comment", comment);
                     newPartObject.put("tid", tid);
                     newPartObject.put("nextHash", "");
-                    newPartObject.put("previousHash",
-                            calculateHash(
-                                    tokenChainContent.getJSONObject(tokenChainContent.length() - 1).getString("tid"),
-                                    "SHA3-256"));
-                    numberFormat = amount;
+                    newPartObject.put("previousHash", calculateHash(tokenChainContent.getJSONObject(tokenChainContent.length() - 1).getString("tid"), "SHA3-256"));
+                    amount = ((amount*1e4)/1e4);
+                    bal = String.format("%.3f", amount);
+                    finalBalance = Double.parseDouble(bal);
+                    numberFormat = finalBalance;
                     amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+
                     newPartObject.put("amount", amount);
                     newPartObject.put("cheque", chequeHash);
                     newPartObject.put("role", "Receiver");
 
                     File chainFile = new File(PART_TOKEN_CHAIN_PATH.concat(tokens).concat(".json"));
-                    if (chainFile.exists()) {
+                    if(chainFile.exists()){
 
                         String readChain = readFile(PART_TOKEN_CHAIN_PATH + tokens + ".json");
                         JSONArray readChainArray = new JSONArray(readChain);
-                        readChainArray.put(tokenChainContent.getJSONObject(tokenChainContent.length() - 1));
+                        readChainArray.put(tokenChainContent.getJSONObject(tokenChainContent.length()-1));
                         readChainArray.put(newPartObject);
 
                         writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", readChainArray.toString(), false);
 
-                    } else {
+
+                    }else {
                         tokenChainContent.put(newPartObject);
                         writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", tokenChainContent.toString(), false);
                     }
 
-                    // File chainFile = new
-                    // File(PART_TOKEN_CHAIN_PATH.concat(tokens).concat(".json"));
-                    // if (chainFile.exists()) {
-                    // TokenPartReceiverLogger.debug("Token chain file already exist");
-                    // debugObject.put("Debug: ", "Token chain file already exist");
-                    // String contentArray =
-                    // readFile(PART_TOKEN_CHAIN_PATH.concat(tokens).concat(".json"));
-                    // JSONArray array = new JSONArray(contentArray);
-                    //
-                    // JSONObject newPartObject = new JSONObject();
-                    // newPartObject.put("senderSign", senderSignature);
-                    // newPartObject.put("sender", senderDidIpfsHash);
-                    // newPartObject.put("comment", comment);
-                    // newPartObject.put("tid", tid);
-                    // newPartObject.put("nextHash", "");
-                    // newPartObject.put("previousHash",
-                    // calculateHash(array.getJSONObject(array.length() - 1).getString("tid"),
-                    // "SHA3-256"));
-                    // newPartObject.put("amount", amount);
-                    // newPartObject.put("cheque", chequeHash);
-                    // newPartObject.put("role", "Receiver");
-                    // array.put(newPartObject);
-                    //
-                    // TokenPartReceiverLogger.debug("Final Chain Array: " + array);
-                    // debugObject.put("Final Chain Array: ", array);
-                    // writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", array.toString(),
-                    // false);
-                    // } else {
-                    // TokenPartReceiverLogger.debug("Creating a new token chain");
-                    // debugObject.put("Debug: ", "Creating a new token chain");
-                    // chainFile.createNewFile();
-                    // JSONObject newPartObject = new JSONObject();
-                    // newPartObject.put("senderSign", senderSignature);
-                    // newPartObject.put("sender", senderDidIpfsHash);
-                    // newPartObject.put("comment", comment);
-                    // newPartObject.put("tid", tid);
-                    // newPartObject.put("nextHash", "");
-                    // newPartObject.put("previousHash",
-                    // calculateHash(tokenChainContent.getJSONObject(tokenChainContent.length() -
-                    // 1).getString("tid"), "SHA3-256"));
-                    // newPartObject.put("amount", amount);
-                    // newPartObject.put("cheque", chequeHash);
-                    // newPartObject.put("role", "Receiver");
-                    // tokenChainContent.put(newPartObject);
-                    //
-                    // TokenPartReceiverLogger.debug("Final Chain Array:" + tokenChainContent);
-                    // debugObject.put("Final Chain Array: ", tokenChainContent);
-                    // writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json",
-                    // tokenChainContent.toString(), false);
-
-                    // JSONObject newPartObject = new JSONObject();
-                    // newPartObject.put("senderSign", senderSignature);
-                    // newPartObject.put("sender", senderDidIpfsHash);
-                    // newPartObject.put("comment", comment);
-                    // newPartObject.put("tid", tid);
-                    // newPartObject.put("nextHash", "");
-                    // newPartObject.put("previousHash", calculateHash(new JSONObject().toString(),
-                    // "SHA3-256"));
-                    // newPartObject.put("amount", amount);
-                    // newPartObject.put("cheque", chequeHash);
-                    // newPartObject.put("role", "Receiver");
-                    // JSONArray array = new JSONArray();
-                    // array.put(newPartObject);
-                    //
-                    // writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", array.toString(),
-                    // false);
-                    // }
                     JSONObject transactionRecord = new JSONObject();
                     transactionRecord.put("role", "Receiver");
                     transactionRecord.put("tokens", tokens);
@@ -624,8 +531,12 @@ public class ReceiveTokenParts {
                     transactionRecord.put("totalTime", (endTime - startTime));
                     transactionRecord.put("comment", comment);
                     transactionRecord.put("essentialShare", essentialShare);
-                    numberFormat = amount;
+                    amount = ((amount*1e4)/1e4);
+                    bal = String.format("%.3f", amount);
+                    finalBalance = Double.parseDouble(bal);
+                    numberFormat = finalBalance;
                     amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+
                     transactionRecord.put("amount", amount);
 
                     JSONArray transactionHistoryEntry = new JSONArray();

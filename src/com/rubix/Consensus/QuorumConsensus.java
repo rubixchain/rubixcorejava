@@ -1,63 +1,36 @@
 package com.rubix.Consensus;
 
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.IPFS_PORT;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.SYNC_IP;
-import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
-import static com.rubix.Resources.Functions.calculateHash;
-import static com.rubix.Resources.Functions.deleteFile;
-import static com.rubix.Resources.Functions.getPeerID;
-import static com.rubix.Resources.Functions.getSignFromShares;
-import static com.rubix.Resources.Functions.getValues;
-import static com.rubix.Resources.Functions.nodeData;
-import static com.rubix.Resources.Functions.syncDataTable;
-import static com.rubix.Resources.Functions.updateJSON;
-import static com.rubix.Resources.Functions.writeToFile;
-import static com.rubix.Resources.IPFSNetwork.add;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
-import static com.rubix.Resources.IPFSNetwork.listen;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.net.HttpURLConnection;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.URL;
-import java.text.ParseException;
-import java.util.HashSet;
-
 import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
-
+import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.ipfs.api.IPFS;
+import java.io.*;
+import java.net.*;
+import java.text.ParseException;
+import java.util.HashSet;
+
+import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.IPFSNetwork.*;
 
 public class QuorumConsensus implements Runnable {
 
+
     public static Logger QuorumConsensusLogger = Logger.getLogger(QuorumConsensus.class);
+
 
     /**
      * This method is used to run a thread for Quorum Members
-     * <p>
-     * This involves
-     * <ol>
-     * <li>Verify sender signature</li>
+     * <p>This involves <ol> <li>Verify sender signature</li>
      * <li>Signing the transaction</li>
-     * <li>Receiving share from sender</li>
-     * </ol>
+     * <li>Receiving share from sender</li></ol>
      */
+
 
     int port;
     IPFS ipfs;
@@ -73,8 +46,7 @@ public class QuorumConsensus implements Runnable {
     public void run() {
         while (true) {
             PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-            String peerID, transactionID, verifySenderHash, receiverDID, appName, senderPrivatePos,
-                    senderDidIpfsHash = "", senderPID = "";
+            String peerID, transactionID, verifySenderHash, receiverDID, appName, senderPrivatePos, senderDidIpfsHash = "", senderPID = "";
             ServerSocket serverSocket = null;
             Socket socket = null;
             try {
@@ -96,9 +68,9 @@ public class QuorumConsensus implements Runnable {
 
                 JSONObject readSenderData;
                 String operation = null;
-                try {
+                try{
                     operation = in.readLine();
-                } catch (SocketException e) {
+                }catch (SocketException e){
                     QuorumConsensusLogger.debug("Sender Input Stream Null - Operation");
                     socket.close();
                     serverSocket.close();
@@ -107,18 +79,18 @@ public class QuorumConsensus implements Runnable {
                 if (operation.equals("new-credits-mining")) {
                     QuorumConsensusLogger.debug("New Credits");
                     String getNewCreditsData = null;
-                    try {
+                    try{
                         getNewCreditsData = in.readLine();
-                    } catch (SocketException e) {
+                    }catch (SocketException e){
                         QuorumConsensusLogger.debug("Sender Input Stream Null - New Credits Details");
                         socket.close();
                         serverSocket.close();
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     }
-                    // Verify QST Credits
+                    //Verify QST Credits
                     JSONObject qstObject = new JSONObject(getNewCreditsData);
 
-                    // Get level of token from advisory node
+                    //Get level of token from advisory node
                     int creditsRequired = 0;
                     JSONObject resJsonData_credit = new JSONObject();
                     String GET_URL_credit = SYNC_IP + "/getlevel";
@@ -128,8 +100,7 @@ public class QuorumConsensus implements Runnable {
                     int responseCode_credit = con_credit.getResponseCode();
                     System.out.println("GET Response Code :: " + responseCode_credit);
                     if (responseCode_credit == HttpURLConnection.HTTP_OK) {
-                        BufferedReader in_credit = new BufferedReader(
-                                new InputStreamReader(con_credit.getInputStream()));
+                        BufferedReader in_credit = new BufferedReader(new InputStreamReader(con_credit.getInputStream()));
                         String inputLine_credit;
                         StringBuffer response_credit = new StringBuffer();
                         while ((inputLine_credit = in_credit.readLine()) != null) {
@@ -145,19 +116,18 @@ public class QuorumConsensus implements Runnable {
                     } else
                         QuorumConsensusLogger.debug("GET request not worked");
 
-                    // Level 1 Verification: Verify hash of n objects
+
+                    //Level 1 Verification: Verify hash of n objects
                     JSONArray qstArray = qstObject.getJSONArray("qstArray");
                     JSONArray creditsArray = qstObject.getJSONArray("credits");
 
                     boolean flag = true;
                     for (int i = 0; i < creditsRequired; i++) {
                         QuorumConsensusLogger.debug("Credit object: " + creditsArray.getJSONObject(i).toString());
-                        QuorumConsensusLogger.debug(
-                                "Credit Hash: " + calculateHash(creditsArray.getJSONObject(i).toString(), "SHA3-256"));
+                        QuorumConsensusLogger.debug("Credit Hash: " + calculateHash(creditsArray.getJSONObject(i).toString(), "SHA3-256"));
                         String reHash = calculateHash(qstArray.getJSONObject(i).getString("credits"), "SHA3-256");
                         if (!reHash.equals(qstArray.getJSONObject(i).getString("creditHash"))) {
-                            QuorumConsensusLogger.debug("Recalculation " + reHash + " - "
-                                    + qstArray.getJSONObject(i).getString("creditHash"));
+                            QuorumConsensusLogger.debug("Recalculation " + reHash + " - " + qstArray.getJSONObject(i).getString("creditHash"));
                             flag = false;
                         }
                     }
@@ -182,8 +152,7 @@ public class QuorumConsensus implements Runnable {
                                 QuorumConsensusLogger.debug("Mining Verified");
                                 out.println("Verified");
                             } else {
-                                QuorumConsensusLogger
-                                        .debug("HashSet: " + hashSet.size() + " QST Size " + qstArray.length());
+                                QuorumConsensusLogger.debug("HashSet: " + hashSet.size() + " QST Size " + qstArray.length());
                                 QuorumConsensusLogger.debug("Mining Not Verified: Duplicates Found");
                                 out.println("440");
                                 socket.close();
@@ -206,9 +175,9 @@ public class QuorumConsensus implements Runnable {
                     QuorumConsensusLogger.debug("Old Credits Mining / Whole RBT Token Transfer");
 
                 String getRecData = null;
-                try {
+                try{
                     getRecData = in.readLine();
-                } catch (SocketException e) {
+                }catch (SocketException e){
                     QuorumConsensusLogger.debug("Sender Input Stream Null - Ping Check / Receiver Details");
                     socket.close();
                     serverSocket.close();
@@ -232,8 +201,7 @@ public class QuorumConsensus implements Runnable {
                         syncDataTable(senderDidIpfsHash, null);
 
                         senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", senderDidIpfsHash);
-                        String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
-                                senderDidIpfsHash);
+                        String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", senderDidIpfsHash);
 
                         nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
                         String quorumHash = calculateHash(verifySenderHash.concat(receiverDID), "SHA3-256");
@@ -248,29 +216,27 @@ public class QuorumConsensus implements Runnable {
                         detailsToVerify.put("signature", senderPrivatePos);
 
                         writeToFile(LOGGER_PATH + "tempverifysenderhash", verifySenderHash, false);
-                        String verifySenderIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "tempverifysenderhash",
-                                ipfs);
+                        String verifySenderIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "tempverifysenderhash", ipfs);
                         deleteFile(LOGGER_PATH + "tempverifysenderhash");
 
-                        // QuorumConsensusLogger.debug("Checking providers for: " + verifySenderHash);
-                        // ArrayList dhtOwnersList = dhtOwnerCheck(verifySenderHash);
-                        // QuorumConsensusLogger.debug("Providers: " + dhtOwnersList);
-                        // boolean consensusIDcheck = false;
-                        // if(dhtOwnersList.size() <= 2 && dhtOwnersList.contains(senderPID))
-                        // consensusIDcheck = true;
+//                        QuorumConsensusLogger.debug("Checking providers for: " + verifySenderHash);
+//                        ArrayList dhtOwnersList = dhtOwnerCheck(verifySenderHash);
+//                        QuorumConsensusLogger.debug("Providers: " + dhtOwnersList);
+//                        boolean consensusIDcheck = false;
+//                        if(dhtOwnersList.size() <= 2 && dhtOwnersList.contains(senderPID))
+//                            consensusIDcheck = true;
 
                         if (Authenticate.verifySignature(detailsToVerify.toString())) {
                             QuorumConsensusLogger.debug("Quorum Authenticated Sender");
 
                             QuorumConsensusLogger.debug("ConsensusID pass");
-                            String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
-                                    quorumHash);
+                            String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png", quorumHash);
                             out.println(QuorumSignature);
 
                             String creditSignatures = null;
-                            try {
+                            try{
                                 creditSignatures = in.readLine();
-                            } catch (SocketException e) {
+                            }catch (SocketException e){
                                 QuorumConsensusLogger.debug("Sender Input Stream Null - Credits");
                                 socket.close();
                                 serverSocket.close();
@@ -278,8 +244,7 @@ public class QuorumConsensus implements Runnable {
                             }
                             QuorumConsensusLogger.debug("credit Signature " + creditSignatures);
 
-                            if (!creditSignatures.equals("null")) { // commented as per test for multiple consensus
-                                                                    // threads
+                            if (!creditSignatures.equals("null")) { //commented as per test for multiple consensus threads
 
                                 FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
                                 shareWriter.write(creditSignatures);
@@ -287,8 +252,7 @@ public class QuorumConsensus implements Runnable {
                                 File readCredit = new File(LOGGER_PATH + "mycredit.txt");
                                 String credit = add(readCredit.toString(), ipfs);
 
-                                File creditFile = new File(
-                                        WALLET_DATA_PATH.concat("/Credits/").concat(credit).concat(".json"));
+                                File creditFile = new File(WALLET_DATA_PATH.concat("/Credits/").concat(credit).concat(".json"));
                                 if (!creditFile.exists())
                                     creditFile.createNewFile();
                                 writeToFile(creditFile.toString(), creditSignatures, false);
