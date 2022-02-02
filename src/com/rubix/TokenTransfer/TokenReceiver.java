@@ -59,7 +59,7 @@ public class TokenReceiver {
 
             listen(receiverPeerID, RECEIVER_PORT);
             ss = new ServerSocket(RECEIVER_PORT);
-            TokenReceiverLogger.debug("Listening on " + RECEIVER_PORT + " with app name " + receiverPeerID);
+            TokenReceiverLogger.debug("Receiver Listening on " + RECEIVER_PORT + " appname " + receiverPeerID);
 
             sk = ss.accept();
             BufferedReader input = new BufferedReader(new InputStreamReader(sk.getInputStream()));

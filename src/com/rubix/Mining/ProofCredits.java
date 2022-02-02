@@ -23,8 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import static com.rubix.Resources.Functions.*;
-import static com.rubix.Resources.IPFSNetwork.add;
-import static com.rubix.Resources.IPFSNetwork.pin;
+import static com.rubix.Resources.IPFSNetwork.*;
 
 
 public class ProofCredits {
@@ -38,6 +37,7 @@ public class ProofCredits {
 
     public static JSONObject create(String data, IPFS ipfs) throws IOException, JSONException {
 
+        repo(ipfs);
         JSONObject APIResponse = new JSONObject();
         JSONObject detailsObject = new JSONObject(data);
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");

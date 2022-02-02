@@ -3,6 +3,7 @@ package com.rubix.Denominations;
 import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
+import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
@@ -13,12 +14,10 @@ import org.json.JSONObject;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
-import java.math.RoundingMode;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -48,9 +47,6 @@ public class SendTokenParts {
         pathSet();
         repo(ipfs);
 
-        DecimalFormat df = new DecimalFormat("#.###");
-        df.setRoundingMode(RoundingMode.CEILING);
-
         String PART_TOKEN_CHAIN_PATH = TOKENCHAIN_PATH.concat("PARTS/");
         String PART_TOKEN_PATH = TOKENS_PATH.concat("PARTS/");
         File partFolder = new File(PART_TOKEN_PATH);
@@ -71,14 +67,20 @@ public class SendTokenParts {
         JSONObject detailsObject = new JSONObject(data);
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
-        double amount = detailsObject.getDouble("amount");
-        Number numberFormat = amount;
-        amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+        Double amount = detailsObject.getDouble("amount");
+        amount = formatAmount(amount);
+
+        TokenPartsSenderLogger.debug("Amount requested to be sent: " + amount);
         int type = detailsObject.getInt("type");
         String comment = detailsObject.getString("comment");
-        double wholeAmount = amount;
-        numberFormat = wholeAmount;
-        wholeAmount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+        Double wholeAmount = amount;
+        wholeAmount = formatAmount(wholeAmount);
+
+//        if(amount > 0.999)
+//            amount = 0.999;
+//        amount = formatAmount(amount);
+
+//        TokenPartsSenderLogger.debug("Updated amount requested to be sent: " + amount);
 
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
@@ -121,78 +123,16 @@ public class SendTokenParts {
 
         } else {
             TokenPartsSenderLogger.debug("Token parts present");
-            double partsBalance = getPartsBalance();
-            TokenPartsSenderLogger.debug("Amount Available to spend: " + partsBalance);
-            if (amount > partsBalance) {
-                TokenPartsSenderLogger.debug("Amount greater than existing");
-                String bnkFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-                JSONArray bankArray = new JSONArray(bnkFile);
-                if (bankArray.length() != 0) {
-                    JSONObject bnkFirstObject = bankArray.getJSONObject(0);
-                    tokens = bnkFirstObject.getString("tokenHash");
-                    JSONArray newArray = new JSONArray();
-                    JSONObject newPartsObject = new JSONObject();
-                    newPartsObject.put("tokenHash", tokens);
-                    newArray.put(newPartsObject);
-                    newArray.putAll(partContentArray);
-                    writeToFile(partTokensFile.toString(), newArray.toString(), false);
+            tokens = partContentArray.getJSONObject(0).getString("tokenHash");
+            Double availableParts = Functions.partTokenBalance(tokens);
+            TokenPartsSenderLogger.debug("Amount Available to spend: " + availableParts);
 
-                    File tokenFile = new File(TOKENS_PATH.concat(tokens));
-                    tokenFile.renameTo(new File(PART_TOKEN_PATH.concat(tokens)));
-                    File chainFile = new File(TOKENCHAIN_PATH.concat(tokens).concat(".json"));
-                    chainFile.renameTo(new File(PART_TOKEN_CHAIN_PATH.concat(tokens).concat(".json")));
+            if (amount > availableParts)
+                amount = availableParts;
 
-                    bankArray.remove(0);
-                    writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
+            amount = formatAmount(amount);
 
-                    File shiftedFile = new File(PAYMENTS_PATH.concat("ShiftedTokens.json"));
-                    if (!shiftedFile.exists()) {
-                        shiftedFile.createNewFile();
-                        JSONArray shiftedTokensArray = new JSONArray();
-                        shiftedTokensArray.put(tokens);
-                        writeToFile(PAYMENTS_PATH.concat("ShiftedTokens.json"), shiftedTokensArray.toString(), false);
-                    } else {
-                        String shiftedContent = readFile(PAYMENTS_PATH.concat("ShiftedTokens.json"));
-                        JSONArray shiftedArray = new JSONArray(shiftedContent);
-                        shiftedArray.put(tokens);
-                        writeToFile(PAYMENTS_PATH.concat("ShiftedTokens.json"), shiftedArray.toString(), false);
-                    }
-
-                } else {
-                    TokenPartsSenderLogger.debug("No Tokens available");
-                    APIResponse.put("did", senderDidIpfsHash);
-                    APIResponse.put("tid", "null");
-                    APIResponse.put("status", "Failed");
-                    APIResponse.put("message", "No Tokens available");
-                    return APIResponse;
-                }
-            } else {
-                tokens = partContentArray.getJSONObject(0).getString("tokenHash");
-                String tokenChain = readFile(PART_TOKEN_CHAIN_PATH.concat(tokens).concat(".json"));
-                JSONArray chainArray = new JSONArray(tokenChain);
-                double availableParts = 0, senderCount = 0, receiverCount = 0;
-                for (int i = 0; i < chainArray.length(); i++) {
-                    if (chainArray.getJSONObject(i).has("role")) {
-                        if (chainArray.getJSONObject(i).getString("role").equals("Sender") && chainArray.getJSONObject(i).getString("sender").equals(senderDidIpfsHash)) {
-                            senderCount += chainArray.getJSONObject(i).getDouble("amount");
-                        } else if (chainArray.getJSONObject(i).getString("role").equals("Receiver") && chainArray.getJSONObject(i).getString("receiver").equals(senderDidIpfsHash)) {
-                            receiverCount += chainArray.getJSONObject(i).getDouble("amount");
-                        }
-                    }
-                }
-                availableParts = 1 - (senderCount - receiverCount);
-                numberFormat = availableParts;
-                availableParts = Double.parseDouble(df.format(numberFormat.doubleValue()));
-                TokenPartsSenderLogger.debug("Amount Available to spend: " + availableParts);
-
-                if (amount > availableParts)
-                    amount = availableParts;
-
-                numberFormat = amount;
-                amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
-            }
         }
-
         if (senderMutex) {
 
             APIResponse.put("did", senderDidIpfsHash);
@@ -226,6 +166,7 @@ public class SendTokenParts {
         }
         String hash = add(PART_TOKEN_PATH + tokens, ipfs);
         pin(hash, ipfs);
+        TokenPartsSenderLogger.debug("Amount being sent: " + amount);
 
         String chainContent = readFile(PART_TOKEN_CHAIN_PATH + tokens + ".json");
         JSONArray chainArray = new JSONArray();
@@ -419,8 +360,7 @@ public class SendTokenParts {
             newLastObject.put("previousHash", calculateHash(chainArray.getJSONObject(chainArray.length() - 1).getString("tid"), "SHA3-256"));
         }
 
-        numberFormat = amount;
-        amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+        amount = formatAmount(amount);
 
         String readLastNextHash = readFile(PART_TOKEN_CHAIN_PATH + tokens + ".json");
         JSONArray tempArray = new JSONArray(readLastNextHash);
@@ -439,11 +379,7 @@ public class SendTokenParts {
         newLastObject.put("nextHash", "");
         newLastObject.put("role", "Sender");
 
-        amount = ((amount * 1e4) / 1e4);
-        String bal = String.format("%.3f", amount);
-        double finalBalance = Double.parseDouble(bal);
-        numberFormat = finalBalance;
-        amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+        amount = formatAmount(amount);
         newLastObject.put("amount", amount);
         chainArray.put(newLastObject);
         writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
@@ -468,13 +404,12 @@ public class SendTokenParts {
             TokenPartsSenderLogger.warn("Receiver " + receiverDidIpfsHash + " is unable to Respond! - Token Auth");
 
             chainArray.remove(chainArray.length() - 1);
-            writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
-            chainArray.remove(chainArray.length() - 1);
             JSONObject lastObject = chainArray.getJSONObject(chainArray.length() - 1);
             lastObject.put("nextHash", lastNextHash);
             chainArray.remove(chainArray.length() - 1);
             chainArray.put(lastObject);
             writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             output.close();
             input.close();
@@ -513,13 +448,12 @@ public class SendTokenParts {
             }
 
             chainArray.remove(chainArray.length() - 1);
-            writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
-            chainArray.remove(chainArray.length() - 1);
             JSONObject lastObject = chainArray.getJSONObject(chainArray.length() - 1);
             lastObject.put("nextHash", lastNextHash);
             chainArray.remove(chainArray.length() - 1);
             chainArray.put(lastObject);
             writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+
             TokenPartsSenderLogger.info(errorMessage);
             updateQuorum(quorumArray, null, false, type);
             APIResponse.put("did", senderDidIpfsHash);
@@ -543,18 +477,16 @@ public class SendTokenParts {
         dataObject.put("gammaList", gammaPeersList);
 
         InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize, "");
-        //TokenPartsSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count " + InitiatorConsensus.quorumResponse);
         if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
             TokenPartsSenderLogger.debug("Consensus Failed");
 
-            chainArray.remove(chainArray.length() - 1);
-            writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
             chainArray.remove(chainArray.length() - 1);
             JSONObject lastObject = chainArray.getJSONObject(chainArray.length() - 1);
             lastObject.put("nextHash", lastNextHash);
             chainArray.remove(chainArray.length() - 1);
             chainArray.put(lastObject);
             writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+
             senderDetails2Receiver.put("status", "Consensus Failed");
             senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
             output.println(senderDetails2Receiver);
@@ -586,13 +518,12 @@ public class SendTokenParts {
             TokenPartsSenderLogger.warn("Receiver " + receiverDidIpfsHash + " is unable to Respond! - Signature Auth");
 
             chainArray.remove(chainArray.length() - 1);
-            writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
-            chainArray.remove(chainArray.length() - 1);
             JSONObject lastObject = chainArray.getJSONObject(chainArray.length() - 1);
             lastObject.put("nextHash", lastNextHash);
             chainArray.remove(chainArray.length() - 1);
             chainArray.put(lastObject);
             writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             output.close();
             input.close();
@@ -613,13 +544,12 @@ public class SendTokenParts {
             TokenPartsSenderLogger.info("Authentication Failed");
 
             chainArray.remove(chainArray.length() - 1);
-            writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
-            chainArray.remove(chainArray.length() - 1);
             JSONObject lastObject = chainArray.getJSONObject(chainArray.length() - 1);
             lastObject.put("nextHash", lastNextHash);
             chainArray.remove(chainArray.length() - 1);
             chainArray.put(lastObject);
             writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+
             output.close();
             input.close();
             senderSocket.close();
@@ -643,13 +573,12 @@ public class SendTokenParts {
             TokenPartsSenderLogger.warn("Receiver " + receiverDidIpfsHash + " is unable to Respond! - Pinning Auth");
 
             chainArray.remove(chainArray.length() - 1);
-            writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
-            chainArray.remove(chainArray.length() - 1);
             JSONObject lastObject = chainArray.getJSONObject(chainArray.length() - 1);
             lastObject.put("nextHash", lastNextHash);
             chainArray.remove(chainArray.length() - 1);
             chainArray.put(lastObject);
             writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             output.close();
             input.close();
@@ -667,13 +596,12 @@ public class SendTokenParts {
         if (confirmation != null && (!confirmation.equals("Successfully Pinned"))) {
             TokenPartsSenderLogger.warn("Multiple Owners for the token");
             chainArray.remove(chainArray.length() - 1);
-            writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
-            chainArray.remove(chainArray.length() - 1);
             JSONObject lastObject = chainArray.getJSONObject(chainArray.length() - 1);
             lastObject.put("nextHash", lastNextHash);
             chainArray.remove(chainArray.length() - 1);
             chainArray.put(lastObject);
             writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+
 
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             TokenPartsSenderLogger.info("Tokens with multiple pins");
@@ -696,14 +624,14 @@ public class SendTokenParts {
         } catch (SocketException e) {
 
             TokenPartsSenderLogger.warn("Receiver " + receiverDidIpfsHash + " is unable to Respond! - Share Confirmation");
-            chainArray.remove(chainArray.length() - 1);
-            writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+
             chainArray.remove(chainArray.length() - 1);
             JSONObject lastObject = chainArray.getJSONObject(chainArray.length() - 1);
             lastObject.put("nextHash", lastNextHash);
             chainArray.remove(chainArray.length() - 1);
             chainArray.put(lastObject);
             writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+
 
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             output.close();
@@ -721,13 +649,12 @@ public class SendTokenParts {
 
         if (respAuth != null && (!respAuth.equals("Send Response"))) {
             chainArray.remove(chainArray.length() - 1);
-            writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
-            chainArray.remove(chainArray.length() - 1);
             JSONObject lastObject = chainArray.getJSONObject(chainArray.length() - 1);
             lastObject.put("nextHash", lastNextHash);
             chainArray.remove(chainArray.length() - 1);
             chainArray.put(lastObject);
             writeToFile(PART_TOKEN_CHAIN_PATH + tokens + ".json", chainArray.toString(), false);
+
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             output.close();
             input.close();
@@ -744,37 +671,9 @@ public class SendTokenParts {
         }
 
         TokenPartsSenderLogger.debug("Checking Parts Token Balance ...");
-        String chainFile = readFile(PART_TOKEN_CHAIN_PATH + tokens + ".json");
-        chainArray = new JSONArray(chainFile);
-        double availableParts = 0, senderCount = 0, receiverCount = 0;
-        for (int i = 0; i < chainArray.length(); i++) {
-            if (chainArray.getJSONObject(i).has("role")) {
-                if (chainArray.getJSONObject(i).getString("role").equals("Sender") && chainArray.getJSONObject(i).getString("sender").equals(senderDidIpfsHash)) {
-                    senderCount += chainArray.getJSONObject(i).getDouble("amount");
-                } else if (chainArray.getJSONObject(i).getString("role").equals("Receiver") && chainArray.getJSONObject(i).getString("receiver").equals(senderDidIpfsHash)) {
-                    receiverCount += chainArray.getJSONObject(i).getDouble("amount");
-                }
-            }
-        }
-        availableParts = senderCount - receiverCount;
-        numberFormat = availableParts;
-        availableParts = Double.parseDouble(df.format(numberFormat.doubleValue()));
-        if (availableParts > 0) {
-            availableParts = 1 - (senderCount - receiverCount);
+        Double availableParts = partTokenBalance(tokens);
 
-            if (availableParts == 0) {
-                TokenPartsSenderLogger.debug("Wholly Spent, Removing token from parts");
-                String partFileContent2 = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
-                JSONArray partContentArray2 = new JSONArray(partFileContent2);
-                for (int i = 0; i < partContentArray2.length(); i++) {
-                    if (partContentArray2.getJSONObject(i).getString("tokenHash").equals(tokens))
-                        partContentArray2.remove(i);
-                    writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partContentArray2.toString(), false);
-                }
-                deleteFile(PART_TOKEN_CHAIN_PATH.concat(tokens));
-            }
-        }
-        if (availableParts == 0) {
+        if (availableParts >= 1.000 || availableParts <= 0.000) {
             TokenPartsSenderLogger.debug("Wholly Spent, Removing token from parts");
             String partFileContent2 = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
             JSONArray partContentArray2 = new JSONArray(partFileContent2);
@@ -783,7 +682,7 @@ public class SendTokenParts {
                     partContentArray2.remove(i);
                 writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partContentArray2.toString(), false);
             }
-            deleteFile(PART_TOKEN_CHAIN_PATH.concat(tokens));
+            deleteFile(PART_TOKEN_PATH.concat(tokens));
         }
 
         Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
@@ -812,11 +711,7 @@ public class SendTokenParts {
         transactionRecord.put("comment", comment);
         transactionRecord.put("essentialShare", InitiatorProcedure.essential);
 
-        amount = ((amount * 1e4) / 1e4);
-        bal = String.format("%.3f", amount);
-        finalBalance = Double.parseDouble(bal);
-        numberFormat = finalBalance;
-        amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+        amount = formatAmount(amount);
         transactionRecord.put("amount", amount);
 
         JSONArray transactionHistoryEntry = new JSONArray();
@@ -850,11 +745,7 @@ public class SendTokenParts {
             dataToSend.put("token_id", tokenList);
             dataToSend.put("token_time", (int) totalTime);
 
-            amount = ((amount * 1e4) / 1e4);
-            bal = String.format("%.3f", amount);
-            finalBalance = Double.parseDouble(bal);
-            numberFormat = finalBalance;
-            amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+            amount = formatAmount(amount);
 
             dataToSend.put("amount", amount);
             String populate = dataToSend.toString();
@@ -933,18 +824,10 @@ public class SendTokenParts {
 //        }
 
         senderMutex = false;
-        double newAmount = wholeAmount - amount;
+        Double newAmount = wholeAmount - amount;
 
-        newAmount = ((newAmount * 1e4) / 1e4);
-        bal = String.format("%.3f", newAmount);
-        finalBalance = Double.parseDouble(bal);
-        numberFormat = finalBalance;
-        newAmount = Double.parseDouble(df.format(numberFormat.doubleValue()));
-
-        newAmount = ((newAmount * 1e4) / 1e4);
-        numberFormat = newAmount;
-        newAmount = Double.parseDouble(df.format(numberFormat.doubleValue()));
-        if (newAmount > 0) {
+        newAmount = formatAmount(newAmount);
+        if (newAmount > 0.000) {
             JSONObject detailsObjectNew = new JSONObject(data);
             detailsObjectNew.put("amount", newAmount);
             SendTokenParts.Send(detailsObjectNew.toString(), ipfs, 9999);

@@ -147,7 +147,6 @@ public class InitiatorConsensus {
                         qOut[j].println(operation);
 
                         if (operation.equals("new-credits-mining")) {
-                            InitiatorConsensusLogger.debug("New Credits");
                             JSONObject qstDetails = dataObject.getJSONObject("qstDetails");
                             //Verify QST Credits
                             qOut[j].println(qstDetails.toString());
@@ -220,8 +219,7 @@ public class InitiatorConsensus {
                                 }
                             }
 
-                        } else
-                            InitiatorConsensusLogger.debug("Old Credits");
+                        }
 
                         qOut[j].println(detailsToken);
 

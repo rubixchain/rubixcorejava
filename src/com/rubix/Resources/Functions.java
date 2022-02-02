@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 
+import static com.rubix.Resources.APIHandler.addPublicData;
 import static com.rubix.Resources.IPFSNetwork.*;
 
 
@@ -162,8 +163,6 @@ public class Functions {
             }
         }
     }
-
-
     /**
      * This method gets the currently logged in username
      *
@@ -1219,12 +1218,10 @@ public class Functions {
 
     }
 
-    public static double getPartsBalance() throws JSONException {
+    public static Double getPartsBalance() throws JSONException {
         pathSet();
-        DecimalFormat df = new DecimalFormat("#.###");
-        df.setRoundingMode(RoundingMode.CEILING);
 
-        double balance = 0;
+        Double balance = 0.000D;
         String didFile = readFile(DATA_PATH.concat("DID.json"));
         JSONArray didArray = new JSONArray(didFile);
         String myDID = didArray.getJSONObject(0).getString("didHash");
@@ -1237,14 +1234,14 @@ public class Functions {
                 partFolder.mkdir();
             String partsTokenFile = readFile(PAYMENTS_PATH + "PartsToken.json");
             JSONArray partTokensArray = new JSONArray(partsTokenFile);
-            double parts = 0;
+            Double parts = 0.000D;
             if (partTokensArray.length() != 0) {
                 for (int i = 0; i < partTokensArray.length(); i++) {
                     String token = partTokensArray.getJSONObject(i).getString("tokenHash");
                     String tokenChainFile = readFile(PART_TOKEN_CHAIN_PATH.concat(token).concat(".json"));
                     JSONArray tokenChainArray = new JSONArray(tokenChainFile);
 
-                    double availableParts = 0, senderCount = 0, receiverCount = 0;
+                    Double availableParts = 0.000D, senderCount = 0.000D, receiverCount = 0.000D;
                     for (int k = 0; k < tokenChainArray.length(); k++) {
                         if (tokenChainArray.getJSONObject(k).has("role")) {
                             if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender") && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
@@ -1259,7 +1256,7 @@ public class Functions {
 
                 }
             }
-            parts = (double) ((parts * 1e4) / 1e4);
+            parts = formatAmount(parts);
             balance = balance + parts;
 
 
@@ -1283,29 +1280,21 @@ public class Functions {
             balance = balance - count;
         }
 
-        String bal = String.format("%.3f", balance);
-        double finalBalance = Double.parseDouble(bal);
-        Number numberFormat = finalBalance;
-        finalBalance = Double.parseDouble(df.format(numberFormat.doubleValue()));
-        return finalBalance;
+       balance = formatAmount(balance);
+        return balance;
     }
 
-    public static double checkTokenPartBalance(String tokenHash) throws JSONException {
+    public static Double checkTokenPartBalance(String tokenHash) throws JSONException {
         pathSet();
-        DecimalFormat df = new DecimalFormat("#.###");
-        df.setRoundingMode(RoundingMode.CEILING);
 
-        double balance = 0;
         String didFile = readFile(DATA_PATH.concat("DID.json"));
         JSONArray didArray = new JSONArray(didFile);
         String myDID = didArray.getJSONObject(0).getString("didHash");
 
-        double parts = 0;
-
-        String tokenChainFile = readFile(PAYMENTS_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
+        String tokenChainFile = readFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
         JSONArray tokenChainArray = new JSONArray(tokenChainFile);
 
-        double availableParts = 0, senderCount = 0, receiverCount = 0;
+        Double senderCount = 0.000D, receiverCount = 0.000D;
         for (int k = 0; k < tokenChainArray.length(); k++) {
             if (tokenChainArray.getJSONObject(k).has("role")) {
                 if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender") && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
@@ -1315,25 +1304,22 @@ public class Functions {
                 }
             }
         }
-        availableParts = 1 - (senderCount - receiverCount);
-        parts += availableParts;
+        senderCount = formatAmount(senderCount);
+        receiverCount = formatAmount(receiverCount);
 
-        parts = ((parts * 1e4) / 1e4);
-        balance = balance + parts;
+        Double availableParts = receiverCount-senderCount;
+        availableParts = formatAmount(availableParts);
+        if(availableParts <= 0.000)
+            availableParts = 1+availableParts;
 
-        Number numberFormat = balance;
-        balance = Double.parseDouble(df.format(numberFormat.doubleValue()));
-        return balance;
+        availableParts =  formatAmount(availableParts);
+        return availableParts;
     }
 
 
-    public static double getBalance() throws JSONException {
+    public static Double getBalance() throws JSONException {
         pathSet();
-
-        DecimalFormat df = new DecimalFormat("#.###");
-        df.setRoundingMode(RoundingMode.CEILING);
-
-        double balance = 0;
+        Double balance = 0.000D;
         String tokenMapFile = readFile(PAYMENTS_PATH + "TokenMap.json");
         JSONArray tokenMapArray = new JSONArray(tokenMapFile);
 
@@ -1358,14 +1344,14 @@ public class Functions {
                 partFolder.mkdir();
             String partsTokenFile = readFile(PAYMENTS_PATH + "PartsToken.json");
             JSONArray partTokensArray = new JSONArray(partsTokenFile);
-            double parts = 0;
+            Double parts = 0.000D;
             if (partTokensArray.length() != 0) {
                 for (int i = 0; i < partTokensArray.length(); i++) {
                     String token = partTokensArray.getJSONObject(i).getString("tokenHash");
                     String tokenChainFile = readFile(PART_TOKEN_CHAIN_PATH.concat(token).concat(".json"));
                     JSONArray tokenChainArray = new JSONArray(tokenChainFile);
 
-                    double availableParts = 0, senderCount = 0, receiverCount = 0;
+                    Double availableParts = 0.000D, senderCount = 0.000D, receiverCount = 0.000D;
                     for (int k = 0; k < tokenChainArray.length(); k++) {
                         if (tokenChainArray.getJSONObject(k).has("role")) {
                             if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender") && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
@@ -1380,10 +1366,10 @@ public class Functions {
 
                 }
             }
-            parts = (double) ((parts * 1e4) / 1e4);
+            parts = formatAmount(parts);
             balance = balance + parts;
 
-
+            balance = formatAmount(balance);
             int count = 0;
             File shiftedFile = new File(PAYMENTS_PATH.concat("ShiftedTokens.json"));
             if (shiftedFile.exists()) {
@@ -1405,47 +1391,87 @@ public class Functions {
         }
 
 
-        String bal = String.format("%.3f", balance);
-        double finalBalance = Double.parseDouble(bal);
-        Number numberFormat = finalBalance;
-        finalBalance = Double.parseDouble(df.format(numberFormat.doubleValue()));
-        return finalBalance;
+        balance = formatAmount(balance);
+        return balance;
     }
 
-//    /**
-//     * This method checks if Quorum is available for consensus
-//     *
-//     * @param quorum List of peers
-//     * @param ipfs   IPFS instance
-//     * @return final list of all available Quorum peers
-//     */
-//    public static ArrayList<String> checkQuorum(JSONArray quorum, IPFS ipfs,int size) {
-//        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-//        ArrayList<String> peers = new ArrayList<>();
-//
-//        if (quorum.length()>=minQuorum(size)) {
-//        	/**Swarm connect - sticky connection */
-//        	QuorumSwarmConnect(quorum, ipfs);
-//            for (int i = 0; i < quorum.length(); i++) {
-//                String quorumPeer;
-//                try {
-//                    quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
-//                    if (checkSwarmConnect().contains(quorumPeer)) {
-//                        peers.add(quorumPeer);
-//                        FunctionsLogger.debug(quorumPeer);
-//                    }else {
-//                    	FunctionsLogger.debug("cannot connect to Peer : " + quorumPeer);
-//                    }
-//                } catch (JSONException e) {
-//                    FunctionsLogger.error("JSON Exception Occurred", e);
-//                    e.printStackTrace();
-//                }
-//            }
-//
-//                FunctionsLogger.debug("Quorum Peer IDs : " + peers);
-//                return peers;
-//        } else
-//            return null;
-//    }
+
+    public static Double partTokenBalance(String tokenHash) throws JSONException {
+        pathSet();
+
+        String didFile = readFile(DATA_PATH.concat("DID.json"));
+        JSONArray didArray = new JSONArray(didFile);
+        String myDID = didArray.getJSONObject(0).getString("didHash");
+
+        String tokenChainFile = readFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
+        JSONArray tokenChainArray = new JSONArray(tokenChainFile);
+
+        Double senderCount = 0.000D, receiverCount = 0.000D;
+        for (int k = 0; k < tokenChainArray.length(); k++) {
+            if (tokenChainArray.getJSONObject(k).has("role")) {
+                if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender") && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
+                    senderCount += tokenChainArray.getJSONObject(k).getDouble("amount");
+                } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver") && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
+                    receiverCount += tokenChainArray.getJSONObject(k).getDouble("amount");
+                }
+            }
+        }
+        senderCount = formatAmount(senderCount);
+        receiverCount = formatAmount(receiverCount);
+
+        Double availableParts = receiverCount-senderCount;
+        availableParts = formatAmount(availableParts);
+        if(availableParts <= 0.000)
+            availableParts = 1+availableParts;
+
+        availableParts =  formatAmount(availableParts);
+        return availableParts;
+    }
+
+    public static Double formatAmount(Double amount){
+
+        DecimalFormat df = new DecimalFormat("#.###");
+        df.setRoundingMode(RoundingMode.CEILING);
+
+        amount = ((amount*1e4)/1e4);
+        String bal = String.format("%.3f", amount);
+        Number numberFormat = Double.parseDouble(bal);
+        amount = Double.parseDouble(df.format(numberFormat.doubleValue()));
+        return amount;
+
+    }
+
+    public static void clearParts(){
+        String partsFile = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
+        JSONArray partsArray = new JSONArray(partsFile);
+        for(int i = 0; i < partsArray.length(); i++){
+            if(partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) <= 0.000 || partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) > 1.000) {
+                deleteFile(TOKENS_PATH.concat("PARTS/").concat(partsArray.getJSONObject(i).getString("tokenHash")));
+                partsArray.remove(i);
+            }
+        }
+        writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partsArray.toString(), false);
+    }
+
+    public static void backgroundChecks(){
+        try {
+            Functions.tokenBank();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            Functions.clearParts();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
+        IPFSNetwork.repo(ipfs);
+
+        addPublicData();
+
+    }
+
 }
 
