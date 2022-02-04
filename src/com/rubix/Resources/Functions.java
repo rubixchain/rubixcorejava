@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -67,6 +68,14 @@ public class Functions {
     public static JSONArray BOOTSTRAPS;
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
+
+    public static String buildVersion() throws IOException {
+        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        initPath = initPath.split("\\.jar")[0];
+        initPath = initPath + ".jar";
+        String initHash = calculateFileHash(initPath, "MD5");
+        return initHash;
+    }
 
     public static void setDir() {
         String OSName = getOsName();
@@ -231,6 +240,29 @@ public class Functions {
         System.arraycopy(messageBytes, 0, c, 0, messageBytes.length);
         final byte[] hashBytes = digest.digest(messageBytes);
         return bytesToHex(hashBytes);
+    }
+
+    public static String calculateFileHash(String filePath, String algorithm) {
+        String hash = "";
+        try {
+            MessageDigest digest = MessageDigest.getInstance(algorithm);
+            System.out.println("File path: " + filePath);
+            System.out.println("File Hashing...");
+            FileInputStream fis = new FileInputStream(filePath);
+            System.out.println("File read OK");
+            byte[] dataBytes = new byte[1024];
+            int nread = 0;
+            while ((nread = fis.read(dataBytes)) != -1) {
+                digest.update(dataBytes, 0, nread);
+            }
+            byte[] hashBytes = digest.digest();
+            hash = bytesToHex(hashBytes);
+            fis.close();
+        } catch (NoSuchAlgorithmException | IOException e) {
+            FunctionsLogger.error("Invalid Cryptographic Algorithm", e);
+            e.printStackTrace();
+        }
+        return hash;
     }
 
     /**
@@ -966,6 +998,14 @@ public class Functions {
             inQuorumUpdate.close();
 
         }
+    }
+
+    public static String initHash() throws IOException {
+        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        initPath = initPath.split("\\.jar")[0];
+        initPath = initPath + ".jar";
+        String initHash = calculateFileHash(initPath, "SHA3-256");
+        return initHash;
     }
 
     /**
