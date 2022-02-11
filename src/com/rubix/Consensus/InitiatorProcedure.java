@@ -41,11 +41,9 @@ public class InitiatorProcedure {
         JSONArray alphaList = dataObject.getJSONArray("alphaList");
         JSONArray betaList = dataObject.getJSONArray("betaList");
         JSONArray gammaList = dataObject.getJSONArray("gammaList");
-        String authSenderByQuorumHash="", authQuorumHash="";
-        authSenderByQuorumHash = calculateHash(message , "SHA3-256");
-        authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
-        InitiatorProcedureLogger.debug("Sender by Quorum Hash" + authSenderByQuorumHash);
-        InitiatorProcedureLogger.debug("Quorum Auth Hash" + authQuorumHash);
+
+        String authSenderByQuorumHash = calculateHash(message , "SHA3-256");
+        String authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
 
         try {
             payload.put("sender", senderDidIpfs);
