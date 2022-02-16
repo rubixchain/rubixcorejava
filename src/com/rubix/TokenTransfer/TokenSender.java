@@ -53,19 +53,30 @@ public class TokenSender {
         JSONObject APIResponse = new JSONObject();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
-        String receiverPeerId;
         JSONObject detailsObject = new JSONObject(data);
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
+        String receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
         String pvt = detailsObject.getString("pvt");
         double requestedAmount = detailsObject.getDouble("amount");
         int type = detailsObject.getInt("type");
         String comment = detailsObject.getString("comment");
         APIResponse = new JSONObject();
 
+        int intPart = (int) requestedAmount, wholeAmount;
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         TokenSenderLogger.debug("sender peer id" + senderPeerID);
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
         TokenSenderLogger.debug("sender did ipfs hash" + senderDidIpfsHash);
+
+        boolean sanityCheck = sanityCheck(receiverPeerId, ipfs, port+10);
+        if(!sanityCheck){
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", "null");
+            APIResponse.put("status", "Failed");
+            APIResponse.put("message", sanityMessage);
+            TokenSenderLogger.warn(sanityMessage);
+            return APIResponse;
+        }
 
         if (senderMutex) {
             APIResponse.put("did", senderDidIpfsHash);
@@ -92,7 +103,7 @@ public class TokenSender {
             writeToFile(partTokensFile.toString(), "[]", false);
         }
 
-        int intPart = (int) requestedAmount, wholeAmount;
+
         TokenSenderLogger.debug("Requested Part: " +requestedAmount);
         TokenSenderLogger.debug("Int Part: " +intPart);
         String bankFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
@@ -287,7 +298,13 @@ public class TokenSender {
         TokenSenderLogger.debug("TID on sender " + tid);
 
 
-        JSONArray quorumArray;
+
+        JSONArray allTokens = new JSONArray();
+        for(int i = 0; i < wholeTokens.length(); i++)
+            allTokens.put(wholeTokens.getString(i));
+        for(int i = 0; i < partTokens.length(); i++)
+            allTokens.put(partTokens.getString(i));
+
         JSONArray alphaQuorum = new JSONArray();
         JSONArray betaQuorum = new JSONArray();
         JSONArray gammaQuorum = new JSONArray();
@@ -297,7 +314,7 @@ public class TokenSender {
         ArrayList betaPeersList;
         ArrayList gammaPeersList;
 
-        long startTime = System.currentTimeMillis();
+        JSONArray quorumArray;
         switch (type) {
             case 1: {
                 writeToFile(LOGGER_PATH + "tempbeta", tid.concat(senderDidIpfsHash), false);
@@ -308,7 +325,7 @@ public class TokenSender {
                 String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
                 deleteFile(LOGGER_PATH + "tempgamma");
 
-                quorumArray = getQuorum(betaHash, gammaHash, senderDidIpfsHash, receiverDidIpfsHash, wholeTokens.length());
+                quorumArray = getQuorum(betaHash, gammaHash, senderDidIpfsHash, receiverDidIpfsHash, allTokens.length());
                 break;
             }
 
@@ -329,18 +346,37 @@ public class TokenSender {
             }
         }
 
-        TokenSenderLogger.debug("1");
-        TokenSenderLogger.debug("Whole tokens: " + wholeTokens);
-        TokenSenderLogger.debug("Part tokens: " + partTokens);
-        long endTime = System.currentTimeMillis();
-        long totalTime = endTime - startTime;
-        eventLogger.debug("Get Quorum List " + totalTime);
+        int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
+        JSONArray sanityFailedQuorum = new JSONArray();
+        for(int i = 0; i < quorumArray.length(); i++){
+            String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorumArray.getString(i));
+            boolean quorumSanityCheck = sanityCheck(quorumPeerID, ipfs, port+11);
 
-        startTime = System.currentTimeMillis();
+            if(!quorumSanityCheck){
+                sanityFailedQuorum.put(quorumPeerID);
+                if(i <= 6)
+                    alphaCheck++;
+                if(i >= 7 && i <= 13)
+                    betaCheck++;
+                if(i >= 14 && i <= 20)
+                    gammaCheck++;
+            }
+        }
+
+        if(alphaCheck > 2 || betaCheck > 2 || gammaCheck > 2){
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", "null");
+            APIResponse.put("status", "Failed");
+            String message = "Quorum: ".concat(sanityFailedQuorum.toString()).concat(" ");
+            APIResponse.put("message", message.concat(sanityMessage));
+            TokenSenderLogger.warn("Quorum: ".concat(message.concat(sanityMessage)));
+            return APIResponse;
+        }
+
+        long startTime, endTime, totalTime;
+
         QuorumSwarmConnect(quorumArray, ipfs);
-        endTime = System.currentTimeMillis();
-        totalTime = endTime - startTime;
-        eventLogger.debug("Swarm Connect " + totalTime);
+
 
         alphaSize = quorumArray.length() - 14;
 
@@ -374,7 +410,7 @@ public class TokenSender {
 
 
         syncDataTable(receiverDidIpfsHash, null);
-        receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
+//        receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
 
         if (!receiverPeerId.equals("")) {
             TokenSenderLogger.debug("Swarm connecting to " + receiverPeerId);
@@ -755,18 +791,6 @@ public class TokenSender {
         APIResponse.put("totaltime", totalTime);
 
         updateQuorum(quorumArray, signedQuorumList, true, type);
-
-
-        JSONArray allTokens = new JSONArray();
-        for(int i = 0; i < wholeTokens.length(); i++)
-            allTokens.put(wholeTokens.getString(i));
-        for(int i = 0; i < partTokens.length(); i++)
-            allTokens.put(partTokens.getString(i));
-
-        TokenSenderLogger.debug("4");
-        TokenSenderLogger.debug("All tokens: " + allTokens);
-        TokenSenderLogger.debug("Whole tokens: " + wholeTokens);
-        TokenSenderLogger.debug("Part tokens: " + partTokens);
 
         JSONObject transactionRecord = new JSONObject();
         transactionRecord.put("role", "Sender");
