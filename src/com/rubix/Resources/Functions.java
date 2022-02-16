@@ -2,6 +2,7 @@ package com.rubix.Resources;
 
 import static com.rubix.Resources.APIHandler.addPublicData;
 import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
+import static com.rubix.Resources.IPFSNetwork.dhtOwnerCheck;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.forwardCheck;
 import static com.rubix.Resources.IPFSNetwork.listen;
@@ -428,6 +429,29 @@ public class Functions {
             FunctionsLogger.error("JSONException Occurred", e);
         }
 
+    }
+
+    /**
+     * This function check if the token is pinned by the given DID
+     *
+     * @param token ID and DID of owner of the token to be checked
+     * @return boolean value
+     */
+    public static boolean checkTokenOwnershiByDID(String tokenID, String DID) {
+        boolean ownStatus = false;
+        String peerID = getValues(DATA_PATH + "DataTable.json", "peerid",
+                "didHash", DID);
+        try {
+            ArrayList owners = dhtOwnerCheck(tokenID);
+            if (owners.contains(peerID)) {
+                ownStatus = true;
+            }
+
+        } catch (InterruptedException | JSONException | IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return ownStatus;
     }
 
     /**

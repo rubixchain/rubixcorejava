@@ -75,6 +75,8 @@ public class QuorumConsensus implements Runnable {
         while (true) {
             PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
             String peerID, transactionID, verifySenderHash, receiverDID, appName, initHash, senderPrivatePos, token,
+                    stakingQuorumDID,
+                    stakedToken,
                     senderDidIpfsHash = "", senderPID = "";
             ServerSocket serverSocket = null;
             Socket socket = null;
@@ -105,7 +107,31 @@ public class QuorumConsensus implements Runnable {
                     serverSocket.close();
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                 }
+
+                if (operation.equals("stake-token")) {
+
+                    String stakeDetails;
+
+                    // ! send token ID choosen
+                    out.println("null");
+
+                    try {
+                        stakeDetails = in.readLine();
+                    } catch (SocketException e) {
+                        QuorumConsensusLogger.debug("Sender Input Stream Null - New stake ID Details");
+                        socket.close();
+                        serverSocket.close();
+                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                    }
+                    JSONObject stakeDetailsJSON = new JSONObject(stakeDetails);
+                    generateStakeIDByToken(stakeDetailsJSON.getString("stakeID"), stakeDetailsJSON.getString("minedToken"));
+                    out.println("OK")
+                    // ! wait for 0.02 RBT
+
+                }
+
                 if (operation.equals("new-credits-mining")) {
+
                     QuorumConsensusLogger.debug("New Credits");
                     String getNewCreditsData = null;
                     try {
@@ -226,11 +252,17 @@ public class QuorumConsensus implements Runnable {
                         readSenderData = new JSONObject(getRecData);
                         senderPrivatePos = readSenderData.getString("sign");
                         senderDidIpfsHash = readSenderData.getString("senderDID");
-                        token = readSenderData.getString("token");
                         transactionID = readSenderData.getString("Tid");
-                        initHash = readSenderData.getString("initHash");
                         verifySenderHash = readSenderData.getString("Hash");
                         receiverDID = readSenderData.getString("RID");
+
+                        // ! additional info for the mining verification
+                        initHash = readSenderData.getString("initHash");
+                        token = readSenderData.getString("token");
+                        stakedToken = readSenderData.getString("stakedToken");
+                        String stakingQuorumPeerID = readSenderData.getString("stakingQuorumPeerID");
+                        stakingQuorumDID = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
+                                stakingQuorumPeerID);
 
                         // ! match initiator initHash with quorum. if didn't match, reject
 
@@ -254,7 +286,8 @@ public class QuorumConsensus implements Runnable {
                         // sender + receiver hash)
                         // concat of sender hash and rec hash)
 
-                        String quorumHash = calculateHash(token.concat(transactionID), "SHA3-256");
+                        String quorumHash = calculateHash(token + transactionID + stakingQuorumDID, "SHA3-256");
+                        String stakeHash = calculateHash(token + stakedToken, "SHA3-256");
 
                         QuorumConsensusLogger.debug("1: " + verifySenderHash);
                         QuorumConsensusLogger.debug("2: " + receiverDID);
@@ -294,10 +327,11 @@ public class QuorumConsensus implements Runnable {
                             String QuorumSignatureTwo = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
                                     token);
                             quorumSigns.put("TokenSign", QuorumSignatureTwo);
-                            // ! 3st sign: Token + TID
-                            String QuorumSignatureThree = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
+
+                            // ! 3th sign: Token + TID
+                            String QuorumSignatureFive = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
                                     quorumHash);
-                            quorumSigns.put("QuorumSign", QuorumSignatureThree);
+                            quorumSigns.put("QuorumSign", QuorumSignatureFive);
 
                             out.println(quorumSigns);
 
@@ -353,6 +387,8 @@ public class QuorumConsensus implements Runnable {
                             QuorumConsensusLogger.debug("Sender Authentication Failure - Quorum");
                             out.println("Auth_Failed");
                         }
+
+                        // ! moving staked token to bottom of BNK00 file.
 
                     }
                 } else {
