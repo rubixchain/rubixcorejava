@@ -342,6 +342,7 @@ public class TokenReceiver {
                 return APIResponse.toString();
             }
 
+            // Check IPFS get for all Tokens
             int ipfsGetFlag = 0;
             ArrayList<String> allTokenContent = new ArrayList<>();
             ArrayList<String> allTokenChainContent = new ArrayList<>();
@@ -349,8 +350,9 @@ public class TokenReceiver {
                 String TokenChainContent = get(wholeTokenChains.getString(i), ipfs);
                 allTokenChainContent.add(TokenChainContent);
                 String TokenContent = get(wholeTokens.getString(i), ipfs);
-
-                
+                allTokenContent.add(TokenContent);
+                ipfsGetFlag++;
+            }
             repo(ipfs);
 
             if (!(ipfsGetFlag == intPart)) {
@@ -419,6 +421,7 @@ public class TokenReceiver {
                     }
                 }
             }
+
             if (!chainFlag) {
 
                 String errorMessage = "Broken Cheque Chain";
