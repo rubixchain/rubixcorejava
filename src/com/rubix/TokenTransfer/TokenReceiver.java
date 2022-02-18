@@ -203,8 +203,11 @@ public class TokenReceiver {
             int intPart = wholeTokens.length();
             Double decimalPart = formatAmount(amount - intPart);
             JSONArray doubleSpentToken = new JSONArray();
+            JSONArray stakedToken = new JSONArray();
             boolean tokenOwners = true;
+            boolean incompleteStake = false;
             ArrayList ownersArray = new ArrayList();
+            ArrayList stakeOwnersArray = new ArrayList();
             ArrayList previousSender = new ArrayList();
             JSONArray ownersReceived = new JSONArray();
             for (int i = 0; i < wholeTokens.length(); ++i) {
@@ -232,9 +235,10 @@ public class TokenReceiver {
                     }
                 } catch (IOException e) {
 
-                    TokenReceiverLogger.debug("Ipfs dht find did not execute");
+                    TokenReceiverLogger.trace("Ipfs dht find did not execute (double spend check)");
                 }
             }
+
             if (!tokenOwners) {
                 JSONArray owners = new JSONArray();
                 for (int i = 0; i < ownersArray.size(); i++)
@@ -255,6 +259,67 @@ public class TokenReceiver {
                 ss.close();
                 return APIResponse.toString();
             }
+
+            // ! starts stakeID checks
+
+            for (int i = 0; i < wholeTokens.length(); ++i) {
+                try {
+                    TokenReceiverLogger.debug("Checking stake ID for " + wholeTokens.getString(i) + " Please wait...");
+                    String stakeID = Functions.generateStakeID(tokenDetails);
+                    stakeOwnersArray = IPFSNetwork.dhtOwnerCheck(stakeID);
+
+                    if (stakeOwnersArray.size() > 1) {
+
+                        // ! check sign on pinned stake ID
+
+                        String minedToken = Functions.minedTokenIDFromStakeID(stakeID);
+
+                        int minedTokenHeight = Functions.tokenHeightFromTokenID(minedToken);
+                        if (minedTokenHeight < 32) {
+                            incompleteStake = true;
+                        }
+
+                        // for (int j = 0; j < previousSendersArray.length(); j++) {
+                        // if (previousSendersArray.getJSONObject(j).getString("token")
+                        // .equals(wholeTokens.getString(i)))
+                        // ownersReceived =
+                        // previousSendersArray.getJSONObject(j).getJSONArray("sender");
+                        // }
+
+                        // for (int j = 0; j < ownersReceived.length(); j++) {
+                        // previousSender.add(ownersReceived.getString(j));
+                        // }
+                        // TokenReceiverLogger.debug("Previous Owners: " + previousSender);
+
+                        // for (int j = 0; j < ownersArray.size(); j++) {
+                        // if (!previousSender.contains(ownersArray.get(j).toString()))
+                        // tokenOwners = false;
+                        // }
+                    }
+                } catch (IOException e) {
+
+                    TokenReceiverLogger.trace("Ipfs dht find did not execute (stakeID check)");
+                }
+            }
+
+            if (incompleteStake) {
+                TokenReceiverLogger.debug("Token Height not reached for corresponding Staked Tokens " + stakedToken);
+                output.println("200");
+                output.println(stakedToken.toString());
+                output.println("stakes not complete");
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Token Height not reached for corresponding Staked Tokens " + stakedToken);
+                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+
+            // ! ends stakeID checks
 
             String senderToken = TokenDetails.toString();
             String consensusID = calculateHash(senderToken, "SHA3-256");
@@ -277,8 +342,6 @@ public class TokenReceiver {
                 return APIResponse.toString();
             }
 
-            // Check IPFS get and Stake ID (signed when participated as quorum in mining)
-            // for all Tokens
             int ipfsGetFlag = 0;
             ArrayList<String> allTokenContent = new ArrayList<>();
             ArrayList<String> allTokenChainContent = new ArrayList<>();
@@ -287,22 +350,7 @@ public class TokenReceiver {
                 allTokenChainContent.add(TokenChainContent);
                 String TokenContent = get(wholeTokens.getString(i), ipfs);
 
-                // ! yet to verify if we are going to use stake ID or quorum pinning token on
-
-                // ? Steps
-                // ? generate stake ID for the token hash
-                // ? check if stake ID exists in the network for the token hash (someone must
-                // have staked this token for participating in mining)
-                // ? stake ID should be signed by the staking node to avoid malicious node
-                // staking tokens they dont own
-                // ? get mined token from stake ID
-                // ? if the mined token has token chain content > credits required to mine that
-                // token, then stake ID is not considered and token is accepted by reciever
-                // ? ignore the token and continue with the transaction
-
-                allTokenContent.add(TokenContent);
-                ipfsGetFlag++;
-            }
+                
             repo(ipfs);
 
             if (!(ipfsGetFlag == intPart)) {

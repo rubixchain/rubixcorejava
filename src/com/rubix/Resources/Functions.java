@@ -455,6 +455,70 @@ public class Functions {
     }
 
     /**
+     * This function generate Stake ID for a pleadged token. mined token can also be
+     * found from stake ID
+     *
+     * @param token ID to be staked
+     * @return Stake ID for that token
+     */
+    public static String generateStakeID(String stakedTokenID) {
+        String stakeID = calculateHash("stake" + stakedTokenID, "SHA3-256");
+        return stakeID;
+    }
+
+    /**
+     * This function generate Stake ID for a pleadged token. mined token can also be
+     * found from stake ID
+     *
+     * @param token ID to be staked
+     * @return Stake ID for that token
+     */
+    public static String minedTokenIDFromStakeID(String stakeID) {
+        // ! multihash structure needed..
+        String minedTokenID = calculateHash("stake" + stakeID, "SHA3-256");
+        return minedTokenID;
+    }
+
+    /**
+     * This function generate Stake ID for a pleadged token. mined token can also be
+     * found from stake ID
+     *
+     * @param token ID to be staked
+     * @return Stake ID for that token
+     */
+    public static int tokenHeightFromTokenID(String tokenID) {
+
+        int tokenChainLength = 32;
+
+        // ! get data from DID server or contact owner of mined token for token height
+
+        return tokenChainLength;
+    }
+
+    /**
+     * This function check Stake ID for a pleadged token. mined token can also be
+     * found from stake ID
+     *
+     * @param token ID to be staked
+     * @return boolean of exists or not
+     */
+    public static boolean checkStakeIDExists(String tokenID) {
+        boolean stakeIDExists = false;
+        String stakeID = calculateHash("stake" + tokenID, "SHA3-256");
+        stakeIDExists = checkTokenOwnershiByDID(stakeID, stakeID);
+        try {
+            ArrayList owners = dhtOwnerCheck(tokenID);
+            if (!owners.isEmpty()) {
+                stakeIDExists = true;
+            }
+
+        } catch (InterruptedException | JSONException | IOException e) {
+            FunctionsLogger.error("JSONException Occurred while - checkStakeIDExists - check", e);
+        }
+        return stakeIDExists;
+    }
+
+    /**
      * This function converts any integer to its binary form
      *
      * @param a An integer
