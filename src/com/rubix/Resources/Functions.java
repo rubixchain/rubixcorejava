@@ -434,7 +434,8 @@ public class Functions {
     /**
      * This function check if the token is pinned by the given DID
      *
-     * @param token ID and DID of owner of the token to be checked
+     * @param tokenID
+     * @param DID     of owner of the token to be checked
      * @return boolean value
      */
     public static boolean checkTokenOwnershiByDID(String tokenID, String DID) {
@@ -458,24 +459,27 @@ public class Functions {
      * This function generate Stake ID for a pleadged token. mined token can also be
      * found from stake ID
      *
-     * @param token ID to be staked
+     * @param stakedTokenID ID to be mined
+     * @param quorumDID     ID to be mined
+     * @param minedTokenID  ID to be mined
      * @return Stake ID for that token
      */
-    public static String generateStakeID(String stakedTokenID) {
-        String stakeID = calculateHash("stake" + stakedTokenID, "SHA3-256");
-        return stakeID;
+    public static String generateMineID(String stakedTokenID) {
+        String mineID = calculateHash("stake" + stakedTokenID, "SHA3-256");
+
+        return mineID;
     }
 
     /**
      * This function generate Stake ID for a pleadged token. mined token can also be
      * found from stake ID
      *
-     * @param token ID to be staked
-     * @return Stake ID for that token
+     * @return mine ID for that token
      */
-    public static String minedTokenIDFromStakeID(String stakeID) {
+    public static String minedTokenIDFromMineID(String mineID) {
+        String KEY = "mined";
         // ! multihash structure needed..
-        String minedTokenID = calculateHash("stake" + stakeID, "SHA3-256");
+        String minedTokenID = calculateHash("stake" + mineID, "SHA3-256");
         return minedTokenID;
     }
 
@@ -483,16 +487,82 @@ public class Functions {
      * This function generate Stake ID for a pleadged token. mined token can also be
      * found from stake ID
      *
+     * @return mine ID for that token
+     */
+    public static String stakedQuorumDIDFromMineID(String mineID) {
+        String KEY = "staker";
+        // ! multihash structure needed..
+        String stakedQuorumDID = calculateHash("stake" + mineID, "SHA3-256");
+        return stakedQuorumDID;
+    }
+
+    /**
+     * This function generate Stake ID for a pleadged token. mined token can also be
+     * found from stake ID
+     *
+     * @return mine ID for that token
+     */
+    public static String stakedTokenIDFromMineID(String mineID) {
+        String KEY = "staked";
+        // ! multihash structure needed..
+        String stakedTokenID = calculateHash("stake" + mineID, "SHA3-256");
+        return stakedTokenID;
+    }
+
+    public static int creditsRequiredForLevel() {
+        int creditsRequired = 0;
+        JSONObject resJsonData_credit = new JSONObject();
+        String GET_URL_credit = SYNC_IP + "/getlevel";
+        URL URLobj_credit;
+        try {
+            URLobj_credit = new URL(GET_URL_credit);
+            HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
+            con_credit.setRequestMethod("GET");
+            int responseCode_credit = con_credit.getResponseCode();
+            System.out.println("GET Response Code :: " + responseCode_credit);
+            if (responseCode_credit == HttpURLConnection.HTTP_OK) {
+                BufferedReader in_credit = new BufferedReader(
+                        new InputStreamReader(con_credit.getInputStream()));
+                String inputLine_credit;
+                StringBuffer response_credit = new StringBuffer();
+                while ((inputLine_credit = in_credit.readLine()) != null) {
+                    response_credit.append(inputLine_credit);
+                }
+                in_credit.close();
+                FunctionsLogger.debug("response from service " + response_credit.toString());
+                resJsonData_credit = new JSONObject(response_credit.toString());
+                int level_credit = resJsonData_credit.getInt("level");
+                creditsRequired = (int) Math.pow(2, (2 + level_credit));
+                FunctionsLogger.debug("credits required " + creditsRequired);
+
+                return creditsRequired;
+
+            } else
+                FunctionsLogger.debug("GET request not OK");
+
+        } catch (Exception e) {
+            FunctionsLogger.debug("GET request not worked " + e.getMessage());
+        }
+        return creditsRequired;
+    }
+
+    /**
+     * This function calculates token height from tokenchain for the given token id
+     * (without considering ownership)
+     * found from stake ID
+     *
      * @param token ID to be staked
      * @return Stake ID for that token
      */
+
     public static int tokenHeightFromTokenID(String tokenID) {
 
-        int tokenChainLength = 32;
+        // height for current level x2
+        int requiredHeight = 64;
 
         // ! get data from DID server or contact owner of mined token for token height
 
-        return tokenChainLength;
+        return requiredHeight;
     }
 
     /**
@@ -502,20 +572,20 @@ public class Functions {
      * @param token ID to be staked
      * @return boolean of exists or not
      */
-    public static boolean checkStakeIDExists(String tokenID) {
-        boolean stakeIDExists = false;
-        String stakeID = calculateHash("stake" + tokenID, "SHA3-256");
-        stakeIDExists = checkTokenOwnershiByDID(stakeID, stakeID);
+    public static boolean checkMineIDExists(String tokenID) {
+        boolean mineIDExists = false;
+        String mineID = calculateHash("stake" + tokenID, "SHA3-256");
+        mineIDExists = checkTokenOwnershiByDID(mineID, mineID);
         try {
             ArrayList owners = dhtOwnerCheck(tokenID);
             if (!owners.isEmpty()) {
-                stakeIDExists = true;
+                mineIDExists = true;
             }
 
         } catch (InterruptedException | JSONException | IOException e) {
-            FunctionsLogger.error("JSONException Occurred while - checkStakeIDExists - check", e);
+            FunctionsLogger.error("JSONException Occurred while - checkMineIDExists - check", e);
         }
-        return stakeIDExists;
+        return mineIDExists;
     }
 
     /**
@@ -963,8 +1033,8 @@ public class Functions {
 
         File didImage = new File(DATA_PATH + myDID + "/DID.png");
         File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
-        File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
-        if (!didImage.exists() || !widImage.exists() || !pvtImage.exists()) {
+        // File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
+        if (!didImage.exists() || !widImage.exists()) {
             didImage.delete();
             didImage.delete();
             didImage.delete();

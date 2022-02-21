@@ -210,6 +210,113 @@ public class QuorumConsensus implements Runnable {
                 } else
                     QuorumConsensusLogger.debug("Old Credits Mining / Whole RBT Token Transfer");
 
+                // ! operation for quorum staking token starts here
+
+                if (operation.equals("stake-token")) {
+
+                    QuorumConsensusLogger.debug("Staking Credits");
+                    String getNewCreditsData = null;
+                    String tokenToStake = null;
+                    // move that token ID to bottom of BNK00 file
+                    try {
+                        getNewCreditsData = in.readLine();
+                    } catch (SocketException e) {
+                        QuorumConsensusLogger.debug("Sender Input Stream Null - Stake ID details");
+                        socket.close();
+                        serverSocket.close();
+                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                    }
+                    // Verify QST Credits
+                    JSONObject qstObject = new JSONObject(getNewCreditsData);
+
+                    // Get level of token from advisory node
+                    int creditsRequired = 0;
+                    JSONObject resJsonData_credit = new JSONObject();
+                    String GET_URL_credit = SYNC_IP + "/getlevel";
+                    URL URLobj_credit = new URL(GET_URL_credit);
+                    HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
+                    con_credit.setRequestMethod("GET");
+                    int responseCode_credit = con_credit.getResponseCode();
+                    System.out.println("GET Response Code :: " + responseCode_credit);
+                    if (responseCode_credit == HttpURLConnection.HTTP_OK) {
+                        BufferedReader in_credit = new BufferedReader(
+                                new InputStreamReader(con_credit.getInputStream()));
+                        String inputLine_credit;
+                        StringBuffer response_credit = new StringBuffer();
+                        while ((inputLine_credit = in_credit.readLine()) != null) {
+                            response_credit.append(inputLine_credit);
+                        }
+                        in_credit.close();
+                        QuorumConsensusLogger.debug("response from service " + response_credit.toString());
+                        resJsonData_credit = new JSONObject(response_credit.toString());
+                        int level_credit = resJsonData_credit.getInt("level");
+                        creditsRequired = (int) Math.pow(2, (2 + level_credit));
+                        QuorumConsensusLogger.debug("credits required " + creditsRequired);
+
+                    } else
+                        QuorumConsensusLogger.debug("Advisory GET request not worked");
+
+                    // Level 1 Verification: Verify hash of n objects
+                    JSONArray qstArray = qstObject.getJSONArray("qstArray");
+                    JSONArray creditsArray = qstObject.getJSONArray("credits");
+
+                    boolean flag = true;
+                    for (int i = 0; i < creditsRequired; i++) {
+                        QuorumConsensusLogger.debug("Credit object: " + creditsArray.getJSONObject(i).toString());
+                        QuorumConsensusLogger.debug(
+                                "Credit Hash: " + calculateHash(creditsArray.getJSONObject(i).toString(), "SHA3-256"));
+                        String reHash = calculateHash(qstArray.getJSONObject(i).getString("credits"), "SHA3-256");
+                        if (!reHash.equals(qstArray.getJSONObject(i).getString("creditHash"))) {
+                            QuorumConsensusLogger.debug("Recalculation " + reHash + " - "
+                                    + qstArray.getJSONObject(i).getString("creditHash"));
+                            flag = false;
+                        }
+                    }
+                    if (flag) {
+
+                        boolean verifySigns = true;
+                        for (int i = 0; i < creditsRequired; i++) {
+                            if (!Authenticate.verifySignature(creditsArray.getJSONObject(i).toString()))
+                                verifySigns = false;
+                        }
+                        if (verifySigns) {
+                            HashSet hashSet = new HashSet();
+                            long startTime = System.currentTimeMillis();
+                            for (int i = 0; i < creditsArray.length(); i++) {
+                                String sign = creditsArray.getJSONObject(i).getString("signature");
+                                String signHash = calculateHash(sign, "SHA3-256");
+                                hashSet.add(signHash);
+                            }
+                            long endTime = System.currentTimeMillis();
+                            QuorumConsensusLogger.debug("Total Time for HashSet: " + (endTime - startTime));
+                            if (hashSet.size() == qstArray.length() * 15) {
+                                QuorumConsensusLogger.debug("Mining Verified");
+                                out.println("Verified");
+                            } else {
+                                QuorumConsensusLogger
+                                        .debug("HashSet: " + hashSet.size() + " QST Size " + qstArray.length());
+                                QuorumConsensusLogger.debug("Mining Not Verified: Duplicates Found");
+                                out.println("440");
+                                socket.close();
+                                serverSocket.close();
+                                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                            }
+                        } else {
+                            out.println("441");
+                            socket.close();
+                            serverSocket.close();
+                            executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                        }
+                    } else {
+                        out.println("442");
+                        socket.close();
+                        serverSocket.close();
+                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                    }
+                    // ! operation for quorum staking token ends here
+                } else
+                    QuorumConsensusLogger.debug("Old Credits Mining / Whole RBT Token Transfer");
+
                 String getRecData = null;
                 try {
                     getRecData = in.readLine();

@@ -260,19 +260,19 @@ public class TokenReceiver {
                 return APIResponse.toString();
             }
 
-            // ! starts stakeID checks
+            // ! starts mineID checks
 
             for (int i = 0; i < wholeTokens.length(); ++i) {
                 try {
                     TokenReceiverLogger.debug("Checking stake ID for " + wholeTokens.getString(i) + " Please wait...");
-                    String stakeID = Functions.generateStakeID(tokenDetails);
-                    stakeOwnersArray = IPFSNetwork.dhtOwnerCheck(stakeID);
+                    String mineID = "mineID";
+                    stakeOwnersArray = IPFSNetwork.dhtOwnerCheck(mineID);
 
                     if (stakeOwnersArray.size() > 1) {
 
                         // ! check sign on pinned stake ID
 
-                        String minedToken = Functions.minedTokenIDFromStakeID(stakeID);
+                        String minedToken = Functions.minedTokenIDFromMineID(mineID);
 
                         int minedTokenHeight = Functions.tokenHeightFromTokenID(minedToken);
                         if (minedTokenHeight < 32) {
@@ -298,7 +298,7 @@ public class TokenReceiver {
                     }
                 } catch (IOException e) {
 
-                    TokenReceiverLogger.trace("Ipfs dht find did not execute (stakeID check)");
+                    TokenReceiverLogger.trace("Ipfs dht find did not execute (mineID check)");
                 }
             }
 
@@ -319,7 +319,7 @@ public class TokenReceiver {
                 return APIResponse.toString();
             }
 
-            // ! ends stakeID checks
+            // ! ends mineID checks
 
             String senderToken = TokenDetails.toString();
             String consensusID = calculateHash(senderToken, "SHA3-256");
