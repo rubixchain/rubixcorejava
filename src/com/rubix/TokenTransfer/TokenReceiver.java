@@ -205,6 +205,7 @@ public class TokenReceiver {
             JSONArray doubleSpentToken = new JSONArray();
             JSONArray stakedToken = new JSONArray();
             boolean tokenOwners = true;
+            boolean validTxnSignatures = true;
             boolean incompleteStake = false;
             ArrayList ownersArray = new ArrayList();
             ArrayList stakeOwnersArray = new ArrayList();
@@ -212,7 +213,8 @@ public class TokenReceiver {
             JSONArray ownersReceived = new JSONArray();
             for (int i = 0; i < wholeTokens.length(); ++i) {
                 try {
-                    TokenReceiverLogger.debug("Checking owners for " + wholeTokens.getString(i) + " Please wait...");
+                    TokenReceiverLogger.debug("Checking owners and credits / signatures for " + wholeTokens.getString(i)
+                            + " Please wait...");
                     ownersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
 
                     if (ownersArray.size() > 2) {
@@ -233,13 +235,20 @@ public class TokenReceiver {
                                 tokenOwners = false;
                         }
                     }
+
+                    // ! to avoid fraud multiple pinning of tokens (fork)
+                    // ! check sender has signatures and credits to back the token transfer even if
+                    // ! someone has pinned the token
+                    // ! check if sender has provided credits to quorum for this transfer
+                    // validTxnSignatures = false;
+
                 } catch (IOException e) {
 
                     TokenReceiverLogger.trace("Ipfs dht find did not execute (double spend check)");
                 }
             }
 
-            if (!tokenOwners) {
+            if (!tokenOwners && !validTxnSignatures) {
                 JSONArray owners = new JSONArray();
                 for (int i = 0; i < ownersArray.size(); i++)
                     owners.put(ownersArray.get(i).toString());
@@ -260,7 +269,7 @@ public class TokenReceiver {
                 return APIResponse.toString();
             }
 
-            // ! starts mineID checks
+            // ! starts mine ID check
 
             for (int i = 0; i < wholeTokens.length(); ++i) {
                 try {

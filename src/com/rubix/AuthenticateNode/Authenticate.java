@@ -42,38 +42,12 @@ public class Authenticate {
 
     public static boolean verifySignature(String detailString) throws IOException, JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-
         verifyCount++;
         IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
         JSONObject details = new JSONObject(detailString);
         String decentralizedID = details.getString("did");
         String hash = details.getString("hash");
-
-        String quorumSign;
-        String tokenSign;
-        String TIDSign;
-        JSONObject signs = new JSONObject();
-
-        if (details.optJSONObject(quorumSign) != null) {
-
-            JSONObject signatureObject = details.getJSONObject("signatures");
-            quorumSign = signatureObject.getString("QuorumSign");
-            tokenSign = signatureObject.getString("TokenSign");
-            TIDSign = signatureObject.getString("TIDSign");
-
-            signs.put(tokenSign, false);
-            signs.put(quorumSign, false);
-            signs.put(TIDSign, false);
-
-        } else {
-            // make all three params in JSONObject signs as true
-            signs.put(quorumSign, false);
-            signs.put(tokenSign, true);
-            signs.put(TIDSign, true);
-
-            quorumSign = details.getString("signature");
-        }
-
+        String signature = details.getString("signature");
         syncDataTable(decentralizedID, null);
         String walletIdIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", decentralizedID);
         nodeData(decentralizedID, walletIdIpfsHash, ipfs);
