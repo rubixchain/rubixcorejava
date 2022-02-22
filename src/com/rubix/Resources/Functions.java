@@ -456,6 +456,40 @@ public class Functions {
     }
 
     /**
+     * Move the selected token to bottom of the BNK00 file to avoid transaction
+     * failures.
+     *
+     * @param tokenID ID to be minedD to be mined
+     * @return null
+     */
+    public static void demoteToken(String tokenID) {
+
+        try {
+            String bankNew = readFile(PAYMENTS_PATH.concat("BNK00.json"));
+            JSONArray bankNewArray = new JSONArray(bankNew);
+
+            JSONObject tokeJsonObject = new JSONObject();
+            tokeJsonObject.put("tokenHash", tokenID);
+
+            // remove tokenJsonObject from bankNewArray
+            for (int i = 0; i < bankNewArray.length(); i++) {
+                JSONObject temp = bankNewArray.getJSONObject(i);
+                if (temp.getString("tokenHash").equals(tokenID)) {
+                    bankNewArray.remove(i);
+                    break;
+                }
+            }
+            bankNewArray.put(tokeJsonObject);
+
+            // write the new bankNewArray to file
+            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankNewArray.toString(), false);
+
+        } catch (JSONException e) {
+            FunctionsLogger.error("JSONException Occurred", e);
+        }
+    }
+
+    /**
      * This function generate Stake ID for a pleadged token. mined token can also be
      * found from stake ID
      *

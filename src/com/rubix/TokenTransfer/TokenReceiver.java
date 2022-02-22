@@ -245,7 +245,7 @@ public class TokenReceiver {
                     owners.put(ownersArray.get(i).toString());
                 TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
                 TokenReceiverLogger.debug("Owners: " + owners);
-                output.println("200");
+                output.println("420");
                 output.println(doubleSpentToken.toString());
                 output.println(owners.toString());
                 APIResponse.put("did", senderDidIpfsHash);
@@ -304,7 +304,7 @@ public class TokenReceiver {
 
             if (incompleteStake) {
                 TokenReceiverLogger.debug("Token Height not reached for corresponding Staked Tokens " + stakedToken);
-                output.println("200");
+                output.println("425");
                 output.println(stakedToken.toString());
                 output.println("stakes not complete");
                 APIResponse.put("did", senderDidIpfsHash);
@@ -329,7 +329,7 @@ public class TokenReceiver {
 
             if (!IPFSNetwork.dhtEmpty(consensusIDIPFSHash, ipfs)) {
                 TokenReceiverLogger.debug("consensus ID not unique" + consensusIDIPFSHash);
-                output.println("200");
+                output.println("421");
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");
