@@ -46,9 +46,11 @@ public class InitiatorConsensus {
 
     public static volatile JSONObject quorumSignature = new JSONObject();
     private static final Object countLock = new Object();
+    private static final Object stakeLock = new Object();
     private static final Object signLock = new Object();
     public static ArrayList<String> quorumWithShares = new ArrayList<>();
     public static volatile int[] quorumResponse = { 0, 0, 0 };
+    public static volatile boolean stakeComplete = false;
     public static volatile JSONArray finalQuorumSignsArray = new JSONArray();
 
     /**
@@ -80,19 +82,20 @@ public class InitiatorConsensus {
     /**
      * This method increments the quorumResponse variable
      */
-    // private static synchronized boolean selectStakingQuorum(String DID) {
+    // private static synchronized boolean stakingQuorumExists(int i) {
     // boolean status;
     // PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-    // synchronized (countLock) {
-    // if (quorumResponse[i] < minQuorum(quorumSize)) {
+    // synchronized (stakeLock) {
+    // if (signedAlphaQuorumID[i] < 1) {
     // quorumResponse[i]++;
-    // InitiatorConsensusLogger.debug("quorum response added index " + i + " is " +
+    // InitiatorConsensusLogger
+    // .debug("quorum response for staking added index " + i + " is " +
     // quorumResponse[i]
-    // + " quorumsize " + minQuorum(quorumSize));
-    // status = true;
-    // } else {
+    // + " quorumsize ");
     // status = false;
-    // InitiatorConsensusLogger.debug("Staking Reached");
+    // } else {
+    // status = true;
+    // InitiatorConsensusLogger.debug("Staking Reached for index " + i);
     // }
     // }
     // return status;
@@ -420,11 +423,11 @@ public class InitiatorConsensus {
 
                                     if (Authenticate.verifySignature(detailsToVerify.toString())) {
 
-                                        if (anyoneStaked == 0) {
+                                        if (!stakeComplete) {
                                             FileWriter shareWriter = new FileWriter(
                                                     new File(LOGGER_PATH + "mineID.txt"),
                                                     true);
-                                            shareWriter.write(qResponse[s]);
+                                            shareWriter.write(detailsToVerify.toString(0));
                                             shareWriter.close();
                                             File readMineID = new File(LOGGER_PATH + "mineID.txt");
                                             String mineData = add(readMineID.toString(), ipfs);
@@ -450,16 +453,26 @@ public class InitiatorConsensus {
                                             stakingInfo.put("minedToken", detailsToken);
 
                                             JSONArray creditArray = new JSONArray();
-                                            creditArray.put(finalQuorumSignsArray);
+
+                                            for (int i = 0; i < creditsRequiredForLevel(); i++) {
+
+                                                creditArray.put(finalQuorumSignsArray);
+                                            }
 
                                             qOut[s].println(creditArray);
+
+                                            stakeComplete = true;
                                         } else {
+
+                                            InitiatorConsensusLogger.debug("sending null for slow quorum");
                                             qOut[s].println("null");
+                                            IPFSNetwork.executeIPFSCommands(
+                                                    "ipfs p2p close -t /p2p/" + signedAlphaQuorumID[s]);
                                         }
 
                                     } else {
 
-                                        InitiatorConsensusLogger.debug("sending null for slow quorum ");
+                                        InitiatorConsensusLogger.debug("sending null for slow quorum");
                                         qOut[s].println("null");
                                         IPFSNetwork.executeIPFSCommands(
                                                 "ipfs p2p close -t /p2p/" + signedAlphaQuorumID[s]);
