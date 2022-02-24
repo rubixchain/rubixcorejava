@@ -7,6 +7,7 @@ import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
 import static com.rubix.Resources.Functions.checkTokenOwnershiByDID;
 import static com.rubix.Resources.Functions.creditsRequiredForLevel;
 import static com.rubix.Resources.Functions.deleteFile;
+import static com.rubix.Resources.Functions.generateMineID;
 import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.Functions.minQuorum;
 import static com.rubix.Resources.Functions.nodeData;
@@ -284,7 +285,7 @@ public class InitiatorConsensus {
                                     InitiatorConsensusLogger.debug("Credit Verification failed: Credits hash mismatch");
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                 } else if (qResponse[j].equals("443")) {
-                                    InitiatorConsensusLogger.debug("Failed to initialize credit verification");
+                                    InitiatorConsensusLogger.debug("Failed to Initialize Credit Verification");
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                 }
                             }
@@ -364,16 +365,15 @@ public class InitiatorConsensus {
             if (operation.equals("new-credits-mining")) {
 
                 Thread[] stakingThreads = new Thread[signedAlphaQuorumID.length];
-                // ? one of the validators stake 1 RBT and send the stake ID to the miner.
-                // choose a quorum member from 1 to 5 who have signed the transaction
+
+                // choosing a quorum member from 1 to 5 who have signed the transaction
                 for (int p = 0; p < signedAlphaQuorumID.length; p++) {
                     int s = p;
                     stakingThreads[p] = new Thread(() -> {
                         try {
                             InitiatorConsensusLogger.debug(
                                     "Contacting Signed Alpha Quorum ID : " + signedAlphaQuorumID[s]
-                                            + " for staking. Index "
-                                            + s);
+                                            + " for staking. Index: " + s);
 
                             qSocket[s] = new Socket("127.0.0.1", PORT + s);
                             qSocket[s].setSoTimeout(socketTimeOut);
@@ -387,19 +387,20 @@ public class InitiatorConsensus {
                                 // convert to JSON array
                                 JSONArray stakingTokenDetals = new JSONArray(qResponse[s]);
                                 // get token chain and token ID from the array
-                                String tokenID = stakingTokenDetals.getString(0);
-                                JSONArray tokenChain = stakingTokenDetals.getJSONArray(1);
+                                String stakingTokenHash = stakingTokenDetals.getString(0);
+                                JSONArray stakingTokenChain = stakingTokenDetals.getJSONArray(1);
 
                                 String stakingQuorumDID = getValues(DATA_PATH + "DataTable.json", "didHash",
                                         "peerid", signedAlphaQuorumID[s]);
-                                if (checkTokenOwnershiByDID(tokenID, stakingQuorumDID)
-                                        && tokenChain.length() > creditsRequiredForLevel()) {
+                                if (checkTokenOwnershiByDID(stakingTokenHash, stakingQuorumDID)
+                                        && stakingTokenChain.length() > creditsRequiredForLevel()) {
 
                                     InitiatorConsensusLogger.debug("Staking Token Received and Verified from "
                                             + signedAlphaQuorumID[s] + " " + qResponse[s]);
 
-                                    String mineID = "1234caf17ff4d84f8614091bf222c03ed43d0bd5f2ee75c1814372c62xxxxx";
-                                    InitiatorConsensusLogger.debug("Sending mine ID to miner " + mineID);
+                                    String mineID = generateMineID(stakingTokenHash);
+                                    InitiatorConsensusLogger
+                                            .debug("Sending mine ID to miner :" + mineID);
                                     qOut[s].println(mineID);
 
                                     try {
@@ -419,36 +420,42 @@ public class InitiatorConsensus {
 
                                     if (Authenticate.verifySignature(detailsToVerify.toString())) {
 
-                                        FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mineID.txt"),
-                                                true);
-                                        shareWriter.write(qResponse[s]);
-                                        shareWriter.close();
-                                        File readMineID = new File(LOGGER_PATH + "mineID.txt");
-                                        String mineData = add(readMineID.toString(), ipfs);
-                                        pin(mineData, ipfs);
+                                        if (anyoneStaked == 0) {
+                                            FileWriter shareWriter = new FileWriter(
+                                                    new File(LOGGER_PATH + "mineID.txt"),
+                                                    true);
+                                            shareWriter.write(qResponse[s]);
+                                            shareWriter.close();
+                                            File readMineID = new File(LOGGER_PATH + "mineID.txt");
+                                            String mineData = add(readMineID.toString(), ipfs);
+                                            pin(mineData, ipfs);
 
-                                        File mineIDFile = new File(
-                                                WALLET_DATA_PATH.concat("/Stakes/").concat(mineData).concat(".json"));
-                                        if (!mineIDFile.exists())
-                                            mineIDFile.createNewFile();
-                                        writeToFile(mineIDFile.toString(), qResponse[s], false);
+                                            File mineIDFile = new File(
+                                                    WALLET_DATA_PATH.concat("/Stakes/").concat(mineData)
+                                                            .concat(".json"));
+                                            if (!mineIDFile.exists())
+                                                mineIDFile.createNewFile();
+                                            writeToFile(mineIDFile.toString(), qResponse[s], false);
 
-                                        InitiatorConsensusLogger.debug("Mine object: " + mineData);
-                                        deleteFile(LOGGER_PATH + "mineID.txt");
+                                            InitiatorConsensusLogger.debug("Mine object: " + mineData);
+                                            deleteFile(LOGGER_PATH + "mineID.txt");
 
-                                        InitiatorConsensusLogger.debug("Staking Successful at index " + s);
+                                            InitiatorConsensusLogger.debug("Staking Successful at index " + s);
 
-                                        IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[s]);
+                                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[s]);
 
-                                        JSONObject stakingInfo = new JSONObject();
-                                        stakingInfo.put("StakerDID", stakingQuorumDID);
-                                        stakingInfo.put("StakedokenID", tokenID);
-                                        stakingInfo.put("minedToken", detailsToken);
+                                            JSONObject stakingInfo = new JSONObject();
+                                            stakingInfo.put("StakerDID", stakingQuorumDID);
+                                            stakingInfo.put("StakedokenID", stakingTokenHash);
+                                            stakingInfo.put("minedToken", detailsToken);
 
-                                        JSONArray creditArray = new JSONArray();
-                                        creditArray.put(finalQuorumSignsArray);
+                                            JSONArray creditArray = new JSONArray();
+                                            creditArray.put(finalQuorumSignsArray);
 
-                                        qOut[s].println(creditArray);
+                                            qOut[s].println(creditArray);
+                                        } else {
+                                            qOut[s].println("null");
+                                        }
 
                                     } else {
 

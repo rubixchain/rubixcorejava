@@ -248,38 +248,41 @@ public class TokenReceiver {
                 }
             }
 
-            if (!tokenOwners && !validTxnSignatures) {
-                JSONArray owners = new JSONArray();
-                for (int i = 0; i < ownersArray.size(); i++)
-                    owners.put(ownersArray.get(i).toString());
-                TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
-                TokenReceiverLogger.debug("Owners: " + owners);
-                output.println("420");
-                output.println(doubleSpentToken.toString());
-                output.println(owners.toString());
-                APIResponse.put("did", senderDidIpfsHash);
-                APIResponse.put("tid", "null");
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", "Multiple Owners for " + doubleSpentToken + " " + owners);
-                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-                output.close();
-                input.close();
-                sk.close();
-                ss.close();
-                return APIResponse.toString();
+            if (!tokenOwners) {
+                // JSONArray owners = new JSONArray();
+                // for (int i = 0; i < ownersArray.size(); i++)
+                // owners.put(ownersArray.get(i).toString());
+                // TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
+                // TokenReceiverLogger.debug("Owners: " + owners);
+                // output.println("420");
+                // output.println(doubleSpentToken.toString());
+                // output.println(owners.toString());
+                // APIResponse.put("did", senderDidIpfsHash);
+                // APIResponse.put("tid", "null");
+                // APIResponse.put("status", "Failed");
+                // APIResponse.put("message", "Multiple Owners for " + doubleSpentToken + " " +
+                // owners);
+                // IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                // output.close();
+                // input.close();
+                // sk.close();
+                // ss.close();
+                // return APIResponse.toString();
+
+                TokenReceiverLogger.debug("Multiple Pins for " + doubleSpentToken);
             }
 
             // ! starts mine ID check
 
             for (int i = 0; i < wholeTokens.length(); ++i) {
                 try {
-                    TokenReceiverLogger.debug("Checking stake ID for " + wholeTokens.getString(i) + " Please wait...");
+                    TokenReceiverLogger.debug("Checking mine ID for " + wholeTokens.getString(i) + " Please wait...");
                     String mineID = "mineID";
                     stakeOwnersArray = IPFSNetwork.dhtOwnerCheck(mineID);
 
                     if (stakeOwnersArray.size() > 1) {
 
-                        // ! check sign on pinned stake ID
+                        // ! check sign on pinned mine ID
 
                         String minedToken = Functions.minedTokenIDFromMineID(mineID);
 

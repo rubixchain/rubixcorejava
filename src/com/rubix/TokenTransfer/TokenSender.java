@@ -545,7 +545,7 @@ public class TokenSender {
 
         String doubleSpend = calculateHash(doubleSpendString, "SHA3-256");
         writeToFile(LOGGER_PATH + "doubleSpend", doubleSpend, false);
-        TokenSenderLogger.debug("********Double Spend Hash*********:  " + doubleSpend);
+        TokenSenderLogger.debug("********Double Spend Hash********* :  " + doubleSpend);
         IPFSNetwork.addHashOnly(LOGGER_PATH + "doubleSpend", ipfs);
         deleteFile(LOGGER_PATH + "doubleSpend");
 
