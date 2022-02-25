@@ -670,6 +670,12 @@ public class TokenReceiver {
                                     groupTokens.add(wholeTokens.getString(k));
                             }
 
+                            // ! calculating owner hash for each token
+
+                            String privatePicker = calculateHash(wholeTokens.getString(i).concat(receiverDidIpfsHash),
+                                    "SHA3-256");
+                            // String privatePoistions =
+
                             JSONArray arrToken = new JSONArray();
                             JSONObject objectToken = new JSONObject();
                             objectToken.put("tokenHash", wholeTokens.getString(i));
@@ -681,6 +687,8 @@ public class TokenReceiver {
                             obj2.put("group", groupTokens);
                             obj2.put("comment", comment);
                             obj2.put("tid", tid);
+                            // ! add current owner hash here..
+                            // obj2.put("currentOwner", senderDidIpfsHash);
                             arr1.put(obj2);
                             writeToFile(TOKENCHAIN_PATH + wholeTokens.getString(i) + ".json", arr1.toString(), false);
                         }
