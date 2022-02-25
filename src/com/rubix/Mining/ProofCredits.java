@@ -345,6 +345,12 @@ public class ProofCredits {
                     writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
                     deleteFile(LOGGER_PATH + "tempToken");
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", "[]", false);
+                    // genesis signatures
+                    updateJSON("add", TOKENCHAIN_PATH + tokenHash + ".json",
+                            InitiatorConsensus.quorumSignature.toString());
+                    // staking signatures
+                    updateJSON("add", TOKENCHAIN_PATH + tokenHash + ".json",
+                            InitiatorConsensus.stakingSignature.toString());
                     JSONObject temp = new JSONObject();
                     temp.put("tokenHash", tokenHash);
                     JSONArray tempArray = new JSONArray();

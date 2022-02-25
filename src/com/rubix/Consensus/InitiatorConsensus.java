@@ -45,6 +45,7 @@ public class InitiatorConsensus {
     public static Logger InitiatorConsensusLogger = Logger.getLogger(InitiatorConsensus.class);
 
     public static volatile JSONObject quorumSignature = new JSONObject();
+    public static volatile JSONObject stakingSignature = new JSONObject();
     private static final Object countLock = new Object();
     private static final Object stakeLock = new Object();
     private static final Object signLock = new Object();
@@ -422,6 +423,15 @@ public class InitiatorConsensus {
                                     detailsToVerify.put("signature", qResponse[s]);
 
                                     if (Authenticate.verifySignature(detailsToVerify.toString())) {
+
+                                        stakingSignature.put("miningTransaction", mineID);
+                                        stakingSignature.put("mineID", mineID);
+                                        stakingSignature.put("stakingQuorumDID", mineID);
+                                        stakingSignature.put("stakingToken", mineID);
+                                        stakingSignature.put("stakingTokenSignature", mineID);
+                                        stakingSignature.put("TIDSignature", mineID);
+                                        stakingSignature.put("miningTokenSignature", qResponse[s]);
+                                        stakingSignature.put("mineIDSignature", mineID);
 
                                         if (!stakeComplete) {
                                             FileWriter shareWriter = new FileWriter(
