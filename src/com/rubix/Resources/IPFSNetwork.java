@@ -65,7 +65,6 @@ public class IPFSNetwork {
     }
 
     public static String checkSwarmConnect() {
-        IPFSNetworkLogger.debug("check swarm peers request");
         String response = executeIPFSCommandsResponse("ipfs swarm peers");
         return response;
     }
@@ -189,7 +188,6 @@ public class IPFSNetwork {
                 sb.append(line);
                 sb.append("\n");
             }
-            IPFSNetworkLogger.debug(command + " output: " + command);
             if (!OS.contains("Windows"))
                 P.waitFor();
             br.close();
@@ -279,34 +277,6 @@ public class IPFSNetwork {
         }
     }
 
-     /**
-     * This method pin objects to local storage See
-     * <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-pin-add"> ipfs pin
-     * add</a> for more
-     *
-     * @param MultiHash ipfspath of object to be pinned
-     * @param ipfs      IPFS instance
-     */
-    public static void pinNFT(String MultiHash, IPFS ipfs) {
-        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        String command = " ipfs pin " + MultiHash;
-        executeIPFSCommands(command);
-    }
-
-    /**
-     * This method removes pinned objects from local storage ee
-     * <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-pin-rm"> ipfs pin rm
-     * </a> for more
-     *
-     * @param MultiHash ipfspath of object to be pinned
-     * @param ipfs      IPFS instance
-     */
-    public static void unpinNFT(String MultiHash, IPFS ipfs) {
-        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        String command = " ipfs unpin " + MultiHash;
-        executeIPFSCommands(command);
-    }
-
     /**
      * This method removes pinned objects from local storage ee
      * <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-pin-rm"> ipfs pin rm
@@ -360,7 +330,6 @@ public class IPFSNetwork {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
         List dhtlist = ipfs.dht.findprovs(dhtMultihash);
-        IPFSNetworkLogger.debug("Providers: " + dhtlist);
         if (dhtlist.size() <= 2 && dhtlist.toString().contains(previousOwner))
             return true;
         return false;
@@ -369,14 +338,14 @@ public class IPFSNetwork {
     public static boolean dhtEmpty(String MultiHash, IPFS ipfs) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         Multihash dhtMultihash = Multihash.fromBase58(MultiHash);
-        List dhtlist = null;
+        List dhtList;
         try {
-            dhtlist = ipfs.dht.findprovs(dhtMultihash);
+            dhtList = ipfs.dht.findprovs(dhtMultihash);
 
         } catch (IOException e) {
             return true;
         }
-        if (dhtlist.toString().contains("Type=4"))
+        if (dhtList.toString().contains("Type=4"))
             return false;
         return true;
     }
@@ -436,7 +405,7 @@ public class IPFSNetwork {
         ImageIO.write(bis, "png", new File(path));
     }
 
-   /*
+    /**
      * This method is a plumbing command that will sweep the local set of stored
      * objects and remove ones that are not pinned in order to reclaim hard disk
      * space See <a href="https://docs.ipfs.io/reference/api/cli/#ipfs-repo-gc">
@@ -575,7 +544,7 @@ public class IPFSNetwork {
         }
     }
 
-    public static void swarmConnectP2P(String peerid, IPFS ipfs) throws JSONException {
+    public static boolean swarmConnectP2P(String peerid, IPFS ipfs) throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String bootNode;
         boolean swarmConnected = false;
@@ -591,18 +560,31 @@ public class IPFSNetwork {
                 if (!swarmConnected) {
                     bootNode = String.valueOf(BOOTSTRAPS.get(i));
                     bootNode = bootNode.substring(bootNode.length() - 46);
-
-                    multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
+                    
+                    multiAddress = new MultiAddress("/ipfs/" + bootNode);
                     output = swarmConnectProcess(multiAddress);
-                    if (!output.contains("success")) {
+                    
+                    if (output.contains("success")) {
+                      multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
+                      output = swarmConnectProcess(multiAddress);
+                      if (!output.contains("success")) {
                         IPFSNetworkLogger.debug("swarm attempt failed with " + peerid);
-                    } else {
+                        swarmConnected = false;
+                      } else {
+                        IPFSNetworkLogger.debug("swarm Connected : " + peerid);
                         swarmConnected = true;
-                    }
+                      } 
+                    } else {
+                      IPFSNetworkLogger.debug("bootstrap connection failed! " + bootNode);
+                      swarmConnected = false;
+                    } 
 
                 }
             }
+        }else {
+        	swarmConnected = true;
         }
+        return swarmConnected;
 
     }
 
