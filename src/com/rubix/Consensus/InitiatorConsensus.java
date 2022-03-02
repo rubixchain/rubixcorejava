@@ -1,20 +1,29 @@
 package com.rubix.Consensus;
 
+import static com.rubix.Constants.MiningConstants.MINED_RBT;
+import static com.rubix.Constants.MiningConstants.MINED_RBT_SIGN;
+import static com.rubix.Constants.MiningConstants.MINE_ID;
+import static com.rubix.Constants.MiningConstants.MINE_ID_SIGN;
+import static com.rubix.Constants.MiningConstants.MINING_TID;
+import static com.rubix.Constants.MiningConstants.MINING_TID_SIGN;
+import static com.rubix.Constants.MiningConstants.STAKED_QUORUM_DID;
+import static com.rubix.Constants.MiningConstants.STAKED_TOKEN;
+import static com.rubix.Constants.MiningConstants.STAKED_TOKEN_SIGN;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
 import static com.rubix.Resources.Functions.QUORUM_COUNT;
 import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
 import static com.rubix.Resources.Functions.checkTokenOwnershiByDID;
-import static com.rubix.Resources.Functions.creditsRequiredForLevel;
 import static com.rubix.Resources.Functions.deleteFile;
-import static com.rubix.Resources.Functions.generateMineID;
 import static com.rubix.Resources.Functions.getValues;
+import static com.rubix.Resources.Functions.levelHeight;
 import static com.rubix.Resources.Functions.minQuorum;
 import static com.rubix.Resources.Functions.nodeData;
 import static com.rubix.Resources.Functions.syncDataTable;
 import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.add;
 import static com.rubix.Resources.IPFSNetwork.forward;
+import static com.rubix.Resources.IPFSNetwork.getMineID;
 import static com.rubix.Resources.IPFSNetwork.pin;
 import static com.rubix.Resources.IPFSNetwork.repo;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
@@ -397,18 +406,26 @@ public class InitiatorConsensus {
                                 String stakingQuorumDID = getValues(DATA_PATH + "DataTable.json", "didHash",
                                         "peerid", signedAlphaQuorumID[s]);
                                 if (checkTokenOwnershiByDID(stakingTokenHash, stakingQuorumDID)
-                                        && stakingTokenChain.length() > creditsRequiredForLevel()) {
+                                        && stakingTokenChain.length() > levelHeight()) {
 
                                     InitiatorConsensusLogger.debug("Staking Token Received and Verified from "
                                             + signedAlphaQuorumID[s] + " " + qResponse[s]);
 
-                                    String mineID = generateMineID(stakingTokenHash);
+                                    String mineID = getMineID(stakingTokenHash, ipfs);
                                     InitiatorConsensusLogger
                                             .debug("Sending mine ID to miner :" + mineID);
-                                    qOut[s].println(mineID);
+                                    JSONObject detToSign = new JSONObject();
+                                    detToSign.put(MINE_ID, stakingTokenHash);
+                                    detToSign.put(MINING_TID, stakingQuorumDID);
+                                    detToSign.put(MINED_RBT, stakingTokenHash);
+                                    qOut[s].println(detToSign.toString());
+
+                                    JSONObject stakingQuorumSigned = new JSONObject();
 
                                     try {
                                         qResponse[s] = qIn[s].readLine();
+                                        // convert to JSON array
+                                        stakingQuorumSigned = new JSONObject(qResponse[s]);
                                         InitiatorConsensusLogger.debug("Signature for Mining ID Received from "
                                                 + signedAlphaQuorumID[s] + " " + qResponse[s]);
                                     } catch (SocketException e) {
@@ -420,18 +437,23 @@ public class InitiatorConsensus {
                                     JSONObject detailsToVerify = new JSONObject();
                                     detailsToVerify.put("did", stakingQuorumDID);
                                     detailsToVerify.put("hash", mineID);
-                                    detailsToVerify.put("signature", qResponse[s]);
+                                    detailsToVerify.put("signature", stakingQuorumSigned.getString(MINE_ID_SIGN));
 
                                     if (Authenticate.verifySignature(detailsToVerify.toString())) {
 
-                                        stakingSignature.put("miningTransaction", mineID);
-                                        stakingSignature.put("mineID", mineID);
-                                        stakingSignature.put("stakingQuorumDID", mineID);
-                                        stakingSignature.put("stakingToken", mineID);
-                                        stakingSignature.put("stakingTokenSignature", mineID);
-                                        stakingSignature.put("TIDSignature", mineID);
-                                        stakingSignature.put("miningTokenSignature", qResponse[s]);
-                                        stakingSignature.put("mineIDSignature", mineID);
+                                        stakingSignature.put(MINING_TID, detailsToken.getString("Tid"));
+                                        stakingSignature.put(MINED_RBT, detailsToken.getString("token"));
+                                        stakingSignature.put(MINE_ID, mineID);
+                                        stakingSignature.put(STAKED_QUORUM_DID, stakingQuorumDID);
+                                        stakingSignature.put(STAKED_TOKEN, stakingTokenHash);
+
+                                        stakingSignature.put(STAKED_TOKEN_SIGN, stakingQuorumSigned.getString(
+                                                STAKED_TOKEN_SIGN));
+                                        stakingSignature.put(MINING_TID_SIGN, stakingQuorumSigned.getString(
+                                                MINING_TID_SIGN));
+                                        stakingSignature.put(MINED_RBT_SIGN, stakingQuorumSigned.getString(
+                                                MINED_RBT_SIGN));
+                                        stakingSignature.put(MINE_ID_SIGN, stakingQuorumSigned.getString(MINE_ID_SIGN));
 
                                         if (!stakeComplete) {
                                             FileWriter shareWriter = new FileWriter(
@@ -464,7 +486,7 @@ public class InitiatorConsensus {
 
                                             JSONArray creditArray = new JSONArray();
 
-                                            for (int i = 0; i < creditsRequiredForLevel(); i++) {
+                                            for (int i = 0; i < levelHeight(); i++) {
 
                                                 creditArray.put(finalQuorumSignsArray);
                                             }

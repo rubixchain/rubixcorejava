@@ -1,5 +1,12 @@
 package com.rubix.Consensus;
 
+import static com.rubix.Constants.MiningConstants.MINED_RBT;
+import static com.rubix.Constants.MiningConstants.MINED_RBT_SIGN;
+import static com.rubix.Constants.MiningConstants.MINE_ID;
+import static com.rubix.Constants.MiningConstants.MINE_ID_SIGN;
+import static com.rubix.Constants.MiningConstants.MINING_TID;
+import static com.rubix.Constants.MiningConstants.MINING_TID_SIGN;
+import static com.rubix.Constants.MiningConstants.STAKED_TOKEN_SIGN;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -240,7 +247,7 @@ public class QuorumConsensus implements Runnable {
 
                         out.println(tokenToStake);
                     } else {
-                        QuorumConsensusLogger.debug("Token Staking Failed: Token files missing");
+                        QuorumConsensusLogger.debug("Token Staking Failed: Details of Picked Token is Missing");
                         out.println("443");
                         socket.close();
                         serverSocket.close();
@@ -248,8 +255,12 @@ public class QuorumConsensus implements Runnable {
                     }
 
                     // move that token ID to bottom of BNK00 file
+                    JSONObject mineDetToSign = new JSONObject();
+
                     try {
-                        mineID = in.readLine();
+                        String mineData = in.readLine();
+                        // convert mineData to JSONObject
+                        mineDetToSign = new JSONObject(mineData);
                     } catch (SocketException e) {
                         QuorumConsensusLogger.debug("Sender Input Stream Null - Stake ID details");
                         socket.close();
@@ -257,11 +268,24 @@ public class QuorumConsensus implements Runnable {
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     }
 
-                    if (mineID != null) {
-                        QuorumConsensusLogger.debug("Stake ID: " + mineID);
-                        String mineIDSigned = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
-                                mineID);
-                        out.println(mineIDSigned);
+                    if (mineDetToSign.length() > 0) {
+                        JSONObject stakingSigns = new JSONObject();
+
+                        QuorumConsensusLogger.debug("Mine ID: " + mineDetToSign.getString(MINE_ID));
+
+                        stakingSigns.put(
+                                STAKED_TOKEN_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
+                                        tokenHash));
+                        stakingSigns.put(
+                                MINING_TID_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
+                                        mineDetToSign.getString(MINING_TID)));
+                        stakingSigns.put(
+                                MINED_RBT_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
+                                        mineDetToSign.getString(MINED_RBT)));
+                        stakingSigns.put(MINE_ID_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
+                                mineDetToSign.getString(MINE_ID)));
+
+                        out.println(stakingSigns.toString());
                     } else {
                         QuorumConsensusLogger.debug("Stake ID: Null");
                     }

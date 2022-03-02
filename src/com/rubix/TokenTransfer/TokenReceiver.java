@@ -24,6 +24,7 @@ import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.add;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.get;
+import static com.rubix.Resources.IPFSNetwork.getMineID;
 import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.pin;
 import static com.rubix.Resources.IPFSNetwork.repo;
@@ -275,39 +276,43 @@ public class TokenReceiver {
             // ! starts mine ID check
 
             for (int i = 0; i < wholeTokens.length(); ++i) {
+
                 try {
+
+                    // ! STEP 1 : checking if any of the tokens are actively staked for mining
+
                     TokenReceiverLogger.debug("Checking mine ID for " + wholeTokens.getString(i) + " Please wait...");
-                    String mineID = "mineID";
+                    String mineID = getMineID(wholeTokens.getString(i).toString(), ipfs);
                     stakeOwnersArray = IPFSNetwork.dhtOwnerCheck(mineID);
 
-                    if (stakeOwnersArray.size() > 1) {
+                    if (stakeOwnersArray.size() > 0) {
 
                         // ! check sign on pinned mine ID
 
-                        String minedToken = Functions.minedTokenIDFromMineID(mineID);
+                        // JSONArray stakedTC = wholeTokenChains.getJSONArray(i);
+                        // JSONObject stakeInfo = stakedTC.getJSONObject(1);
 
-                        int minedTokenHeight = Functions.tokenHeightFromTokenID(minedToken);
-                        if (minedTokenHeight < 32) {
-                            incompleteStake = true;
-                        }
+                        // String minedToken = stakeInfo.getString(MINED_RBT);
 
-                        // for (int j = 0; j < previousSendersArray.length(); j++) {
-                        // if (previousSendersArray.getJSONObject(j).getString("token")
-                        // .equals(wholeTokens.getString(i)))
-                        // ownersReceived =
-                        // previousSendersArray.getJSONObject(j).getJSONArray("sender");
+                        // TokenReceiverLogger
+                        // .debug("Checking owners and credits / signatures for mined token: " +
+                        // minedToken
+                        // + " Please wait...");
+
+                        // String minedTC = get(minedToken, ipfs);
+
+                        // JSONArray minedTCArray = new JSONArray(minedTC);
+
+                        // if (minedTCArray.length() < 32) {
+                        // incompleteStake = true;
                         // }
 
-                        // for (int j = 0; j < ownersReceived.length(); j++) {
-                        // previousSender.add(ownersReceived.getString(j));
-                        // }
-                        // TokenReceiverLogger.debug("Previous Owners: " + previousSender);
+                        // TokenReceiverLogger.trace("Failed to fetch mined token chain");
 
-                        // for (int j = 0; j < ownersArray.size(); j++) {
-                        // if (!previousSender.contains(ownersArray.get(j).toString()))
-                        // tokenOwners = false;
-                        // }
                     }
+
+                    // ! STEP 2 : checking if any of the tokens are newly minted to verify stake
+
                 } catch (IOException e) {
 
                     TokenReceiverLogger.trace("Ipfs dht find did not execute (mineID check)");
@@ -318,7 +323,7 @@ public class TokenReceiver {
                 TokenReceiverLogger.debug("Token Height not reached for corresponding Staked Tokens " + stakedToken);
                 output.println("425");
                 output.println(stakedToken.toString());
-                output.println("stakes not complete");
+                output.println("Stake Incomplete");
                 APIResponse.put("did", senderDidIpfsHash);
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");

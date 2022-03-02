@@ -1,5 +1,6 @@
 package com.rubix.Resources;
 
+import static com.rubix.Constants.ConsensusConstants.MINE_XORER;
 import static com.rubix.Constants.IPFSConstants.bootstrap;
 import static com.rubix.Constants.IPFSConstants.daemon;
 import static com.rubix.Constants.IPFSConstants.forward;
@@ -267,6 +268,17 @@ public class IPFSNetwork {
             return response.hash.toBase58();
         else
             return null;
+    }
+
+    public static String getMineID(String stakedToken, IPFS ipfs) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < stakedToken.length(); i++) {
+            sb.append((char) (stakedToken.charAt(i) ^ MINE_XORER.charAt(i)));
+        }
+        // convert sb to IPFS multihash
+        String multihash = add(sb.toString(), ipfs);
+
+        return multihash;
     }
 
     /**

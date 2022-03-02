@@ -489,61 +489,7 @@ public class Functions {
         }
     }
 
-    /**
-     * This function generate Stake ID for a pleadged token. mined token can also be
-     * found from stake ID
-     *
-     * @param stakedTokenID ID to be mined
-     * @param quorumDID     ID to be mined
-     * @param minedTokenID  ID to be mined
-     * @return Stake ID for that token
-     */
-    public static String generateMineID(String stakedTokenID) {
-        String mineID = calculateHash("stake" + stakedTokenID, "SHA3-256");
-
-        return mineID;
-    }
-
-    /**
-     * This function generate Stake ID for a pleadged token. mined token can also be
-     * found from stake ID
-     *
-     * @return mine ID for that token
-     */
-    public static String minedTokenIDFromMineID(String mineID) {
-        String KEY = "mined";
-        // ! multihash structure needed..
-        String minedTokenID = calculateHash("stake" + mineID, "SHA3-256");
-        return minedTokenID;
-    }
-
-    /**
-     * This function generate Stake ID for a pleadged token. mined token can also be
-     * found from stake ID
-     *
-     * @return mine ID for that token
-     */
-    public static String stakedQuorumDIDFromMineID(String mineID) {
-        String KEY = "staker";
-        // ! multihash structure needed..
-        String stakedQuorumDID = calculateHash("stake" + mineID, "SHA3-256");
-        return stakedQuorumDID;
-    }
-
-    /**
-     * This function generate Stake ID for a pleadged token. mined token can also be
-     * found from stake ID
-     *
-     * @return mine ID for that token
-     */
-    public static String stakedTokenIDFromMineID(String mineID) {
-        String KEY = "staked";
-        // ! multihash structure needed..
-        String stakedTokenID = calculateHash("stake" + mineID, "SHA3-256");
-        return stakedTokenID;
-    }
-
-    public static int creditsRequiredForLevel() {
+    public static int levelHeight() {
         int creditsRequired = 0;
         JSONObject resJsonData_credit = new JSONObject();
         String GET_URL_credit = SYNC_IP + "/getlevel";
