@@ -4,7 +4,7 @@ import static com.rubix.Constants.MiningConstants.MINED_RBT;
 import static com.rubix.Constants.MiningConstants.MINED_RBT_SIGN;
 import static com.rubix.Constants.MiningConstants.MINE_ID;
 import static com.rubix.Constants.MiningConstants.MINE_ID_SIGN;
-import static com.rubix.Constants.MiningConstants.MINING_TID;
+import static com.rubix.Constants.MiningConstants.MINE_TID;
 import static com.rubix.Constants.MiningConstants.MINING_TID_SIGN;
 import static com.rubix.Constants.MiningConstants.STAKED_TOKEN_SIGN;
 import static com.rubix.Resources.Functions.DATA_PATH;
@@ -275,7 +275,7 @@ public class QuorumConsensus implements Runnable {
                                         tokenHash));
                         stakingSigns.put(
                                 MINING_TID_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
-                                        mineDetToSign.getString(MINING_TID)));
+                                        mineDetToSign.getString(MINE_TID)));
                         stakingSigns.put(
                                 MINED_RBT_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
                                         mineDetToSign.getString(MINED_RBT)));
@@ -284,7 +284,7 @@ public class QuorumConsensus implements Runnable {
 
                         out.println(stakingSigns.toString());
                     } else {
-                        QuorumConsensusLogger.debug("Stake ID: Null");
+                        QuorumConsensusLogger.debug("Mine ID: Null");
                     }
 
                     boolean flag = true;
