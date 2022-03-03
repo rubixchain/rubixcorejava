@@ -287,6 +287,28 @@ public class InitiatorConsensus {
                                             }
                                         }
                                     }
+
+                                    try {
+                                        qResponse[j] = qIn[j].readLine();
+                                    } catch (SocketException e) {
+                                        InitiatorConsensusLogger
+                                                .warn("Quorum " + quorumID[j] + " is unable to Respond!");
+                                        IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                    }
+
+                                    if (qResponse[j] != null) {
+                                        if (qResponse[j].equals("Auth_Failed")) {
+                                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                        } else {
+                                            JSONObject signObject = new JSONObject();
+                                            signObject.put("did", quorumID[j]);
+                                            signObject.put("hash", detailsToken.getString("ownerIdentity"));
+                                            signObject.put("signature", qResponse[j]);
+                                            ownerSigns.put(signObject);
+
+                                        }
+                                    }
+
                                 } else if (qResponse[j].equals("440")) {
                                     InitiatorConsensusLogger.debug("Credit Verification failed: Duplicates found");
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);

@@ -83,6 +83,7 @@ public class InitiatorProcedure {
             data1.put(ConsensusConstants.TRANSACTION_ID, tid);
             data1.put(ConsensusConstants.HASH, authSenderByQuorumHash);
             data1.put(ConsensusConstants.RECEIVERID, receiverDidIpfs);
+            data1.put("ownerIdentity", dataObject.getString("ownerIdentity"));
 
             data2.put("Share1", Q1Share);
             data2.put("Share2", Q2Share);
