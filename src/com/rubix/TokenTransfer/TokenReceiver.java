@@ -241,19 +241,20 @@ public class TokenReceiver {
                     owners.put(ownersArray.get(i).toString());
                 TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
                 TokenReceiverLogger.debug("Owners: " + owners);
-                output.println("420");
-                output.println(doubleSpentToken.toString());
-                output.println(owners.toString());
-                APIResponse.put("did", senderDidIpfsHash);
-                APIResponse.put("tid", "null");
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", "Multiple Owners for " + doubleSpentToken + " " + owners);
-                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-                output.close();
-                input.close();
-                sk.close();
-                ss.close();
-                return APIResponse.toString();
+                // output.println("420");
+                // output.println(doubleSpentToken.toString());
+                // output.println(owners.toString());
+                // APIResponse.put("did", senderDidIpfsHash);
+                // APIResponse.put("tid", "null");
+                // APIResponse.put("status", "Failed");
+                // APIResponse.put("message", "Multiple Owners for " + doubleSpentToken + " " +
+                // owners);
+                // IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                // output.close();
+                // input.close();
+                // sk.close();
+                // ss.close();
+                // return APIResponse.toString();
             }
 
             String senderToken = TokenDetails.toString();
