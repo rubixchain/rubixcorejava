@@ -56,7 +56,6 @@ public class InitiatorConsensus {
     public static volatile JSONObject quorumSignature = new JSONObject();
     public static volatile JSONObject stakingSignature = new JSONObject();
     private static final Object countLock = new Object();
-    private static final Object stakeLock = new Object();
     private static final Object signLock = new Object();
     public static ArrayList<String> quorumWithShares = new ArrayList<>();
     public static volatile int[] quorumResponse = { 0, 0, 0 };
@@ -519,6 +518,10 @@ public class InitiatorConsensus {
                                                 stakingInfo.put("minedToken", detailsToken);
 
                                                 JSONArray creditArray = new JSONArray();
+
+                                                InitiatorConsensusLogger.debug("Staking Successful at index " + s);
+                                                InitiatorConsensusLogger
+                                                        .debug("Sending Credits to DID: " + stakingQuorumDID);
 
                                                 for (int i = 0; i < levelHeightValue; i++) {
 
