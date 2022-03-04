@@ -201,61 +201,63 @@ public class TokenReceiver {
             JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
             TokenReceiverLogger.debug("Amount Ledger: " + amountLedger);
             int intPart = wholeTokens.length();
-            Double decimalPart = formatAmount(amount - intPart);
-            JSONArray doubleSpentToken = new JSONArray();
-            boolean tokenOwners = true;
-            ArrayList ownersArray = new ArrayList();
-            ArrayList previousSender = new ArrayList();
-            JSONArray ownersReceived = new JSONArray();
-            for (int i = 0; i < wholeTokens.length(); ++i) {
-                try {
-                    TokenReceiverLogger.debug("Checking owners for " + wholeTokens.getString(i) + " Please wait...");
-                    ownersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
+            // Double decimalPart = formatAmount(amount - intPart);
+            // JSONArray doubleSpentToken = new JSONArray();
+            // boolean tokenOwners = true;
+            // ArrayList ownersArray = new ArrayList();
+            // ArrayList previousSender = new ArrayList();
+            // JSONArray ownersReceived = new JSONArray();
+            // for (int i = 0; i < wholeTokens.length(); ++i) {
+            // try {
+            // TokenReceiverLogger.debug("Checking owners for " + wholeTokens.getString(i) +
+            // " Please wait...");
+            // ownersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
 
-                    if (ownersArray.size() > 2) {
+            // if (ownersArray.size() > 2) {
 
-                        for (int j = 0; j < previousSendersArray.length(); j++) {
-                            if (previousSendersArray.getJSONObject(j).getString("token")
-                                    .equals(wholeTokens.getString(i)))
-                                ownersReceived = previousSendersArray.getJSONObject(j).getJSONArray("sender");
-                        }
+            // for (int j = 0; j < previousSendersArray.length(); j++) {
+            // if (previousSendersArray.getJSONObject(j).getString("token")
+            // .equals(wholeTokens.getString(i)))
+            // ownersReceived =
+            // previousSendersArray.getJSONObject(j).getJSONArray("sender");
+            // }
 
-                        for (int j = 0; j < ownersReceived.length(); j++) {
-                            previousSender.add(ownersReceived.getString(j));
-                        }
-                        TokenReceiverLogger.debug("Previous Owners: " + previousSender);
+            // for (int j = 0; j < ownersReceived.length(); j++) {
+            // previousSender.add(ownersReceived.getString(j));
+            // }
+            // TokenReceiverLogger.debug("Previous Owners: " + previousSender);
 
-                        for (int j = 0; j < ownersArray.size(); j++) {
-                            if (!previousSender.contains(ownersArray.get(j).toString()))
-                                tokenOwners = false;
-                        }
-                    }
-                } catch (IOException e) {
+            // for (int j = 0; j < ownersArray.size(); j++) {
+            // if (!previousSender.contains(ownersArray.get(j).toString()))
+            // tokenOwners = false;
+            // }
+            // }
+            // } catch (IOException e) {
 
-                    TokenReceiverLogger.debug("Ipfs dht find did not execute");
-                }
-            }
-            if (!tokenOwners) {
-                JSONArray owners = new JSONArray();
-                for (int i = 0; i < ownersArray.size(); i++)
-                    owners.put(ownersArray.get(i).toString());
-                TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
-                TokenReceiverLogger.debug("Owners: " + owners);
-                // output.println("420");
-                // output.println(doubleSpentToken.toString());
-                // output.println(owners.toString());
-                // APIResponse.put("did", senderDidIpfsHash);
-                // APIResponse.put("tid", "null");
-                // APIResponse.put("status", "Failed");
-                // APIResponse.put("message", "Multiple Owners for " + doubleSpentToken + " " +
-                // owners);
-                // IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-                // output.close();
-                // input.close();
-                // sk.close();
-                // ss.close();
-                // return APIResponse.toString();
-            }
+            // TokenReceiverLogger.debug("Ipfs dht find did not execute");
+            // }
+            // }
+            // if (!tokenOwners) {
+            // JSONArray owners = new JSONArray();
+            // for (int i = 0; i < ownersArray.size(); i++)
+            // owners.put(ownersArray.get(i).toString());
+            // TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
+            // TokenReceiverLogger.debug("Owners: " + owners);
+            // output.println("420");
+            // output.println(doubleSpentToken.toString());
+            // output.println(owners.toString());
+            // APIResponse.put("did", senderDidIpfsHash);
+            // APIResponse.put("tid", "null");
+            // APIResponse.put("status", "Failed");
+            // APIResponse.put("message", "Multiple Owners for " + doubleSpentToken + " " +
+            // owners);
+            // IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+            // output.close();
+            // input.close();
+            // sk.close();
+            // ss.close();
+            // return APIResponse.toString();
+            // }
 
             String senderToken = TokenDetails.toString();
             String consensusID = calculateHash(senderToken, "SHA3-256");
