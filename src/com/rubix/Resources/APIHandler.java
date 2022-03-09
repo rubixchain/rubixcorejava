@@ -135,91 +135,9 @@ public class APIHandler {
     }
 
     /**
-     * A call to get details of a transaction given its ID
-     * 
-     * @param txnId
-     * @return Transaction Details
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray transactionDetails(String txnId) throws JSONException {
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
-        JSONObject countResult = new JSONObject();
-        JSONArray resultArray = new JSONArray();
-        if (transactionHistory.length() == 0) {
-            countResult.put("Message", "No transactions found");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-
-        JSONArray transArray = new JSONArray(transactionHistory);
-        JSONObject obj = new JSONObject();
-        for (int i = 0; i < transArray.length(); i++) {
-            obj = transArray.getJSONObject(i);
-            if (obj.get("txn").equals(txnId)) {
-                obj.remove("essentialShare");
-
-                if (obj.has("amount"))
-                    obj.put("amount", obj.getDouble("amount"));
-                else {
-                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                    obj.put("amount", tokensArray.length());
-                }
-
-                resultArray.put(obj);
-            }
-
-        }
-        APILogger.info("Transaction Details for : " + obj.toString());
-        return resultArray;
-    }
-
-    /**
-     * A call to get the account information
-     * 
-     * @return Detailed explanation of the account information of the user
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray accountInformation() throws JSONException {
-        int txnAsSender = 0, txnAsReceiver = 0;
-
-        JSONObject objectParser;
-        JSONArray resultArray = new JSONArray();
-        JSONObject accountDetails = new JSONObject();
-        File fileCheck1 = new File(WALLET_DATA_PATH + "TransactionHistory.json");
-        if (!fileCheck1.exists()) {
-            accountDetails.put("message", "Transaction History file not found");
-            resultArray.put(accountDetails);
-            return resultArray;
-        }
-
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
-        JSONArray transArray = new JSONArray(transactionHistory);
-
-        if (!(transArray.length() == 0)) {
-            for (int i = 0; i < transArray.length(); i++) {
-                objectParser = transArray.getJSONObject(i);
-                if (objectParser.get("role").equals("Sender"))
-                    txnAsSender++;
-                else
-                    txnAsReceiver++;
-            }
-        }
-
-        String senderPeerID = getPeerID(DATA_PATH + "DID.json");
-        String did = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
-        String wid = getValues(DATA_PATH + "DID.json", "walletHash", "peerid", senderPeerID);
-        accountDetails.put("did", did);
-        accountDetails.put("wid", wid);
-        accountDetails.put("senderTxn", txnAsSender);
-        accountDetails.put("receiverTxn", txnAsReceiver);
-        accountDetails.put("totalTxn", txnAsSender + txnAsReceiver);
-
-        resultArray.put(accountDetails);
-        return resultArray;
-    }
-
-    /**
      * A method to add and host your DID ans Public share to ipfs
+     * 
+     * @files DID.json, DataTable.json, DID.png, PublicShare.png
      */
     public static void addPublicData() {
         String peerID = getPeerID(DATA_PATH + "DID.json");
@@ -239,6 +157,7 @@ public class APIHandler {
      * 
      * @return Message if failed or succeeded
      * @throws IOException
+     * @files DataTable.json
      */
     public static String networkInfo() throws IOException, JSONException {
         StringBuilder result = new StringBuilder();
@@ -269,226 +188,19 @@ public class APIHandler {
     }
 
     /**
-     * A call to get list transactions between two mentioned dates
+     * Method to query the credits information
      * 
-     * @param s Start Date
-     * @param e End Date
-     * @return List of transactions
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray transactionsByDate(String s, String e) throws JSONException, ParseException {
-        JSONArray resultArray = new JSONArray();
-        String strDateFormat = "yyyy-MMM-dd HH:mm:ss"; // Date format is Specified
-        SimpleDateFormat objSDF = new SimpleDateFormat(strDateFormat);
-        Date date1 = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(s);
-        String startDateString = objSDF.format(date1);
-        Date date2 = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(e);
-        String endDateString = objSDF.format(date2);
-        JSONObject countResult = new JSONObject();
-        Date startDate = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss").parse(startDateString);
-        Date endDate = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss").parse(endDateString);
-        APILogger.debug("start date is " + startDate);
-        APILogger.debug("end date is " + endDate);
-        File fileCheck1 = new File(WALLET_DATA_PATH + "TransactionHistory.json");
-        if (!fileCheck1.exists()) {
-            countResult.put("Message", "File not found");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
-        JSONArray transArray = new JSONArray(transactionHistory);
-        APILogger.debug(transArray.length());
-        if (transArray.length() == 0) {
-            countResult.put("Message", "No Transactions made yet");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-        JSONObject obj;
-        for (int i = 0; i < transArray.length(); i++) {
-            obj = transArray.getJSONObject(i);
-            String dateFromTxnHistoryString = obj.get("Date").toString();
-            Date dateTH = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(dateFromTxnHistoryString);
-            String dateTHS = objSDF.format(dateTH);
-            Calendar c = Calendar.getInstance();
-            c.setTime(objSDF.parse(dateTHS));
-            dateTH = c.getTime();
-            if (dateTH.after(startDate) && dateTH.before(endDate)) {
-                obj.remove("essentialShare");
-
-                if (obj.has("amount"))
-                    obj.put("amount", obj.getDouble("amount"));
-                else {
-                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                    obj.put("amount", tokensArray.length());
-                }
-
-                resultArray.put(obj);
-            }
-
-        }
-        return resultArray;
-    }
-
-    /**
-     * A call to get list of last n transactions
-     * 
-     * @param n Count
-     * @return List of transactions
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray transactionsByCount(int n) throws JSONException {
-
-        JSONObject countResult = new JSONObject();
-        JSONArray resultArray = new JSONArray();
-
-        String path = WALLET_DATA_PATH + "TransactionHistory.json";
-        File transFile = new File(path);
-        if (!transFile.exists()) {
-            transFile.delete();
-            countResult.put("Message", "File not found");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-        String transactionHistory = readFile(path);
-        JSONArray transArray = new JSONArray(transactionHistory);
-        JSONObject obj = new JSONObject();
-        if (transArray.length() == 0) {
-            countResult.put("Message", "No transactions made yet");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-
-        if (n >= transArray.length()) {
-            for (int i = transArray.length() - 1; i >= 0; i--) {
-                obj = transArray.getJSONObject(i);
-                obj.remove("essentialShare");
-                if (obj.has("amount"))
-                    obj.put("amount", obj.getDouble("amount"));
-                else {
-                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                    obj.put("amount", tokensArray.length());
-                }
-                resultArray.put(obj);
-            }
-            return resultArray;
-        }
-
-        for (int i = 1; i <= n; i++) {
-
-            obj = transArray.getJSONObject(transArray.length() - i);
-            obj.remove("essentialShare");
-            if (obj.has("amount"))
-                obj.put("amount", obj.getDouble("amount"));
-            else {
-                JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                obj.put("amount", tokensArray.length());
-            }
-
-            resultArray.put(obj);
-        }
-        return resultArray;
-    }
-
-    /**
-     * A call to get list transactions within a range
-     * 
-     * @param start start index
-     * @param end   end index
-     * @return List of transactions
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray transactionsByRange(int start, int end) throws JSONException {
-        JSONObject countResult = new JSONObject();
-        JSONArray resultArray = new JSONArray();
-        if (start <= 0 || end <= 0) {
-            countResult.put("Message", "Count can't be null or negative");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-
-        if (start > end) {
-            countResult.put("Message", "Invalid ranges");
-            resultArray.put(countResult);
-            return resultArray;
-        }
-
-        File transactionFile = new File(WALLET_DATA_PATH + "TransactionHistory.json");
-        if (!transactionFile.exists()) {
-            resultArray.put(countResult);
-            return resultArray;
-        }
-
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
-        JSONArray transArray = new JSONArray(transactionHistory);
-        if (transArray.length() == 0) {
-            resultArray.put(countResult);
-            return resultArray;
-        }
-
-        if (!(end < transArray.length())) {
-            for (int i = start; i < transArray.length(); i++) {
-                JSONObject obj = transArray.getJSONObject(i);
-                obj.remove("essentialShare");
-                if (obj.has("amount"))
-                    obj.put("amount", obj.getDouble("amount"));
-                else {
-                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                    obj.put("amount", tokensArray.length());
-                }
-
-                resultArray.put(obj);
-            }
-        } else {
-            if (start == end) {
-                JSONObject obj = transArray.getJSONObject(start);
-                obj.remove("essentialShare");
-                if (obj.has("amount"))
-                    obj.put("amount", obj.getDouble("amount"));
-                else {
-                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                    obj.put("amount", tokensArray.length());
-                }
-
-                resultArray.put(obj);
-            }
-            for (int i = start; i < end; i++) {
-                JSONObject obj = transArray.getJSONObject(i);
-                obj.remove("essentialShare");
-                if (obj.has("amount"))
-                    obj.put("amount", obj.getDouble("amount"));
-                else {
-                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                    obj.put("amount", tokensArray.length());
-                }
-
-                resultArray.put(obj);
-            }
-        }
-
-        return resultArray;
-    }
-
-    /**
      * @throws JSONException
-     *
+     * 
+     * @files QuorumSignedTransactions.json, MinedCreditsHistory.json
      */
     public static JSONObject creditsInfo() throws JSONException {
-        // String thFile = WALLET_DATA_PATH.concat("TransactionHistory.json");
         String qstFile = WALLET_DATA_PATH.concat("QuorumSignedTransactions.json");
         String mineFile = WALLET_DATA_PATH.concat("MinedCreditsHistory.json");
 
-        // File txnFile = new File(thFile);
         File quorumFile = new File(qstFile);
         File minedFile = new File(mineFile);
 
-        // int txnCount = 0;
-        // if(txnFile.exists()){
-        // String transactionFile =
-        // readFile(WALLET_DATA_PATH.concat("TransactionHistory.json"));
-        // JSONArray txnArray = new JSONArray(transactionFile);
-        // txnCount = txnArray.length();
-        //
-        // }
         int spentCredits = 0;
         int unspentCredits = 0;
         if (quorumFile.exists()) {
@@ -503,7 +215,6 @@ public class APIHandler {
         }
 
         JSONObject returnObject = new JSONObject();
-        // returnObject.put("txnCount",txnCount);
         returnObject.put("spentCredits", spentCredits);
         returnObject.put("unspentCredits", unspentCredits);
 
@@ -515,75 +226,6 @@ public class APIHandler {
      */
     public static void closeStreams() {
         executeIPFSCommands("ipfs p2p close --all");
-    }
-
-    /**
-     * A call to get list transactions with the mentioned comment
-     * 
-     * @param comment Comment
-     * @return List of transactions
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray transactionsByComment(String comment) throws JSONException {
-
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
-        JSONArray transArray = new JSONArray(transactionHistory);
-        JSONObject obj;
-        JSONArray resultArray = new JSONArray();
-        for (int i = 0; i < transArray.length(); i++) {
-            obj = transArray.getJSONObject(i);
-
-            if (obj.get("comment").equals(comment)) {
-                obj.remove("essentialShare");
-                if (obj.has("amount"))
-                    obj.put("amount", obj.getDouble("amount"));
-                else {
-                    JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                    obj.put("amount", tokensArray.length());
-                }
-
-                resultArray.put(obj);
-            }
-
-        }
-        if (resultArray.length() < 1) {
-            JSONObject returnObject = new JSONObject();
-            returnObject.put("Message", "No transactions found with the comment " + comment);
-            resultArray.put(returnObject);
-        }
-
-        return resultArray;
-    }
-
-    /**
-     * A call to get list transactions made by the user with the input Did
-     * 
-     * @param did DID of the contact
-     * @return List of transactions committed with the user DID
-     * @throws JSONException handles JSON Exceptions
-     */
-    public static JSONArray transactionsByDID(String did) throws JSONException {
-        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
-        JSONArray transArray = new JSONArray(transactionHistory);
-        JSONArray resultArray = new JSONArray();
-        for (int i = 0; i < transArray.length(); i++) {
-            JSONObject obj = transArray.getJSONObject(i);
-            obj.remove("essentialShare");
-
-            if (obj.has("amount"))
-                obj.put("amount", obj.getDouble("amount"));
-            else {
-                JSONArray tokensArray = (JSONArray) obj.get("tokens");
-                obj.put("amount", tokensArray.length());
-            }
-
-            resultArray.put(obj);
-
-            if (obj.get("senderDID").equals(did) || obj.get("receiverDID").equals(did))
-                resultArray.put(obj);
-        }
-
-        return resultArray;
     }
 
     public static int onlinePeersCount() throws JSONException, IOException, InterruptedException {
@@ -681,26 +323,84 @@ public class APIHandler {
         return didArray;
     }
 
+    public static JSONObject syncNetworkNodes() throws JSONException, IOException {
+        String dataTable = readFile(DATA_PATH + "DataTable.json");
+        JSONArray dataArray = new JSONArray(dataTable);
+
+        for (int i = 0; i < dataArray.length(); i++)
+            nodeData(dataArray.getJSONObject(i).getString("didHash"),
+                    dataArray.getJSONObject(i).getString("walletHash"), ipfs);
+
+        return new JSONObject("{\"message\":\"Synced all nodes\"}");
+    }
+
+    /**
+     * A call to get the account information
+     * 
+     * @return Detailed explanation of the account information of the user
+     * @throws JSONException handles JSON Exceptions
+     * @files TransactionHistory.json, DID.json
+     */
+    public static JSONArray accountInformation() throws JSONException {
+        int txnAsSender = 0, txnAsReceiver = 0;
+
+        JSONObject objectParser;
+        JSONArray resultArray = new JSONArray();
+        JSONObject accountDetails = new JSONObject();
+        File fileCheck1 = new File(WALLET_DATA_PATH + "TransactionHistory.json");
+        if (!fileCheck1.exists()) {
+            accountDetails.put("message", "Transaction History file not found");
+            resultArray.put(accountDetails);
+            return resultArray;
+        }
+
+        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        JSONArray transArray = new JSONArray(transactionHistory);
+
+        if (!(transArray.length() == 0)) {
+            for (int i = 0; i < transArray.length(); i++) {
+                objectParser = transArray.getJSONObject(i);
+                if (objectParser.get("role").equals("Sender"))
+                    txnAsSender++;
+                else
+                    txnAsReceiver++;
+            }
+        }
+
+        String senderPeerID = getPeerID(DATA_PATH + "DID.json");
+        String did = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+        String wid = getValues(DATA_PATH + "DID.json", "walletHash", "peerid", senderPeerID);
+        accountDetails.put("did", did);
+        accountDetails.put("wid", wid);
+        accountDetails.put("senderTxn", txnAsSender);
+        accountDetails.put("receiverTxn", txnAsReceiver);
+        accountDetails.put("totalTxn", txnAsSender + txnAsReceiver);
+
+        resultArray.put(accountDetails);
+        return resultArray;
+    }
+
     /**
      * A call to list out number of transactions made per day
      * 
      * @return List of transactions committed on every date
      * @throws JSONException handles JSON Exceptions
+     * @files TransactionHistory.json
      */
     public static JSONArray txnPerDay() throws JSONException {
-        String dataTable = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
-        JSONArray dataArray = new JSONArray(dataTable);
+        String dataTableFileContent = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        JSONArray dataTable = new JSONArray(dataTableFileContent);
         HashSet<String> dateSet = new HashSet<>();
-        for (int i = 0; i < dataArray.length(); i++)
-            dateSet.add(dataArray.getJSONObject(i).getString("Date"));
+        for (int i = 0; i < dataTable.length(); i++)
+            dateSet.add(dataTable.getJSONObject(i).getString("Date"));
 
         JSONObject datesTxn = new JSONObject();
         Iterator<String> dateIterator = dateSet.iterator();
         while (dateIterator.hasNext()) {
             String date = dateIterator.next();
             int count = 0;
-            for (int i = 0; i < dataArray.length(); i++) {
-                JSONObject obj = dataArray.getJSONObject(i);
+            for (int i = 0; i < dataTable.length(); i++) {
+                JSONObject obj = dataTable.getJSONObject(i);
 
                 if (date.equals(obj.getString("Date"))) {
                     count++;
@@ -713,14 +413,351 @@ public class APIHandler {
         return new JSONArray().put(datesTxn);
     }
 
-    public static JSONObject syncNetworkNodes() throws JSONException, IOException {
-        String dataTable = readFile(DATA_PATH + "DataTable.json");
-        JSONArray dataArray = new JSONArray(dataTable);
+    /**
+     * A call to get details of a transaction given its ID
+     * 
+     * @param txnId Transaction ID
+     * @return Transaction Details
+     * @throws JSONException handles JSON Exceptions
+     * @files TransactionHistory.json
+     */
+    public static JSONArray transactionDetails(String txnId) throws JSONException {
+        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        JSONObject countResult = new JSONObject();
+        JSONArray resultArray = new JSONArray();
+        if (transactionHistory.length() == 0) {
+            countResult.put("Message", "No transactions found");
+            resultArray.put(countResult);
+            return resultArray;
+        }
 
-        for (int i = 0; i < dataArray.length(); i++)
-            nodeData(dataArray.getJSONObject(i).getString("didHash"),
-                    dataArray.getJSONObject(i).getString("walletHash"), ipfs);
+        JSONArray transactionArray = new JSONArray(transactionHistory);
+        JSONObject transactionObject = new JSONObject();
+        for (int i = 0; i < transactionArray.length(); i++) {
+            transactionObject = transactionArray.getJSONObject(i);
+            if (transactionObject.get("txn").equals(txnId)) {
+                transactionObject.remove("essentialShare");
 
-        return new JSONObject("{\"message\":\"Synced all nodes\"}");
+                if (transactionObject.has("amount-received")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-received"));
+                } else if (transactionObject.has("amount-spent")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-spent"));
+                } else if (transactionObject.has("amount"))
+                    transactionObject.put("amount", transactionObject.getDouble("amount"));
+                else {
+                    JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
+                    transactionObject.put("amount", tokensArray.length());
+                }
+
+                resultArray.put(transactionObject);
+            }
+
+        }
+        APILogger.info("Transaction Details for : " + transactionObject.toString());
+        return resultArray;
     }
+
+    /**
+     * A call to get list transactions between two mentioned dates
+     * 
+     * @param s Start Date
+     * @param e End Date
+     * @return List of transactions
+     * @throws JSONException handles JSON Exceptions
+     * @files TransactionHistory.json
+     */
+    public static JSONArray transactionsByDate(String s, String e) throws JSONException, ParseException {
+        JSONArray resultArray = new JSONArray();
+        String strDateFormat = "yyyy-MMM-dd HH:mm:ss"; // Date format is Specified
+        SimpleDateFormat objSDF = new SimpleDateFormat(strDateFormat);
+        Date date1 = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(s);
+        String startDateString = objSDF.format(date1);
+        Date date2 = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(e);
+        String endDateString = objSDF.format(date2);
+        JSONObject countResult = new JSONObject();
+        Date startDate = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss").parse(startDateString);
+        Date endDate = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss").parse(endDateString);
+        File fileCheck1 = new File(WALLET_DATA_PATH + "TransactionHistory.json");
+        if (!fileCheck1.exists()) {
+            countResult.put("Message", "File not found");
+            resultArray.put(countResult);
+            return resultArray;
+        }
+        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        JSONArray transArray = new JSONArray(transactionHistory);
+        if (transArray.length() == 0) {
+            countResult.put("Message", "No Transactions made yet");
+            resultArray.put(countResult);
+            return resultArray;
+        }
+        JSONObject transactionObject;
+        for (int i = 0; i < transArray.length(); i++) {
+            transactionObject = transArray.getJSONObject(i);
+            String dateFromTxnHistoryString = transactionObject.get("Date").toString();
+            if (dateFromTxnHistoryString.length() != 10) {
+                Date dateTH = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(dateFromTxnHistoryString);
+                String dateTHS = objSDF.format(dateTH);
+                Calendar c = Calendar.getInstance();
+                c.setTime(objSDF.parse(dateTHS));
+                dateTH = c.getTime();
+                if (dateTH.after(startDate) && dateTH.before(endDate)) {
+                    transactionObject.remove("essentialShare");
+
+                    if (transactionObject.has("amount-received")) {
+                        transactionObject.put("amount", transactionObject.getDouble("amount-received"));
+                    } else if (transactionObject.has("amount-spent")) {
+                        transactionObject.put("amount", transactionObject.getDouble("amount-spent"));
+                    } else if (transactionObject.has("amount"))
+                        transactionObject.put("amount", transactionObject.getDouble("amount"));
+                    else {
+                        JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
+                        transactionObject.put("amount", tokensArray.length());
+                    }
+
+                    resultArray.put(transactionObject);
+                }
+            }
+
+        }
+        return resultArray;
+    }
+
+    /**
+     * A call to get list of last n transactions
+     * 
+     * @param n Count
+     * @return List of transactions
+     * @throws JSONException handles JSON Exceptions
+     * @files TransactionHistory.json
+     */
+    public static JSONArray transactionsByCount(int n) throws JSONException {
+
+        JSONObject countResult = new JSONObject();
+        JSONArray resultArray = new JSONArray();
+
+        String path = WALLET_DATA_PATH + "TransactionHistory.json";
+        File transFile = new File(path);
+        if (!transFile.exists()) {
+            transFile.delete();
+            countResult.put("Message", "File not found");
+            resultArray.put(countResult);
+            return resultArray;
+        }
+        String transactionHistory = readFile(path);
+        JSONArray transArray = new JSONArray(transactionHistory);
+        JSONObject transactionObject;
+        if (transArray.length() == 0) {
+            countResult.put("Message", "No transactions made yet");
+            resultArray.put(countResult);
+            return resultArray;
+        }
+
+        if (n >= transArray.length()) {
+            for (int i = transArray.length() - 1; i >= 0; i--) {
+                transactionObject = transArray.getJSONObject(i);
+                transactionObject.remove("essentialShare");
+                if (transactionObject.has("amount-received")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-received"));
+                } else if (transactionObject.has("amount-spent")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-spent"));
+                } else if (transactionObject.has("amount"))
+                    transactionObject.put("amount", transactionObject.getDouble("amount"));
+                else {
+                    JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
+                    transactionObject.put("amount", tokensArray.length());
+                }
+                resultArray.put(transactionObject);
+            }
+            return resultArray;
+        }
+
+        for (int i = 1; i <= n; i++) {
+
+            transactionObject = transArray.getJSONObject(transArray.length() - i);
+            transactionObject.remove("essentialShare");
+            if (transactionObject.has("amount-received")) {
+                transactionObject.put("amount", transactionObject.getDouble("amount-received"));
+            } else if (transactionObject.has("amount-spent")) {
+                transactionObject.put("amount", transactionObject.getDouble("amount-spent"));
+            } else if (transactionObject.has("amount"))
+                transactionObject.put("amount", transactionObject.getDouble("amount"));
+            else {
+                JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
+                transactionObject.put("amount", tokensArray.length());
+            }
+
+            resultArray.put(transactionObject);
+        }
+        return resultArray;
+    }
+
+    /**
+     * A call to get list transactions within a range
+     * 
+     * @param start start index
+     * @param end   end index
+     * @return List of transactions
+     * @throws JSONException handles JSON Exceptions
+     * @files TransactionHistory.json
+     */
+    public static JSONArray transactionsByRange(int start, int end) throws JSONException {
+        JSONObject countResult = new JSONObject();
+        JSONArray resultArray = new JSONArray();
+        if (start < 0 || end <= 0) {
+            countResult.put("Message", "Count can't be null or negative");
+            resultArray.put(countResult);
+            return resultArray;
+        }
+
+        if (start > end) {
+            countResult.put("Message", "Invalid ranges");
+            resultArray.put(countResult);
+            return resultArray;
+        }
+
+        File transactionFile = new File(WALLET_DATA_PATH + "TransactionHistory.json");
+        if (!transactionFile.exists()) {
+            resultArray.put(countResult);
+            return resultArray;
+        }
+
+        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        JSONArray transArray = new JSONArray(transactionHistory);
+        if (transArray.length() == 0) {
+            resultArray.put(countResult);
+            return resultArray;
+        }
+
+        if (!(end < transArray.length())) {
+            for (int i = start; i < transArray.length(); i++) {
+                JSONObject transactionObject = transArray.getJSONObject(i);
+                transactionObject.remove("essentialShare");
+                if (transactionObject.has("amount-received")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-received"));
+                } else if (transactionObject.has("amount-spent")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-spent"));
+                } else if (transactionObject.has("amount"))
+                    transactionObject.put("amount", transactionObject.getDouble("amount"));
+                else {
+                    JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
+                    transactionObject.put("amount", tokensArray.length());
+                }
+
+                resultArray.put(transactionObject);
+            }
+        } else {
+            if (start == end) {
+                JSONObject transactionObject = transArray.getJSONObject(start);
+                transactionObject.remove("essentialShare");
+                if (transactionObject.has("amount-received")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-received"));
+                } else if (transactionObject.has("amount-spent")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-spent"));
+                } else if (transactionObject.has("amount"))
+                    transactionObject.put("amount", transactionObject.getDouble("amount"));
+                else {
+                    JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
+                    transactionObject.put("amount", tokensArray.length());
+                }
+
+                resultArray.put(transactionObject);
+            } else {
+                for (int i = start; i <= end; i++) {
+                    JSONObject transactionObject = transArray.getJSONObject(i);
+                    transactionObject.remove("essentialShare");
+                    if (transactionObject.has("amount-received")) {
+                        transactionObject.put("amount", transactionObject.getDouble("amount-received"));
+                    } else if (transactionObject.has("amount-spent")) {
+                        transactionObject.put("amount", transactionObject.getDouble("amount-spent"));
+                    } else if (transactionObject.has("amount"))
+                        transactionObject.put("amount", transactionObject.getDouble("amount"));
+                    else {
+                        JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
+                        transactionObject.put("amount", tokensArray.length());
+                    }
+                    resultArray.put(transactionObject);
+                }
+            }
+        }
+
+        return resultArray;
+    }
+
+    /**
+     * A call to get list transactions with the mentioned comment
+     * 
+     * @param comment Comment
+     * @return List of transactions
+     * @throws JSONException handles JSON Exceptions
+     * @files TransactionHistory.json
+     */
+    public static JSONArray transactionsByComment(String comment) throws JSONException {
+
+        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        JSONArray transArray = new JSONArray(transactionHistory);
+        JSONObject transactionObject;
+        JSONArray resultArray = new JSONArray();
+        for (int i = 0; i < transArray.length(); i++) {
+            transactionObject = transArray.getJSONObject(i);
+
+            if (transactionObject.get("comment").equals(comment)) {
+                transactionObject.remove("essentialShare");
+                if (transactionObject.has("amount-received")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-received"));
+                } else if (transactionObject.has("amount-spent")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-spent"));
+                } else if (transactionObject.has("amount"))
+                    transactionObject.put("amount", transactionObject.getDouble("amount"));
+                else {
+                    JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
+                    transactionObject.put("amount", tokensArray.length());
+                }
+                resultArray.put(transactionObject);
+            }
+
+        }
+        if (resultArray.length() < 1) {
+            JSONObject returnObject = new JSONObject();
+            returnObject.put("Message", "No transactions found with the comment " + comment);
+            resultArray.put(returnObject);
+        }
+
+        return resultArray;
+    }
+
+    /**
+     * A call to get list transactions made by the user with the input Did
+     * 
+     * @param did DID of the contact
+     * @return List of transactions committed with the user DID
+     * @throws JSONException handles JSON Exceptions
+     * @files TransactionHistory.json
+     */
+    public static JSONArray transactionsByDID(String did) throws JSONException {
+        String transactionHistory = readFile(WALLET_DATA_PATH + "TransactionHistory.json");
+        JSONArray transArray = new JSONArray(transactionHistory);
+        JSONArray resultArray = new JSONArray();
+        for (int i = 0; i < transArray.length(); i++) {
+            JSONObject transactionObject = transArray.getJSONObject(i);
+            transactionObject.remove("essentialShare");
+
+            if (transactionObject.get("senderDID").equals(did) || transactionObject.get("receiverDID").equals(did)) {
+                if (transactionObject.has("amount-received")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-received"));
+                } else if (transactionObject.has("amount-spent")) {
+                    transactionObject.put("amount", transactionObject.getDouble("amount-spent"));
+                } else if (transactionObject.has("amount"))
+                    transactionObject.put("amount", transactionObject.getDouble("amount"));
+                else {
+                    JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
+                    transactionObject.put("amount", tokensArray.length());
+                }
+
+                resultArray.put(transactionObject);
+            }
+        }
+
+        return resultArray;
+    }
+
 }
