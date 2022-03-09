@@ -1,11 +1,14 @@
 package com.rubix.Resources;
 
 import static com.rubix.Resources.APIHandler.addPublicData;
+import static com.rubix.Resources.IPFSNetwork.IPFSNetworkLogger;
 import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
 import static com.rubix.Resources.IPFSNetwork.dhtOwnerCheck;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.forwardCheck;
 import static com.rubix.Resources.IPFSNetwork.listen;
+import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
+import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -34,6 +37,7 @@ import java.util.Iterator;
 import javax.imageio.ImageIO;
 
 import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -42,6 +46,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
 
 public class Functions {
 
@@ -455,40 +460,6 @@ public class Functions {
         return ownStatus;
     }
 
-    /**
-     * Move the selected token to bottom of the BNK00 file to avoid transaction
-     * failures.
-     *
-     * @param tokenID ID to be minedD to be mined
-     * @return null
-     */
-    public static void demoteToken(String tokenID) {
-
-        try {
-            String bankNew = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-            JSONArray bankNewArray = new JSONArray(bankNew);
-
-            JSONObject tokeJsonObject = new JSONObject();
-            tokeJsonObject.put("tokenHash", tokenID);
-
-            // remove tokenJsonObject from bankNewArray
-            for (int i = 0; i < bankNewArray.length(); i++) {
-                JSONObject temp = bankNewArray.getJSONObject(i);
-                if (temp.getString("tokenHash").equals(tokenID)) {
-                    bankNewArray.remove(i);
-                    break;
-                }
-            }
-            bankNewArray.put(tokeJsonObject);
-
-            // write the new bankNewArray to file
-            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankNewArray.toString(), false);
-
-        } catch (JSONException e) {
-            FunctionsLogger.error("JSONException Occurred", e);
-        }
-    }
-
     public static int levelHeight() {
         int creditsRequired = 0;
         JSONObject resJsonData_credit = new JSONObject();
@@ -524,48 +495,6 @@ public class Functions {
             FunctionsLogger.debug("GET request not worked " + e.getMessage());
         }
         return creditsRequired;
-    }
-
-    /**
-     * This function calculates token height from tokenchain for the given token id
-     * (without considering ownership)
-     * found from stake ID
-     *
-     * @param token ID to be staked
-     * @return Stake ID for that token
-     */
-
-    public static int tokenHeightFromTokenID(String tokenID) {
-
-        // height for current level x2
-        int requiredHeight = 64;
-
-        // ! get data from DID server or contact owner of mined token for token height
-
-        return requiredHeight;
-    }
-
-    /**
-     * This function check Stake ID for a pleadged token. mined token can also be
-     * found from stake ID
-     *
-     * @param token ID to be staked
-     * @return boolean of exists or not
-     */
-    public static boolean checkMineIDExists(String tokenID) {
-        boolean mineIDExists = false;
-        String mineID = calculateHash("stake" + tokenID, "SHA3-256");
-        mineIDExists = checkTokenOwnershiByDID(mineID, mineID);
-        try {
-            ArrayList owners = dhtOwnerCheck(tokenID);
-            if (!owners.isEmpty()) {
-                mineIDExists = true;
-            }
-
-        } catch (InterruptedException | JSONException | IOException e) {
-            FunctionsLogger.error("JSONException Occurred while - checkMineIDExists - check", e);
-        }
-        return mineIDExists;
     }
 
     /**
@@ -1016,8 +945,7 @@ public class Functions {
         // File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
         if (!didImage.exists() || !widImage.exists()) {
             didImage.delete();
-            didImage.delete();
-            didImage.delete();
+            widImage.delete();
             JSONObject result = new JSONObject();
             result.put("message", "User not registered, create your Decentralised Identity!");
             result.put("info", "Shares Images Missing");
@@ -1286,89 +1214,34 @@ public class Functions {
         }
     }
 
-    /**
-     * This function will release the port in linux based machines if the port is
-     * already in use
-     */
-    public static void releasePorts(int port) {
-        String processStr;
-        Process processId;
-        try {
-            processId = Runtime.getRuntime().exec("lsof -ti :" + port);
-            long currentPid = ProcessHandle.current().pid();
-            BufferedReader br = new BufferedReader(
-                    new InputStreamReader(processId.getInputStream()));
+    public static void correctToken() throws JSONException {
+        pathSet();
+        String bank = readFile(PAYMENTS_PATH.concat("BNK00.json"));
+        JSONArray bankArray = new JSONArray(bank);
+        JSONObject firstToken;
+        if (bankArray.length() > 1) {
+            firstToken = bankArray.getJSONObject(0);
 
-            processId = Runtime.getRuntime().exec("pgrep ipfs");
-            BufferedReader ipfsPidBr = new BufferedReader(new InputStreamReader(processId.getInputStream()));
+            bankArray.remove(0);
+            bankArray.put(firstToken);
 
-            processStr = br.readLine();
-            while (processStr != null
-                    && (String.valueOf(currentPid) != processStr || (ipfsPidBr.readLine() != processStr))) {
-                FunctionsLogger.debug("Port " + port + " is in using, killing PID " + processStr);
-                processId = Runtime.getRuntime().exec("kill -9 " + processStr);
-
-            }
-            processId.waitFor();
-            processId.destroy();
-
-        } catch (Exception e) {
-            FunctionsLogger.error("Exception Occured at releasePort", e);
-            e.printStackTrace();
+            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
         }
     }
 
-    public static void portStatusWindows(int port) {
-        String processStr;
-        Process p;
-        try {
-            Runtime rt = Runtime.getRuntime();
-            Process proc = rt.exec("cmd /c netstat -ano | findstr " + port);
-            long currentPid = ProcessHandle.current().pid();
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            processStr = stdInput.readLine();
-            if (processStr != null && String.valueOf(currentPid) != processStr) {
-                int index = processStr.lastIndexOf(" ");
-                String sc = processStr.substring(index, processStr.length());
-                // System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this
-                // port and retry transcation");
-                if (sc != String.valueOf(currentPid)) {
-                    FunctionsLogger.debug("Port " + port + " is locked by PID " + sc);
-                } else {
-                    FunctionsLogger.debug("Port " + port + " is locked by current jar with PID " + sc);
-                }
+    public static void correctPartToken() throws JSONException {
+        pathSet();
+        String bank = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
+        JSONArray bankArray = new JSONArray(bank);
+        JSONObject firstToken;
+        if (bankArray.length() > 1) {
+            firstToken = bankArray.getJSONObject(0);
 
-            }
-        } catch (Exception e) {
-            FunctionsLogger.error("Exception occured at portStatusWindows", e);
-            e.printStackTrace();
+            bankArray.remove(0);
+            bankArray.put(firstToken);
+
+            writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), bankArray.toString(), false);
         }
-    }
-
-    public static void removeToken() throws JSONException {
-        String bnkFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-        JSONArray bnkArray = new JSONArray(bnkFile);
-        JSONObject removeToken = bnkArray.getJSONObject(0);
-        bnkArray.remove(0);
-        writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bnkArray.toString(), false);
-
-        File doubleSpentFile = new File(PAYMENTS_PATH.concat("DoubleSpent.json"));
-        if (!doubleSpentFile.exists()) {
-            try {
-                doubleSpentFile.createNewFile();
-            } catch (IOException e) {
-                FunctionsLogger.debug("File couldn't be created");
-            }
-            JSONArray removeArray = new JSONArray();
-            removeArray.put(removeToken);
-            writeToFile(PAYMENTS_PATH.concat("DoubleSpent.json"), removeArray.toString(), false);
-        } else {
-            String removeFile = readFile(PAYMENTS_PATH.concat("DoubleSpent.json"));
-            JSONArray removeArray = new JSONArray(removeFile);
-            removeArray.put(removeToken);
-            writeToFile(PAYMENTS_PATH.concat("DoubleSpent.json"), removeArray.toString(), false);
-        }
-
     }
 
     public static void tokenBank() throws JSONException {
@@ -1663,6 +1536,285 @@ public class Functions {
 
         addPublicData();
 
+    }
+
+    public static String sanityMessage;
+
+    public static boolean sanityCheck(String peerid, IPFS ipfs, int port) throws IOException, JSONException {
+        FunctionsLogger.info("Entering SanityCheck");
+        boolean sanityCheckErrorFlag = true;
+        if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
+            FunctionsLogger.debug("IPFS is working in " + peerid);
+            FunctionsLogger.debug("IPFS check true");
+        } else {
+            sanityCheckErrorFlag = false;
+            FunctionsLogger.debug("IPFS is not working in " + peerid);
+            FunctionsLogger.debug("IPFS check false");
+            sanityMessage = "IPFS is not working in " + peerid;
+        }
+
+        if (sanityCheckErrorFlag) {
+            if (bootstrapConnect(peerid, ipfs)) {
+                FunctionsLogger.debug("Bootstrap connected for " + peerid);
+                FunctionsLogger.debug("Bootstrap check true");
+            } else {
+                sanityCheckErrorFlag = false;
+                FunctionsLogger.debug("Bootstrap connection unsuccessful for " + peerid);
+                FunctionsLogger.debug("Bootstrap check false");
+                sanityMessage = "Bootstrap connection unsuccessful for " + peerid;
+            }
+        }
+
+        if (sanityCheckErrorFlag) {
+            if (ping(peerid, port)) {
+                FunctionsLogger.debug("Jar is running as expected in " + peerid);
+                FunctionsLogger.debug("Jar check true");
+            } else {
+                sanityCheckErrorFlag = false;
+                FunctionsLogger.debug("Jar is not running in " + peerid);
+                FunctionsLogger.debug("Jar check false");
+                sanityMessage = "Jar is not running in " + peerid;
+            }
+        }
+        if (sanityCheckErrorFlag) {
+            if (portCheckAndKill(port)) {
+                FunctionsLogger.debug("Ports are available for transcations in " + peerid);
+                FunctionsLogger.debug("Ports check true");
+            } else {
+                sanityCheckErrorFlag = false;
+                FunctionsLogger.debug("Ports are not available for " + peerid);
+                FunctionsLogger.debug("Ports check false");
+                sanityMessage = "Ports are not available for " + peerid;
+            }
+        }
+
+        return sanityCheckErrorFlag;
+    }
+
+    public static boolean checkIPFSStatus(String peerid, IPFS ipfs) {
+        FunctionsLogger.info("Entering checkIPFSStatus");
+        boolean swarmConnectedStatus = false;
+        try {
+            MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
+            FunctionsLogger.info("MultiAdrress concated " + multiAddress + "|||");
+            boolean output = swarmConnectP2P(peerid, ipfs);
+
+            if (output) {
+                swarmConnectedStatus = true;
+                FunctionsLogger.debug("Swarm is already connected");
+            } else {
+                swarmConnectedStatus = false;
+                FunctionsLogger.debug("Swarm is not connected");
+            }
+        } catch (Exception e) {
+            FunctionsLogger.error("Check Swarm Connect is failed", e);
+
+        }
+        FunctionsLogger.info("checkIPFSStatus return value is " + swarmConnectedStatus);
+        return swarmConnectedStatus;
+    }
+
+    public static boolean ping(String peerid, int port) throws IOException, JSONException {
+        JSONObject pingCheck = PingCheck.Ping(peerid, port);
+        if (pingCheck.getString("status").contains("Failed")) {
+            return false;
+        } else
+            return true;
+
+    }
+
+    // public static String getPing(int port) {
+    // try {
+    //
+    // String didContent = readFile(DATA_PATH + "DID.json");
+    // JSONArray didArray = new JSONArray(didContent);
+    // String myPeerID = didArray.getJSONObject(0).getString("peerid");
+    //
+    // listen(myPeerID.concat("Ping"), port);
+    // ServerSocket ss = new ServerSocket(port);
+    // FunctionsLogger.info("Get Ping Listening on port " + port + " appname " +
+    // myPeerID.concat("Ping"));
+    // Socket socket = ss.accept();
+    // BufferedReader input = new BufferedReader(new
+    // InputStreamReader(socket.getInputStream()));
+    // PrintStream output = new PrintStream(socket.getOutputStream());
+    // FunctionsLogger.info("getPing- waiting response from server");
+    // String peerID = input.readLine();
+    // if (peerID != null && peerID.contains("Qm")) {
+    // FunctionsLogger.info("getPing - Received message from server");
+    // output.println("Ping received");
+    // FunctionsLogger.debug("Ping received from sender");
+    //
+    // output.close();
+    // input.close();
+    // socket.close();
+    // ss.close();
+    // executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
+    // FunctionsLogger.info("If - Closing Sockets");
+    // return "Ping received from sender and Pong sent";
+    // }
+    // else{
+    // output.close();
+    // input.close();
+    // socket.close();
+    // ss.close();
+    // FunctionsLogger.info("Else - Closing Sockets");
+    // return "Ping received from sender but not PeerID";
+    // }
+    //
+    // } catch (Exception e) {
+    // FunctionsLogger.error("Error in client side communication", e);
+    // return "Error in client side communication";
+    // }
+    // }
+
+    public static boolean bootstrapConnect(String peerid, IPFS ipfs) {
+        FunctionsLogger.info("bootstrapConnect- entering function");
+        String bootNode;
+        boolean bootstrapConnected = false;
+
+        MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
+        FunctionsLogger.info("bootstrapConnect- multiaddress is " + multiAddress.toString());
+
+        String output = swarmConnectProcess(multiAddress);
+        try {
+            for (int i = 0; i < BOOTSTRAPS.length(); i++) {
+                FunctionsLogger.info("bootstrapConnect- Bootstrap length is " + BOOTSTRAPS.length());
+
+                if (!bootstrapConnected) {
+                    FunctionsLogger.info("bootstrapConnect- Connecting to bootstrp " + i);
+                    bootNode = String.valueOf(BOOTSTRAPS.get(i));
+                    bootNode = bootNode.substring(bootNode.length() - 46);
+                    FunctionsLogger.info("bootstrapConnect- trying to connect with " + bootNode);
+
+                    multiAddress = new MultiAddress("/ipfs/" + bootNode);
+                    output = swarmConnectProcess(multiAddress);
+                    FunctionsLogger.info("bootstrapConnect- connection status to " + bootNode + " is " + output);
+                    if (output.contains("success")) {
+                        FunctionsLogger.info("bootstrapConnect- trying to swarm connect");
+                        multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
+                        output = swarmConnectProcess(multiAddress);
+                        FunctionsLogger.info("bootstrapConnect- Swarmconnect status is " + output);
+                        if (!output.contains("success")) {
+                            IPFSNetworkLogger.debug("swarm attempt failed with " + peerid);
+                        } else {
+                            IPFSNetworkLogger.debug("swarm Connected : " + peerid);
+                            bootstrapConnected = true;
+                        }
+                    } else {
+                        IPFSNetworkLogger.debug("bootstrap connection failed! " + bootNode);
+                    }
+
+                }
+            }
+
+        } catch (Exception e) {
+            FunctionsLogger.error("Error occured during IPFS Swarm connect with bootstrap", e);
+
+        }
+
+        if (bootstrapConnected) {
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    public static boolean portCheckAndKill(int port) {
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        boolean portStatus = false;
+
+        try {
+            if (getOsName() != "Windows") {
+                portStatus = releasePorts(port);
+            } else {
+                portStatusWindows(port);
+                portStatus = portStatusWindows(port);
+            }
+        } catch (Exception e) {
+            FunctionsLogger.error("Error occured during port checking ", e);
+        }
+        return portStatus;
+
+    }
+
+    /**
+     * This function will release the port in linux based machines if the port is
+     * already in use
+     */
+    public static boolean releasePorts(int port) {
+        FunctionsLogger.info("releasePorts- ");
+        boolean releasedPort = false;
+        String processStr;
+        Process processId;
+        try {
+            processId = Runtime.getRuntime().exec("lsof -ti :" + port);
+            long currentPid = ProcessHandle.current().pid();
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(processId.getInputStream()));
+            FunctionsLogger.info("releasePorts- process " + br.readLine() + " is occupied in " + port);
+            processId = Runtime.getRuntime().exec("pgrep ipfs");
+            BufferedReader ipfsPidBr = new BufferedReader(new InputStreamReader(processId.getInputStream()));
+
+            processStr = br.readLine();
+            FunctionsLogger.info("releasePorts- Process string is " + processStr);
+            if (processStr != null) {
+                FunctionsLogger.info("releasePorts- Processstr is not null");
+                if (String.valueOf(currentPid) != processStr && ipfsPidBr.readLine() != processStr) {
+                    FunctionsLogger.info("releasePorts- jar is running on " + currentPid + " and IPFS is occupied in "
+                            + ipfsPidBr.readLine());
+                    FunctionsLogger.debug("Port " + port + " is in using, killing PID " + processStr);
+                    processId = Runtime.getRuntime().exec("kill -9 " + processStr);
+                    FunctionsLogger.info("releasePorts- killing " + processStr);
+
+                }
+            }
+            releasedPort = true;
+            FunctionsLogger.info("releasePorts- status is " + releasedPort);
+            processId.waitFor();
+            FunctionsLogger.info("releasePorts- Waitng for process");
+            processId.destroy();
+            FunctionsLogger.info("releasePorts- destorying process after waiting");
+        } catch (Exception e) {
+            FunctionsLogger.error("Exception Occured at releasePort", e);
+            e.printStackTrace();
+        }
+        return releasedPort;
+    }
+
+    public static boolean portStatusWindows(int port) {
+        FunctionsLogger.info("Starting portStatusWindows");
+        boolean releasedPort = false;
+        String processStr;
+        Process p;
+        try {
+            Runtime rt = Runtime.getRuntime();
+            Process proc = rt.exec("cmd /c netstat -ano | findstr " + port);
+            FunctionsLogger.info("Checking port status");
+            long currentPid = ProcessHandle.current().pid();
+            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            processStr = stdInput.readLine();
+            FunctionsLogger.info("Process id found for port is " + processStr + " current jar pid is " + currentPid);
+            if (processStr != null && String.valueOf(currentPid) != processStr) {
+                int index = processStr.lastIndexOf(" ");
+                String sc = processStr.substring(index, processStr.length());
+                // System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this
+                // port and retry transcation");
+                if (sc != String.valueOf(currentPid)) {
+                    FunctionsLogger.debug("Port " + port + " is locked by PID " + sc);
+                } else {
+                    FunctionsLogger.debug("Port " + port + " is locked by current jar with PID " + sc);
+                }
+            } else {
+                releasedPort = true;
+                FunctionsLogger.info("Port is unlocked");
+            }
+        } catch (Exception e) {
+            FunctionsLogger.error("Exception occured at portStatusWindows", e);
+            e.printStackTrace();
+        }
+        return releasedPort;
     }
 
 }

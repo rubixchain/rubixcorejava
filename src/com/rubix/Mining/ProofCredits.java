@@ -14,7 +14,6 @@ import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
 import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.deleteFile;
 import static com.rubix.Resources.Functions.getQuorum;
-import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.minQuorum;
 import static com.rubix.Resources.Functions.mineUpdate;
 import static com.rubix.Resources.Functions.readFile;
@@ -272,7 +271,6 @@ public class ProofCredits {
                     dataObject.put("alphaList", alphaPeersList);
                     dataObject.put("betaList", betaPeersList);
                     dataObject.put("gammaList", gammaPeersList);
-                    dataObject.put("initHash", initHash());
                     dataObject.put("qstDetails", qstObject);
 
                     InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3, alphaSize,
@@ -345,12 +343,6 @@ public class ProofCredits {
                     writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
                     deleteFile(LOGGER_PATH + "tempToken");
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", "[]", false);
-                    // genesis signatures
-                    updateJSON("add", TOKENCHAIN_PATH + tokenHash + ".json",
-                            InitiatorConsensus.quorumSignature.toString());
-                    // staking signatures
-                    updateJSON("add", TOKENCHAIN_PATH + tokenHash + ".json",
-                            InitiatorConsensus.stakingSignature.toString());
                     JSONObject temp = new JSONObject();
                     temp.put("tokenHash", tokenHash);
                     JSONArray tempArray = new JSONArray();
