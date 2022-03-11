@@ -176,23 +176,27 @@ public class APIHandler {
 
         File quorumFile = new File(qstFile);
         File minedFile = new File(mineFile);
-
+        JSONObject returnObject = new JSONObject();
         int spentCredits = 0;
         int unspentCredits = 0;
-        if(quorumFile.exists()){
-            String qFile = readFile(qstFile);
-            JSONArray qArray = new JSONArray(qFile);
-            unspentCredits = qArray.length();
+        try {
+            if(quorumFile.exists()){
+                String qFile = readFile(qstFile);
+                JSONArray qArray = new JSONArray(qFile);
+                unspentCredits = qArray.length();
+            }
+            if(minedFile.exists()){
+                String mFile = readFile(mineFile);
+                JSONArray mArray = new JSONArray(mFile);
+                spentCredits = mArray.length();
+            }
+    
+            
+            returnObject.put("spentCredits",spentCredits);
+            returnObject.put("unspentCredits",unspentCredits);
+        } catch (JSONException e) {
+            //TODO: handle exception
         }
-        if(minedFile.exists()){
-            String mFile = readFile(mineFile);
-            JSONArray mArray = new JSONArray(mFile);
-            spentCredits = mArray.length();
-        }
-
-        JSONObject returnObject = new JSONObject();
-        returnObject.put("spentCredits",spentCredits);
-        returnObject.put("unspentCredits",unspentCredits);
 
         return returnObject;
     }

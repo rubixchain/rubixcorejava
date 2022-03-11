@@ -29,6 +29,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import static com.rubix.Resources.APIHandler.addPublicData;
 import static com.rubix.Resources.IPFSNetwork.*;
@@ -1105,7 +1107,8 @@ public class Functions {
 
     public static void removeToken() {
         String bnkFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-        JSONArray bnkArray = new JSONArray(bnkFile);
+        try {
+            JSONArray bnkArray = new JSONArray(bnkFile);
         JSONObject removeToken = bnkArray.getJSONObject(0);
         bnkArray.remove(0);
         writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bnkArray.toString(), false);
@@ -1126,13 +1129,17 @@ public class Functions {
             removeArray.put(removeToken);
             writeToFile(PAYMENTS_PATH.concat("DoubleSpent.json"), removeArray.toString(), false);
         }
+        } catch (JSONException e) {
+            //TODO: handle exception
+        }
 
     }
 
     public static void tokenBank() {
         pathSet();
         String bank = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-        JSONArray bankArray = new JSONArray(bank);
+        try {
+            JSONArray bankArray = new JSONArray(bank);
 
         ArrayList<String> bankDuplicates = new ArrayList<>();
         for (int i = 0; i < bankArray.length(); i++) {
@@ -1163,6 +1170,9 @@ public class Functions {
         for (int i = 0; i < tokenFiles.size(); i++) {
             if (!bankDuplicates.contains(tokenFiles.get(i).toString()))
                 deleteFile(TOKENS_PATH.concat(tokenFiles.get(i).toString()));
+        }
+        } catch (JSONException e) {
+            //TODO: handle exception
         }
 
     }
@@ -1391,7 +1401,8 @@ public class Functions {
 
     public static void clearParts() {
         String partsFile = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
-        JSONArray partsArray = new JSONArray(partsFile);
+        try {
+            JSONArray partsArray = new JSONArray(partsFile);
         for (int i = 0; i < partsArray.length(); i++) {
             if (partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) <= 0.000 || partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) > 1.000) {
                 deleteFile(TOKENS_PATH.concat("PARTS/").concat(partsArray.getJSONObject(i).getString("tokenHash")));
@@ -1399,20 +1410,15 @@ public class Functions {
             }
         }
         writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partsArray.toString(), false);
+        } catch (JSONException e) {
+            //TODO: handle exception
+        }
     }
 
     public static void backgroundChecks() {
-        try {
-            Functions.tokenBank();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        Functions.tokenBank();
 
-        try {
-            Functions.clearParts();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        Functions.clearParts();
 
         IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
         IPFSNetwork.repo(ipfs);
@@ -1479,7 +1485,7 @@ public class Functions {
             MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
             FunctionsLogger.info("MultiAdrress concated " + multiAddress + "|||");
             boolean output = swarmConnectP2P(peerid, ipfs);
-           
+            FunctionsLogger.info("Swarm connect process response is " + output);
             if (output) {
                 swarmConnectedStatus = true;
                 FunctionsLogger.debug("Swarm is already connected");
@@ -1496,12 +1502,20 @@ public class Functions {
     }
 
 
-    public static boolean ping(String peerid, int port) throws IOException {
-        JSONObject pingCheck = PingCheck.Ping(peerid, port);
+    public static boolean ping(String peerid, int port) {
+        boolean result=false;
+        try {
+            JSONObject pingCheck = PingCheck.Ping(peerid, port);
         if (pingCheck.getString("status").contains("Failed")) {
-            return false;
+            result = false;
         } else
-            return true;
+            result = true;
+        } catch (JSONException e) {
+            //TODO: handle exception
+        } catch (IOException e) {
+            //TODO: handle exception
+        }
+         return result;
 
     }
 
@@ -1664,35 +1678,52 @@ public class Functions {
     public static boolean portStatusWindows(int port) {
         FunctionsLogger.info("Starting portStatusWindows");
         boolean releasedPort = false;
-        String processStr;
+        String portProcessStr;
         Process p;
+        ArrayList<Integer> pidTree = new ArrayList<Integer>();
+        ArrayList<Integer> portPidTree = new ArrayList<Integer>();
         try {
             Runtime rt = Runtime.getRuntime();
-            Process proc = rt.exec("cmd /c netstat -ano | findstr " + port);
-            FunctionsLogger.info("Checking port status");
-            long currentPid = ProcessHandle.current().pid();
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            processStr = stdInput.readLine();
-            FunctionsLogger.info("Process id found for port is " + processStr + " current jar pid is " + currentPid);
-            if (processStr != null && String.valueOf(currentPid) != processStr) {
-                int index = processStr.lastIndexOf(" ");
-                String sc = processStr.substring(index, processStr.length());
-                //System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this port and retry transcation");
-                if (sc != String.valueOf(currentPid)) {
-                    FunctionsLogger.debug("Port " + port + " is locked by PID " + sc);
-                } else {
-                    FunctionsLogger.debug("Port " + port + " is locked by current jar with PID " + sc);
-                }
+            Process getJarPid = rt.exec("cmd /c netstat -ano | findstr 1898");
+            BufferedReader getJarPidBR = new BufferedReader(new InputStreamReader(getJarPid.getInputStream()));
+            String getJarPidline;
+            while ((getJarPidline = getJarPidBR.readLine()) != null) {
+                String[] getJarPidTree = getJarPidline.split("\\s+");
+                int temp = Integer.parseInt(getJarPidTree[getJarPidTree.length - 1]);
+                pidTree.add(temp);
+            }
+
+            FunctionsLogger.info("PIDs occupied by Rubix.jar are " + pidTree);
+
+            Set<Integer> pidSet = new LinkedHashSet<Integer>(pidTree);
+            FunctionsLogger.info("Pid occupied by port 1898 is pidSet" + pidSet);
+            Process getPortPid = rt.exec("cmd /c netstat -ano | findstr " + port);
+            BufferedReader getPortPidBr = new BufferedReader(new InputStreamReader(getPortPid.getInputStream()));
+            String getPortPidLine;
+            while ((getPortPidLine = getPortPidBr.readLine()) != null) {
+                String[] getPortPidTree = getPortPidLine.split("\\s+");
+                int temp = Integer.parseInt(getPortPidTree[getPortPidTree.length - 1]);
+                portPidTree.add(temp);
+            }
+
+            Set<Integer> pidToKill = new LinkedHashSet<Integer>(portPidTree);
+            FunctionsLogger.info("Pid used by port " + port + "is " + pidToKill);
+            pidToKill.removeAll(pidSet);
+            pidToKill.remove(0);
+            FunctionsLogger.info("Pid using port " + port + " but not in 1898" + pidToKill);
+            if (pidToKill.size() > 0) {
+                System.out.println("Port " + port + " is occupied by PIDs" + pidToKill);
             } else {
                 releasedPort = true;
-                FunctionsLogger.info("Port is unlocked");
             }
+
         } catch (Exception e) {
             FunctionsLogger.error("Exception occured at portStatusWindows", e);
-            e.printStackTrace();
         }
         return releasedPort;
+
     }
+
 
 
 }
