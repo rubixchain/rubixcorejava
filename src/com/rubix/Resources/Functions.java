@@ -1622,7 +1622,7 @@ public class Functions {
         boolean portStatus = false;
 
         try {
-            if (getOsName() != "Windows") {
+            if (getOsName().toLowerCase().contains("windows")) {
                 portStatus = releasePorts(port);
             } else {
                 portStatusWindows(port);
