@@ -1,22 +1,24 @@
 package com.rubix.Resources;
 
-import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Ping.PingCheck;
-import io.ipfs.api.IPFS;
-import io.ipfs.multiaddr.MultiAddress;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import static com.rubix.Resources.APIHandler.addPublicData;
+import static com.rubix.Resources.IPFSNetwork.IPFSNetworkLogger;
+import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
+import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.forwardCheck;
+import static com.rubix.Resources.IPFSNetwork.listen;
+import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
+import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
-import java.net.Socket;
-import java.net.SocketException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -29,10 +31,21 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
-import static com.rubix.Resources.APIHandler.addPublicData;
-import static com.rubix.Resources.IPFSNetwork.*;
+import javax.imageio.ImageIO;
 
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
+
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
 
 public class Functions {
 
@@ -43,7 +56,8 @@ public class Functions {
     public static String LOGGER_PATH = "";
     public static String WALLET_DATA_PATH = "";
     public static String PAYMENTS_PATH = "";
-    public static int RECEIVER_PORT, GOSSIP_SENDER, GOSSIP_RECEIVER, QUORUM_PORT, SENDER2Q1, SENDER2Q2, SENDER2Q3, SENDER2Q4, SENDER2Q5, SENDER2Q6, SENDER2Q7;
+    public static int RECEIVER_PORT, GOSSIP_SENDER, GOSSIP_RECEIVER, QUORUM_PORT, SENDER2Q1, SENDER2Q2, SENDER2Q3,
+            SENDER2Q4, SENDER2Q5, SENDER2Q6, SENDER2Q7;
     public static int QUORUM_COUNT;
     public static int SEND_PORT;
     public static int IPFS_PORT;
@@ -122,12 +136,10 @@ public class Functions {
 
             BOOTSTRAPS = pathsArray.getJSONArray(5);
 
-
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
-
 
     public static void nodeData(String did, String wid, IPFS ipfs) throws IOException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -202,9 +214,9 @@ public class Functions {
         return lineID;
     }
 
-
     /**
-     * This method calculates different types of hashes as mentioned in the passed parameters for the mentioned message
+     * This method calculates different types of hashes as mentioned in the passed
+     * parameters for the mentioned message
      *
      * @param message   Input string to be hashed
      * @param algorithm Specification of the algorithm used for hashing
@@ -271,12 +283,12 @@ public class Functions {
         StringBuilder outputHexString = new StringBuilder();
         for (byte b : inputHash) {
             String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) outputHexString.append('0');
+            if (hex.length() == 1)
+                outputHexString.append('0');
             outputHexString.append(hex);
         }
         return outputHexString.toString();
     }
-
 
     /**
      * This method returns the content of the file passed to it
@@ -299,14 +311,15 @@ public class Functions {
         return fileContent.toString();
     }
 
-
     /**
      * This method writes the mentioned data into the file passed to it
-     * This also allows to take a decision on whether or not to append the data to the already existing content in the file
+     * This also allows to take a decision on whether or not to append the data to
+     * the already existing content in the file
      *
      * @param filePath     Location of the file to be read and written into
      * @param data         Data to be added
-     * @param appendStatus Decides whether or not to append the new data into the already existing data
+     * @param appendStatus Decides whether or not to append the new data into the
+     *                     already existing data
      */
 
     public synchronized static void writeToFile(String filePath, String data, Boolean appendStatus) {
@@ -346,7 +359,6 @@ public class Functions {
         String p1 = intArrayToStr(p1Sign);
         return p1;
     }
-
 
     /**
      * This function will sign on JSON data with private share
@@ -391,7 +403,6 @@ public class Functions {
         }
 
     }
-
 
     /**
      * This function converts any integer to its binary form
@@ -479,7 +490,8 @@ public class Functions {
     }
 
     /**
-     * This method gets you a required data from a JSON file with a tag to be compared with
+     * This method gets you a required data from a JSON file with a tag to be
+     * compared with
      *
      * @param filePath Location of the JSON file
      * @param get      Data to be fetched from the file
@@ -516,7 +528,8 @@ public class Functions {
     }
 
     /**
-     * This function calculates the minimum number of quorum peers required for consensus to work
+     * This function calculates the minimum number of quorum peers required for
+     * consensus to work
      *
      * @return Minimum number of quorum count for consensus to work
      */
@@ -525,14 +538,14 @@ public class Functions {
     }
 
     /**
-     * This function calculates the minimum number of quorum peers required for consensus to work
+     * This function calculates the minimum number of quorum peers required for
+     * consensus to work
      *
      * @return Minimum number of quorum count for consensus to work
      */
     public static int minQuorum(int count) {
         return (((count - 1) / 3) * 2) + 1;
     }
-
 
     /**
      * This method checks if Quorum is available for consensus
@@ -572,7 +585,6 @@ public class Functions {
      * @param ipfs   ipfs instance
      */
 
-
     public static void QuorumSwarmConnect(JSONArray quorum, IPFS ipfs) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
@@ -591,14 +603,12 @@ public class Functions {
 
     }
 
-
     /**
      * This method identifies the Peer ID of the system by IPFS during installation
      *
      * @param filePath Location of the file in which your IPFS Peer ID is stored
      * @return Your system's Peer ID assigned by IPFS
      */
-
 
     public static String getPeerID(String filePath) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -617,7 +627,6 @@ public class Functions {
         return peerid;
     }
 
-
     public static int[] getPrivatePosition(int[] positions, int[] privateArray) {
         int[] PrivatePosition = new int[positions.length];
         for (int k = 0; k < positions.length; k++) {
@@ -628,7 +637,8 @@ public class Functions {
         return PrivatePosition;
     }
 
-    public static JSONObject randomPositions(String role, String hash, int numberOfPositions, int[] pvt1) throws JSONException {
+    public static JSONObject randomPositions(String role, String hash, int numberOfPositions, int[] pvt1)
+            throws JSONException {
 
         int u = 0, l = 0, m = 0;
         int[] hashCharacters = new int[256];
@@ -685,18 +695,19 @@ public class Functions {
      * @param positionsCount  Number of positions required
      * @return Extended array of positions
      */
-//    public static int[] finalPositions(int[] randomPositions, int positionsCount) {
-//        int[] finalPositions = new int[positionsCount * 64];
-//        int u = 0;
-//        for (int k = 0; k < positionsCount; k++) {
-//            for (int p = 0; p < 64; p++) {
-//                finalPositions[u] = randomPositions[k];
-//                randomPositions[k]++;
-//                u++;
-//            }
-//        }
-//        return finalPositions;
-//    }
+    // public static int[] finalPositions(int[] randomPositions, int positionsCount)
+    // {
+    // int[] finalPositions = new int[positionsCount * 64];
+    // int u = 0;
+    // for (int k = 0; k < positionsCount; k++) {
+    // for (int p = 0; p < 64; p++) {
+    // finalPositions[u] = randomPositions[k];
+    // randomPositions[k]++;
+    // u++;
+    // }
+    // }
+    // return finalPositions;
+    // }
 
     /**
      * This function deletes the mentioned file
@@ -714,41 +725,43 @@ public class Functions {
 
     }
 
-
-//    /**
-//     * This functions picks the required number of quorum members from the mentioned file
-//     *
-//     * @param filePath Location of the file
-//     * @param hash     Data from which positions are chosen
-//     * @return List of chosen members from the file
-//     */
-//    public static ArrayList<String> quorumChooser(String filePath, String hash) {
-//        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-//        ArrayList<String> quorumList = new ArrayList();
-//        try {
-//            String fileContent = readFile(filePath);
-//            JSONArray blockHeight = new JSONArray(fileContent);
-//
-//            int[] hashCharacters = new int[256];
-//            var randomPositions = new ArrayList<Integer>();
-//            HashSet<Integer> positionSet = new HashSet<>();
-//            for (int k = 0; positionSet.size() != 7; k++) {
-//                hashCharacters[k] = Character.getNumericValue(hash.charAt(k));
-//                randomPositions.add((((2402 + hashCharacters[k]) * 2709) + ((k + 2709) + hashCharacters[(k)])) % blockHeight.length());
-//                positionSet.add(randomPositions.get(k));
-//            }
-//
-//            for (Integer integer : positionSet)
-//                quorumList.add(blockHeight.getJSONObject(integer).getString("peer-id"));
-//        } catch (JSONException e) {
-//            FunctionsLogger.error("JSON Exception Occurred", e);
-//            e.printStackTrace();
-//        }
-//        return quorumList;
-//    }
+    // /**
+    // * This functions picks the required number of quorum members from the
+    // mentioned file
+    // *
+    // * @param filePath Location of the file
+    // * @param hash Data from which positions are chosen
+    // * @return List of chosen members from the file
+    // */
+    // public static ArrayList<String> quorumChooser(String filePath, String hash) {
+    // PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+    // ArrayList<String> quorumList = new ArrayList();
+    // try {
+    // String fileContent = readFile(filePath);
+    // JSONArray blockHeight = new JSONArray(fileContent);
+    //
+    // int[] hashCharacters = new int[256];
+    // var randomPositions = new ArrayList<Integer>();
+    // HashSet<Integer> positionSet = new HashSet<>();
+    // for (int k = 0; positionSet.size() != 7; k++) {
+    // hashCharacters[k] = Character.getNumericValue(hash.charAt(k));
+    // randomPositions.add((((2402 + hashCharacters[k]) * 2709) + ((k + 2709) +
+    // hashCharacters[(k)])) % blockHeight.length());
+    // positionSet.add(randomPositions.get(k));
+    // }
+    //
+    // for (Integer integer : positionSet)
+    // quorumList.add(blockHeight.getJSONObject(integer).getString("peer-id"));
+    // } catch (JSONException e) {
+    // FunctionsLogger.error("JSON Exception Occurred", e);
+    // e.printStackTrace();
+    // }
+    // return quorumList;
+    // }
 
     /**
-     * This function is to be initially called to setup the environment of your project
+     * This function is to be initially called to setup the environment of your
+     * project
      */
     public static void launch() {
         pathSet();
@@ -794,7 +807,8 @@ public class Functions {
         File tokenChainsFolder = new File(TOKENCHAIN_PATH);
         File walletDataFolder = new File(WALLET_DATA_PATH);
 
-        if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists() || !walletDataFolder.exists()) {
+        if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists()
+                || !walletDataFolder.exists()) {
             dataFolder.delete();
             loggerFolder.delete();
             tokenChainsFolder.delete();
@@ -871,7 +885,6 @@ public class Functions {
         return token;
     }
 
-
     public static String toBinary(int x, int len) {
         if (len > 0) {
             return String.format("%" + len + "s",
@@ -908,7 +921,6 @@ public class Functions {
         return localDateFormat.parse(simpleDateFormat.format(new Date()));
     }
 
-
     /**
      * This method is used to update quorum credits in server
      *
@@ -919,8 +931,8 @@ public class Functions {
      * @return mined token
      */
 
-
-    public static void updateQuorum(JSONArray quorumArray, JSONArray signedQuorumList, boolean status, int type) throws IOException, JSONException {
+    public static void updateQuorum(JSONArray quorumArray, JSONArray signedQuorumList, boolean status, int type)
+            throws IOException, JSONException {
 
         if (type == 1) {
             String urlQuorumUpdate = ADVISORY_IP + "/updateQuorum";
@@ -962,7 +974,6 @@ public class Functions {
         }
     }
 
-
     /**
      * This method is used get getquorum from advisory node
      *
@@ -974,8 +985,8 @@ public class Functions {
      * @return JSONArray of quorum nodes
      */
 
-
-    public static JSONArray getQuorum(String betaHash, String gammaHash, String senderDidIpfsHash, String receiverDidIpfsHash, int tokenslength) throws IOException, JSONException {
+    public static JSONArray getQuorum(String betaHash, String gammaHash, String senderDidIpfsHash,
+            String receiverDidIpfsHash, int tokenslength) throws IOException, JSONException {
         JSONArray quorumArray;
         String urlQuorumPick = ADVISORY_IP + "/getQuorum";
         URL objQuorumPick = new URL(urlQuorumPick);
@@ -1193,9 +1204,11 @@ public class Functions {
                     Double availableParts = 0.000D, senderCount = 0.000D, receiverCount = 0.000D;
                     for (int k = 0; k < tokenChainArray.length(); k++) {
                         if (tokenChainArray.getJSONObject(k).has("role")) {
-                            if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender") && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
+                            if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender")
+                                    && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
                                 senderCount += tokenChainArray.getJSONObject(k).getDouble("amount");
-                            } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver") && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
+                            } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver")
+                                    && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
                                 receiverCount += tokenChainArray.getJSONObject(k).getDouble("amount");
                             }
                         }
@@ -1208,7 +1221,6 @@ public class Functions {
             parts = formatAmount(parts);
             balance = balance + parts;
 
-
             int count = 0;
             File shiftedFile = new File(PAYMENTS_PATH.concat("ShiftedTokens.json"));
             if (shiftedFile.exists()) {
@@ -1217,7 +1229,6 @@ public class Functions {
                 ArrayList<String> arrayTokens = new ArrayList<>();
                 for (int i = 0; i < shiftedArray.length(); i++)
                     arrayTokens.add(shiftedArray.getString(i));
-
 
                 for (int i = 0; i < partTokensArray.length(); i++) {
                     if (!arrayTokens.contains(partTokensArray.getJSONObject(i).getString("tokenHash")))
@@ -1246,9 +1257,11 @@ public class Functions {
         Double senderCount = 0.000D, receiverCount = 0.000D;
         for (int k = 0; k < tokenChainArray.length(); k++) {
             if (tokenChainArray.getJSONObject(k).has("role")) {
-                if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender") && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
+                if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender")
+                        && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
                     senderCount += tokenChainArray.getJSONObject(k).getDouble("amount");
-                } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver") && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
+                } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver")
+                        && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
                     receiverCount += tokenChainArray.getJSONObject(k).getDouble("amount");
                 }
             }
@@ -1264,7 +1277,6 @@ public class Functions {
         availableParts = formatAmount(availableParts);
         return availableParts;
     }
-
 
     public static Double getBalance() throws JSONException {
         pathSet();
@@ -1284,7 +1296,6 @@ public class Functions {
             balance = balance + value;
         }
 
-
         File partsFile = new File(PAYMENTS_PATH + "PartsToken.json");
         if (partsFile.exists()) {
             String PART_TOKEN_CHAIN_PATH = TOKENCHAIN_PATH.concat("/PARTS/");
@@ -1303,9 +1314,11 @@ public class Functions {
                     Double availableParts = 0.000D, senderCount = 0.000D, receiverCount = 0.000D;
                     for (int k = 0; k < tokenChainArray.length(); k++) {
                         if (tokenChainArray.getJSONObject(k).has("role")) {
-                            if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender") && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
+                            if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender")
+                                    && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
                                 senderCount += tokenChainArray.getJSONObject(k).getDouble("amount");
-                            } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver") && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
+                            } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver")
+                                    && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
                                 receiverCount += tokenChainArray.getJSONObject(k).getDouble("amount");
                             }
                         }
@@ -1328,7 +1341,6 @@ public class Functions {
                 for (int i = 0; i < shiftedArray.length(); i++)
                     arrayTokens.add(shiftedArray.getString(i));
 
-
                 for (int i = 0; i < partTokensArray.length(); i++) {
                     if (!arrayTokens.contains(partTokensArray.getJSONObject(i).getString("tokenHash")))
                         count++;
@@ -1339,11 +1351,9 @@ public class Functions {
             balance = balance - count;
         }
 
-
         balance = formatAmount(balance);
         return balance;
     }
-
 
     public static Double partTokenBalance(String tokenHash) throws JSONException {
         pathSet();
@@ -1358,9 +1368,11 @@ public class Functions {
         Double senderCount = 0.000D, receiverCount = 0.000D;
         for (int k = 0; k < tokenChainArray.length(); k++) {
             if (tokenChainArray.getJSONObject(k).has("role")) {
-                if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender") && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
+                if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender")
+                        && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
                     senderCount += tokenChainArray.getJSONObject(k).getDouble("amount");
-                } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver") && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
+                } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver")
+                        && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
                     receiverCount += tokenChainArray.getJSONObject(k).getDouble("amount");
                 }
             }
@@ -1393,7 +1405,8 @@ public class Functions {
         String partsFile = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
         JSONArray partsArray = new JSONArray(partsFile);
         for (int i = 0; i < partsArray.length(); i++) {
-            if (partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) <= 0.000 || partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) > 1.000) {
+            if (partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) <= 0.000
+                    || partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) > 1.000) {
                 deleteFile(TOKENS_PATH.concat("PARTS/").concat(partsArray.getJSONObject(i).getString("tokenHash")));
                 partsArray.remove(i);
             }
@@ -1420,7 +1433,9 @@ public class Functions {
         addPublicData();
 
     }
+
     public static String sanityMessage;
+
     public static boolean sanityCheck(String peerid, IPFS ipfs, int port) throws IOException {
         FunctionsLogger.info("Entering SanityCheck");
         boolean sanityCheckErrorFlag = true;
@@ -1469,9 +1484,9 @@ public class Functions {
             }
         }
 
-
         return sanityCheckErrorFlag;
     }
+
     public static boolean checkIPFSStatus(String peerid, IPFS ipfs) {
         FunctionsLogger.info("Entering checkIPFSStatus");
         boolean swarmConnectedStatus = false;
@@ -1479,7 +1494,7 @@ public class Functions {
             MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
             FunctionsLogger.info("MultiAdrress concated " + multiAddress + "|||");
             boolean output = swarmConnectP2P(peerid, ipfs);
-            FunctionsLogger.info("Swarm connect process response is " + output);
+
             if (output) {
                 swarmConnectedStatus = true;
                 FunctionsLogger.debug("Swarm is already connected");
@@ -1495,7 +1510,6 @@ public class Functions {
         return swarmConnectedStatus;
     }
 
-
     public static boolean ping(String peerid, int port) throws IOException {
         JSONObject pingCheck = PingCheck.Ping(peerid, port);
         if (pingCheck.getString("status").contains("Failed")) {
@@ -1505,48 +1519,50 @@ public class Functions {
 
     }
 
-//    public static String getPing(int port) {
-//        try {
-//
-//            String didContent = readFile(DATA_PATH + "DID.json");
-//            JSONArray didArray = new JSONArray(didContent);
-//            String myPeerID = didArray.getJSONObject(0).getString("peerid");
-//
-//            listen(myPeerID.concat("Ping"), port);
-//            ServerSocket ss = new ServerSocket(port);
-//            FunctionsLogger.info("Get Ping Listening on port " + port + " appname " + myPeerID.concat("Ping"));
-//            Socket socket = ss.accept();
-//            BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//            PrintStream output = new PrintStream(socket.getOutputStream());
-//            FunctionsLogger.info("getPing- waiting response from server");
-//            String peerID = input.readLine();
-//            if (peerID != null && peerID.contains("Qm")) {
-//                FunctionsLogger.info("getPing -  Received message from server");
-//                output.println("Ping received");
-//                FunctionsLogger.debug("Ping received from sender");
-//
-//                output.close();
-//                input.close();
-//                socket.close();
-//                ss.close();
-//                executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
-//                FunctionsLogger.info("If - Closing Sockets");
-//                return "Ping received from sender and Pong sent";
-//            }
-//            else{
-//                output.close();
-//                input.close();
-//                socket.close();
-//                ss.close();
-//                FunctionsLogger.info("Else - Closing Sockets");
-//                return "Ping received from sender but not PeerID";
-//            }
-//
-//        } catch (Exception e) {
-//            FunctionsLogger.error("Error in client side communication", e);
-//            return "Error in client side communication";
-//        }
-//    }
+    // public static String getPing(int port) {
+    // try {
+    //
+    // String didContent = readFile(DATA_PATH + "DID.json");
+    // JSONArray didArray = new JSONArray(didContent);
+    // String myPeerID = didArray.getJSONObject(0).getString("peerid");
+    //
+    // listen(myPeerID.concat("Ping"), port);
+    // ServerSocket ss = new ServerSocket(port);
+    // FunctionsLogger.info("Get Ping Listening on port " + port + " appname " +
+    // myPeerID.concat("Ping"));
+    // Socket socket = ss.accept();
+    // BufferedReader input = new BufferedReader(new
+    // InputStreamReader(socket.getInputStream()));
+    // PrintStream output = new PrintStream(socket.getOutputStream());
+    // FunctionsLogger.info("getPing- waiting response from server");
+    // String peerID = input.readLine();
+    // if (peerID != null && peerID.contains("Qm")) {
+    // FunctionsLogger.info("getPing - Received message from server");
+    // output.println("Ping received");
+    // FunctionsLogger.debug("Ping received from sender");
+    //
+    // output.close();
+    // input.close();
+    // socket.close();
+    // ss.close();
+    // executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
+    // FunctionsLogger.info("If - Closing Sockets");
+    // return "Ping received from sender and Pong sent";
+    // }
+    // else{
+    // output.close();
+    // input.close();
+    // socket.close();
+    // ss.close();
+    // FunctionsLogger.info("Else - Closing Sockets");
+    // return "Ping received from sender but not PeerID";
+    // }
+    //
+    // } catch (Exception e) {
+    // FunctionsLogger.error("Error in client side communication", e);
+    // return "Error in client side communication";
+    // }
+    // }
 
     public static boolean bootstrapConnect(String peerid, IPFS ipfs) {
         FunctionsLogger.info("bootstrapConnect- entering function");
@@ -1620,7 +1636,8 @@ public class Functions {
     }
 
     /**
-     * This function will release the port in linux based machines if the port is already in use
+     * This function will release the port in linux based machines if the port is
+     * already in use
      */
     public static boolean releasePorts(int port) {
         FunctionsLogger.info("releasePorts- ");
@@ -1641,7 +1658,8 @@ public class Functions {
             if (processStr != null) {
                 FunctionsLogger.info("releasePorts- Processstr is not null");
                 if (String.valueOf(currentPid) != processStr && ipfsPidBr.readLine() != processStr) {
-                    FunctionsLogger.info("releasePorts- jar is running on " + currentPid + " and IPFS is occupied in " + ipfsPidBr.readLine());
+                    FunctionsLogger.info("releasePorts- jar is running on " + currentPid + " and IPFS is occupied in "
+                            + ipfsPidBr.readLine());
                     FunctionsLogger.debug("Port " + port + " is in using, killing PID " + processStr);
                     processId = Runtime.getRuntime().exec("kill -9 " + processStr);
                     FunctionsLogger.info("releasePorts- killing " + processStr);
@@ -1664,36 +1682,50 @@ public class Functions {
     public static boolean portStatusWindows(int port) {
         FunctionsLogger.info("Starting portStatusWindows");
         boolean releasedPort = false;
-        String processStr;
+        String portProcessStr;
         Process p;
+        ArrayList<Integer> pidTree = new ArrayList<Integer>();
+        ArrayList<Integer> portPidTree = new ArrayList<Integer>();
         try {
             Runtime rt = Runtime.getRuntime();
-            Process proc = rt.exec("cmd /c netstat -ano | findstr " + port);
-            FunctionsLogger.info("Checking port status");
-            long currentPid = ProcessHandle.current().pid();
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            processStr = stdInput.readLine();
-            FunctionsLogger.info("Process id found for port is " + processStr + " current jar pid is " + currentPid);
-            if (processStr != null && String.valueOf(currentPid) != processStr) {
-                int index = processStr.lastIndexOf(" ");
-                String sc = processStr.substring(index, processStr.length());
-                //System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this port and retry transcation");
-                if (sc != String.valueOf(currentPid)) {
-                    FunctionsLogger.debug("Port " + port + " is locked by PID " + sc);
-                } else {
-                    FunctionsLogger.debug("Port " + port + " is locked by current jar with PID " + sc);
-                }
+            Process getJarPid = rt.exec("cmd /c netstat -ano | findstr 1898");
+            BufferedReader getJarPidBR = new BufferedReader(new InputStreamReader(getJarPid.getInputStream()));
+            String getJarPidline;
+            while ((getJarPidline = getJarPidBR.readLine()) != null) {
+                String[] getJarPidTree = getJarPidline.split("\\s+");
+                int temp = Integer.parseInt(getJarPidTree[getJarPidTree.length - 1]);
+                pidTree.add(temp);
+            }
+
+            FunctionsLogger.info("PIDs occupied by Rubix.jar are " + pidTree);
+
+            Set<Integer> pidSet = new LinkedHashSet<Integer>(pidTree);
+            FunctionsLogger.info("Pid occupied by port 1898 is pidSet" + pidSet);
+            Process getPortPid = rt.exec("cmd /c netstat -ano | findstr " + port);
+            BufferedReader getPortPidBr = new BufferedReader(new InputStreamReader(getPortPid.getInputStream()));
+            String getPortPidLine;
+            while ((getPortPidLine = getPortPidBr.readLine()) != null) {
+                String[] getPortPidTree = getPortPidLine.split("\\s+");
+                int temp = Integer.parseInt(getPortPidTree[getPortPidTree.length - 1]);
+                portPidTree.add(temp);
+            }
+
+            Set<Integer> pidToKill = new LinkedHashSet<Integer>(portPidTree);
+            FunctionsLogger.info("Pid used by port " + port + "is " + pidToKill);
+            pidToKill.removeAll(pidSet);
+            pidToKill.remove(0);
+            FunctionsLogger.info("Pid using port " + port + " but not in 1898" + pidToKill);
+            if (pidToKill.size() > 0) {
+                System.out.println("Port " + port + " is occupied by PIDs" + pidToKill);
             } else {
                 releasedPort = true;
-                FunctionsLogger.info("Port is unlocked");
             }
+
         } catch (Exception e) {
             FunctionsLogger.error("Exception occured at portStatusWindows", e);
-            e.printStackTrace();
         }
         return releasedPort;
+
     }
 
-
 }
-

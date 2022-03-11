@@ -583,17 +583,17 @@ public class TokenSender {
                     TokenSenderLogger.info("Multiple Owners for " + doubleSpent);
                     APIResponse.put("message", "Multiple Owners for " + doubleSpent);
                     APIResponse.put("Owners", ownersArray);
-//                    removeToken();
+                    removeToken();
                     break;
                 case "421":
                     TokenSenderLogger.info("Consensus ID not unique");
                     APIResponse.put("message", "Consensus ID not unique");
-//                    removeToken();
+                    removeToken();
                     break;
                 case "422":
                     TokenSenderLogger.info("Tokens Not Verified");
                     APIResponse.put("message", "Tokens Not Verified");
-//                    removeToken();
+                    removeToken();
                     break;
                 case "423":
                     TokenSenderLogger.info("Broken Cheque Chain");

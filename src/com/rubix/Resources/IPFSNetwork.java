@@ -569,21 +569,23 @@ public class IPFSNetwork {
                       output = swarmConnectProcess(multiAddress);
                       if (!output.contains("success")) {
                         IPFSNetworkLogger.debug("swarm attempt failed with " + peerid);
+                        swarmConnected = false;
                       } else {
                         IPFSNetworkLogger.debug("swarm Connected : " + peerid);
                         swarmConnected = true;
                       } 
                     } else {
                       IPFSNetworkLogger.debug("bootstrap connection failed! " + bootNode);
+                      swarmConnected = false;
                     } 
 
                 }
             }
+        }else {
+        	swarmConnected = true;
         }
-        if(output.contains("success"))
-            return true;
-        else
-            return false;
+        return swarmConnected;
+
     }
 
 }
