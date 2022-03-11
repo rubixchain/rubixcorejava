@@ -90,6 +90,8 @@ public class QuorumPingReceive {
 
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
         return APIResponse.toString();
     }
