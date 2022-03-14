@@ -76,11 +76,11 @@ public class Functions {
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
     public static String buildVersion() throws IOException {
-        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        initPath = initPath.split("\\.jar")[0];
-        initPath = initPath + ".jar";
-        String initHash = calculateFileHash(initPath, "MD5");
-        return initHash;
+        String jarPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        jarPath = jarPath.split("\\.jar")[0];
+        jarPath = jarPath + ".jar";
+        String hash = calculateFileHash(jarPath, "MD5");
+        return hash;
     }
 
     public static String calculateFileHash(String filePath, String algorithm) {
@@ -1172,8 +1172,8 @@ public class Functions {
         String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         initPath = initPath.split("\\.jar")[0];
         initPath = initPath + ".jar";
-        String initHash = calculateFileHash(initPath, "SHA3-256");
-        return initHash;
+        String hash = calculateFileHash(initPath, "SHA3-256");
+        return hash;
     }
 
     public static int checkHeartBeat(String peerId, String appName) {

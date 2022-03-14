@@ -3,6 +3,7 @@ package com.rubix.Consensus;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
 import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.getSignFromShares;
+import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.minQuorum;
 
 import java.io.IOException;
@@ -39,12 +40,12 @@ public class InitiatorProcedure {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         JSONObject dataObject = new JSONObject(data);
+        String initHash = null;
         String tid = dataObject.getString("tid");
         String message = dataObject.getString("message");
         String receiverDidIpfs = dataObject.getString("receiverDidIpfs");
         String pvt = dataObject.getString("pvt");
         String senderDidIpfs = dataObject.getString("senderDidIpfs");
-        String initHash = dataObject.getString("initHash");
         String token = dataObject.getString("token");
         JSONArray alphaList = dataObject.getJSONArray("alphaList");
         JSONArray betaList = dataObject.getJSONArray("betaList");
@@ -52,6 +53,12 @@ public class InitiatorProcedure {
 
         String authSenderByQuorumHash = calculateHash(message, "SHA3-256");
         String authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
+
+        try {
+            initHash = initHash();
+        } catch (IOException e1) {
+            InitiatorProcedureLogger.debug("Payload Split Success");
+        }
 
         try {
             payload.put("sender", senderDidIpfs);

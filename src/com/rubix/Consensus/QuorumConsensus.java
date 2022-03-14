@@ -331,7 +331,7 @@ public class QuorumConsensus implements Runnable {
 
                         // ! match initiator initHash with quorum. if didn't match, reject
 
-                        if (!initHash.equals(initHash())) {
+                        if ((!initHash.equals(initHash())) && (initHash != null)) {
                             QuorumConsensusLogger.debug("Initiator Hash Mismatch");
                             out.println("443");
                             socket.close();
