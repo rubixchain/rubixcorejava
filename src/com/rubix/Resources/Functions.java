@@ -78,6 +78,9 @@ public class Functions {
     public static String buildVersion() throws IOException {
         String jarPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         jarPath = jarPath.split("\\.jar")[0];
+        jarPath = jarPath.split("file:", 2)[1];
+        // trim first part of the string till first "/"
+
         jarPath = jarPath + ".jar";
         String hash = calculateFileHash(jarPath, "MD5");
         return hash;
@@ -88,17 +91,21 @@ public class Functions {
         try {
             MessageDigest digest = MessageDigest.getInstance(algorithm);
             System.out.println("File path: " + filePath);
-            System.out.println("File Hashing...");
-            FileInputStream fis = new FileInputStream(filePath);
-            System.out.println("File read OK");
-            byte[] dataBytes = new byte[1024];
-            int nread = 0;
-            while ((nread = fis.read(dataBytes)) != -1) {
-                digest.update(dataBytes, 0, nread);
+
+            // check if file exists at the filePath
+            File file = new File(filePath);
+            if (file.exists()) {
+                System.out.println("File Hashing...");
+                FileInputStream fis = new FileInputStream(file);
+                byte[] byteArray = new byte[1024];
+                int bytesCount = 0;
+                while ((bytesCount = fis.read(byteArray)) != -1) {
+                    digest.update(byteArray, 0, bytesCount);
+                }
+                byte[] hashBytes = digest.digest();
+                hash = bytesToHex(hashBytes);
+                fis.close();
             }
-            byte[] hashBytes = digest.digest();
-            hash = bytesToHex(hashBytes);
-            fis.close();
         } catch (NoSuchAlgorithmException | IOException e) {
             FunctionsLogger.error("Invalid Cryptographic Algorithm", e);
             e.printStackTrace();
@@ -1171,6 +1178,7 @@ public class Functions {
     public static String initHash() throws IOException {
         String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         initPath = initPath.split("\\.jar")[0];
+        initPath = initPath.split("file:", 2)[1];
         initPath = initPath + ".jar";
         String hash = calculateFileHash(initPath, "SHA3-256");
         return hash;
