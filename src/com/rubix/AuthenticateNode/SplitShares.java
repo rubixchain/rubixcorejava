@@ -1,16 +1,15 @@
 package com.rubix.AuthenticateNode;
 
-
-import io.ipfs.api.IPFS;
-import org.apache.log4j.Logger;
-import org.json.JSONArray;
+import static com.rubix.Resources.Functions.IPFS_PORT;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import static com.rubix.Resources.Functions.IPFS_PORT;
+import org.apache.log4j.Logger;
+import org.json.JSONArray;
 
+import io.ipfs.api.IPFS;
 
 public class SplitShares {
     public static Logger SplitSharesLogger = Logger.getLogger(SplitShares.class);
@@ -20,9 +19,9 @@ public class SplitShares {
     public static JSONArray initiate;
     static JSONArray arr = new JSONArray();
 
-
     /**
-     * This is the main method to be called for converting the secret into binary and creating shares
+     * This is the main method to be called for converting the secret into binary
+     * and creating shares
      *
      * @param decentralizedID Secret string
      * @return Array of shares
@@ -36,5 +35,3 @@ public class SplitShares {
     }
 
 }
-
-

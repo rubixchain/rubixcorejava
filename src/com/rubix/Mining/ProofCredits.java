@@ -17,6 +17,7 @@ import static com.rubix.Resources.Functions.getQuorum;
 import static com.rubix.Resources.Functions.minQuorum;
 import static com.rubix.Resources.Functions.mineUpdate;
 import static com.rubix.Resources.Functions.readFile;
+import static com.rubix.Resources.Functions.strToIntArray;
 import static com.rubix.Resources.Functions.updateJSON;
 import static com.rubix.Resources.Functions.updateQuorum;
 import static com.rubix.Resources.Functions.writeToFile;
@@ -24,9 +25,11 @@ import static com.rubix.Resources.IPFSNetwork.add;
 import static com.rubix.Resources.IPFSNetwork.pin;
 import static com.rubix.Resources.IPFSNetwork.repo;
 
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -39,8 +42,10 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.imageio.ImageIO;
 import javax.net.ssl.HttpsURLConnection;
 
+import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
 import com.rubix.Resources.Functions;
@@ -66,7 +71,7 @@ public class ProofCredits {
         repo(ipfs);
         JSONObject APIResponse = new JSONObject();
         JSONObject detailsObject = new JSONObject(data);
-        String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
+        String DID = detailsObject.getString("receiverDidIpfsHash");
         String pvt = detailsObject.getString("pvt");
         int type = detailsObject.getInt("type");
         int creditUsed = 0;
@@ -162,14 +167,14 @@ public class ProofCredits {
                 JSONArray prooftid = new JSONArray();
                 String comments = resJsonData.toString() + prooftid;
 
-                String authSenderByRecHash = calculateHash(token + receiverDidIpfsHash + comments, "SHA3-256");
+                String authSenderByRecHash = calculateHash(token + DID + comments, "SHA3-256");
                 String tid = calculateHash(authSenderByRecHash, "SHA3-256");
 
-                writeToFile(LOGGER_PATH + "tempbeta", tid.concat(receiverDidIpfsHash), false);
+                writeToFile(LOGGER_PATH + "tempbeta", tid.concat(DID), false);
                 String betaHash = IPFSNetwork.add(LOGGER_PATH + "tempbeta", ipfs);
                 deleteFile(LOGGER_PATH + "tempbeta");
 
-                writeToFile(LOGGER_PATH + "tempgamma", tid.concat(receiverDidIpfsHash), false);
+                writeToFile(LOGGER_PATH + "tempgamma", tid.concat(DID), false);
                 String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
                 deleteFile(LOGGER_PATH + "tempgamma");
 
@@ -180,8 +185,7 @@ public class ProofCredits {
                         break;
                     }
                     default: {
-                        quorumArray = getQuorum(betaHash, gammaHash, receiverDidIpfsHash, receiverDidIpfsHash,
-                                token.length());
+                        quorumArray = getQuorum(betaHash, gammaHash, DID, DID, token.length());
                     }
                 }
 
@@ -210,7 +214,7 @@ public class ProofCredits {
                 if (alphaPeersList.size() < minQuorum(alphaSize) || betaPeersList.size() < 5
                         || gammaPeersList.size() < 5) {
                     updateQuorum(quorumArray, null, false, type);
-                    APIResponse.put("did", receiverDidIpfsHash);
+                    APIResponse.put("did", DID);
                     APIResponse.put("tid", "null");
                     APIResponse.put("status", "Failed");
                     APIResponse.put("message", "Quorum Members not available");
@@ -253,7 +257,7 @@ public class ProofCredits {
                         qstObject.put("credits", creditSignsArray);
                     } else {
                         updateQuorum(quorumArray, null, false, type);
-                        APIResponse.put("did", receiverDidIpfsHash);
+                        APIResponse.put("did", DID);
                         APIResponse.put("tid", "null");
                         APIResponse.put("status", "Failed");
                         APIResponse.put("message", "Credit File(s) missing");
@@ -264,9 +268,9 @@ public class ProofCredits {
                     JSONObject dataObject = new JSONObject();
                     dataObject.put("tid", tid);
                     dataObject.put("message", comments);
-                    dataObject.put("receiverDidIpfs", receiverDidIpfsHash);
+                    dataObject.put("receiverDidIpfs", DID);
                     dataObject.put("pvt", pvt);
-                    dataObject.put("senderDidIpfs", receiverDidIpfsHash);
+                    dataObject.put("senderDidIpfs", DID);
                     dataObject.put("token", token.toString());
                     dataObject.put("alphaList", alphaPeersList);
                     dataObject.put("betaList", betaPeersList);
@@ -277,7 +281,7 @@ public class ProofCredits {
                             "new-credits-mining");
 
                     if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
-                        APIResponse.put("did", receiverDidIpfsHash);
+                        APIResponse.put("did", DID);
                         APIResponse.put("tid", "null");
                         APIResponse.put("status", "Failed");
                         APIResponse.put("message", "Consensus failed");
@@ -306,9 +310,9 @@ public class ProofCredits {
                     JSONObject dataObject = new JSONObject();
                     dataObject.put("tid", tid);
                     dataObject.put("message", comments);
-                    dataObject.put("receiverDidIpfs", receiverDidIpfsHash);
+                    dataObject.put("receiverDidIpfs", DID);
                     dataObject.put("pvt", pvt);
-                    dataObject.put("senderDidIpfs", receiverDidIpfsHash);
+                    dataObject.put("senderDidIpfs", DID);
                     dataObject.put("token", token.toString());
                     dataObject.put("alphaList", alphaPeersList);
                     dataObject.put("betaList", betaPeersList);
@@ -317,7 +321,7 @@ public class ProofCredits {
                     InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3, alphaSize, "");
 
                     if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
-                        APIResponse.put("did", receiverDidIpfsHash);
+                        APIResponse.put("did", DID);
                         APIResponse.put("tid", "null");
                         APIResponse.put("status", "Failed");
                         APIResponse.put("message", "Consensus failed");
@@ -342,7 +346,54 @@ public class ProofCredits {
                     String tokenHash = IPFSNetwork.add(LOGGER_PATH + "tempToken", ipfs);
                     writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
                     deleteFile(LOGGER_PATH + "tempToken");
-                    writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", "[]", false);
+
+                    FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
+                    shareWriter.write(InitiatorConsensus.quorumSignature.toString());
+                    shareWriter.close();
+                    File readCredit = new File(LOGGER_PATH + "mycredit.txt");
+                    String credit = add(readCredit.toString(), ipfs);
+
+                    File creditFile = new File(WALLET_DATA_PATH.concat("/Credits/").concat(credit).concat(".json"));
+                    if (!creditFile.exists())
+                        creditFile.createNewFile();
+                    writeToFile(creditFile.toString(), InitiatorConsensus.quorumSignature.toString(), false);
+
+                    String tokens = tokenHash;
+                    String hashString = tokens.concat(DID);
+                    String hashForPositions = calculateHash(hashString, "SHA3-256");
+
+                    BufferedImage privateImage = ImageIO
+                            .read(new File(DATA_PATH.concat(DID).concat("/PrivateShare.png")));
+                    String firstPrivate = PropImage.img2bin(privateImage);
+                    int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+                    String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+                    String positions = "";
+                    for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                        positions += privateBinary.charAt(j);
+                    }
+                    String ownerIdentity = hashForPositions.concat(positions);
+                    String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+
+                    ProofCreditsLogger.debug("Ownership Here");
+                    ProofCreditsLogger.debug("tokens: " + tokenHash);
+                    ProofCreditsLogger.debug("hashString: " + hashString);
+                    ProofCreditsLogger.debug("hashForPositions: " + hashForPositions);
+                    ProofCreditsLogger.debug("p1: " + positions);
+                    ProofCreditsLogger.debug("ownerIdentity: " + ownerIdentity);
+                    ProofCreditsLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
+                    JSONArray tokenChainArray = new JSONArray();
+                    JSONObject tokenChainGenesisObject = new JSONObject();
+                    tokenChainGenesisObject.put("quorumSignatures", credit);
+                    tokenChainGenesisObject.put("sender", DID);
+                    tokenChainGenesisObject.put("comment", "Mining-Genesis");
+                    tokenChainGenesisObject.put("tid", tid);
+                    tokenChainGenesisObject.put("owner", ownerIdentityHash);
+                    tokenChainGenesisObject.put("blockNumber", 0);
+                    tokenChainGenesisObject.put("nextHash", calculateHash(tid, "SHA3-256"));
+                    tokenChainGenesisObject.put("previousHash", "");
+                    tokenChainArray.put(tokenChainGenesisObject);
+
+                    writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
                     JSONObject temp = new JSONObject();
                     temp.put("tokenHash", tokenHash);
                     JSONArray tempArray = new JSONArray();
@@ -381,8 +432,8 @@ public class ProofCredits {
                     signedQuorumList.put(keys.next());
 
                 updateQuorum(quorumArray, signedQuorumList, true, type);
-                mineUpdate(receiverDidIpfsHash, creditUsed);
-                APIResponse.put("did", receiverDidIpfsHash);
+                mineUpdate(DID, creditUsed);
+                APIResponse.put("did", DID);
                 APIResponse.put("tid", tid);
                 APIResponse.put("token", token);
                 APIResponse.put("creditsused", creditUsed);
@@ -399,8 +450,8 @@ public class ProofCredits {
                 transactionRecord.put("tokens", token);
                 transactionRecord.put("txn", tid);
                 transactionRecord.put("quorumList", signedQuorumList);
-                transactionRecord.put("senderDID", receiverDidIpfsHash);
-                transactionRecord.put("receiverDID", receiverDidIpfsHash);
+                transactionRecord.put("senderDID", DID);
+                transactionRecord.put("receiverDID", DID);
                 transactionRecord.put("Date", currentTime);
                 transactionRecord.put("totalTime", totalTime);
                 transactionRecord.put("comment", "minedtxn");
@@ -425,7 +476,7 @@ public class ProofCredits {
                     // Serialization
                     JSONObject dataToSend = new JSONObject();
                     dataToSend.put("bank_id", "01");
-                    dataToSend.put("user_did", receiverDidIpfsHash);
+                    dataToSend.put("user_did", DID);
                     dataToSend.put("token_id", token);
                     dataToSend.put("level", level);
                     dataToSend.put("denomination", 1);
@@ -476,8 +527,8 @@ public class ProofCredits {
                     // Serialization
                     JSONObject dataToSend = new JSONObject();
                     dataToSend.put("transaction_id", tid);
-                    dataToSend.put("sender_did", receiverDidIpfsHash);
-                    dataToSend.put("receiver_did", receiverDidIpfsHash);
+                    dataToSend.put("sender_did", DID);
+                    dataToSend.put("receiver_did", DID);
                     dataToSend.put("token_id", tokenList);
                     dataToSend.put("token_time", (int) totalTime);
                     dataToSend.put("amount", tokenList.size());
@@ -512,7 +563,7 @@ public class ProofCredits {
                     ProofCreditsLogger.debug(responseTxn.toString());
                 }
             } else {
-                APIResponse.put("did", receiverDidIpfsHash);
+                APIResponse.put("did", DID);
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "error from mine service");
@@ -520,7 +571,7 @@ public class ProofCredits {
                 return APIResponse;
             }
         } else {
-            APIResponse.put("did", receiverDidIpfsHash);
+            APIResponse.put("did", DID);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
             APIResponse.put("message", "Insufficient proofs");

@@ -40,7 +40,6 @@ public class InitiatorProcedure {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         JSONObject dataObject = new JSONObject(data);
-        String initHash = null;
         String tid = dataObject.getString("tid");
         String message = dataObject.getString("message");
         String receiverDidIpfs = dataObject.getString("receiverDidIpfs");
@@ -53,12 +52,6 @@ public class InitiatorProcedure {
 
         String authSenderByQuorumHash = calculateHash(message, "SHA3-256");
         String authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
-
-        try {
-            initHash = initHash();
-        } catch (IOException e1) {
-            InitiatorProcedureLogger.debug("Payload Split Success");
-        }
 
         try {
             payload.put("sender", senderDidIpfs);
@@ -85,12 +78,11 @@ public class InitiatorProcedure {
             senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
-            data1.put("initHash", initHash);
+            data1.put("initHash", initHash());
             data1.put("token", token);
             data1.put(ConsensusConstants.TRANSACTION_ID, tid);
             data1.put(ConsensusConstants.HASH, authSenderByQuorumHash);
             data1.put(ConsensusConstants.RECEIVERID, receiverDidIpfs);
-            data1.put("ownerIdentity", dataObject.getString("ownerIdentity"));
 
             data2.put("Share1", Q1Share);
             data2.put("Share2", Q2Share);
