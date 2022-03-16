@@ -1,5 +1,8 @@
 package com.rubix.Consensus;
 
+import static com.rubix.Constants.ConsensusConstants.HASH;
+import static com.rubix.Constants.ConsensusConstants.RECEIVERID;
+import static com.rubix.Constants.ConsensusConstants.TRANSACTION_ID;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -74,7 +77,7 @@ public class QuorumConsensus implements Runnable {
         while (true) {
             PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
             String peerID, transactionID, verifySenderHash, receiverDID, appName, senderPrivatePos,
-                    senderDidIpfsHash = "", senderPID = "", ownerHash = "";
+                    senderDidIpfsHash = "", senderPID = "", ownerHash = "", initHash = "", token = "";
             ServerSocket serverSocket = null;
             Socket socket = null;
             try {
@@ -225,9 +228,9 @@ public class QuorumConsensus implements Runnable {
                         readSenderData = new JSONObject(getRecData);
                         senderPrivatePos = readSenderData.getString("sign");
                         senderDidIpfsHash = readSenderData.getString("senderDID");
-                        transactionID = readSenderData.getString("Tid");
-                        verifySenderHash = readSenderData.getString("Hash");
-                        receiverDID = readSenderData.getString("RID");
+                        transactionID = readSenderData.getString(TRANSACTION_ID);
+                        verifySenderHash = readSenderData.getString(HASH);
+                        receiverDID = readSenderData.getString(RECEIVERID);
 
                         syncDataTable(senderDidIpfsHash, null);
 
