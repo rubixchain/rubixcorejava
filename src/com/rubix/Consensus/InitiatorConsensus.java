@@ -1,36 +1,19 @@
 package com.rubix.Consensus;
 
-import static com.rubix.Constants.MiningConstants.MINED_RBT;
-import static com.rubix.Constants.MiningConstants.MINED_RBT_SIGN;
-import static com.rubix.Constants.MiningConstants.MINE_ID;
-import static com.rubix.Constants.MiningConstants.MINE_ID_SIGN;
-import static com.rubix.Constants.MiningConstants.MINE_TID;
-import static com.rubix.Constants.MiningConstants.MINING_TID_SIGN;
-import static com.rubix.Constants.MiningConstants.STAKED_QUORUM_DID;
-import static com.rubix.Constants.MiningConstants.STAKED_TOKEN;
-import static com.rubix.Constants.MiningConstants.STAKED_TOKEN_SIGN;
+import static com.rubix.Constants.ConsensusConstants.INIT_HASH;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
 import static com.rubix.Resources.Functions.QUORUM_COUNT;
-import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
-import static com.rubix.Resources.Functions.checkTokenOwnershiByDID;
-import static com.rubix.Resources.Functions.deleteFile;
 import static com.rubix.Resources.Functions.getValues;
-import static com.rubix.Resources.Functions.levelHeight;
+import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.minQuorum;
 import static com.rubix.Resources.Functions.nodeData;
 import static com.rubix.Resources.Functions.syncDataTable;
-import static com.rubix.Resources.Functions.writeToFile;
-import static com.rubix.Resources.IPFSNetwork.add;
 import static com.rubix.Resources.IPFSNetwork.forward;
-import static com.rubix.Resources.IPFSNetwork.getMineID;
-import static com.rubix.Resources.IPFSNetwork.pin;
 import static com.rubix.Resources.IPFSNetwork.repo;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -54,20 +37,12 @@ public class InitiatorConsensus {
     public static Logger InitiatorConsensusLogger = Logger.getLogger(InitiatorConsensus.class);
 
     public static volatile JSONObject quorumSignature = new JSONObject();
-    public static volatile JSONObject stakingSignature = new JSONObject();
+    public static volatile JSONArray signedAphaQuorumArray = new JSONArray();
     private static final Object countLock = new Object();
     private static final Object signLock = new Object();
     public static ArrayList<String> quorumWithShares = new ArrayList<>();
     public static volatile int[] quorumResponse = { 0, 0, 0 };
-    public static volatile boolean stakeComplete = false;
     public static volatile JSONArray finalQuorumSignsArray = new JSONArray();
-    public static JSONArray ownerSigns = new JSONArray();
-    private static int levelHeightValue;
-
-    /**
-     * Added by Anuradha K on 04/01/20222.
-     * To address SocketConnection reset Issue
-     */
     private static int socketTimeOut = 120000;
 
     /**
@@ -89,28 +64,6 @@ public class InitiatorConsensus {
         }
         return status;
     }
-
-    /**
-     * This method increments the quorumResponse variable
-     */
-    // private static synchronized boolean stakingQuorumExists(int i) {
-    // boolean status;
-    // PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-    // synchronized (stakeLock) {
-    // if (signedAlphaQuorumID[i] < 1) {
-    // quorumResponse[i]++;
-    // InitiatorConsensusLogger
-    // .debug("quorum response for staking added index " + i + " is " +
-    // quorumResponse[i]
-    // + " quorumsize ");
-    // status = false;
-    // } else {
-    // status = true;
-    // InitiatorConsensusLogger.debug("Staking Reached for index " + i);
-    // }
-    // }
-    // return status;
-    // }
 
     /**
      * This method stores all the quorum signatures until required count for
@@ -158,7 +111,6 @@ public class InitiatorConsensus {
         PrintStream[] qOut = new PrintStream[QUORUM_COUNT];
         BufferedReader[] qIn = new BufferedReader[QUORUM_COUNT];
         String[] quorumID = new String[QUORUM_COUNT];
-        String[] signedAlphaQuorumPID = new String[7];
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         JSONObject dataObject = new JSONObject(data);
         String hash = dataObject.getString("hash");
@@ -190,7 +142,6 @@ public class InitiatorConsensus {
                         syncDataTable(null, quorumID[j]);
                         String quorumDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
                                 quorumID[j]);
-
                         String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid",
                                 quorumID[j]);
                         nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
@@ -208,9 +159,9 @@ public class InitiatorConsensus {
                         qOut[j].println(operation);
 
                         if (operation.equals("new-credits-mining")) {
-
-                            // ? QST + credit info
                             JSONObject qstDetails = dataObject.getJSONObject("qstDetails");
+                            qstDetails.put(INIT_HASH, initHash());
+                            // Verify QST Credits
                             qOut[j].println(qstDetails.toString());
                             try {
                                 qResponse[j] = qIn[j].readLine();
@@ -220,7 +171,6 @@ public class InitiatorConsensus {
                             }
                             if (qResponse[j] != null) {
                                 if (qResponse[j].equals("Verified")) {
-
                                     qOut[j].println(detailsToken);
                                     try {
                                         qResponse[j] = qIn[j].readLine();
@@ -233,9 +183,8 @@ public class InitiatorConsensus {
                                         if (qResponse[j].equals("Auth_Failed")) {
                                             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                         } else {
-                                            InitiatorConsensusLogger.trace(
-                                                    "Signature Received from Q" + j + "(" + quorumID[j] + ") : "
-                                                            + qResponse[j]);
+                                            InitiatorConsensusLogger.debug(
+                                                    "Signature Received from " + quorumID[j] + " " + qResponse[j]);
                                             if (quorumResponse[index] > minQuorum(quorumSize)) {
                                                 qOut[j].println("null");
                                                 IPFSNetwork
@@ -289,27 +238,6 @@ public class InitiatorConsensus {
                                         }
                                     }
 
-                                    try {
-                                        qResponse[j] = qIn[j].readLine();
-                                    } catch (SocketException e) {
-                                        InitiatorConsensusLogger
-                                                .warn("Quorum " + quorumID[j] + " is unable to Respond!");
-                                        IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                                    }
-
-                                    if (qResponse[j] != null) {
-                                        if (qResponse[j].equals("Auth_Failed")) {
-                                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                                        } else {
-                                            JSONObject signObject = new JSONObject();
-                                            signObject.put("did", quorumID[j]);
-                                            signObject.put("hash", detailsToken.getString("ownerIdentity"));
-                                            signObject.put("signature", qResponse[j]);
-                                            ownerSigns.put(signObject);
-
-                                        }
-                                    }
-
                                 } else if (qResponse[j].equals("440")) {
                                     InitiatorConsensusLogger.debug("Credit Verification failed: Duplicates found");
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
@@ -321,10 +249,11 @@ public class InitiatorConsensus {
                                     InitiatorConsensusLogger.debug("Credit Verification failed: Credits hash mismatch");
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                 } else if (qResponse[j].equals("443")) {
-                                    InitiatorConsensusLogger.debug("Failed to Initialize Credit Verification");
+                                    InitiatorConsensusLogger.debug("Credit Verification failed: Init hash mismatch");
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                 }
                             }
+
                         }
 
                         qOut[j].println(detailsToken);
@@ -352,18 +281,16 @@ public class InitiatorConsensus {
                                     JSONObject detailsToVerify = new JSONObject();
                                     detailsToVerify.put("did", didHash);
                                     detailsToVerify.put("hash", hash);
-                                    detailsToVerify.put("signatures", qResponse[j]);
+                                    detailsToVerify.put("signature", qResponse[j]);
                                     if (Authenticate.verifySignature(detailsToVerify.toString())) {
                                         InitiatorConsensusLogger.debug(role + " node authenticated at index " + index);
                                         boolean voteStatus = voteNCount(index, quorumSize);
                                         if (quorumResponse[index] <= minQuorum(quorumSize) && voteStatus) {
-
-                                            if (j <= 7) {
-                                                signedAlphaQuorumPID[j] = quorumID[j];
-                                            }
-
                                             InitiatorConsensusLogger
                                                     .debug("waiting for  " + quorumSize + " +signs " + role);
+                                            if (role.equals("alpha")) {
+                                                signedAphaQuorumArray.put(quorumID[j]);
+                                            }
                                             while (quorumResponse[index] < minQuorum(quorumSize)) {
                                             }
                                             InitiatorConsensusLogger
@@ -393,7 +320,6 @@ public class InitiatorConsensus {
                                 }
                             }
                         }
-
                     } catch (IOException | JSONException e) {
                         IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                         InitiatorConsensusLogger.error("IOException Occurred");
@@ -401,188 +327,6 @@ public class InitiatorConsensus {
                     }
                 });
                 quorumThreads[j].start();
-            }
-
-            if (operation.equals("new-credits-mining")) {
-
-                levelHeightValue = levelHeight();
-
-                Thread[] stakingThreads = new Thread[signedAlphaQuorumPID.length];
-
-                // choosing a quorum member from 1 to 5 who have signed the transaction
-                for (int p = 0; p < signedAlphaQuorumPID.length; p++) {
-                    int s = p;
-                    stakingThreads[p] = new Thread(() -> {
-                        try {
-                            if (signedAlphaQuorumPID[s] != null) {
-                                InitiatorConsensusLogger.debug(
-                                        "Contacting Signed Alpha Quorum Peer : " + signedAlphaQuorumPID[s]
-                                                + " for staking. Index: " + s);
-
-                                qSocket[s] = new Socket("127.0.0.1", PORT + s);
-                                qSocket[s].setSoTimeout(socketTimeOut);
-                                qIn[s] = new BufferedReader(new InputStreamReader(qSocket[s].getInputStream()));
-                                qOut[s] = new PrintStream(qSocket[s].getOutputStream());
-
-                                qOut[s].println("stake-token");
-                                try {
-
-                                    qResponse[s] = qIn[s].readLine();
-                                    // convert to JSON array
-                                    JSONArray stakingTokenDetals = new JSONArray(qResponse[s]);
-                                    // get token chain and token ID from the array
-                                    String stakingTokenHash = stakingTokenDetals.getString(0);
-                                    JSONArray stakingTokenChain = stakingTokenDetals.getJSONArray(1);
-
-                                    String stakingQuorumDID = getValues(DATA_PATH + "DataTable.json", "didHash",
-                                            "peerid", signedAlphaQuorumPID[s]);
-                                    if (checkTokenOwnershiByDID(stakingTokenHash, stakingQuorumDID)
-                                            && stakingTokenChain.length() > levelHeightValue) {
-
-                                        InitiatorConsensusLogger.debug("Staking Token Received and Verified from "
-                                                + signedAlphaQuorumPID[s] + " " + qResponse[s]);
-
-                                        String mineID = getMineID(stakingTokenHash, ipfs);
-                                        InitiatorConsensusLogger
-                                                .debug("Sending mine ID to miner :" + mineID);
-                                        JSONObject detToSign = new JSONObject();
-                                        detToSign.put(MINE_ID, mineID);
-                                        detToSign.put(MINE_TID, detailsToken.getString("Tid"));
-                                        detToSign.put(MINED_RBT, detailsToken.getString("token"));
-                                        qOut[s].println(detToSign.toString());
-
-                                        JSONObject stakingQuorumSigned = new JSONObject();
-
-                                        try {
-                                            qResponse[s] = qIn[s].readLine();
-                                            // convert to JSON array
-                                            stakingQuorumSigned = new JSONObject(qResponse[s]);
-                                            InitiatorConsensusLogger.debug("Signature for Mining ID Received from "
-                                                    + signedAlphaQuorumPID[s] + " " + qResponse[s]);
-                                        } catch (SocketException e) {
-                                            InitiatorConsensusLogger
-                                                    .warn("Quorum " + quorumID[s] + " is unable to Respond!");
-                                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[s]);
-                                        }
-
-                                        JSONObject detailsToVerify = new JSONObject();
-                                        detailsToVerify.put("did", stakingQuorumDID);
-                                        detailsToVerify.put("hash", mineID);
-                                        detailsToVerify.put("signature", stakingQuorumSigned.getString(MINE_ID_SIGN));
-
-                                        if (Authenticate.verifySignature(detailsToVerify.toString())) {
-
-                                            stakingSignature.put(MINE_TID, detailsToken.getString("Tid"));
-                                            stakingSignature.put(MINED_RBT, detailsToken.getString("token"));
-                                            stakingSignature.put(MINE_ID, mineID);
-                                            stakingSignature.put(STAKED_QUORUM_DID, stakingQuorumDID);
-                                            stakingSignature.put(STAKED_TOKEN, stakingTokenHash);
-
-                                            stakingSignature.put(STAKED_TOKEN_SIGN, stakingQuorumSigned.getString(
-                                                    STAKED_TOKEN_SIGN));
-                                            stakingSignature.put(MINING_TID_SIGN, stakingQuorumSigned.getString(
-                                                    MINING_TID_SIGN));
-                                            stakingSignature.put(MINED_RBT_SIGN, stakingQuorumSigned.getString(
-                                                    MINED_RBT_SIGN));
-                                            stakingSignature.put(MINE_ID_SIGN,
-                                                    stakingQuorumSigned.getString(MINE_ID_SIGN));
-
-                                            if (!stakeComplete) {
-                                                FileWriter shareWriter = new FileWriter(
-                                                        new File(LOGGER_PATH + "mineID.txt"),
-                                                        true);
-                                                shareWriter.write(detailsToVerify.toString(0));
-                                                shareWriter.close();
-                                                File readMineID = new File(LOGGER_PATH + "mineID.txt");
-                                                String mineData = add(readMineID.toString(), ipfs);
-                                                pin(mineData, ipfs);
-
-                                                File mineIDFile = new File(
-                                                        WALLET_DATA_PATH.concat("/Stakes/").concat(mineData)
-                                                                .concat(".json"));
-                                                if (!mineIDFile.exists())
-                                                    mineIDFile.createNewFile();
-                                                writeToFile(mineIDFile.toString(), qResponse[s], false);
-
-                                                InitiatorConsensusLogger.debug("Mine object: " + mineData);
-                                                deleteFile(LOGGER_PATH + "mineID.txt");
-
-                                                InitiatorConsensusLogger.debug("Staking Successful at index " + s);
-
-                                                IPFSNetwork
-                                                        .executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[s]);
-
-                                                JSONObject stakingInfo = new JSONObject();
-                                                stakingInfo.put("StakerDID", stakingQuorumDID);
-                                                stakingInfo.put("StakedokenID", stakingTokenHash);
-                                                stakingInfo.put("minedToken", detailsToken);
-
-                                                JSONArray creditArray = new JSONArray();
-
-                                                InitiatorConsensusLogger.debug("Staking Successful at index " + s);
-                                                InitiatorConsensusLogger
-                                                        .debug("Sending Credits to DID: " + stakingQuorumDID);
-
-                                                for (int i = 0; i < levelHeightValue; i++) {
-
-                                                    creditArray.put(finalQuorumSignsArray);
-                                                }
-
-                                                qOut[s].println(creditArray);
-
-                                                stakeComplete = true;
-                                            } else {
-
-                                                InitiatorConsensusLogger.debug("sending null for slow quorum");
-                                                qOut[s].println("null");
-                                                IPFSNetwork.executeIPFSCommands(
-                                                        "ipfs p2p close -t /p2p/" + signedAlphaQuorumPID[s]);
-                                            }
-
-                                        } else {
-
-                                            InitiatorConsensusLogger.debug("sending null for slow quorum");
-                                            qOut[s].println("null");
-                                            IPFSNetwork.executeIPFSCommands(
-                                                    "ipfs p2p close -t /p2p/" + signedAlphaQuorumPID[s]);
-
-                                        }
-
-                                    } else {
-
-                                        InitiatorConsensusLogger.debug("sending null for slow quorum ");
-                                        qOut[s].println("null");
-                                        IPFSNetwork.executeIPFSCommands(
-                                                "ipfs p2p close -t /p2p/" + signedAlphaQuorumPID[s]);
-
-                                    }
-                                } catch (SocketException e) {
-                                    InitiatorConsensusLogger
-                                            .warn("Alpha Quorum (for Staking)" + signedAlphaQuorumPID[s]
-                                                    + " is unable to Respond!");
-                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" +
-                                            signedAlphaQuorumPID[s]);
-                                }
-                            }
-
-                        } catch (Exception e) {
-                            InitiatorConsensusLogger.error("Exception Occurred");
-                            e.printStackTrace();
-                        }
-                    });
-                    stakingThreads[s].start();
-                }
-                // check the balance
-                // if balance is sufficient then stake the token
-                // else send a null to Qa(j)
-                // if Qa(j) sends a null then close the connection
-                // else send the stake ID to Qa(j)
-                // pin the stake ID (initiator) and keep it in a file for future use
-                File stakesFolder = new File(WALLET_DATA_PATH.concat("/Stakes"));
-                if (!stakesFolder.exists())
-                    stakesFolder.mkdirs();
-                // send mining fee to Qa(j) - 0.02 RBT
-                // close the connection
             }
 
             while (quorumResponse[index] < minQuorum(quorumSize)

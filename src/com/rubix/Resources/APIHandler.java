@@ -191,7 +191,6 @@ public class APIHandler {
      * Method to query the credits information
      * 
      * @throws JSONException
-     * 
      * @files QuorumSignedTransactions.json, MinedCreditsHistory.json
      */
     public static JSONObject creditsInfo() throws JSONException {

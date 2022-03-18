@@ -1,9 +1,5 @@
 package com.rubix.Consensus;
 
-import static com.rubix.Constants.ConsensusConstants.HASH;
-import static com.rubix.Constants.ConsensusConstants.INIT_HASH;
-import static com.rubix.Constants.ConsensusConstants.RECEIVERID;
-import static com.rubix.Constants.ConsensusConstants.TRANSACTION_ID;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
 import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.getSignFromShares;
@@ -12,6 +8,7 @@ import static com.rubix.Resources.Functions.minQuorum;
 
 import java.io.IOException;
 
+import com.rubix.Constants.ConsensusConstants;
 import com.rubix.SplitandStore.SeperateShares;
 import com.rubix.SplitandStore.Split;
 
@@ -37,6 +34,7 @@ public class InitiatorProcedure {
      * @param data Data required for hashing and signing
      * @param ipfs IPFS instance
      * @param PORT port for forwarding to quorum
+     * @throws IOException
      */
     public static void consensusSetUp(String data, IPFS ipfs, int PORT, int alphaSize, String operation)
             throws JSONException {
@@ -81,11 +79,10 @@ public class InitiatorProcedure {
             senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
-            data1.put(INIT_HASH, initHash());
-            data1.put("token", token);
-            data1.put(TRANSACTION_ID, tid);
-            data1.put(HASH, authSenderByQuorumHash);
-            data1.put(RECEIVERID, receiverDidIpfs);
+            data1.put(ConsensusConstants.TRANSACTION_ID, tid);
+            data1.put(ConsensusConstants.HASH, authSenderByQuorumHash);
+            data1.put(ConsensusConstants.RECEIVERID, receiverDidIpfs);
+            data1.put(ConsensusConstants.INIT_HASH, initHash());
 
             data2.put("Share1", Q1Share);
             data2.put("Share2", Q2Share);

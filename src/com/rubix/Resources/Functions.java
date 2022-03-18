@@ -3,7 +3,6 @@ package com.rubix.Resources;
 import static com.rubix.Resources.APIHandler.addPublicData;
 import static com.rubix.Resources.IPFSNetwork.IPFSNetworkLogger;
 import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
-import static com.rubix.Resources.IPFSNetwork.dhtOwnerCheck;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.forwardCheck;
 import static com.rubix.Resources.IPFSNetwork.listen;
@@ -75,6 +74,23 @@ public class Functions {
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
+    public static void setDir() {
+        String OSName = getOsName();
+        if (OSName.contains("Windows"))
+            dirPath = "C:\\Rubix\\";
+        else if (OSName.contains("Mac"))
+            dirPath = "/Applications/Rubix/";
+        else if (OSName.contains("Linux"))
+            dirPath = "/home/" + getSystemUser() + "/Rubix/";
+        else
+            System.exit(0);
+    }
+
+    public static void setConfig() {
+        setDir();
+        configPath = dirPath.concat("config.json");
+    }
+
     public static String buildVersion() throws IOException {
         String jarPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         jarPath = jarPath.split("\\.jar")[0];
@@ -111,23 +127,6 @@ public class Functions {
             e.printStackTrace();
         }
         return hash;
-    }
-
-    public static void setDir() {
-        String OSName = getOsName();
-        if (OSName.contains("Windows"))
-            dirPath = "C:\\Rubix\\";
-        else if (OSName.contains("Mac"))
-            dirPath = "/Applications/Rubix/";
-        else if (OSName.contains("Linux"))
-            dirPath = "/home/" + getSystemUser() + "/Rubix/";
-        else
-            System.exit(0);
-    }
-
-    public static void setConfig() {
-        setDir();
-        configPath = dirPath.concat("config.json");
     }
 
     /**
@@ -441,67 +440,6 @@ public class Functions {
             FunctionsLogger.error("JSONException Occurred", e);
         }
 
-    }
-
-    /**
-     * This function check if the token is pinned by the given DID
-     *
-     * @param tokenID
-     * @param DID     of owner of the token to be checked
-     * @return boolean value
-     */
-    public static boolean checkTokenOwnershiByDID(String tokenID, String DID) {
-        boolean ownStatus = false;
-        String peerID = getValues(DATA_PATH + "DataTable.json", "peerid",
-                "didHash", DID);
-        try {
-            ArrayList owners = dhtOwnerCheck(tokenID);
-            if (owners.contains(peerID)) {
-                ownStatus = true;
-            }
-
-        } catch (InterruptedException | JSONException | IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return ownStatus;
-    }
-
-    public static int levelHeight() {
-        int creditsRequired = 0;
-        JSONObject resJsonData_credit = new JSONObject();
-        String GET_URL_credit = SYNC_IP + "/getlevel";
-        URL URLobj_credit;
-        try {
-            URLobj_credit = new URL(GET_URL_credit);
-            HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
-            con_credit.setRequestMethod("GET");
-            int responseCode_credit = con_credit.getResponseCode();
-            System.out.println("GET Response Code :: " + responseCode_credit);
-            if (responseCode_credit == HttpURLConnection.HTTP_OK) {
-                BufferedReader in_credit = new BufferedReader(
-                        new InputStreamReader(con_credit.getInputStream()));
-                String inputLine_credit;
-                StringBuffer response_credit = new StringBuffer();
-                while ((inputLine_credit = in_credit.readLine()) != null) {
-                    response_credit.append(inputLine_credit);
-                }
-                in_credit.close();
-                FunctionsLogger.debug("response from service " + response_credit.toString());
-                resJsonData_credit = new JSONObject(response_credit.toString());
-                int level_credit = resJsonData_credit.getInt("level");
-                creditsRequired = (int) Math.pow(2, (2 + level_credit));
-                FunctionsLogger.debug("credits required " + creditsRequired);
-
-                return creditsRequired;
-
-            } else
-                FunctionsLogger.debug("GET request not OK");
-
-        } catch (Exception e) {
-            FunctionsLogger.debug("GET request not worked " + e.getMessage());
-        }
-        return creditsRequired;
     }
 
     /**
@@ -949,10 +887,11 @@ public class Functions {
 
         File didImage = new File(DATA_PATH + myDID + "/DID.png");
         File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
-        // File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
-        if (!didImage.exists() || !widImage.exists()) {
+        File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
+        if (!didImage.exists() || !widImage.exists() || !pvtImage.exists()) {
             didImage.delete();
-            widImage.delete();
+            didImage.delete();
+            didImage.delete();
             JSONObject result = new JSONObject();
             result.put("message", "User not registered, create your Decentralised Identity!");
             result.put("info", "Shares Images Missing");
@@ -1173,15 +1112,6 @@ public class Functions {
         }
         inMineUpdate.close();
 
-    }
-
-    public static String initHash() throws IOException {
-        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        initPath = initPath.split("\\.jar")[0];
-        initPath = initPath.split("file:", 2)[1];
-        initPath = initPath + ".jar";
-        String hash = calculateFileHash(initPath, "SHA3-256");
-        return hash;
     }
 
     public static int checkHeartBeat(String peerId, String appName) {
@@ -1465,6 +1395,15 @@ public class Functions {
 
         balance = formatAmount(balance);
         return balance;
+    }
+
+    public static String initHash() throws IOException {
+        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        initPath = initPath.split("\\.jar")[0];
+        initPath = initPath.split("file:", 2)[1];
+        initPath = initPath + ".jar";
+        String hash = calculateFileHash(initPath, "SHA3-256");
+        return hash;
     }
 
     public static Double partTokenBalance(String tokenHash) throws JSONException {

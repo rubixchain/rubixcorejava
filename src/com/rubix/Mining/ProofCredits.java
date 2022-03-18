@@ -48,6 +48,7 @@ import javax.net.ssl.HttpsURLConnection;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
+import com.rubix.Consensus.StakeConsensus;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
@@ -76,6 +77,7 @@ public class ProofCredits {
         int type = detailsObject.getInt("type");
         int creditUsed = 0;
         long totalTime = 0;
+        int QSTHeight = 0;
 
         JSONArray alphaQuorum = new JSONArray();
         JSONArray betaQuorum = new JSONArray();
@@ -89,6 +91,17 @@ public class ProofCredits {
 
         JSONArray newQstArray = new JSONArray(readFile(WALLET_DATA_PATH + "QuorumSignedTransactions.json"));
         int availableCredits = newQstArray.length();
+
+        File minedCH = new File(WALLET_DATA_PATH + "MinedCreditsHistory.json");
+        if (!minedCH.exists()) {
+            minedCH.createNewFile();
+            writeToFile(WALLET_DATA_PATH + "MinedCreditsHistory.json", "[]", false);
+        }
+        String creditsHistory = readFile(WALLET_DATA_PATH + "MinedCreditsHistory.json");
+        JSONArray creditsHistoryArray = new JSONArray(creditsHistory);
+
+        // ! get actual qst height for current scenario
+        QSTHeight = availableCredits + creditsHistoryArray.length();
 
         ProofCreditsLogger.debug("Credits available: " + availableCredits);
         String GET_URL_credit = SYNC_IP + "/getlevel";
@@ -340,6 +353,7 @@ public class ProofCredits {
                         }
                     }
                 }
+                JSONObject stakingData = new JSONObject();
 
                 for (int i = 0; i < token.length(); i++) {
                     writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
@@ -379,6 +393,7 @@ public class ProofCredits {
                     ProofCreditsLogger.debug("hashString: " + hashString);
                     ProofCreditsLogger.debug("hashForPositions: " + hashForPositions);
                     ProofCreditsLogger.debug("p1: " + positions);
+                    ProofCreditsLogger.debug("QSTHeight: " + QSTHeight);
                     ProofCreditsLogger.debug("ownerIdentity: " + ownerIdentity);
                     ProofCreditsLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
                     JSONArray tokenChainArray = new JSONArray();
@@ -389,8 +404,10 @@ public class ProofCredits {
                     tokenChainGenesisObject.put("tid", tid);
                     tokenChainGenesisObject.put("owner", ownerIdentityHash);
                     tokenChainGenesisObject.put("blockNumber", 0);
+                    tokenChainGenesisObject.put("QSTHeight", QSTHeight);
                     tokenChainGenesisObject.put("nextHash", calculateHash(tid, "SHA3-256"));
                     tokenChainGenesisObject.put("previousHash", "");
+                    stakingData = tokenChainGenesisObject;
                     tokenChainArray.put(tokenChainGenesisObject);
 
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
@@ -401,13 +418,30 @@ public class ProofCredits {
                     updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
                 }
 
-                File minedCH = new File(WALLET_DATA_PATH + "MinedCreditsHistory.json");
-                if (!minedCH.exists()) {
-                    minedCH.createNewFile();
-                    writeToFile(WALLET_DATA_PATH + "MinedCreditsHistory.json", "[]", false);
+                // ! new token will now need a staked token
+                StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
+                        stakingData, ipfs, SEND_PORT + 3,
+                        "alpha-stake-token");
+
+                if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
+                    APIResponse.put("did", DID);
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Consensus failed");
+                    ProofCreditsLogger.debug("consensus failed");
+                } else {
+                    ProofCreditsLogger.debug("token mined " + token);
+
+                    int counter = 0;
+
+                    for (int i = 0; i < availableCredits; i++) {
+                        JSONObject temp = newQstArray.getJSONObject(i);
+                        if (counter < creditUsed) {
+                            prooftid.put(temp.getString("tid"));
+                            counter++;
+                        }
+                    }
                 }
-                String creditsHistory = readFile(WALLET_DATA_PATH + "MinedCreditsHistory.json");
-                JSONArray creditsHistoryArray = new JSONArray(creditsHistory);
                 for (int i = 0; i < creditUsed; i++) {
                     JSONObject minedObject = new JSONObject();
                     minedObject.put("tid", newQstArray.getJSONObject(i).getString("tid"));

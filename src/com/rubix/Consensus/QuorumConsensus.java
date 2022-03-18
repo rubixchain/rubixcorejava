@@ -126,8 +126,7 @@ public class QuorumConsensus implements Runnable {
                     String response = null;
 
                     try {
-
-                        // ! token hash to be mined
+                        // ! token hash just mined
                         response = in.readLine();
                     } catch (SocketException e) {
                         QuorumConsensusLogger.debug("Sender Input Stream Null - New Credits Details");
@@ -136,13 +135,16 @@ public class QuorumConsensus implements Runnable {
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     }
 
-                    // ! check token is in same level and not already mined
-                    if (response != null) {
+                    QuorumConsensusLogger.debug("Validating new token details...");
 
-                        // valid mined token hash
+                    boolean isValid = false;
+
+                    // ! check token is in same level
+                    // ! validate mined token hash and ownership
+
+                    if (isValid) {
 
                         QuorumConsensusLogger.debug("Sending staking token details...");
-                        String mineID = null;
                         JSONArray tokenToStake = new JSONArray();
 
                         String bankFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
