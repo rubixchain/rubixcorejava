@@ -1,5 +1,6 @@
 package com.rubix.TokenTransfer;
 
+import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
 import com.rubix.Resources.Functions;
@@ -11,7 +12,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.imageio.ImageIO;
 import javax.net.ssl.HttpsURLConnection;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
@@ -127,6 +130,7 @@ public class TokenSender {
         }
         JSONArray wholeTokenChainHash = new JSONArray();
         JSONArray tokenPreviousSender = new JSONArray();
+
         for (int i = 0; i < wholeTokens.length(); i++) {
             File token = new File(TOKENS_PATH + wholeTokens.get(i));
             File tokenchain = new File(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
@@ -158,6 +162,7 @@ public class TokenSender {
             previousSenderObject.put("token", wholeTokenHash);
             previousSenderObject.put("sender", previousSenderArray);
             tokenPreviousSender.put(previousSenderObject);
+
         }
 
         Double decimalAmount = requestedAmount - wholeAmount;
@@ -304,6 +309,32 @@ public class TokenSender {
             allTokens.put(wholeTokens.getString(i));
         for(int i = 0; i < partTokens.length(); i++)
             allTokens.put(partTokens.getString(i));
+
+
+        JSONArray positionsArray = new JSONArray();
+        for(int i = 0; i < allTokens.length(); i++) {
+            String tokens = allTokens.getString(i);
+            String hashString = tokens.concat(senderDidIpfsHash);
+            String hashForPositions = calculateHash(hashString, "SHA3-256");
+            BufferedImage privateShare = ImageIO.read(new File(DATA_PATH.concat(senderDidIpfsHash).concat("/PrivateShare.png")));
+            String firstPrivate = PropImage.img2bin(privateShare);
+            int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+            String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+            String positions = "";
+            for(int j = 0; j < privateIntegerArray1.length; j+=49152){
+                positions+=privateBinary.charAt(j);
+            }
+            positionsArray.put(positions);
+
+            TokenSenderLogger.debug("Ownership Here Sender Calculation");
+            TokenSenderLogger.debug("tokens: " + tokens);
+            TokenSenderLogger.debug("hashString: " + hashString);
+            TokenSenderLogger.debug("hashForPositions: " + hashForPositions);
+            TokenSenderLogger.debug("p1: " + positions);
+        }
+
+
+
 
         JSONArray alphaQuorum = new JSONArray();
         JSONArray betaQuorum = new JSONArray();
@@ -545,6 +576,7 @@ public class TokenSender {
         JSONObject tokenObject = new JSONObject();
         tokenObject.put("tokenDetails", tokenDetails);
         tokenObject.put("previousSender", tokenPreviousSender);
+        tokenObject.put("positions", positionsArray);
         tokenObject.put("amount", requestedAmount);
         tokenObject.put("amountLedger", amountLedger);
 
@@ -559,6 +591,7 @@ public class TokenSender {
         String tokenAuth;
         try {
             tokenAuth = input.readLine();
+            TokenSenderLogger.debug("Token Auth Code: " + tokenAuth);
         } catch (SocketException e) {
             TokenSenderLogger.warn("Receiver " + receiverDidIpfsHash + " is unable to Respond! - Token Auth");
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
@@ -574,35 +607,40 @@ public class TokenSender {
 
             return APIResponse;
         }
-        if (tokenAuth != null && (!tokenAuth.equals("200"))) {
+        if (tokenAuth != null && (tokenAuth.startsWith("4"))) {
             switch (tokenAuth) {
                 case "420":
                     String doubleSpent = input.readLine();
                     String owners = input.readLine();
                     JSONArray ownersArray = new JSONArray(owners);
                     TokenSenderLogger.info("Multiple Owners for " + doubleSpent);
-                    APIResponse.put("message", "Multiple Owners for " + doubleSpent);
-                    APIResponse.put("Owners", ownersArray);
-                    removeToken();
+                    TokenSenderLogger.info("Owners " + ownersArray);
+                    TokenSenderLogger.info("Kindly re-initiate transaction");
+                    APIResponse.put("message", "Multiple Owners for " + doubleSpent + " Owners: " + ownersArray +". Kindly re-initiate transaction");
                     break;
                 case "421":
-                    TokenSenderLogger.info("Consensus ID not unique");
-                    APIResponse.put("message", "Consensus ID not unique");
-                    removeToken();
+                    TokenSenderLogger.info("Consensus ID not unique. Kindly re-initiate transaction");
+                    APIResponse.put("message", "Consensus ID not unique. Kindly re-initiate transaction");
                     break;
                 case "422":
-                    TokenSenderLogger.info("Tokens Not Verified");
-                    APIResponse.put("message", "Tokens Not Verified");
-                    removeToken();
+                    TokenSenderLogger.info("Tokens Not Verified. Kindly re-initiate transaction");
+                    APIResponse.put("message", "Tokens Not Verified. Kindly re-initiate transaction");
                     break;
                 case "423":
-                    TokenSenderLogger.info("Broken Cheque Chain");
-                    APIResponse.put("message", "Broken Cheque Chain");
+                    TokenSenderLogger.info("Broken Cheque Chain. Kindly re-initiate transaction");
+                    APIResponse.put("message", "Broken Cheque Chain. Kindly re-initiate transaction");
                     break;
 
                 case "424":
-                    TokenSenderLogger.info("Token wholly spent already");
-                    APIResponse.put("message", "Token wholly spent already");
+                    String invalidTokens = input.readLine();
+                    JSONArray tokensArray = new JSONArray(invalidTokens);
+                    TokenSenderLogger.info("Ownership Check Failed for " + tokensArray);
+                    APIResponse.put("message", "Ownership Check Failed");
+                    break;
+
+                case "425":
+                    TokenSenderLogger.info("Token wholly spent already. Kindly re-initiate transaction");
+                    APIResponse.put("message", "Token wholly spent already. Kindly re-initiate transaction");
                     break;
 
             }
@@ -619,6 +657,7 @@ public class TokenSender {
             APIResponse.put("status", "Failed");
             return APIResponse;
         }
+        TokenSenderLogger.debug("Token Auth Code: " + tokenAuth);
 
         JSONObject dataObject = new JSONObject();
         dataObject.put("tid", tid);
@@ -630,7 +669,6 @@ public class TokenSender {
         dataObject.put("alphaList", alphaPeersList);
         dataObject.put("betaList", betaPeersList);
         dataObject.put("gammaList", gammaPeersList);
-
 
         InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize, "");
         TokenSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count " + InitiatorConsensus.quorumResponse);
