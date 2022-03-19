@@ -354,6 +354,7 @@ public class ProofCredits {
                     }
                 }
                 JSONObject stakingData = new JSONObject();
+                String tkHash = null;
 
                 for (int i = 0; i < token.length(); i++) {
                     writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
@@ -408,6 +409,7 @@ public class ProofCredits {
                     tokenChainGenesisObject.put("nextHash", calculateHash(tid, "SHA3-256"));
                     tokenChainGenesisObject.put("previousHash", "");
                     stakingData = tokenChainGenesisObject;
+                    tkHash = tokenHash;
                     tokenChainArray.put(tokenChainGenesisObject);
 
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
@@ -419,9 +421,11 @@ public class ProofCredits {
                 }
 
                 // ! new token will now need a staked token
-                StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
+                JSONObject stakeDetails = StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
                         stakingData, ipfs, SEND_PORT + 3,
                         "alpha-stake-token");
+
+                updateJSON("add", TOKENCHAIN_PATH + tkHash + ".json", stakeDetails.toString());
 
                 if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
                     APIResponse.put("did", DID);

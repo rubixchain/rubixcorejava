@@ -34,7 +34,7 @@ public class StakeConsensus {
     // sign on mining token
     // same object will be added to tokenchains of staked and mined token
 
-    public static void getStakeConsensus(JSONArray signedAphaQuorumArray, JSONObject data, IPFS ipfs, int PORT,
+    public static JSONObject getStakeConsensus(JSONArray signedAphaQuorumArray, JSONObject data, IPFS ipfs, int PORT,
             String operation) {
 
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -44,7 +44,7 @@ public class StakeConsensus {
         BufferedReader[] qIn = new BufferedReader[signedAphaQuorumArray.length()];
         String[] quorumID = new String[signedAphaQuorumArray.length()];
 
-        StakeConsensusLogger.debug("Initiating Staking for " + signedAphaQuorumArray.length() + "Alpha Quorums...");
+        StakeConsensusLogger.debug("Initiating Staking for " + signedAphaQuorumArray.length() + " Alpha Quorums...");
 
         try {
 
@@ -94,6 +94,8 @@ public class StakeConsensus {
                                 String stakeTCObject = stakeTokenArray.getString(1);
                                 JSONArray stakeTC = new JSONArray(stakeTCObject);
 
+                                stakeDetails.put("stakeToken", stakeTokenHash);
+
                                 // ! check ownership of stakeTC
 
                                 if (verified) {
@@ -133,9 +135,12 @@ public class StakeConsensus {
             }
             ;
 
+            return stakeDetails;
+
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);
         }
+        return stakeDetails;
     }
 
 }
