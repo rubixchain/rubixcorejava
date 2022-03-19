@@ -44,6 +44,8 @@ public class StakeConsensus {
         BufferedReader[] qIn = new BufferedReader[signedAphaQuorumArray.length()];
         String[] quorumID = new String[signedAphaQuorumArray.length()];
 
+        StakeConsensusLogger.debug("Initiating Staking for " + signedAphaQuorumArray.length() + "Alpha Quorums...");
+
         try {
 
             for (int j = 0; j < signedAphaQuorumArray.length(); j++)

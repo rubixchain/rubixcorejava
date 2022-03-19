@@ -289,6 +289,8 @@ public class InitiatorConsensus {
                                             InitiatorConsensusLogger
                                                     .debug("waiting for  " + quorumSize + " +signs " + role);
                                             if (role.equals("alpha")) {
+                                                InitiatorConsensusLogger
+                                                        .debug("Picking Quorum for Staking " + quorumID[j]);
                                                 signedAphaQuorumArray.put(quorumID[j]);
                                             }
                                             while (quorumResponse[index] < minQuorum(quorumSize)) {
