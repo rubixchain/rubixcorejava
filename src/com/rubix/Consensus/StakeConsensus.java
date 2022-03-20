@@ -44,7 +44,8 @@ public class StakeConsensus {
         BufferedReader[] qIn = new BufferedReader[signedAphaQuorumArray.length()];
         String[] quorumID = new String[signedAphaQuorumArray.length()];
 
-        StakeConsensusLogger.debug("Initiating Staking for " + signedAphaQuorumArray.length() + " Alpha Quorums...");
+        StakeConsensusLogger.debug("Initiating Staking with " + signedAphaQuorumArray.length() + " Alpha Quorums: "
+                + signedAphaQuorumArray);
 
         try {
 
@@ -75,21 +76,20 @@ public class StakeConsensus {
 
                         qOut[j].println(operation);
                         if (operation.equals("alpha-stake-token")) {
-                            String response = null;
 
                             qOut[j].println(data.toString());
                             StakeConsensusLogger.debug("Token Details sent for validation...");
 
                             try {
-                                response = qIn[j].readLine();
+                                qResponse[j] = qIn[j].readLine();
                                 StakeConsensusLogger.debug("Token Details validated. Received stake token details..");
                             } catch (SocketException e) {
                                 StakeConsensusLogger.debug("Token Details validation failed. Received null response");
                             }
-                            if (!response.contains("44")) {
+                            if (!qResponse[j].contains("44")) {
 
                                 Boolean verified = false;
-                                JSONArray stakeTokenArray = new JSONArray(response);
+                                JSONArray stakeTokenArray = new JSONArray(qResponse[j]);
                                 String stakeTokenHash = stakeTokenArray.getString(0);
                                 String stakeTCObject = stakeTokenArray.getString(1);
                                 JSONArray stakeTC = new JSONArray(stakeTCObject);
@@ -103,7 +103,7 @@ public class StakeConsensus {
                                     StakeConsensusLogger.debug("Waiting for stake signatures");
 
                                     try {
-                                        response = qIn[j].readLine();
+                                        qResponse[j] = qIn[j].readLine();
                                         StakeConsensusLogger
                                                 .debug("Received stake token signatures. Sending Credits");
                                     } catch (SocketException e) {
@@ -115,14 +115,14 @@ public class StakeConsensus {
 
                                     // ! send credits
 
-                                    if (!response.contains("44")) {
-                                        qResponse[j] = response;
+                                    if (!qResponse[j].contains("44")) {
+                                        // qResponse[j] = response;
                                     }
                                 }
 
-                            } else if (response.equals("444")) {
+                            } else if (qResponse[j].equals("444")) {
                                 StakeConsensusLogger.debug("Token Details validation failed. Received null response");
-                            } else if (response.equals("445")) {
+                            } else if (qResponse[j].equals("445")) {
 
                             }
 
