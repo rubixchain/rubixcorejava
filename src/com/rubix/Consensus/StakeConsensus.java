@@ -57,6 +57,8 @@ public class StakeConsensus {
                 int j = i;
                 quorumThreads[i] = new Thread(() -> {
                     try {
+                        StakeConsensusLogger.debug("Connecting to Quorum: " + quorumID[j]);
+
                         swarmConnectP2P(quorumID[j], ipfs);
                         syncDataTable(null, quorumID[j]);
                         String quorumDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",

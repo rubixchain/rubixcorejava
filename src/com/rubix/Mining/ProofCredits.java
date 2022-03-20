@@ -424,8 +424,10 @@ public class ProofCredits {
                 JSONObject stakeDetails = StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
                         stakingData, ipfs, SEND_PORT + 3,
                         "alpha-stake-token");
+                JSONArray tempArray = new JSONArray();
+                tempArray.put(stakeDetails);
 
-                updateJSON("add", TOKENCHAIN_PATH + tkHash + ".json", stakeDetails.toString());
+                updateJSON("add", TOKENCHAIN_PATH + tkHash + ".json", tempArray.toString());
 
                 if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
                     APIResponse.put("did", DID);

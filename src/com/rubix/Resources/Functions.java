@@ -111,7 +111,6 @@ public class Functions {
             // check if file exists at the filePath
             File file = new File(filePath);
             if (file.exists()) {
-                System.out.println("File Hashing...");
                 FileInputStream fis = new FileInputStream(file);
                 byte[] byteArray = new byte[1024];
                 int bytesCount = 0;
@@ -123,7 +122,7 @@ public class Functions {
                 fis.close();
             }
         } catch (NoSuchAlgorithmException | IOException e) {
-            FunctionsLogger.error("Invalid Cryptographic Algorithm", e);
+            FunctionsLogger.error("Invalid Cryptographic Algorithm while calculating file hash", e);
             e.printStackTrace();
         }
         return hash;
