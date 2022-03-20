@@ -2,6 +2,7 @@ package com.rubix.Consensus;
 
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.Functions.nodeData;
 import static com.rubix.Resources.Functions.syncDataTable;
@@ -25,6 +26,7 @@ public class StakeConsensus {
     public static Logger StakeConsensusLogger = Logger.getLogger(StakeConsensus.class);
     private static int socketTimeOut = 120000;
     public static volatile JSONObject stakeDetails = new JSONObject();
+    private static volatile boolean STAKE_SUCCESS = false;
     // mine ID
     // QST_Height
     // staker DID
@@ -90,17 +92,43 @@ public class StakeConsensus {
                             }
                             if (!qResponse[j].contains("44")) {
 
-                                Boolean verified = false;
+                                Boolean ownerCheck = false;
                                 JSONArray stakeTokenArray = new JSONArray(qResponse[j]);
                                 String stakeTokenHash = stakeTokenArray.getString(0);
                                 String stakeTCObject = stakeTokenArray.getString(1);
+                                String positionsArray = stakeTokenArray.getString(2);
                                 JSONArray stakeTC = new JSONArray(stakeTCObject);
 
-                                stakeDetails.put("stakeToken", stakeTokenHash);
+                                // ! check ownership of stakeTC from Token Receiver logic
 
-                                // ! check ownership of stakeTC
+                                JSONObject lastObject = stakeTC.getJSONObject(stakeTCObject.length() - 1);
+                                StakeConsensusLogger.debug("Last Object = " + lastObject);
+                                if (lastObject.has("owner")) {
+                                    StakeConsensusLogger.debug("Checking ownership");
+                                    String owner = lastObject.getString("owner");
+                                    String tokens = stakeTokenHash;
+                                    String hashString = tokens.concat(quorumID[j]);
+                                    String hashForPositions = calculateHash(hashString, "SHA3-256");
+                                    String ownerIdentity = hashForPositions.concat(positionsArray);
+                                    String ownerRecalculated = calculateHash(ownerIdentity, "SHA3-256");
 
-                                if (verified) {
+                                    StakeConsensusLogger.debug("Ownership Here Sender Calculation");
+                                    StakeConsensusLogger.debug("tokens: " + tokens);
+                                    StakeConsensusLogger.debug("hashString: " + hashString);
+                                    StakeConsensusLogger.debug("hashForPositions: " + hashForPositions);
+                                    StakeConsensusLogger.debug("p1: " + positionsArray);
+                                    StakeConsensusLogger.debug("ownerIdentity: " + ownerIdentity);
+                                    StakeConsensusLogger.debug("ownerIdentityHash: " + ownerRecalculated);
+
+                                    if (!owner.equals(ownerRecalculated)) {
+                                        ownerCheck = false;
+                                        StakeConsensusLogger.debug("Ownership Check Failed");
+                                    }
+                                }
+
+                                if (ownerCheck && !STAKE_SUCCESS) {
+                                    StakeConsensusLogger.debug("Ownership Check Success");
+                                    STAKE_SUCCESS = true;
                                     qOut[j].println("alpha-stake-token-verified");
                                     StakeConsensusLogger.debug("Waiting for stake signatures");
 
@@ -113,13 +141,26 @@ public class StakeConsensus {
                                                 .debug("Token Details validation failed. Received null response");
                                     }
 
-                                    // ! valodate signatures
-
-                                    // ! send credits
-
                                     if (!qResponse[j].contains("44")) {
-                                        // qResponse[j] = response;
+
+                                        // ! valodate signatures
+                                        StakeConsensusLogger.debug("Validating Signatures");
+
+                                        // ! add mine signs to tokenchain
+                                        StakeConsensusLogger.debug("Adding mine signatures");
+                                        JSONObject mineSigns = new JSONObject(qResponse[j]);
+
+                                        stakeDetails = mineSigns;
+
+                                        stakeDetails.put("stakedToken", stakeTokenHash);
+
+                                        // ! send credits
+                                        StakeConsensusLogger.debug("Sending Credits");
+
+                                        qOut[j].println("staking-success");
                                     }
+                                } else {
+                                    StakeConsensusLogger.debug("Ownership Check Failed");
                                 }
 
                             } else if (qResponse[j].equals("444")) {

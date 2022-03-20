@@ -1,6 +1,10 @@
 package com.rubix.Consensus;
 
 import static com.rubix.Constants.ConsensusConstants.INIT_HASH;
+import static com.rubix.Constants.MiningConstants.MINED_RBT_SIGN;
+import static com.rubix.Constants.MiningConstants.MINE_ID;
+import static com.rubix.Constants.MiningConstants.MINING_TID_SIGN;
+import static com.rubix.Constants.MiningConstants.STAKED_TOKEN_SIGN;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -17,13 +21,16 @@ import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.nodeData;
 import static com.rubix.Resources.Functions.readFile;
+import static com.rubix.Resources.Functions.strToIntArray;
 import static com.rubix.Resources.Functions.syncDataTable;
 import static com.rubix.Resources.Functions.updateJSON;
 import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.add;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.listen;
+import static com.rubix.Resources.IPFSNetwork.pin;
 
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
@@ -38,7 +45,10 @@ import java.net.URL;
 import java.text.ParseException;
 import java.util.HashSet;
 
+import javax.imageio.ImageIO;
+
 import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
@@ -130,10 +140,12 @@ public class QuorumConsensus implements Runnable {
 
                     QuorumConsensusLogger.debug("Validating new token details...");
 
-                    boolean isValid = false;
+                    boolean isValid = true;
 
                     // ! check token is in same level
                     // ! validate mined token hash and ownership
+                    JSONObject genesisBlock = new JSONObject(response);
+                    System.out.println(genesisBlock);
 
                     if (isValid) {
 
@@ -153,106 +165,180 @@ public class QuorumConsensus implements Runnable {
                             File tokenFile = new File(TOKENS_PATH + tokenHash);
                             File tokenchainFile = new File(TOKENCHAIN_PATH + tokenHash + ".json");
 
-                            String tokenChain = readFile(TOKENCHAIN_PATH + tokenHash + ".json");
-                            tokenToStake.put(tokenChain);
+                            // check if token file and tokenchain file exists
+                            if (tokenFile.exists() && tokenchainFile.exists()) {
 
-                            // ! token which will be staked
-                            out.println(tokenToStake);
+                                String tokenChain = readFile(TOKENCHAIN_PATH + tokenHash + ".json");
+                                tokenToStake.put(tokenChain);
 
-                            try {
-                                response = in.readLine();
-                            } catch (SocketException e) {
-                                QuorumConsensusLogger
-                                        .debug("Sender Input Stream Null - Stake Token Validation by Miner Failed");
-                                socket.close();
-                                serverSocket.close();
-                                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-                            }
+                                String hashString = tokenHash.concat(senderDidIpfsHash);
+                                String hashForPositions = calculateHash(hashString, "SHA3-256");
+                                BufferedImage privateShare = ImageIO
+                                        .read(new File(
+                                                DATA_PATH.concat(senderDidIpfsHash).concat("/PrivateShare.png")));
+                                String firstPrivate = PropImage.img2bin(privateShare);
+                                int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+                                String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+                                String positions = "";
+                                for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                                    positions += privateBinary.charAt(j);
+                                }
+                                tokenToStake.put(positions);
+                                // ! token which will be staked
+                                out.println(tokenToStake);
 
-                            if (response == "alpha-stake-token-verified") {
-
-                                JSONObject stakingSigns = new JSONObject();
-
-                                // QuorumConsensusLogger.debug("Mine ID: " + mineDetToSign.getString(MINE_ID));
-
-                                // stakingSigns.put(
-                                // STAKED_TOKEN_SIGN, getSignFromShares(DATA_PATH + didHash +
-                                // "/PrivateShare.png",
-                                // tokenHash));
-                                // stakingSigns.put(
-                                // MINING_TID_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
-                                // mineDetToSign.getString(MINE_TID)));
-                                // stakingSigns.put(
-                                // MINED_RBT_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
-                                // mineDetToSign.getString(MINED_RBT)));
-                                // stakingSigns.put(MINE_ID_SIGN, getSignFromShares(DATA_PATH + didHash +
-                                // "/PrivateShare.png",
-                                // mineDetToSign.getString(MINE_ID)));
-
-                                out.println(stakingSigns.toString());
-
-                                // ! receive credits equal to credits required to mine token
-
-                                String credits = null;
                                 try {
-                                    credits = in.readLine();
-                                    // convert mineData to JSONObject
-                                    System.out.println("credits received " + credits);
+                                    response = in.readLine();
                                 } catch (SocketException e) {
-                                    QuorumConsensusLogger.debug("Sender Input Stream Null - Adding Credits Failed");
+                                    QuorumConsensusLogger
+                                            .debug("Sender Input Stream Null - Stake Token Validation by Miner Failed");
                                     socket.close();
                                     serverSocket.close();
                                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                                 }
 
-                                JSONArray creditArray = new JSONArray(credits);
+                                if (response == "alpha-stake-token-verified") {
 
-                                // Get level of token from advisory node
-                                int creditsRequired = 0;
-                                JSONObject resJsonData_credit = new JSONObject();
-                                String GET_URL_credit = SYNC_IP + "/getlevel";
-                                URL URLobj_credit = new URL(GET_URL_credit);
-                                HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
-                                con_credit.setRequestMethod("GET");
-                                int responseCode_credit = con_credit.getResponseCode();
-                                System.out.println("GET Response Code :: " + responseCode_credit);
-                                if (responseCode_credit == HttpURLConnection.HTTP_OK) {
-                                    BufferedReader in_credit = new BufferedReader(
-                                            new InputStreamReader(con_credit.getInputStream()));
-                                    String inputLine_credit;
-                                    StringBuffer response_credit = new StringBuffer();
-                                    while ((inputLine_credit = in_credit.readLine()) != null) {
-                                        response_credit.append(inputLine_credit);
+                                    JSONObject stakingSigns = new JSONObject();
+
+                                    genesisBlock.put("stakingToken", tokenHash);
+
+                                    stakingSigns.put(
+                                            STAKED_TOKEN_SIGN, getSignFromShares(DATA_PATH + didHash +
+                                                    "/PrivateShare.png",
+                                                    tokenHash));
+                                    stakingSigns.put(
+                                            MINING_TID_SIGN,
+                                            getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
+                                                    genesisBlock.getString("tid")));
+                                    stakingSigns.put(
+                                            MINED_RBT_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
+                                                    genesisBlock.getString("tokenHash")));
+
+                                    genesisBlock.put("stakerSignatures", stakingSigns);
+
+                                    // stakingSigns.put(MINE_ID_SIGN, getSignFromShares(DATA_PATH + didHash +
+                                    // "/PrivateShare.png",
+                                    // mineDetToSign.getString(MINE_ID)));
+
+                                    FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mystake.txt"),
+                                            true);
+                                    shareWriter.write(genesisBlock.toString());
+                                    shareWriter.close();
+                                    File readStake = new File(LOGGER_PATH + "mystake.txt");
+                                    String mineID = add(readStake.toString(), ipfs);
+                                    pin(mineID, ipfs);
+
+                                    File stakeFile = new File(
+                                            WALLET_DATA_PATH.concat("/Stake/").concat(mineID).concat(".json"));
+                                    if (!stakeFile.exists())
+                                        stakeFile.createNewFile();
+                                    writeToFile(stakeFile.toString(), genesisBlock.toString(), false);
+
+                                    // QuorumConsensusLogger.debug("Credit object: " + credit);
+                                    // QuorumConsensusLogger.debug("Credit Hash: " + calculateHash(credit,
+                                    // "SHA3-256"));
+                                    // JSONObject storeDetailsQuorum = new JSONObject();
+                                    // storeDetailsQuorum.put("tid", transactionID);
+                                    // storeDetailsQuorum.put("consensusID", verifySenderHash);
+                                    // storeDetailsQuorum.put("sign", senderPrivatePos);
+                                    // storeDetailsQuorum.put("credits", credit);
+                                    // storeDetailsQuorum.put("creditHash", calculateHash(credit, "SHA3-256"));
+                                    // storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
+                                    // storeDetailsQuorum.put("Date", Functions.getCurrentUtcTime());
+                                    // storeDetailsQuorum.put("recdid", receiverDID);
+                                    // JSONArray data = new JSONArray();
+                                    // data.put(storeDetailsQuorum);
+                                    // QuorumConsensusLogger.debug("Quorum Share: " + credit);
+                                    // updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json",
+                                    // data.toString());
+                                    deleteFile(LOGGER_PATH + "mystake.txt");
+
+                                    stakingSigns.put(MINE_ID, mineID);
+
+                                    QuorumConsensusLogger.debug("Staking Token Staked Successfully. MINE ID: " +
+                                            mineID);
+
+                                    out.println(stakingSigns.toString());
+
+                                    // ! receive credits equal to credits required to mine token
+
+                                    String credits = null;
+                                    try {
+                                        credits = in.readLine();
+                                        // convert mineData to JSONObject
+                                        System.out.println("credits received " + credits);
+                                    } catch (SocketException e) {
+                                        QuorumConsensusLogger.debug("Sender Input Stream Null - Adding Credits Failed");
+                                        socket.close();
+                                        serverSocket.close();
+                                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                                     }
-                                    in_credit.close();
-                                    QuorumConsensusLogger.debug("response from service " + response_credit.toString());
-                                    resJsonData_credit = new JSONObject(response_credit.toString());
-                                    int level_credit = resJsonData_credit.getInt("level");
-                                    creditsRequired = (int) Math.pow(2, (2 + level_credit));
-                                    QuorumConsensusLogger.debug("credits required " + creditsRequired);
 
-                                } else
-                                    QuorumConsensusLogger.debug("GET request not worked");
+                                    System.out.println("credits received " + credits);
 
-                                if (!(creditArray.length() != creditsRequired) && !(creditsRequired != 0)) {
+                                    // JSONArray creditArray = new JSONArray(credits);
 
-                                    QuorumConsensusLogger.debug("Credits received");
+                                    // // Get level of token from advisory node
+                                    // int creditsRequired = 0;
+                                    // JSONObject resJsonData_credit = new JSONObject();
+                                    // String GET_URL_credit = SYNC_IP + "/getlevel";
+                                    // URL URLobj_credit = new URL(GET_URL_credit);
+                                    // HttpURLConnection con_credit = (HttpURLConnection)
+                                    // URLobj_credit.openConnection();
+                                    // con_credit.setRequestMethod("GET");
+                                    // int responseCode_credit = con_credit.getResponseCode();
+                                    // System.out.println("GET Response Code :: " + responseCode_credit);
+                                    // if (responseCode_credit == HttpURLConnection.HTTP_OK) {
+                                    // BufferedReader in_credit = new BufferedReader(
+                                    // new InputStreamReader(con_credit.getInputStream()));
+                                    // String inputLine_credit;
+                                    // StringBuffer response_credit = new StringBuffer();
+                                    // while ((inputLine_credit = in_credit.readLine()) != null) {
+                                    // response_credit.append(inputLine_credit);
+                                    // }
+                                    // in_credit.close();
+                                    // QuorumConsensusLogger
+                                    // .debug("response from service " + response_credit.toString());
+                                    // resJsonData_credit = new JSONObject(response_credit.toString());
+                                    // int level_credit = resJsonData_credit.getInt("level");
+                                    // creditsRequired = (int) Math.pow(2, (2 + level_credit));
+                                    // QuorumConsensusLogger.debug("credits required " + creditsRequired);
+
+                                    // } else
+                                    // QuorumConsensusLogger.debug("GET request not worked");
+
+                                    // if (!(creditArray.length() != creditsRequired) && !(creditsRequired != 0)) {
+
+                                    // QuorumConsensusLogger.debug("Credits received");
+                                    // out.println("200");
+                                    // socket.close();
+                                    // serverSocket.close();
+                                    // executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+
+                                    // // ! store the credits
+
+                                    // } else {
+
+                                    // QuorumConsensusLogger.debug("Credits not received");
+                                    // out.println("448");
+                                    // socket.close();
+                                    // serverSocket.close();
+                                    // executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                                    // }
+                                    QuorumConsensusLogger.debug("Staking Completed!");
                                     out.println("200");
                                     socket.close();
                                     serverSocket.close();
                                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
 
-                                    // ! store the credits
-
                                 } else {
-
-                                    QuorumConsensusLogger.debug("Credits not received");
+                                    QuorumConsensusLogger.debug("Token file not found");
                                     out.println("447");
                                     socket.close();
                                     serverSocket.close();
                                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                                 }
-
                             } else {
                                 QuorumConsensusLogger.debug("Token Staking Failed: Token to stake not found");
                                 out.println("446");

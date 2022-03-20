@@ -406,6 +406,7 @@ public class ProofCredits {
                     tokenChainGenesisObject.put("owner", ownerIdentityHash);
                     tokenChainGenesisObject.put("blockNumber", 0);
                     tokenChainGenesisObject.put("QSTHeight", QSTHeight);
+                    tokenChainGenesisObject.put("tokenHash", tokenHash);
                     tokenChainGenesisObject.put("nextHash", calculateHash(tid, "SHA3-256"));
                     tokenChainGenesisObject.put("previousHash", "");
                     stakingData = tokenChainGenesisObject;

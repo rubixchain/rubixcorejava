@@ -128,8 +128,8 @@ public class TokenReceiver {
                 sk.close();
                 ss.close();
                 return APIResponse.toString();
-
             }
+
             TokenReceiverLogger.debug("Data Received: " + senderPeerID);
             swarmConnectP2P(senderPeerID, ipfs);
 
@@ -143,7 +143,6 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Sender details not available in network , please sync");
                 TokenReceiverLogger.info("Sender details not available in datatable");
-
                 output.close();
                 input.close();
                 sk.close();
@@ -161,7 +160,6 @@ public class TokenReceiver {
                 APIResponse.put("message", "Sender details not available");
                 TokenReceiverLogger.info("Sender details not available");
                 /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID); */
-
                 output.close();
                 input.close();
                 sk.close();
