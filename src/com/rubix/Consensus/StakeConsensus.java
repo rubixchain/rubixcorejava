@@ -134,6 +134,7 @@ public class StakeConsensus {
                         StakeConsensusLogger.error("Error in quorum consensus thread: " + e);
                     }
                 });
+                quorumThreads[j].start();
             }
             ;
 
