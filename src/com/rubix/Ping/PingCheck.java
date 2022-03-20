@@ -16,8 +16,6 @@ import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 public class PingCheck {
     private static final Logger PingSenderLogger = Logger.getLogger(PingCheck.class);
     public static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
-    public static BufferedReader serverInput;
-
 
     public static JSONObject Ping(String peerID,  int port) throws IOException, JSONException {
         repo(ipfs);
