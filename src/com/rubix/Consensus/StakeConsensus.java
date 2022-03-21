@@ -44,7 +44,7 @@ public class StakeConsensus {
         Socket[] qSocket = new Socket[signedAphaQuorumArray.length()];
         PrintStream[] qOut = new PrintStream[signedAphaQuorumArray.length()];
         BufferedReader[] qIn = new BufferedReader[signedAphaQuorumArray.length()];
-        String[] quorumID = new String[signedAphaQuorumArray.length()];
+        String[] quorumPID = new String[signedAphaQuorumArray.length()];
 
         StakeConsensusLogger.debug("Initiating Staking with " + signedAphaQuorumArray.length() + " Alpha Quorums: "
                 + signedAphaQuorumArray);
@@ -52,27 +52,27 @@ public class StakeConsensus {
         try {
 
             for (int j = 0; j < signedAphaQuorumArray.length(); j++)
-                quorumID[j] = signedAphaQuorumArray.getString(j);
+                quorumPID[j] = signedAphaQuorumArray.getString(j);
 
             Thread[] quorumThreads = new Thread[signedAphaQuorumArray.length()];
             for (int i = 0; i < signedAphaQuorumArray.length(); i++) {
                 int j = i;
                 quorumThreads[i] = new Thread(() -> {
                     try {
-                        StakeConsensusLogger.debug("Connecting to Quorum: " + quorumID[j]);
+                        StakeConsensusLogger.debug("Connecting to Quorum: " + quorumPID[j]);
 
-                        swarmConnectP2P(quorumID[j], ipfs);
-                        syncDataTable(null, quorumID[j]);
+                        swarmConnectP2P(quorumPID[j], ipfs);
+                        syncDataTable(null, quorumPID[j]);
                         String quorumDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
-                                quorumID[j]);
+                                quorumPID[j]);
                         String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid",
-                                quorumID[j]);
+                                quorumPID[j]);
                         nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
-                        String appName = quorumID[j].concat("alpha");
-                        StakeConsensusLogger.debug("quourm ID " + quorumID[j] + " appname " + appName);
-                        forward(appName, PORT + j, quorumID[j]);
+                        String appName = quorumPID[j].concat("alpha");
+                        StakeConsensusLogger.debug("quourm ID " + quorumPID[j] + " appname " + appName);
+                        forward(appName, PORT + j, quorumPID[j]);
                         StakeConsensusLogger.debug(
-                                "Connected to " + quorumID[j] + "on port " + (PORT + j) + "with AppName" + appName);
+                                "Connected to " + quorumPID[j] + " on port " + (PORT + j) + "with AppName" + appName);
                         qSocket[j] = new Socket("127.0.0.1", PORT + j);
                         qSocket[j].setSoTimeout(socketTimeOut);
                         qIn[j] = new BufferedReader(new InputStreamReader(qSocket[j].getInputStream()));
@@ -86,13 +86,15 @@ public class StakeConsensus {
 
                             try {
                                 qResponse[j] = qIn[j].readLine();
-                                StakeConsensusLogger.debug("Token Details validated. Received stake token details..");
                             } catch (SocketException e) {
                                 StakeConsensusLogger.debug("Token Details validation failed. Received null response");
                             }
                             if (!qResponse[j].contains("44")) {
 
+                                StakeConsensusLogger.debug("Token Details validated. Received stake token details..");
                                 Boolean ownerCheck = false;
+                                String stakerDID = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
+                                        quorumPID[j]);
                                 JSONArray stakeTokenArray = new JSONArray(qResponse[j]);
                                 String stakeTokenHash = stakeTokenArray.getString(0);
                                 String stakeTCObject = stakeTokenArray.getString(1);
@@ -101,29 +103,33 @@ public class StakeConsensus {
 
                                 // ! check ownership of stakeTC from Token Receiver logic
 
-                                JSONObject lastObject = stakeTC.getJSONObject(stakeTCObject.length() - 1);
-                                StakeConsensusLogger.debug("Last Object = " + lastObject);
-                                if (lastObject.has("owner")) {
-                                    StakeConsensusLogger.debug("Checking ownership");
-                                    String owner = lastObject.getString("owner");
-                                    String tokens = stakeTokenHash;
-                                    String hashString = tokens.concat(quorumID[j]);
-                                    String hashForPositions = calculateHash(hashString, "SHA3-256");
-                                    String ownerIdentity = hashForPositions.concat(positionsArray);
-                                    String ownerRecalculated = calculateHash(ownerIdentity, "SHA3-256");
+                                if (stakeTC.length() != 0 && stakeTokenHash != null && positionsArray != null) {
+                                    JSONObject lastObject = stakeTC.getJSONObject(stakeTCObject.length() - 1);
+                                    StakeConsensusLogger.debug("Last Object = " + lastObject);
+                                    if (lastObject.has("owner")) {
+                                        StakeConsensusLogger.debug("Checking ownership");
+                                        String owner = lastObject.getString("owner");
+                                        String tokens = stakeTokenHash;
+                                        String hashString = tokens.concat(stakerDID);
+                                        String hashForPositions = calculateHash(hashString, "SHA3-256");
+                                        String ownerIdentity = hashForPositions.concat(positionsArray);
+                                        String ownerRecalculated = calculateHash(ownerIdentity, "SHA3-256");
 
-                                    StakeConsensusLogger.debug("Ownership Here Sender Calculation");
-                                    StakeConsensusLogger.debug("tokens: " + tokens);
-                                    StakeConsensusLogger.debug("hashString: " + hashString);
-                                    StakeConsensusLogger.debug("hashForPositions: " + hashForPositions);
-                                    StakeConsensusLogger.debug("p1: " + positionsArray);
-                                    StakeConsensusLogger.debug("ownerIdentity: " + ownerIdentity);
-                                    StakeConsensusLogger.debug("ownerIdentityHash: " + ownerRecalculated);
+                                        StakeConsensusLogger.debug("Ownership Here Sender Calculation");
+                                        StakeConsensusLogger.debug("tokens: " + tokens);
+                                        StakeConsensusLogger.debug("hashString: " + hashString);
+                                        StakeConsensusLogger.debug("hashForPositions: " + hashForPositions);
+                                        StakeConsensusLogger.debug("p1: " + positionsArray);
+                                        StakeConsensusLogger.debug("ownerIdentity: " + ownerIdentity);
+                                        StakeConsensusLogger.debug("ownerIdentityHash: " + ownerRecalculated);
 
-                                    if (!owner.equals(ownerRecalculated)) {
-                                        ownerCheck = false;
-                                        StakeConsensusLogger.debug("Ownership Check Failed");
+                                        if (!owner.equals(ownerRecalculated)) {
+                                            ownerCheck = false;
+                                            StakeConsensusLogger.debug("Ownership Check Failed");
+                                        }
                                     }
+                                } else {
+                                    StakeConsensusLogger.debug("insufficient stake token height details");
                                 }
 
                                 if (ownerCheck && !STAKE_SUCCESS) {
@@ -164,7 +170,7 @@ public class StakeConsensus {
                                 }
 
                             } else if (qResponse[j].equals("444")) {
-                                StakeConsensusLogger.debug("Token Details validation failed. Received null response");
+                                StakeConsensusLogger.debug("Error response from staker (insuff). Skipping...");
                             } else if (qResponse[j].equals("445")) {
 
                             }

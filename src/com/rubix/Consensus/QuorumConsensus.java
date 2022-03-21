@@ -340,7 +340,6 @@ public class QuorumConsensus implements Runnable {
                                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                                 }
                             } else {
-                                QuorumConsensusLogger.debug("Token Staking Failed: Token to stake not found");
                                 out.println("446");
                                 socket.close();
                                 serverSocket.close();
@@ -348,7 +347,7 @@ public class QuorumConsensus implements Runnable {
                             }
 
                         } else {
-                            QuorumConsensusLogger.debug("Incorrect stake details");
+                            QuorumConsensusLogger.debug("Token Staking Failed: Token to stake not found");
                             out.println("445");
                             socket.close();
                             serverSocket.close();
@@ -356,6 +355,7 @@ public class QuorumConsensus implements Runnable {
                         }
 
                     } else {
+                        QuorumConsensusLogger.debug("Incorrect stake details");
                         out.println("444");
                         socket.close();
                         serverSocket.close();

@@ -353,8 +353,8 @@ public class ProofCredits {
                         }
                     }
                 }
-                JSONObject stakingData = new JSONObject();
-                String tkHash = null;
+                // JSONObject stakingData = new JSONObject();
+                // String tkHash = null;
 
                 for (int i = 0; i < token.length(); i++) {
                     writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
@@ -409,9 +409,15 @@ public class ProofCredits {
                     tokenChainGenesisObject.put("tokenHash", tokenHash);
                     tokenChainGenesisObject.put("nextHash", calculateHash(tid, "SHA3-256"));
                     tokenChainGenesisObject.put("previousHash", "");
-                    stakingData = tokenChainGenesisObject;
-                    tkHash = tokenHash;
+                    // stakingData = tokenChainGenesisObject;
+                    // tkHash = tokenHash;
                     tokenChainArray.put(tokenChainGenesisObject);
+
+                    // ! new token will now need a staked token
+                    JSONObject stakeDetails = StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
+                            tokenChainGenesisObject, ipfs, SEND_PORT + 3,
+                            "alpha-stake-token");
+                    tokenChainArray.put(stakeDetails);
 
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
                     JSONObject temp = new JSONObject();
@@ -421,14 +427,7 @@ public class ProofCredits {
                     updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
                 }
 
-                // ! new token will now need a staked token
-                JSONObject stakeDetails = StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
-                        stakingData, ipfs, SEND_PORT + 3,
-                        "alpha-stake-token");
-                JSONArray tempArray = new JSONArray();
-                tempArray.put(stakeDetails);
-
-                updateJSON("add", TOKENCHAIN_PATH + tkHash + ".json", tempArray.toString());
+                // updateJSON("add", TOKENCHAIN_PATH + tkHash + ".json", tempArray.toString());
 
                 if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
                     APIResponse.put("did", DID);
