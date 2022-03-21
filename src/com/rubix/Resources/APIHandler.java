@@ -25,16 +25,47 @@ public class APIHandler {
     private static final Logger eventLogger = Logger.getLogger("eventLogger");
 
     /**
-     * Initiates a transfer between two nodes
-     * @param data Data specific to token transfer
-     * @return Message from the sender with transaction details
+     * Arrange the nodes in the quorumlist file
+     * @return Message if success or failure of arrangement
      * @throws JSONException handles JSON Exceptions
      * @throws NoSuchAlgorithmException handles Invalid Algorithms Exceptions
      * @throws IOException handles IO Exceptions
      */
 
 
+    public static JSONObject sortType2Quorum(){
+        Functions.pathSet();
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        JSONObject sendMessage = new JSONObject();
+        JSONArray quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+        APILogger.debug("Before Sorting: " + quorumArray);
+        int code = 0;
+        try {
+            code = arrangeQuorum(quorumArray, SEND_PORT+15, 0);
+        } catch (IOException e) {
+            APILogger.debug("Credits failed");
+        }
 
+        if(code == 200) {
+            quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+            APILogger.debug("After Sorting: " + quorumArray);
+            sendMessage.put("status", "Success");
+            sendMessage.put("message", "Sorted");
+        }
+        else if(code == 401){
+            APILogger.debug("Could not collect all(min. 21) credits");
+            sendMessage.put("status", "Failed");
+            sendMessage.put("message", "");
+        }
+        else if(code == 402){
+            APILogger.debug("7 alpha node credits not summing up to requested amount");
+            sendMessage.put("status", "Failed");
+            sendMessage.put("message", "");
+        }
+
+        return sendMessage;
+
+    }
     public static JSONObject send(String data) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");

@@ -219,12 +219,6 @@ public class QuorumConsensus implements Runnable {
                         String verifySenderIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "tempverifysenderhash", ipfs);
                         deleteFile(LOGGER_PATH + "tempverifysenderhash");
 
-//                        QuorumConsensusLogger.debug("Checking providers for: " + verifySenderHash);
-//                        ArrayList dhtOwnersList = dhtOwnerCheck(verifySenderHash);
-//                        QuorumConsensusLogger.debug("Providers: " + dhtOwnersList);
-//                        boolean consensusIDcheck = false;
-//                        if(dhtOwnersList.size() <= 2 && dhtOwnersList.contains(senderPID))
-//                            consensusIDcheck = true;
 
                         if (Authenticate.verifySignature(detailsToVerify.toString())) {
                             QuorumConsensusLogger.debug("Quorum Authenticated Sender");
