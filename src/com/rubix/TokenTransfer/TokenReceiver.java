@@ -395,6 +395,7 @@ public class TokenReceiver {
                 FunctionsLogger.debug("Receiver Parts: " + formatAmount(receiverCount));
                 Double availableParts = receiverCount - senderCount;
 
+                
                 availableParts = formatAmount(availableParts);
                 availableParts += amountLedger.getDouble(partTokens.getString(i));
                 availableParts = formatAmount(availableParts);
@@ -403,6 +404,9 @@ public class TokenReceiver {
                     TokenReceiverLogger.debug("Token wholly spent: " + partTokens.getString(i));
                     TokenReceiverLogger.debug("Parts: " + availableParts);
                 }
+
+                
+                
             }
 
             if (!partsAvailable) {
@@ -777,7 +781,10 @@ public class TokenReceiver {
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
             TokenReceiverLogger.error("Exception Occurred", e);
             return APIResponse.toString();
-        } finally {
+        } catch( NullPointerException nullPointerException){
+            System.out.println("Null Pointer Exception occured : "+nullPointerException);
+        } 
+        finally {
             try {
                 ss.close();
                 sk.close();
