@@ -25,7 +25,11 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import static com.rubix.Resources.APIHandler.addPublicData;
 import static com.rubix.Resources.IPFSNetwork.*;
@@ -1112,6 +1116,7 @@ public class Functions {
         }
     }
 
+
     public static void correctPartToken(){
         pathSet();
         String bank = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
@@ -1130,7 +1135,8 @@ public class Functions {
     public static void tokenBank() {
         pathSet();
         String bank = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-        JSONArray bankArray = new JSONArray(bank);
+        try {
+            JSONArray bankArray = new JSONArray(bank);
 
         ArrayList<String> bankDuplicates = new ArrayList<>();
         for (int i = 0; i < bankArray.length(); i++) {
@@ -1161,6 +1167,9 @@ public class Functions {
         for (int i = 0; i < tokenFiles.size(); i++) {
             if (!bankDuplicates.contains(tokenFiles.get(i).toString()))
                 deleteFile(TOKENS_PATH.concat(tokenFiles.get(i).toString()));
+        }
+        } catch (JSONException e) {
+            //TODO: handle exception
         }
 
     }
@@ -1389,7 +1398,8 @@ public class Functions {
 
     public static void clearParts() {
         String partsFile = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
-        JSONArray partsArray = new JSONArray(partsFile);
+        try {
+            JSONArray partsArray = new JSONArray(partsFile);
         for (int i = 0; i < partsArray.length(); i++) {
             if (partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) <= 0.000 || partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) > 1.000) {
                 deleteFile(TOKENS_PATH.concat("PARTS/").concat(partsArray.getJSONObject(i).getString("tokenHash")));
@@ -1397,20 +1407,15 @@ public class Functions {
             }
         }
         writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partsArray.toString(), false);
+        } catch (JSONException e) {
+            //TODO: handle exception
+        }
     }
 
     public static void backgroundChecks() {
-        try {
-            Functions.tokenBank();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        Functions.tokenBank();
 
-        try {
-            Functions.clearParts();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        Functions.clearParts();
 
         IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
         IPFSNetwork.repo(ipfs);
@@ -1477,7 +1482,6 @@ public class Functions {
             MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
 //            FunctionsLogger.info("MultiAdrress concated " + multiAddress + "|||");
             boolean output = swarmConnectP2P(peerid, ipfs);
-
             if (output) {
                 swarmConnectedStatus = true;
 //                FunctionsLogger.debug("Swarm is already connected");
@@ -1497,7 +1501,6 @@ public class Functions {
     public static boolean ping(String peerid, int port) throws IOException {
         JSONObject pingCheck = PingCheck.Ping(peerid, port);
         return !pingCheck.getString("status").contains("Failed");
-
     }
 
     public static int arrangeQuorum(JSONArray quorumArray, int port, double amount) throws IOException {
@@ -1719,8 +1722,10 @@ public class Functions {
     public static boolean portStatusWindows(int port) {
 //        FunctionsLogger.info("Starting portStatusWindows");
         boolean releasedPort = false;
-        String processStr;
+        String portProcessStr;
         Process p;
+        ArrayList<Integer> pidTree = new ArrayList<Integer>();
+        ArrayList<Integer> portPidTree = new ArrayList<Integer>();
         try {
             Runtime rt = Runtime.getRuntime();
             Process proc = rt.exec("cmd /c netstat -ano | findstr " + port);
@@ -1740,15 +1745,16 @@ public class Functions {
                 }
             } else {
                 releasedPort = true;
-                FunctionsLogger.info("Port is unlocked");
             }
+
         } catch (Exception e) {
             FunctionsLogger.error("Exception occurred at portStatusWindows", e);
             e.printStackTrace();
         }
         return releasedPort;
+
     }
 
 
-}
 
+}

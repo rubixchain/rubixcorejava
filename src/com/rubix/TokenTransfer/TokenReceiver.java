@@ -171,6 +171,7 @@ public class TokenReceiver {
             JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
             TokenReceiverLogger.debug("Amount Ledger: " + amountLedger);
             int intPart = wholeTokens.length();
+
 //            Double decimalPart = formatAmount(amount - intPart);
 //            JSONArray doubleSpentToken = new JSONArray();
 //            boolean tokenOwners = true;
@@ -224,6 +225,7 @@ public class TokenReceiver {
 //                ss.close();
 //                return APIResponse.toString();
 //            }
+
             String senderToken = TokenDetails.toString();
             String consensusID = calculateHash(senderToken, "SHA3-256");
             writeToFile(LOGGER_PATH + "consensusID", consensusID, false);
