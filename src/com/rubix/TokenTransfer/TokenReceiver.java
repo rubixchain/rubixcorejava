@@ -1,7 +1,7 @@
 package com.rubix.TokenTransfer;
 
 import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.FunctionsLogger;
+
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
 import static com.rubix.Resources.Functions.PAYMENTS_PATH;
@@ -388,8 +388,8 @@ public class TokenReceiver {
                         }
                     }
                 }
-                FunctionsLogger.debug("Sender Parts: " + formatAmount(senderCount));
-                FunctionsLogger.debug("Receiver Parts: " + formatAmount(receiverCount));
+                TokenReceiverLogger.debug("Sender Parts: " + formatAmount(senderCount));
+                TokenReceiverLogger.debug("Receiver Parts: " + formatAmount(receiverCount));
                 Double availableParts = receiverCount - senderCount;
 
                 availableParts = formatAmount(availableParts);
