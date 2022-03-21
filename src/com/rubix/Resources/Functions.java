@@ -39,6 +39,7 @@ import javax.imageio.ImageIO;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Ping.PingCheck;
 
+import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
