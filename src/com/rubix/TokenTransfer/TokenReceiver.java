@@ -425,6 +425,40 @@ public class TokenReceiver {
 
                     // ! staking checks (1..4) starts here
 
+                    // ! staking checks (3): Verify the signatures earned during the mining of the
+                    // ! incoming mint token
+                    JSONObject genesiObject = tokenChain.getJSONObject(0);
+                    if (genesiObject.has("genesisSignatures")) {
+
+                        int randomNumber = new Random().nextInt(15);
+                        String genesisSignatures = genesiObject.getString("genesisSignatures");
+                        String genesisSignaturesContent = get(genesisSignatures, ipfs);
+                        JSONArray genesisSignaturesContentJSON = new JSONArray(genesisSignaturesContent);
+                        JSONObject VerificationPick = genesisSignaturesContentJSON.getJSONObject(randomNumber);
+                        if (VerificationPick.getString("hash") == genesiObject.getString("tid")) {
+
+                            if (Authenticate.verifySignature(VerificationPick.toString())) {
+                                TokenReceiverLogger.debug("Staking check (3) successful");
+                            } else {
+                                TokenReceiverLogger.debug(
+                                        "Staking check (3) failed: Could not verify genesis credit signature");
+                                ownerCheck = false;
+                                invalidTokens.put(tokens);
+                            }
+
+                        } else {
+                            TokenReceiverLogger.debug(
+                                    "Staking check (3) failed: Genesis TID is not equal to the hash of the genesis signature");
+                            ownerCheck = false;
+                            invalidTokens.put(tokens);
+                        }
+
+                    } else {
+                        TokenReceiverLogger.debug("Staking check (3) failed: Genesis Signature not found");
+                        ownerCheck = false;
+                        invalidTokens.put(tokens);
+                    }
+
                     // ! staking checks (1): Check incoming token level
                     String TokenContent = get(wholeTokens.getString(count), ipfs);
                     String tokenLevel = TokenContent.substring(0, 3);
@@ -491,46 +525,49 @@ public class TokenReceiver {
                             ownerCheck = false;
                             invalidTokens.put(tokens);
                         }
-
-                        // ! staking checks (3): Verify the signatures earned during the mining of the
-                        // ! incoming mint token
-                        JSONObject genesiObject = tokenChain.getJSONObject(0);
-                        if (genesiObject.has("genesisSignatures")) {
-
-                            int randomNumber = new Random().nextInt(15);
-                            String genesisSignatures = genesiObject.getString("genesisSignatures");
-                            String genesisSignaturesContent = get(genesisSignatures, ipfs);
-                            JSONArray genesisSignaturesContentJSON = new JSONArray(genesisSignaturesContent);
-                            JSONObject VerificationPick = genesisSignaturesContentJSON.getJSONObject(randomNumber);
-                            if (VerificationPick.getString("hash") == genesiObject.getString("tid")) {
-
-                                if (Authenticate.verifySignature(VerificationPick.toString())) {
-                                    TokenReceiverLogger.debug("Staking check (3) successful");
-                                } else {
-                                    TokenReceiverLogger.debug(
-                                            "Staking check (3) failed: Could not verify genesis credit signature");
-                                    ownerCheck = false;
-                                    invalidTokens.put(tokens);
-                                }
-
-                            } else {
-                                TokenReceiverLogger.debug(
-                                        "Staking check (3) failed: Genesis TID is not equal to the hash of the genesis signature");
-                                ownerCheck = false;
-                                invalidTokens.put(tokens);
-                            }
-
-                        } else {
-                            TokenReceiverLogger.debug("Staking check (3) failed: Genesis Signature not found");
-                            ownerCheck = false;
-                            invalidTokens.put(tokens);
-                        }
                     }
 
                 } else if (lastObject.has("mineID")) {
-                    TokenReceiverLogger.debug("Staking check (3) failed: Found staked token: " + tokens);
-                    ownerCheck = false;
-                    invalidTokens.put(tokens);
+
+                    String mineID = lastObject.getString("mineID");
+                    String mineIDContent = get(mineID, ipfs);
+                    JSONObject mineIDContentJSON = new JSONObject(mineIDContent);
+                    String stakerDID = mineIDContentJSON.getString("stakerDID");
+                    String stakerDIDSign = mineIDContentJSON.getString("stakerDIDSignature");
+                    String stakedToken = mineIDContentJSON.getString("stakedToken");
+                    String stakedTokenSign = mineIDContentJSON.getString("stakedTokenSignature");
+
+                    JSONObject StakerToVerify = new JSONObject();
+                    StakerToVerify.put("did", senderDidIpfsHash);
+                    StakerToVerify.put("hash", stakerDID);
+                    StakerToVerify.put("signature", stakerDIDSign);
+
+                    JSONObject tokenToVerify = new JSONObject();
+                    tokenToVerify.put("did", senderDidIpfsHash);
+                    tokenToVerify.put("hash", stakedToken);
+                    tokenToVerify.put("signature", stakedTokenSign);
+
+                    if (Authenticate.verifySignature(StakerToVerify.toString())
+                            && Authenticate.verifySignature(tokenToVerify.toString())) {
+
+                        ArrayList ownersArray = new ArrayList();
+                        ownersArray = IPFSNetwork.dhtOwnerCheck(stakedToken);
+
+                        if (ownersArray.contains(senderDidIpfsHash)) {
+                        } else {
+                            TokenReceiverLogger.debug(
+                                    "Staking check failed - staked token " + stakedToken + " is not owned by staker: "
+                                            + senderDidIpfsHash);
+                            ownerCheck = false;
+                            invalidTokens.put(tokens);
+                        }
+
+                    } else {
+                        TokenReceiverLogger.debug(
+                                "Staking check failed: Found staked token but unable to verify staked token height");
+                        ownerCheck = false;
+                        invalidTokens.put(tokens);
+                    }
                 }
                 // ! staking checks ends here
             }
@@ -993,7 +1030,9 @@ public class TokenReceiver {
             ss.close();
             return APIResponse.toString();
 
-        } catch (Exception e) {
+        } catch (
+
+        Exception e) {
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
             TokenReceiverLogger.error("Exception Occurred", e);
             return APIResponse.toString();

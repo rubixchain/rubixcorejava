@@ -417,7 +417,10 @@ public class ProofCredits {
                     JSONObject stakeDetails = StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
                             tokenChainGenesisObject, ipfs, SEND_PORT + 3,
                             "alpha-stake-token");
-                    tokenChainArray.put(stakeDetails);
+
+                    if (stakeDetails.length() > 0) {
+                        tokenChainArray.put(stakeDetails);
+                    }
 
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
                     JSONObject temp = new JSONObject();
