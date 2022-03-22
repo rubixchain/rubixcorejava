@@ -1732,11 +1732,11 @@ public class Functions {
             FunctionsLogger.info("Checking port status");
             long currentPid = ProcessHandle.current().pid();
             BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            processStr = stdInput.readLine();
+            portProcessStr = stdInput.readLine();
 //            FunctionsLogger.info("Process id found for port is " + processStr + " current jar pid is " + currentPid);
-            if (processStr != null && String.valueOf(currentPid) != processStr) {
-                int index = processStr.lastIndexOf(" ");
-                String sc = processStr.substring(index);
+            if (portProcessStr != null && String.valueOf(currentPid) != portProcessStr) {
+                int index = portProcessStr.lastIndexOf(" ");
+                String sc = portProcessStr.substring(index);
                 //System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this port and retry transcation");
                 if (sc != String.valueOf(currentPid)) {
                     FunctionsLogger.debug("Port " + port + " is locked by PID " + sc);
