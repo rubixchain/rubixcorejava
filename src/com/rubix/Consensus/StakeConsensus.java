@@ -25,15 +25,15 @@ import io.ipfs.api.IPFS;
 public class StakeConsensus {
     public static Logger StakeConsensusLogger = Logger.getLogger(StakeConsensus.class);
     private static int socketTimeOut = 120000;
-    public static volatile JSONObject stakeDetails = new JSONObject();
     private static volatile boolean STAKE_SUCCESS = false;
-    // mine ID
-    // QST_Height
-    // staker DID
-    // staked token hash
-    // sign on staking token
-    // sign on txn id
-    // sign on mining token
+    public static volatile JSONObject stakeDetails = new JSONObject();
+    // MINE_ID
+    // QST_HEIGHT
+    // STAKED_QUORUM_DID
+    // STAKED_TOKEN
+    // STAKED_TOKEN_SIGN
+    // MINING_TID_SIGN
+    // MINED_RBT_SIGN
     // same object will be added to tokenchains of staked and mined token
 
     public static JSONObject getStakeConsensus(JSONArray signedAphaQuorumArray, JSONObject data, IPFS ipfs, int PORT,
