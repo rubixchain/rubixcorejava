@@ -1,19 +1,25 @@
 package com.rubix.Resources;
 
+import static com.rubix.Resources.APIHandler.addPublicData;
+import static com.rubix.Resources.IPFSNetwork.IPFSNetworkLogger;
+import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
+import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.forwardCheck;
+import static com.rubix.Resources.IPFSNetwork.listen;
+import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
+import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
+
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Ping.GetCredits;
 import com.rubix.Ping.PingCheck;
 import io.ipfs.api.IPFS;
-import io.ipfs.multiaddr.MultiAddress;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -30,9 +36,16 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import static com.rubix.Resources.APIHandler.addPublicData;
-import static com.rubix.Resources.IPFSNetwork.*;
+
+
+
+import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
 
 
 public class Functions {
@@ -1720,7 +1733,7 @@ public class Functions {
     }
 
     public static boolean portStatusWindows(int port) {
-//        FunctionsLogger.info("Starting portStatusWindows");
+        FunctionsLogger.info("Starting portStatusWindows");
         boolean releasedPort = false;
         String portProcessStr;
         Process p;
@@ -1728,32 +1741,47 @@ public class Functions {
         ArrayList<Integer> portPidTree = new ArrayList<Integer>();
         try {
             Runtime rt = Runtime.getRuntime();
-            Process proc = rt.exec("cmd /c netstat -ano | findstr " + port);
-            FunctionsLogger.info("Checking port status");
-            long currentPid = ProcessHandle.current().pid();
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            processStr = stdInput.readLine();
-//            FunctionsLogger.info("Process id found for port is " + processStr + " current jar pid is " + currentPid);
-            if (processStr != null && String.valueOf(currentPid) != processStr) {
-                int index = processStr.lastIndexOf(" ");
-                String sc = processStr.substring(index);
-                //System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this port and retry transcation");
-                if (sc != String.valueOf(currentPid)) {
-                    FunctionsLogger.debug("Port " + port + " is locked by PID " + sc);
-                } else {
-                    FunctionsLogger.debug("Port " + port + " is locked by current jar with PID " + sc);
+            Process getJarPid = rt.exec("cmd /c netstat -ano | findstr 1898");
+            BufferedReader getJarPidBR = new BufferedReader(new InputStreamReader(getJarPid.getInputStream()));
+            String getJarPidline;
+                while ((getJarPidline = getJarPidBR.readLine()) != null) {
+                    String[] getJarPidTree = getJarPidline.split("\\s+");
+                    int temp=Integer.parseInt(getJarPidTree[getJarPidTree.length-1]);
+                    pidTree.add(temp);
                 }
-            } else {
+                
+                FunctionsLogger.info("PIDs occupied by Rubix.jar are " + pidTree);
+            
+            Set<Integer> pidSet = new LinkedHashSet<Integer>(pidTree);
+            FunctionsLogger.info("Pid occupied by port 1898 is pidSet"+pidSet);
+            Process getPortPid = rt.exec("cmd /c netstat -ano | findstr "+ port);
+            BufferedReader getPortPidBr = new BufferedReader(new InputStreamReader(getPortPid.getInputStream()));
+            String getPortPidLine;
+            while((getPortPidLine = getPortPidBr.readLine())!=null){
+                String[] getPortPidTree = getPortPidLine.split("\\s+");
+                    int temp=Integer.parseInt(getPortPidTree[getPortPidTree.length-1]);
+                    portPidTree.add(temp);
+            }
+            
+            Set<Integer> pidToKill = new LinkedHashSet<Integer>(portPidTree);
+            FunctionsLogger.info("Pid used by port "+ port +"is "+ pidToKill);
+            pidToKill.removeAll(pidSet);
+            pidToKill.remove(0);
+            FunctionsLogger.info("Pid using port "+ port +" but not in 1898"+pidToKill);
+            if(pidToKill.size()>0){
+                System.out.println("Port "+port+" is occupied by PIDs"+pidToKill);
+            }
+            else {
                 releasedPort = true;
             }
-
+            
+            
         } catch (Exception e) {
-            FunctionsLogger.error("Exception occurred at portStatusWindows", e);
-            e.printStackTrace();
+           FunctionsLogger.error("Exception occured at portStatusWindows", e);
         }
         return releasedPort;
 
-    }
+}
 
 
 
