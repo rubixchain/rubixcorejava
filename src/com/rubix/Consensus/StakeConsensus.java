@@ -141,7 +141,7 @@ public class StakeConsensus {
                                     try {
                                         qResponse[j] = qIn[j].readLine();
                                         StakeConsensusLogger
-                                                .debug("Received stake token signatures. Sending Credits");
+                                                .debug("Received stake token signatures: " + qResponse[j]);
                                     } catch (SocketException e) {
                                         StakeConsensusLogger
                                                 .debug("Token Details validation failed. Received null response");
