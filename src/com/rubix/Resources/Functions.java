@@ -13,6 +13,7 @@ import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Ping.GetCredits;
 import com.rubix.Ping.PingCheck;
 import io.ipfs.api.IPFS;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -36,6 +37,8 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import javax.imageio.ImageIO;
+import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -44,8 +47,6 @@ import org.json.JSONObject;
 
 
 
-import io.ipfs.api.IPFS;
-import io.ipfs.multiaddr.MultiAddress;
 
 
 public class Functions {
@@ -1675,16 +1676,17 @@ public class Functions {
     public static boolean portCheckAndKill(int port) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         boolean portStatus = false;
-
+        long pid = ProcessHandle.current().pid();
+        FunctionsLogger.info("Current OS is "+getOsName());
+        FunctionsLogger.info("Current pid for the process is "+ pid);
         try {
-            if (getOsName() != "Windows") {
+            if (!getOsName().toLowerCase().contains("windows")) {
                 portStatus = releasePorts(port);
             } else {
-                portStatusWindows(port);
                 portStatus = portStatusWindows(port);
             }
         } catch (Exception e) {
-            FunctionsLogger.error("Error occurred during port checking ", e);
+            FunctionsLogger.error("Error occured during port checking ", e);
         }
         return portStatus;
 
