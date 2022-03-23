@@ -38,16 +38,13 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import javax.imageio.ImageIO;
+
+import io.ipfs.multiaddr.MultiAddress;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-
-
-
-
 
 public class Functions {
 
@@ -1490,7 +1487,7 @@ public class Functions {
         return sanityCheckErrorFlag;
     }
     public static boolean checkIPFSStatus(String peerid, IPFS ipfs) {
-        FunctionsLogger.info("Entering checkIPFSStatus");
+//        FunctionsLogger.info("Entering checkIPFSStatus");
         boolean swarmConnectedStatus = false;
         try {
             MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
@@ -1507,7 +1504,7 @@ public class Functions {
             FunctionsLogger.error("QuorumSendCredits Swarm Connect is failed", e);
 
         }
-        FunctionsLogger.info("checkIPFSStatus return value is " + swarmConnectedStatus);
+//        FunctionsLogger.info("checkIPFSStatus return value is " + swarmConnectedStatus);
         return swarmConnectedStatus;
     }
 
@@ -1522,7 +1519,7 @@ public class Functions {
         JSONArray quorumArrayRevised = new JSONArray();
         for(int i = 0; i < quorumArray.length(); i++){
             int credit = getCredits(quorumArray.getString(i), port);
-            FunctionsLogger.debug("Credit received from " + quorumArray.getString(i) + " is: " + credit);
+//            FunctionsLogger.debug("Credit received from " + quorumArray.getString(i) + " is: " + credit);
             JSONObject peerCredit = new JSONObject();
             peerCredit.put("did", quorumArray.getString(i));
             peerCredit.put("credit", credit);
@@ -1645,7 +1642,7 @@ public class Functions {
 
                     multiAddress = new MultiAddress("/ipfs/" + bootNode);
                     output = swarmConnectProcess(multiAddress);
-                    FunctionsLogger.info("bootstrapConnect- connection status to " + bootNode + " is " + output);
+//                    FunctionsLogger.info("bootstrapConnect- connection status to " + bootNode + " is " + output);
                     if (output.contains("success")) {
 //                        FunctionsLogger.info("bootstrapConnect- trying to swarm connect");
                         multiAddress = new MultiAddress("/ipfs/" + bootNode + "/p2p-circuit/ipfs/" + peerid);
@@ -1696,7 +1693,7 @@ public class Functions {
      * This function will release the port in linux based machines if the port is already in use
      */
     public static boolean releasePorts(int port) {
-        FunctionsLogger.info("releasePorts- ");
+//        FunctionsLogger.info("releasePorts- ");
         boolean releasedPort = false;
         String processStr;
         Process processId;
@@ -1705,7 +1702,7 @@ public class Functions {
             long currentPid = ProcessHandle.current().pid();
             BufferedReader br = new BufferedReader(
                     new InputStreamReader(processId.getInputStream()));
-            FunctionsLogger.info("releasePorts- process " + br.readLine() + " is occupied in " + port);
+//            FunctionsLogger.info("releasePorts- process " + br.readLine() + " is occupied in " + port);
             processId = Runtime.getRuntime().exec("pgrep ipfs");
             BufferedReader ipfsPidBr = new BufferedReader(new InputStreamReader(processId.getInputStream()));
 
@@ -1722,7 +1719,7 @@ public class Functions {
                 }
             }
             releasedPort = true;
-            FunctionsLogger.info("releasePorts- status is " + releasedPort);
+//            FunctionsLogger.info("releasePorts- status is " + releasedPort);
             processId.waitFor();
 //            FunctionsLogger.info("releasePorts- Waitng for process");
             processId.destroy();

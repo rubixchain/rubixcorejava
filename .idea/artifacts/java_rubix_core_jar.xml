@@ -3,18 +3,8 @@
     <output-path>$PROJECT_DIR$/out/artifacts/java_rubix_core_jar</output-path>
     <root id="archive" name="java-rubix-core.jar">
       <element id="module-output" name="java-rubix-core" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/cid.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/ipfs.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/multiaddr.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/multibase.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/multihash.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/junit-4.12.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/IPFS/hamcrest-core-1.3.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/JAVA/log4j.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/JAVA/java-json.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/JAVA/javax.json-1.0.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/JAVA/json-simple-1.1.1.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Desktop/JAVA/org-apache-commons-codec.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/did/core/did/6.3/did-6.3.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/rubix/core/rubix/9.9/rubix-9.9.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

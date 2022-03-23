@@ -7,7 +7,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" exported="" name="IPFS" level="project" />
-    <orderEntry type="library" exported="" name="java-cid-v1.1.0" level="project" />
+    <orderEntry type="library" name="rubix-9.9" level="project" />
+    <orderEntry type="library" name="did-6.3" level="project" />
   </component>
 </module>

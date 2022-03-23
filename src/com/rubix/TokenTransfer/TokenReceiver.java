@@ -12,11 +12,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.imageio.ImageIO;
+import javax.net.ssl.HttpsURLConnection;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -94,8 +96,8 @@ public class TokenReceiver {
                 sk.close();
                 ss.close();
                 return APIResponse.toString();
-
             }
+
             TokenReceiverLogger.debug("Data Received: " + senderPeerID);
             swarmConnectP2P(senderPeerID, ipfs);
 
@@ -109,14 +111,12 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Sender details not available in network , please sync");
                 TokenReceiverLogger.info("Sender details not available in datatable");
-
                 output.close();
                 input.close();
                 sk.close();
                 ss.close();
                 return APIResponse.toString();
             }
-
 
             nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
             File senderDIDFile = new File(DATA_PATH + senderDidIpfsHash + "/DID.png");
@@ -127,8 +127,7 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Sender details not available");
                 TokenReceiverLogger.info("Sender details not available");
-                /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);*/
-
+                /* executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID); */
                 output.close();
                 input.close();
                 sk.close();
@@ -170,62 +169,153 @@ public class TokenReceiver {
             Double amount = tokenObject.getDouble("amount");
             JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
             TokenReceiverLogger.debug("Amount Ledger: " + amountLedger);
+
+            JSONArray allTokens = new JSONArray();
+            for (int i = 0; i < wholeTokens.length(); i++)
+                allTokens.put(wholeTokens.getString(i));
+            for (int i = 0; i < partTokens.length(); i++)
+                allTokens.put(partTokens.getString(i));
+
             int intPart = wholeTokens.length();
+            JSONArray wholeTokenContent = new JSONArray();
+            for (int i = 0; i < intPart; i++) {
+                String TokenContent = get(wholeTokens.getString(i), ipfs);
+                wholeTokenContent.put(TokenContent);
+            }
+
+            JSONArray partTokenContent = new JSONArray();
+            for (int i = 0; i < partTokens.length(); i++) {
+                String TokenContent = get(partTokens.getString(i), ipfs);
+                partTokenContent.put(TokenContent);
+            }
+            JSONArray allTokensContent = new JSONArray();
+            for (int i = 0; i < wholeTokenContent.length(); i++) {
+                allTokensContent.put(wholeTokenContent.getString(i));
+            }
+            for (int i = 0; i < partTokenContent.length(); i++) {
+                allTokensContent.put(partTokenContent.getString(i));
+            }
+
+            boolean tokenMinedStatus = true;
+            String tokenMinedStatusErrorMessage = "";
+            if (!Functions.EXPLORER_IP.contains("127.0.0.1")) {
+                TokenReceiverLogger.debug("Contacting Explorer ..." + EXPLORER_IP);
+                for (int i = 0; i < allTokensContent.length(); i++) {
+
+                    String token = allTokensContent.getString(i);
+                    String url = Functions.EXPLORER_IP + "/check-mined-status/" + token;
+                    URL obj = new URL(url);
+                    HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+
+                    // Setting basic post request
+                    con.setRequestMethod("GET");
+                    con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+                    con.setRequestProperty("Accept", "application/json");
+                    con.setRequestProperty("Content-Type", "application/json");
+                    con.setRequestProperty("Authorization", "null");
+
+                    int responseCode = con.getResponseCode();
+                    TokenReceiverLogger.debug("Response Code : " + responseCode);
+                    if (responseCode != 200) {
+                        tokenMinedStatusErrorMessage = "Token Integrity Failed";
+                        TokenReceiverLogger.debug("Token Integrity Failed");
+                        tokenMinedStatus = false;
+                        break;
+                    }
+
+                    TokenReceiverLogger.debug("Reading status");
+                    BufferedReader in = new BufferedReader(
+                            new InputStreamReader(con.getInputStream()));
+                    String responseOutput;
+                    StringBuffer response = new StringBuffer();
+
+                    while ((responseOutput = in.readLine()) != null) {
+                        response.append(responseOutput);
+                    }
+                    in.close();
+                    JSONObject responseObject = new JSONObject(response.toString());
+                    System.out.println("Status for token " + token + ": " + responseObject.getBoolean("status"));
+                    if (!responseObject.getBoolean("status")) {
+                        tokenMinedStatusErrorMessage = responseObject.getString("message");
+                        tokenMinedStatus = false;
+                        break;
+                    }
+                }
+            }
+            else{
+                tokenMinedStatusErrorMessage = "Could not contact explorer: Explorer IP (127.0.0.1)";
+                tokenMinedStatus = false;
+            }
+            if (!tokenMinedStatus) {
+                TokenReceiverLogger.debug(tokenMinedStatusErrorMessage);
+                output.println("419");
+                output.println(tokenMinedStatusErrorMessage);
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", tokenMinedStatusErrorMessage);
+                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
 
 //            Double decimalPart = formatAmount(amount - intPart);
-//            JSONArray doubleSpentToken = new JSONArray();
-//            boolean tokenOwners = true;
-//            ArrayList ownersArray = new ArrayList();
-//            ArrayList previousSender = new ArrayList();
-//            JSONArray ownersReceived = new JSONArray();
-//            for (int i = 0; i < wholeTokens.length(); ++i) {
-//                try {
-//                    TokenReceiverLogger.debug("Checking owners for " + wholeTokens.getString(i) + " Please wait...");
-//                    ownersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
-//
-//                    if (ownersArray.size() > 2) {
-//
-//                        for (int j = 0; j < previousSendersArray.length(); j++) {
-//                            if (previousSendersArray.getJSONObject(j).getString("token").equals(wholeTokens.getString(i)))
-//                                ownersReceived = previousSendersArray.getJSONObject(j).getJSONArray("sender");
-//                        }
-//
-//                        for (int j = 0; j < ownersReceived.length(); j++) {
-//                            previousSender.add(ownersReceived.getString(j));
-//                        }
-//                        TokenReceiverLogger.debug("Previous Owners: " + previousSender);
-//
-//                        for (int j = 0; j < ownersArray.size(); j++) {
-//                            if (!previousSender.contains(ownersArray.get(j).toString()))
-//                                tokenOwners = false;
-//                        }
-//                    }
-//                } catch (IOException e) {
-//
-//                    TokenReceiverLogger.debug("Ipfs dht find did not execute");
-//                }
-//            }
-//            if (!tokenOwners) {
-//                JSONArray owners = new JSONArray();
-//                for (int i = 0; i < ownersArray.size(); i++)
-//                    owners.put(ownersArray.get(i).toString());
-//                TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
-//                TokenReceiverLogger.debug("Owners: " + owners);
-//                output.println("420");
-//                output.println(doubleSpentToken.toString());
-//                output.println(owners.toString());
-//                APIResponse.put("did", senderDidIpfsHash);
-//                APIResponse.put("tid", "null");
-//                APIResponse.put("status", "Failed");
-//                APIResponse.put("message", "Multiple Owners for " + doubleSpentToken + " " + owners);
-//                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-//                output.close();
-//                input.close();
-//                sk.close();
-//                ss.close();
-//                return APIResponse.toString();
-//            }
+            JSONArray doubleSpentToken = new JSONArray();
+            boolean tokenOwners = true;
+            ArrayList ownersArray = new ArrayList();
+            ArrayList previousSender = new ArrayList();
+            JSONArray ownersReceived = new JSONArray();
+            for (int i = 0; i < wholeTokens.length(); ++i) {
+                try {
+                    TokenReceiverLogger.debug("Checking owners for " + wholeTokens.getString(i) + " Please wait...");
+                    ownersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
 
+                    if (ownersArray.size() > 2) {
+
+                        for (int j = 0; j < previousSendersArray.length(); j++) {
+                            if (previousSendersArray.getJSONObject(j).getString("token").equals(wholeTokens.getString(i)))
+                                ownersReceived = previousSendersArray.getJSONObject(j).getJSONArray("sender");
+                        }
+
+                        for (int j = 0; j < ownersReceived.length(); j++) {
+                            previousSender.add(ownersReceived.getString(j));
+                        }
+                        TokenReceiverLogger.debug("Previous Owners: " + previousSender);
+
+                        for (int j = 0; j < ownersArray.size(); j++) {
+                            if (!previousSender.contains(ownersArray.get(j).toString()))
+                                doubleSpentToken.put(wholeTokens.getString(i));
+                            tokenOwners = false;
+                        }
+                    }
+                } catch (IOException e) {
+
+                    TokenReceiverLogger.debug("Ipfs dht find did not execute");
+                }
+            }
+            if (!tokenOwners) {
+                JSONArray owners = new JSONArray();
+                for (int i = 0; i < ownersArray.size(); i++)
+                    owners.put(ownersArray.get(i).toString());
+                TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
+                TokenReceiverLogger.debug("Owners: " + owners);
+                output.println("420");
+                output.println(doubleSpentToken.toString());
+                output.println(owners.toString());
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Multiple Owners for " + doubleSpentToken + " " + owners);
+                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
             String senderToken = TokenDetails.toString();
             String consensusID = calculateHash(senderToken, "SHA3-256");
             writeToFile(LOGGER_PATH + "consensusID", consensusID, false);
@@ -247,15 +337,12 @@ public class TokenReceiver {
                 return APIResponse.toString();
             }
 
-            //Check IPFS get for all Tokens
+            // Check IPFS get for all Tokens
             int ipfsGetFlag = 0;
-            ArrayList<String> wholeTokenContent = new ArrayList<>();
             ArrayList<String> wholeTokenChainContent = new ArrayList<>();
             for (int i = 0; i < intPart; i++) {
                 String TokenChainContent = get(wholeTokenChains.getString(i), ipfs);
                 wholeTokenChainContent.add(TokenChainContent);
-                String TokenContent = get(wholeTokens.getString(i), ipfs);
-                wholeTokenContent.add(TokenContent);
                 ipfsGetFlag++;
             }
             repo(ipfs);
@@ -276,13 +363,8 @@ public class TokenReceiver {
             }
 
             JSONArray partTokenChainContent = new JSONArray();
-            JSONArray partTokenContent = new JSONArray();
-
             for (int i = 0; i < partTokenChains.length(); i++) {
-
                 partTokenChainContent.put(partTokenChains.getJSONArray(partTokens.getString(i)));
-                String TokenContent = get(partTokens.getString(i), ipfs);
-                partTokenContent.put(TokenContent);
             }
 
             boolean chainFlag = true;
@@ -321,6 +403,7 @@ public class TokenReceiver {
                     }
                 }
             }
+
             if (!chainFlag) {
                 String errorMessage = "Broken Cheque Chain";
                 output.println("423");
@@ -339,11 +422,6 @@ public class TokenReceiver {
 
             boolean ownerCheck = true;
 
-            JSONArray allTokens = new JSONArray();
-            for (int i = 0; i < wholeTokens.length(); i++)
-                allTokens.put(wholeTokens.getString(i));
-            for (int i = 0; i < partTokens.length(); i++)
-                allTokens.put(partTokens.getString(i));
 
             JSONArray allTokensChains = new JSONArray();
             for (int i = 0; i < wholeTokenChainContent.size(); i++)
@@ -352,11 +430,11 @@ public class TokenReceiver {
                 allTokensChains.put(partTokenChainContent.get(i));
 
             JSONArray invalidTokens = new JSONArray();
-            for(int i = 0; i < allTokensChains.length(); i++){
+            for (int i = 0; i < allTokensChains.length(); i++) {
                 JSONArray tokenChain = new JSONArray(allTokensChains.get(i).toString());
-                JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length()-1);
+                JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
                 TokenReceiverLogger.debug("Last Object = " + lastObject);
-                if(lastObject.has("owner")) {
+                if (lastObject.has("owner")) {
                     TokenReceiverLogger.debug("Checking ownership");
                     String owner = lastObject.getString("owner");
                     String tokens = allTokens.getString(i);
@@ -365,13 +443,13 @@ public class TokenReceiver {
                     String ownerIdentity = hashForPositions.concat(positionsArray.getString(i));
                     String ownerRecalculated = calculateHash(ownerIdentity, "SHA3-256");
 
-                    TokenReceiverLogger.debug("Ownership Here Sender Calculation");
-                    TokenReceiverLogger.debug("tokens: " + tokens);
-                    TokenReceiverLogger.debug("hashString: " + hashString);
-                    TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
-                    TokenReceiverLogger.debug("p1: " + positionsArray.getString(i));
-                    TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
-                    TokenReceiverLogger.debug("ownerIdentityHash: " + ownerRecalculated);
+//                    TokenReceiverLogger.debug("Ownership Here Sender Calculation");
+//                    TokenReceiverLogger.debug("tokens: " + tokens);
+//                    TokenReceiverLogger.debug("hashString: " + hashString);
+//                    TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
+//                    TokenReceiverLogger.debug("p1: " + positionsArray.getString(i));
+//                    TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
+//                    TokenReceiverLogger.debug("ownerIdentityHash: " + ownerRecalculated);
 
                     if (!owner.equals(ownerRecalculated)) {
                         ownerCheck = false;
@@ -381,7 +459,7 @@ public class TokenReceiver {
 
             }
 
-            if(!ownerCheck) {
+            if (!ownerCheck) {
                 TokenReceiverLogger.debug("Ownership Check Failed");
                 String errorMessage = "Ownership Check Failed";
                 output.println("424");
@@ -397,8 +475,7 @@ public class TokenReceiver {
                 sk.close();
                 ss.close();
                 return APIResponse.toString();
-            }
-            else
+            } else
                 TokenReceiverLogger.debug("Ownership Check Passed");
 
             boolean partsAvailable = true;
@@ -563,7 +640,7 @@ public class TokenReceiver {
                     for (int i = 0; i < intPart; i++) {
                         FileWriter fileWriter;
                         fileWriter = new FileWriter(TOKENS_PATH + wholeTokens.getString(i));
-                        fileWriter.write(wholeTokenContent.get(i));
+                        fileWriter.write(wholeTokenContent.getString(i));
                         fileWriter.close();
                         add(TOKENS_PATH + wholeTokens.getString(i), ipfs);
                         pin(wholeTokens.getString(i), ipfs);
@@ -616,19 +693,19 @@ public class TokenReceiver {
                             int[] privateIntegerArray1 = strToIntArray(firstPrivate);
                             String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
                             String positions = "";
-                            for(int j = 0; j < privateIntegerArray1.length; j+=49152){
-                                positions+=privateBinary.charAt(j);
+                            for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                                positions += privateBinary.charAt(j);
                             }
                             String ownerIdentity = hashForPositions.concat(positions);
                             String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
 
-                            TokenReceiverLogger.debug("Ownership Here");
-                            TokenReceiverLogger.debug("tokens: " + wholeTokens.getString(i));
-                            TokenReceiverLogger.debug("hashString: " + hashString);
-                            TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
-                            TokenReceiverLogger.debug("p1: " + positions);
-                            TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
-                            TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
+//                            TokenReceiverLogger.debug("Ownership Here");
+//                            TokenReceiverLogger.debug("tokens: " + wholeTokens.getString(i));
+//                            TokenReceiverLogger.debug("hashString: " + hashString);
+//                            TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
+//                            TokenReceiverLogger.debug("p1: " + positions);
+//                            TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
+//                            TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
 
                             ArrayList<String> groupTokens = new ArrayList<>();
                             for (int k = 0; k < intPart; k++) {
@@ -652,7 +729,6 @@ public class TokenReceiver {
                             writeToFile(TOKENCHAIN_PATH + wholeTokens.getString(i) + ".json", arr1.toString(), false);
                         }
 
-
                         for (int i = 0; i < partTokens.length(); i++) {
                             JSONObject chequeObject = new JSONObject();
                             chequeObject.put("sender", senderDidIpfsHash);
@@ -667,7 +743,6 @@ public class TokenReceiver {
                             String chequeHash = IPFSNetwork.add(LOGGER_PATH.concat(partTokens.getString(i)), ipfs);
                             deleteFile(LOGGER_PATH.concat(partTokens.getString(i)));
 
-
                             String tokens = partTokens.getString(i);
                             String hashString = tokens.concat(receiverDidIpfsHash);
                             String hashForPositions = calculateHash(hashString, "SHA3-256");
@@ -676,20 +751,20 @@ public class TokenReceiver {
                             int[] privateIntegerArray1 = strToIntArray(firstPrivate);
                             String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
                             String positions = "";
-                            for(int j = 0; j < privateIntegerArray1.length; j+=49152){
-                                positions+=privateBinary.charAt(j);
+                            for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                                positions += privateBinary.charAt(j);
                             }
 
-                          String ownerIdentity = hashForPositions.concat(positions);
+                            String ownerIdentity = hashForPositions.concat(positions);
                             String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
 
-                            TokenReceiverLogger.debug("Ownership Here");
-                            TokenReceiverLogger.debug("tokens: " + partTokens.getString(i));
-                            TokenReceiverLogger.debug("hashString: " + hashString);
-                            TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
-                            TokenReceiverLogger.debug("p1: " + positions);
-                            TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
-                            TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
+//                            TokenReceiverLogger.debug("Ownership Here");
+//                            TokenReceiverLogger.debug("tokens: " + partTokens.getString(i));
+//                            TokenReceiverLogger.debug("hashString: " + hashString);
+//                            TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
+//                            TokenReceiverLogger.debug("p1: " + positions);
+//                            TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
+//                            TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
 
                             JSONObject newPartObject = new JSONObject();
                             newPartObject.put("senderSign", senderSignature);
@@ -725,7 +800,6 @@ public class TokenReceiver {
                                 writeToFile(PART_TOKEN_CHAIN_PATH + partTokens.getString(i) + ".json", partTokenChainContent.getJSONArray(i).toString(), false);
                             }
                         }
-
 
 
                         JSONObject transactionRecord = new JSONObject();
