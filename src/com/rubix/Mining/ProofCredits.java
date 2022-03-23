@@ -400,6 +400,7 @@ public class ProofCredits {
                     JSONArray tokenChainArray = new JSONArray();
                     JSONObject tokenChainGenesisObject = new JSONObject();
                     tokenChainGenesisObject.put("quorumSignatures", credit);
+                    tokenChainGenesisObject.put("quorumSignContent", InitiatorConsensus.quorumSignature);
                     tokenChainGenesisObject.put("sender", DID);
                     tokenChainGenesisObject.put("comment", "Mining-Genesis");
                     tokenChainGenesisObject.put("tid", tid);
@@ -407,6 +408,7 @@ public class ProofCredits {
                     tokenChainGenesisObject.put("blockNumber", 0);
                     tokenChainGenesisObject.put("QSTHeight", QSTHeight);
                     tokenChainGenesisObject.put("tokenHash", tokenHash);
+                    tokenChainGenesisObject.put("tokenContent", token.getString(i));
                     tokenChainGenesisObject.put("nextHash", calculateHash(tid, "SHA3-256"));
                     tokenChainGenesisObject.put("previousHash", "");
                     // stakingData = tokenChainGenesisObject;

@@ -90,17 +90,19 @@ public class StakeConsensus {
                         if (operation.equals("alpha-stake-token")) {
 
                             qOut[j].println(data.toString());
-                            StakeConsensusLogger.debug("Token Details sent for validation...");
+                            StakeConsensusLogger.debug("Mined Token Details sent for validation...");
 
                             try {
                                 qResponse[j] = qIn[j].readLine();
                             } catch (SocketException e) {
-                                StakeConsensusLogger.debug("Token Details validation failed. Received null response");
+                                StakeConsensusLogger
+                                        .debug("Mined Token Details validation failed. Received null response");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                             }
                             if (!qResponse[j].contains("44")) {
 
-                                StakeConsensusLogger.debug("Token Details validated. Received staked token details..");
+                                StakeConsensusLogger
+                                        .debug("Mined Token Details validated. Received staked token details..");
                                 Boolean ownerCheck = true;
                                 String stakerDID = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
                                         quorumPID[j]);
@@ -155,7 +157,7 @@ public class StakeConsensus {
                                                 .debug("Received stake token signatures: " + qResponse[j]);
                                     } catch (SocketException e) {
                                         StakeConsensusLogger
-                                                .debug("Token Details validation failed. Received null response");
+                                                .debug("Mined Token Details validation failed. Received null response");
                                     }
 
                                     if (!qResponse[j].contains("44")) {

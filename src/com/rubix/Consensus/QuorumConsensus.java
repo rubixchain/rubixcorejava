@@ -27,7 +27,6 @@ import static com.rubix.Resources.Functions.updateJSON;
 import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.add;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
-import static com.rubix.Resources.IPFSNetwork.get;
 import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.pin;
 
@@ -147,7 +146,7 @@ public class QuorumConsensus implements Runnable {
                     boolean isValid = false;
 
                     // ! check token is in same level
-                    String TokenContent = get(genesisBlock.getString("tokenHash"), ipfs);
+                    String TokenContent = genesisBlock.getString("tokenContent");
                     String tokenLevel = TokenContent.substring(0, 3);
                     int tokenLevelInt = Integer.parseInt(tokenLevel);
                     int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
@@ -185,11 +184,10 @@ public class QuorumConsensus implements Runnable {
                     if (genesisBlock.has("quorumSignatures")) {
 
                         int randomNumber = new Random().nextInt(15);
-                        String genesisSignatures = genesisBlock.getString("quorumSignatures");
+                        JSONArray genesisSignatures = genesisBlock.getJSONArray("quorumSignContent");
                         try {
-                            String genesisSignaturesContent = get(genesisSignatures, ipfs);
-                            JSONArray genesisSignaturesContentJSON = new JSONArray(genesisSignaturesContent);
-                            JSONObject VerificationPick = genesisSignaturesContentJSON.getJSONObject(randomNumber);
+
+                            JSONObject VerificationPick = genesisSignatures.getJSONObject(randomNumber);
                             if (VerificationPick.getString("hash") == genesisBlock.getString("tid")) {
 
                                 if (Authenticate.verifySignature(VerificationPick.toString())) {
