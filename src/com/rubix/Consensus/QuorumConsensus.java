@@ -27,6 +27,7 @@ import static com.rubix.Resources.Functions.updateJSON;
 import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.add;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.get;
 import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.pin;
 
@@ -44,6 +45,7 @@ import java.net.SocketException;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.HashSet;
+import java.util.Random;
 
 import javax.imageio.ImageIO;
 
@@ -138,14 +140,72 @@ public class QuorumConsensus implements Runnable {
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     }
 
-                    QuorumConsensusLogger.debug("Validating new token details...");
+                    JSONObject genesisBlock = new JSONObject(response);
+                    QuorumConsensusLogger.debug("Validating new token details: " + genesisBlock);
+                    System.out.println(genesisBlock);
 
-                    boolean isValid = true;
+                    boolean isValid = false;
 
                     // ! check token is in same level
+                    String TokenContent = get(genesisBlock.getString("tokenHash"), ipfs);
+                    String tokenLevel = TokenContent.substring(0, 3);
+                    int tokenLevelInt = Integer.parseInt(tokenLevel);
+                    int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
+
+                    String GET_URL_credit = SYNC_IP + "/getlevel";
+                    URL URLobj_credit = new URL(GET_URL_credit);
+                    HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
+                    con_credit.setRequestMethod("GET");
+                    int responseCode_credit = con_credit.getResponseCode();
+                    System.out.println("GET Response Code :: " + responseCode_credit);
+                    if (responseCode_credit == HttpURLConnection.HTTP_OK) {
+                        BufferedReader in_credit = new BufferedReader(
+                                new InputStreamReader(con_credit.getInputStream()));
+                        String inputLine_credit;
+                        StringBuffer response_credit = new StringBuffer();
+                        while ((inputLine_credit = in_credit.readLine()) != null) {
+                            response_credit.append(inputLine_credit);
+                        }
+                        in_credit.close();
+                        QuorumConsensusLogger.debug("response from service " + response_credit.toString());
+                        JSONObject resJsonData_credit = new JSONObject(response_credit.toString());
+                        int level_credit = resJsonData_credit.getInt("level");
+                        int creditsRequired = (int) Math.pow(2, (2 + level_credit));
+
+                        if (level_credit == tokenLevelInt) {
+
+                            QuorumConsensusLogger.debug("Validated level of newly minted token");
+                            isValid = true;
+                        }
+
+                    } else
+                        QuorumConsensusLogger.debug("GET request not worked");
+
                     // ! validate mined token hash and ownership
-                    JSONObject genesisBlock = new JSONObject(response);
-                    System.out.println(genesisBlock);
+                    if (genesisBlock.has("quorumSignatures")) {
+
+                        int randomNumber = new Random().nextInt(15);
+                        String genesisSignatures = genesisBlock.getString("quorumSignatures");
+                        String genesisSignaturesContent = get(genesisSignatures, ipfs);
+                        JSONArray genesisSignaturesContentJSON = new JSONArray(genesisSignaturesContent);
+                        JSONObject VerificationPick = genesisSignaturesContentJSON.getJSONObject(randomNumber);
+                        if (VerificationPick.getString("hash") == genesisBlock.getString("tid")) {
+
+                            if (Authenticate.verifySignature(VerificationPick.toString())) {
+
+                                QuorumConsensusLogger.debug("Validated signature of newly minted token");
+                                isValid = true;
+                            } else {
+                                QuorumConsensusLogger.debug("Signature not verified");
+                                isValid = false;
+                            }
+
+                        } else {
+                            QuorumConsensusLogger.debug("Mined token quorum signature hash not matched");
+                            isValid = false;
+                        }
+
+                    }
 
                     if (isValid) {
 
@@ -200,8 +260,6 @@ public class QuorumConsensus implements Runnable {
                                 if (response == "alpha-stake-token-verified") {
 
                                     JSONObject stakingSigns = new JSONObject();
-
-                                    genesisBlock.put("stakingToken", tokenHash);
 
                                     stakingSigns.put(
                                             STAKED_TOKEN_SIGN, getSignFromShares(DATA_PATH + didHash +

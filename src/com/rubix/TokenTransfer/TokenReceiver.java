@@ -431,7 +431,7 @@ public class TokenReceiver {
                     if (genesiObject.has("genesisSignatures")) {
 
                         int randomNumber = new Random().nextInt(15);
-                        String genesisSignatures = genesiObject.getString("genesisSignatures");
+                        String genesisSignatures = genesiObject.getString("quorumSignatures");
                         String genesisSignaturesContent = get(genesisSignatures, ipfs);
                         JSONArray genesisSignaturesContentJSON = new JSONArray(genesisSignaturesContent);
                         JSONObject VerificationPick = genesisSignaturesContentJSON.getJSONObject(randomNumber);
@@ -550,17 +550,18 @@ public class TokenReceiver {
                     if (Authenticate.verifySignature(StakerToVerify.toString())
                             && Authenticate.verifySignature(tokenToVerify.toString())) {
 
-                        ArrayList ownersArray = new ArrayList();
-                        ownersArray = IPFSNetwork.dhtOwnerCheck(stakedToken);
+                        // ArrayList ownersArray = new ArrayList();
+                        // ownersArray = IPFSNetwork.dhtOwnerCheck(stakedToken);
 
-                        if (ownersArray.contains(senderDidIpfsHash)) {
-                        } else {
-                            TokenReceiverLogger.debug(
-                                    "Staking check failed - staked token " + stakedToken + " is not owned by staker: "
-                                            + senderDidIpfsHash);
-                            ownerCheck = false;
-                            invalidTokens.put(tokens);
-                        }
+                        // if (ownersArray.contains(senderDidIpfsHash)) {
+                        // } else {
+                        // TokenReceiverLogger.debug(
+                        // "Staking check failed - staked token " + stakedToken + " is not owned by
+                        // staker: "
+                        // + senderDidIpfsHash);
+                        // ownerCheck = false;
+                        // invalidTokens.put(tokens);
+                        // }
 
                     } else {
                         TokenReceiverLogger.debug(
