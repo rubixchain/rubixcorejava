@@ -44,7 +44,7 @@ public class StakeConsensus {
     // MINED_RBT_SIGN
     // same object will be added to tokenchains of staked and mined token
 
-    public static JSONObject getStakeConsensus(JSONArray signedAphaQuorumArray, JSONObject data, IPFS ipfs, int PORT,
+    public static void getStakeConsensus(JSONArray signedAphaQuorumArray, JSONObject data, IPFS ipfs, int PORT,
             String operation) {
 
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -101,7 +101,7 @@ public class StakeConsensus {
                             if (!qResponse[j].contains("44")) {
 
                                 StakeConsensusLogger.debug("Token Details validated. Received staked token details..");
-                                Boolean ownerCheck = false;
+                                Boolean ownerCheck = true;
                                 String stakerDID = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
                                         quorumPID[j]);
                                 JSONArray stakeTokenArray = new JSONArray(qResponse[j]);
@@ -207,6 +207,9 @@ public class StakeConsensus {
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                             } else if (qResponse[j].equals("445")) {
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
+                            } else {
+                                StakeConsensusLogger.debug("Error response from staker. Skipping...");
+                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                             }
 
                         }
@@ -219,12 +222,9 @@ public class StakeConsensus {
             }
             ;
 
-            return stakeDetails;
-
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);
         }
-        return stakeDetails;
     }
 
 }

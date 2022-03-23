@@ -414,12 +414,21 @@ public class ProofCredits {
                     tokenChainArray.put(tokenChainGenesisObject);
 
                     // ! new token will now need a staked token
-                    JSONObject stakeDetails = StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
+                    StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
                             tokenChainGenesisObject, ipfs, SEND_PORT + 3,
                             "alpha-stake-token");
 
-                    if (stakeDetails.length() > 0) {
-                        tokenChainArray.put(stakeDetails);
+                    if (StakeConsensus.stakeDetails.length() > 0) {
+                        tokenChainArray.put(StakeConsensus.stakeDetails);
+                    } else {
+                        updateQuorum(quorumArray, null, false, type);
+                        APIResponse.put("did", DID);
+                        APIResponse.put("tid", "null");
+                        APIResponse.put("status", "Failed");
+                        APIResponse.put("message",
+                                "Staking failed.. Retry with alpha quorum members with aleast 1 RBT balance");
+                        ProofCreditsLogger.warn("Staking failed");
+                        return APIResponse;
                     }
 
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);

@@ -186,23 +186,29 @@ public class QuorumConsensus implements Runnable {
 
                         int randomNumber = new Random().nextInt(15);
                         String genesisSignatures = genesisBlock.getString("quorumSignatures");
-                        String genesisSignaturesContent = get(genesisSignatures, ipfs);
-                        JSONArray genesisSignaturesContentJSON = new JSONArray(genesisSignaturesContent);
-                        JSONObject VerificationPick = genesisSignaturesContentJSON.getJSONObject(randomNumber);
-                        if (VerificationPick.getString("hash") == genesisBlock.getString("tid")) {
+                        try {
+                            String genesisSignaturesContent = get(genesisSignatures, ipfs);
+                            JSONArray genesisSignaturesContentJSON = new JSONArray(genesisSignaturesContent);
+                            JSONObject VerificationPick = genesisSignaturesContentJSON.getJSONObject(randomNumber);
+                            if (VerificationPick.getString("hash") == genesisBlock.getString("tid")) {
 
-                            if (Authenticate.verifySignature(VerificationPick.toString())) {
+                                if (Authenticate.verifySignature(VerificationPick.toString())) {
 
-                                QuorumConsensusLogger.debug("Validated signature of newly minted token");
-                                isValid = true;
+                                    QuorumConsensusLogger.debug("Validated signature of newly minted token");
+                                    isValid = true;
+                                } else {
+                                    QuorumConsensusLogger.debug("Signature not verified");
+                                    isValid = false;
+                                }
+
                             } else {
-                                QuorumConsensusLogger.debug("Signature not verified");
+                                QuorumConsensusLogger.debug("Mined token quorum signature hash not matched");
                                 isValid = false;
                             }
-
-                        } else {
-                            QuorumConsensusLogger.debug("Mined token quorum signature hash not matched");
-                            isValid = false;
+                        } catch (Exception e) {
+                            QuorumConsensusLogger
+                                    .debug("Mined token quorum signature hash not found in IPFS. Skipping...");
+                            // isValid = false;
                         }
 
                     }
