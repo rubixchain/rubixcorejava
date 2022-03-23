@@ -431,8 +431,8 @@ public class TokenReceiver {
                     if (genesiObject.has("genesisSignatures")) {
 
                         int randomNumber = new Random().nextInt(15);
-                        String genesisSignatures = genesiObject.getString("quorumSignatures");
-                        String genesisSignaturesContent = get(genesisSignatures, ipfs);
+                        String genesisSignaturesContent = genesiObject.getString("quorumSigContent");
+                        // String genesisSignaturesContent = get(genesisSignatures, ipfs);
                         JSONArray genesisSignaturesContentJSON = new JSONArray(genesisSignaturesContent);
                         JSONObject VerificationPick = genesisSignaturesContentJSON.getJSONObject(randomNumber);
                         if (VerificationPick.getString("hash") == genesiObject.getString("tid")) {
