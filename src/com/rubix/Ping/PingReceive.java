@@ -96,6 +96,8 @@ public class PingReceive {
 
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
         return APIResponse.toString();
     }

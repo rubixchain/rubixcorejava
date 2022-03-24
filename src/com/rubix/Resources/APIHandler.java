@@ -59,6 +59,37 @@ public class APIHandler {
      * @throws IOException              handles IO Exceptions
      */
 
+    public static JSONObject sortType2Quorum() {
+        Functions.pathSet();
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        JSONObject sendMessage = new JSONObject();
+        JSONArray quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+        APILogger.debug("Before Sorting: " + quorumArray);
+        int code = 0;
+        try {
+            code = arrangeQuorum(quorumArray, SEND_PORT + 11, 0);
+        } catch (IOException e) {
+            APILogger.debug("Credits failed");
+        }
+
+        if (code == 200) {
+            quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+            APILogger.debug("After Sorting: " + quorumArray);
+            sendMessage.put("status", "Success");
+            sendMessage.put("message", "Sorted");
+        } else if (code == 401) {
+            APILogger.debug("Could not collect all(min. 21) credits");
+            sendMessage.put("status", "Failed");
+            sendMessage.put("message", "");
+        } else if (code == 402) {
+            APILogger.debug("7 alpha node credits not summing up to requested amount");
+            sendMessage.put("status", "Failed");
+            sendMessage.put("message", "");
+        }
+
+        return sendMessage;
+
+    }
     public static JSONObject send(String data) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -135,6 +166,70 @@ public class APIHandler {
     }
 
     /**
+     * Utility function to add token ownership
+     */
+    public static JSONObject addOwnership() throws IOException {
+        pathSet();
+        String wholeToken = readFile(PAYMENTS_PATH.concat("BNK00.json"));
+        JSONArray wholeTokensArray = new JSONArray(wholeToken);
+        String partsToken;
+        JSONArray partsTokenArray = new JSONArray();
+        boolean parts = false;
+        if (new File(PAYMENTS_PATH.concat("PartsToken.json")).exists()) {
+            partsToken = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
+            partsTokenArray = new JSONArray(partsToken);
+            parts = true;
+        }
+        JSONArray allTokens = new JSONArray();
+        for (int i = 0; i < wholeTokensArray.length(); i++)
+            allTokens.put(wholeTokensArray.getString(i));
+
+        if (parts) {
+            for (int i = 0; i < partsTokenArray.length(); i++)
+                allTokens.put(partsTokenArray.getString(i));
+        }
+
+        String didFile = readFile(DATA_PATH.concat("DID.json"));
+        JSONArray didArray = new JSONArray(didFile);
+        String did = didArray.getJSONObject(0).getString("didHash");
+
+        for (int i = 0; i < allTokens.length(); i++) {
+            String tokens = allTokens.getString(i);
+            String tokenChain = readFile(TOKENCHAIN_PATH.concat(tokens).concat(".json"));
+            JSONArray tokenChainArray = new JSONArray(tokenChain);
+            JSONObject lastObject = tokenChainArray.getJSONObject(tokenChainArray.length() - 1);
+            if (!lastObject.has("owner")) {
+                String hashString = tokens.concat(did);
+                String hashForPositions = calculateHash(hashString, "SHA3-256");
+
+                BufferedImage pvt = ImageIO.read(new File(DATA_PATH.concat(did).concat("/PrivateShare.png")));
+                String firstPrivate = PropImage.img2bin(pvt);
+                int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+                String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+                String positions = "";
+                for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                    positions += privateBinary.charAt(j);
+                }
+                String ownerIdentity = hashForPositions.concat(positions);
+                String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+                lastObject.put("owner", ownerIdentityHash);
+            }
+            tokenChainArray.remove(tokenChainArray.length() - 1);
+            tokenChainArray.put(lastObject);
+            writeToFile(TOKENCHAIN_PATH.concat(tokens).concat(".json"), tokenChainArray.toString(), false);
+
+        }
+
+        JSONObject sendMessage = new JSONObject();
+        sendMessage.put("did", did);
+        sendMessage.put("tid", "null");
+        sendMessage.put("status", "Success");
+        sendMessage.put("message", "Ownership Added");
+        return sendMessage;
+
+    }
+
+    /**
      * A method to add and host your DID ans Public share to ipfs
      * 
      * @files DID.json, DataTable.json, DID.png, PublicShare.png
@@ -199,9 +294,10 @@ public class APIHandler {
 
         File quorumFile = new File(qstFile);
         File minedFile = new File(mineFile);
-
+        JSONObject returnObject = new JSONObject();
         int spentCredits = 0;
         int unspentCredits = 0;
+        try {
         if (quorumFile.exists()) {
             String qFile = readFile(qstFile);
             JSONArray qArray = new JSONArray(qFile);
@@ -213,9 +309,11 @@ public class APIHandler {
             spentCredits = mArray.length();
         }
 
-        JSONObject returnObject = new JSONObject();
         returnObject.put("spentCredits", spentCredits);
         returnObject.put("unspentCredits", unspentCredits);
+        } catch (JSONException e) {
+            // TODO: handle exception
+        }
 
         return returnObject;
     }
