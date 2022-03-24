@@ -1,6 +1,7 @@
 package com.rubix.TokenTransfer;
 
 import static com.rubix.Resources.Functions.DATA_PATH;
+import static com.rubix.Resources.Functions.EXPLORER_IP;
 import static com.rubix.Resources.Functions.FunctionsLogger;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -15,6 +16,7 @@ import static com.rubix.Resources.Functions.formatAmount;
 import static com.rubix.Resources.Functions.getCurrentUtcTime;
 import static com.rubix.Resources.Functions.getPeerID;
 import static com.rubix.Resources.Functions.getValues;
+import static com.rubix.Resources.Functions.intArrayToStr;
 import static com.rubix.Resources.Functions.nodeData;
 import static com.rubix.Resources.Functions.pathSet;
 import static com.rubix.Resources.Functions.readFile;
@@ -43,13 +45,13 @@ import java.net.SocketException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Random;
 
 import javax.imageio.ImageIO;
 import javax.net.ssl.HttpsURLConnection;
 
 import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
 import org.apache.log4j.Logger;
@@ -232,12 +234,12 @@ public class TokenReceiver {
 
             boolean tokenMinedStatus = true;
             String tokenMinedStatusErrorMessage = "";
-            if (!Functions.EXPLORER_IP.contains("127.0.0.1")) {
+            if (!EXPLORER_IP.contains("127.0.0.1")) {
                 TokenReceiverLogger.debug("Contacting Explorer ..." + EXPLORER_IP);
                 for (int i = 0; i < allTokensContent.length(); i++) {
 
                     String token = allTokensContent.getString(i);
-                    String url = Functions.EXPLORER_IP + "/check-mined-status/" + token;
+                    String url = EXPLORER_IP + "/check-mined-status/" + token;
                     URL obj = new URL(url);
                     HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
 
@@ -904,7 +906,7 @@ public class TokenReceiver {
                                     .read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
                             String firstPrivate = PropImage.img2bin(pvt);
                             int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-                            String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+                            String privateBinary = intArrayToStr(privateIntegerArray1);
                             String positions = "";
                             for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
                                 positions += privateBinary.charAt(j);
@@ -963,7 +965,7 @@ public class TokenReceiver {
                                     .read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
                             String firstPrivate = PropImage.img2bin(pvt);
                             int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-                            String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+                            String privateBinary = intArrayToStr(privateIntegerArray1);
                             String positions = "";
                             for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
                                 positions += privateBinary.charAt(j);
@@ -1045,7 +1047,7 @@ public class TokenReceiver {
                             JSONObject tokenObject1 = new JSONObject();
                             tokenObject1.put("tokenHash", wholeTokens.getString(i));
                             bankArray.put(tokenObject1);
-                            Functions.writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
+                            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
 
                         }
 

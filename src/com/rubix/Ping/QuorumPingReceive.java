@@ -3,13 +3,16 @@ package com.rubix.Ping;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
 import static com.rubix.Resources.Functions.getPeerID;
 import static com.rubix.Resources.Functions.pathSet;
+import static com.rubix.Resources.Functions.readFile;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.repo;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -19,6 +22,7 @@ import java.net.SocketException;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -83,11 +87,12 @@ public class QuorumPingReceive {
                 APIResponse.put("message", "Pong Sent");
                 QuorumPingReceiverLogger.info("Pong Sent");
 
-            }if(pingRequest != null && pingRequest.contains("Get-Credits")) {
+            }
+            if (pingRequest != null && pingRequest.contains("Get-Credits")) {
                 String qstFile = WALLET_DATA_PATH.concat("QuorumSignedTransactions.json");
                 File quorumFile = new File(qstFile);
                 int unspentCredits = 0;
-                if(quorumFile.exists()){
+                if (quorumFile.exists()) {
                     String qFile = readFile(qstFile);
                     JSONArray qArray = new JSONArray(qFile);
                     unspentCredits = qArray.length();
@@ -98,7 +103,7 @@ public class QuorumPingReceive {
                 APIResponse.put("message", "Credits Sent");
                 QuorumPingReceiverLogger.info("Credits Sent " + unspentCredits);
 
-            }else{
+            } else {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Pong Failed");
                 QuorumPingReceiverLogger.info("Pong Failed");

@@ -1185,38 +1185,38 @@ public class Functions {
         pathSet();
         String bank = readFile(PAYMENTS_PATH.concat("BNK00.json"));
         try {
-        JSONArray bankArray = new JSONArray(bank);
+            JSONArray bankArray = new JSONArray(bank);
 
-        ArrayList<String> bankDuplicates = new ArrayList<>();
-        for (int i = 0; i < bankArray.length(); i++) {
-            if (!bankDuplicates.contains(bankArray.getJSONObject(i).getString("tokenHash")))
-                bankDuplicates.add(bankArray.getJSONObject(i).getString("tokenHash"));
-        }
-
-        if (bankDuplicates.size() < bankArray.length()) {
-            FunctionsLogger.debug("Duplicates Found. Cleaning up ...");
-
-            JSONArray newBank = new JSONArray();
-            for (int i = 0; i < bankDuplicates.size(); i++) {
-                JSONObject tokenObject = new JSONObject();
-                tokenObject.put("tokenHash", bankDuplicates.get(i));
-                newBank.put(tokenObject);
+            ArrayList<String> bankDuplicates = new ArrayList<>();
+            for (int i = 0; i < bankArray.length(); i++) {
+                if (!bankDuplicates.contains(bankArray.getJSONObject(i).getString("tokenHash")))
+                    bankDuplicates.add(bankArray.getJSONObject(i).getString("tokenHash"));
             }
-            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), newBank.toString(), false);
-        }
 
-        File tokensPath = new File(TOKENS_PATH);
+            if (bankDuplicates.size() < bankArray.length()) {
+                FunctionsLogger.debug("Duplicates Found. Cleaning up ...");
+
+                JSONArray newBank = new JSONArray();
+                for (int i = 0; i < bankDuplicates.size(); i++) {
+                    JSONObject tokenObject = new JSONObject();
+                    tokenObject.put("tokenHash", bankDuplicates.get(i));
+                    newBank.put(tokenObject);
+                }
+                writeToFile(PAYMENTS_PATH.concat("BNK00.json"), newBank.toString(), false);
+            }
+
+            File tokensPath = new File(TOKENS_PATH);
             String[] contents = tokensPath.list();
-        ArrayList tokenFiles = new ArrayList();
-        for (int i = 0; i < contents.length; i++) {
-            if (!contents[i].contains("PARTS"))
-                tokenFiles.add(contents[i]);
-        }
+            ArrayList tokenFiles = new ArrayList();
+            for (int i = 0; i < contents.length; i++) {
+                if (!contents[i].contains("PARTS"))
+                    tokenFiles.add(contents[i]);
+            }
 
-        for (int i = 0; i < tokenFiles.size(); i++) {
-            if (!bankDuplicates.contains(tokenFiles.get(i).toString()))
-                deleteFile(TOKENS_PATH.concat(tokenFiles.get(i).toString()));
-        }
+            for (int i = 0; i < tokenFiles.size(); i++) {
+                if (!bankDuplicates.contains(tokenFiles.get(i).toString()))
+                    deleteFile(TOKENS_PATH.concat(tokenFiles.get(i).toString()));
+            }
         } catch (JSONException e) {
             // TODO: handle exception
         }
@@ -1458,15 +1458,15 @@ public class Functions {
     public static void clearParts() throws JSONException {
         String partsFile = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
         try {
-        JSONArray partsArray = new JSONArray(partsFile);
-        for (int i = 0; i < partsArray.length(); i++) {
-            if (partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) <= 0.000
-                    || partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) > 1.000) {
-                deleteFile(TOKENS_PATH.concat("PARTS/").concat(partsArray.getJSONObject(i).getString("tokenHash")));
-                partsArray.remove(i);
+            JSONArray partsArray = new JSONArray(partsFile);
+            for (int i = 0; i < partsArray.length(); i++) {
+                if (partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) <= 0.000
+                        || partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) > 1.000) {
+                    deleteFile(TOKENS_PATH.concat("PARTS/").concat(partsArray.getJSONObject(i).getString("tokenHash")));
+                    partsArray.remove(i);
+                }
             }
-        }
-        writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partsArray.toString(), false);
+            writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partsArray.toString(), false);
         } catch (JSONException e) {
             // TODO: handle exception
         }
@@ -1494,7 +1494,7 @@ public class Functions {
 
     public static String sanityMessage;
 
-    public static boolean sanityCheck(String peerid, IPFS ipfs, int port) throws IOException {
+    public static boolean sanityCheck(String peerid, IPFS ipfs, int port) throws IOException, JSONException {
         // FunctionsLogger.info("Entering SanityCheck");
         boolean sanityCheckErrorFlag = true;
         if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
@@ -1569,12 +1569,12 @@ public class Functions {
         return swarmConnectedStatus;
     }
 
-    public static boolean ping(String peerid, int port) throws IOException {
+    public static boolean ping(String peerid, int port) throws IOException, JSONException {
         JSONObject pingCheck = PingCheck.Ping(peerid, port);
         return !pingCheck.getString("status").contains("Failed");
     }
 
-    public static int arrangeQuorum(JSONArray quorumArray, int port, double amount) throws IOException {
+    public static int arrangeQuorum(JSONArray quorumArray, int port, double amount) throws IOException, JSONException {
         pathSet();
         JSONArray quorumArrayRevised = new JSONArray();
         for (int i = 0; i < quorumArray.length(); i++) {
@@ -1630,7 +1630,7 @@ public class Functions {
         return 200;
     }
 
-    public static int getCredits(String peerid, int port) throws IOException {
+    public static int getCredits(String peerid, int port) throws IOException, JSONException {
         JSONObject creditObject = GetCredits.Contact(peerid, port);
         int credit = 0;
         if (creditObject.getString("status").contains("Success"))
@@ -1830,7 +1830,7 @@ public class Functions {
                 String[] getPortPidTree = getPortPidLine.split("\\s+");
                 int temp = Integer.parseInt(getPortPidTree[getPortPidTree.length - 1]);
                 portPidTree.add(temp);
-                }
+            }
 
             Set<Integer> pidToKill = new LinkedHashSet<Integer>(portPidTree);
             FunctionsLogger.info("Pid used by port " + port + "is " + pidToKill);

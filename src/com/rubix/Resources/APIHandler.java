@@ -3,19 +3,26 @@ package com.rubix.Resources;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.PAYMENTS_PATH;
 import static com.rubix.Resources.Functions.SEND_PORT;
 import static com.rubix.Resources.Functions.SYNC_IP;
+import static com.rubix.Resources.Functions.TOKENCHAIN_PATH;
 import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
+import static com.rubix.Resources.Functions.arrangeQuorum;
+import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.getOsName;
 import static com.rubix.Resources.Functions.getPeerID;
 import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.Functions.nodeData;
+import static com.rubix.Resources.Functions.pathSet;
 import static com.rubix.Resources.Functions.readFile;
+import static com.rubix.Resources.Functions.strToIntArray;
 import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.add;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.pin;
 
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -32,6 +39,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.imageio.ImageIO;
+
+import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Mining.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
 
@@ -59,7 +69,7 @@ public class APIHandler {
      * @throws IOException              handles IO Exceptions
      */
 
-    public static JSONObject sortType2Quorum() {
+    public static JSONObject sortType2Quorum() throws JSONException {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         JSONObject sendMessage = new JSONObject();
@@ -90,6 +100,7 @@ public class APIHandler {
         return sendMessage;
 
     }
+
     public static JSONObject send(String data) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -167,8 +178,10 @@ public class APIHandler {
 
     /**
      * Utility function to add token ownership
+     * 
+     * @throws JSONException
      */
-    public static JSONObject addOwnership() throws IOException {
+    public static JSONObject addOwnership() throws IOException, JSONException {
         pathSet();
         String wholeToken = readFile(PAYMENTS_PATH.concat("BNK00.json"));
         JSONArray wholeTokensArray = new JSONArray(wholeToken);
@@ -298,19 +311,19 @@ public class APIHandler {
         int spentCredits = 0;
         int unspentCredits = 0;
         try {
-        if (quorumFile.exists()) {
-            String qFile = readFile(qstFile);
-            JSONArray qArray = new JSONArray(qFile);
-            unspentCredits = qArray.length();
-        }
-        if (minedFile.exists()) {
-            String mFile = readFile(mineFile);
-            JSONArray mArray = new JSONArray(mFile);
-            spentCredits = mArray.length();
-        }
+            if (quorumFile.exists()) {
+                String qFile = readFile(qstFile);
+                JSONArray qArray = new JSONArray(qFile);
+                unspentCredits = qArray.length();
+            }
+            if (minedFile.exists()) {
+                String mFile = readFile(mineFile);
+                JSONArray mArray = new JSONArray(mFile);
+                spentCredits = mArray.length();
+            }
 
-        returnObject.put("spentCredits", spentCredits);
-        returnObject.put("unspentCredits", unspentCredits);
+            returnObject.put("spentCredits", spentCredits);
+            returnObject.put("unspentCredits", unspentCredits);
         } catch (JSONException e) {
             // TODO: handle exception
         }
