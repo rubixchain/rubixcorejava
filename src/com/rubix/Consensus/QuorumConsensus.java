@@ -409,7 +409,7 @@ public class QuorumConsensus implements Runnable {
                             }
 
                         } else {
-                            QuorumConsensusLogger.debug("Token Staking Failed: Token to stake not found");
+                            QuorumConsensusLogger.debug("Token Staking Failed: Insufficient Balance to Stake!");
                             out.println("445");
                             socket.close();
                             serverSocket.close();
