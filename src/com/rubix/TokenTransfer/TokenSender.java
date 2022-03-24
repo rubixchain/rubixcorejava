@@ -10,7 +10,6 @@ import static com.rubix.Resources.Functions.SEND_PORT;
 import static com.rubix.Resources.Functions.TOKENCHAIN_PATH;
 import static com.rubix.Resources.Functions.TOKENS_PATH;
 import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
-import static com.rubix.Resources.Functions.arrangeQuorum;
 import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.deleteFile;
 import static com.rubix.Resources.Functions.formatAmount;
@@ -386,7 +385,6 @@ public class TokenSender {
         ArrayList betaPeersList;
         ArrayList gammaPeersList;
 
-        int arrangeCode = 0;
         JSONArray quorumArray;
         switch (type) {
             case 1: {
@@ -405,7 +403,6 @@ public class TokenSender {
 
             case 2: {
                 quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
-                arrangeCode = arrangeQuorum(quorumArray, port + 15, requestedAmount);
                 break;
             }
             case 3: {
@@ -419,27 +416,6 @@ public class TokenSender {
                 return APIResponse;
 
             }
-        }
-
-        if (arrangeCode == 401) {
-            APIResponse.put("did", senderDidIpfsHash);
-            APIResponse.put("tid", "null");
-            APIResponse.put("status", "Failed");
-            String message = "Could not collect all(min. 21) credits";
-            APIResponse.put("message", message);
-            TokenSenderLogger.warn(message);
-            return APIResponse;
-        } else if (arrangeCode == 402) {
-            APIResponse.put("did", senderDidIpfsHash);
-            APIResponse.put("tid", "null");
-            APIResponse.put("status", "Failed");
-            String message = "7 alpha node credits not summing up to requested amount";
-            APIResponse.put("message", message);
-            TokenSenderLogger.warn(message);
-            senderMutex = false;
-            return APIResponse;
-        } else if (arrangeCode == 200) {
-            quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
         }
 
         int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
@@ -467,7 +443,6 @@ public class TokenSender {
             String message = "Quorum: ".concat(sanityFailedQuorum.toString()).concat(" ");
             APIResponse.put("message", message.concat(sanityMessage));
             TokenSenderLogger.warn("Quorum: ".concat(message.concat(sanityMessage)));
-            senderMutex = false;
             return APIResponse;
         }
 
@@ -492,7 +467,7 @@ public class TokenSender {
 
         endTime = System.currentTimeMillis();
         totalTime = endTime - startTime;
-        eventLogger.debug("Quorum check " + totalTime);
+        eventLogger.debug("Quorum Check " + totalTime);
 
         if (alphaPeersList.size() < minQuorum(alphaSize) || betaPeersList.size() < 5 || gammaPeersList.size() < 5) {
             updateQuorum(quorumArray, null, false, type);
@@ -673,12 +648,6 @@ public class TokenSender {
         }
         if (tokenAuth != null && (tokenAuth.startsWith("4"))) {
             switch (tokenAuth) {
-                case "419":
-                    String tokenAuthErrorMessage = input.readLine();
-                    TokenSenderLogger.info(tokenAuthErrorMessage);
-                    TokenSenderLogger.info("Kindly re-initiate transaction later or with another token");
-                    APIResponse.put("message", tokenAuthErrorMessage + " Kindly re-initiate transaction");
-                    break;
                 case "420":
                     String doubleSpent = input.readLine();
                     String owners = input.readLine();
@@ -705,8 +674,8 @@ public class TokenSender {
                 case "424":
                     String invalidTokens = input.readLine();
                     JSONArray tokensArray = new JSONArray(invalidTokens);
-                    TokenSenderLogger.info("Ownership check Failed for " + tokensArray);
-                    APIResponse.put("message", "Ownership check Failed");
+                    TokenSenderLogger.info("Ownership Check Failed for " + tokensArray);
+                    APIResponse.put("message", "Ownership Check Failed");
                     break;
 
                 case "425":
@@ -728,6 +697,7 @@ public class TokenSender {
             APIResponse.put("status", "Failed");
             return APIResponse;
         }
+        TokenSenderLogger.debug("Token Auth Code: " + tokenAuth);
 
         JSONObject dataObject = new JSONObject();
         dataObject.put("tid", tid);

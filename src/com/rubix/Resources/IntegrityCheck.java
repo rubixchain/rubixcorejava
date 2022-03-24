@@ -7,14 +7,16 @@ import java.util.Date;
 public class IntegrityCheck {
     public static String message;
 
-    public static boolean didIntegrity(String did) {
-        if (did.length() != 46) {
+    public static boolean didIntegrity(String did){
+        if(did.length() != 46) {
             message = "Wrong DID Format (DID length: 46)";
             return false;
-        } else if (!did.subSequence(0, 2).equals("Qm")) {
+        }
+        else if(!did.subSequence(0, 2).equals("Qm")) {
             message = "Wrong DID Format (DID begins with Qm)";
             return false;
-        } else
+        }
+        else
             return true;
     }
 
@@ -30,7 +32,7 @@ public class IntegrityCheck {
             return false;
         }
 
-        if (d1.compareTo(d2) > 0) {
+        if(d1.compareTo(d2) > 0) {
             message = "Begin date occurs after End date";
             return false;
         }
@@ -38,20 +40,20 @@ public class IntegrityCheck {
 
     }
 
-    public static boolean txnIdIntegrity(String ID) {
-        if (ID.length() != 64) {
+    public static boolean txnIdIntegrity(String ID){
+        if(ID.length() != 64) {
             message = "Wrong Transaction ID format (Length: 64)";
             return false;
         }
         return true;
     }
 
-    public static boolean rangeIntegrity(int a, int b) {
-        if (a < 0 || b < 0) {
+    public static boolean rangeIntegrity(int a, int b){
+        if(a < 0 || b < 0) {
             message = "Range below bounds";
             return false;
         }
-        if (a > b) {
+        if(a > b){
             message = "Start bound larger than End bound";
             return false;
         }
