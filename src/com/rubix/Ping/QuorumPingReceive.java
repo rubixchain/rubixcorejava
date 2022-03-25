@@ -3,13 +3,11 @@ package com.rubix.Ping;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -76,6 +74,21 @@ public class QuorumPingReceive {
                 APIResponse.put("status", "Success");
                 APIResponse.put("message", "Pong Sent");
                 QuorumPingReceiverLogger.info("Pong Sent");
+
+            }if(pingRequest != null && pingRequest.contains("Get-Credits")) {
+                String qstFile = WALLET_DATA_PATH.concat("QuorumSignedTransactions.json");
+                File quorumFile = new File(qstFile);
+                int unspentCredits = 0;
+                if(quorumFile.exists()){
+                    String qFile = readFile(qstFile);
+                    JSONArray qArray = new JSONArray(qFile);
+                    unspentCredits = qArray.length();
+                }
+                output.println(unspentCredits);
+
+                APIResponse.put("status", "Success");
+                APIResponse.put("message", "Credits Sent");
+                QuorumPingReceiverLogger.info("Credits Sent " + unspentCredits);
 
             }else{
                 APIResponse.put("status", "Failed");

@@ -28,16 +28,16 @@ public class GetCredits {
 
         JSONObject APIResponse = new JSONObject();
 
-        String appName = peerID.concat("Credits");
+        String appName = peerID.concat("Ping");
         forward(appName, port, peerID);
-        PingSenderLogger.debug("Forwarded to " + appName + " on " + port);
+        PingSenderLogger.debug("Forwarded to " + appName + " on " + port + " for collecting credits");
         Socket senderSocket = new Socket("127.0.0.1", port);
 
         BufferedReader input = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
         PrintStream output = new PrintStream(senderSocket.getOutputStream());
 
         output.println("Get-Credits");
-        PingSenderLogger.debug("Sent Credits request");
+//        PingSenderLogger.debug("Sent Credits request");
 
         String pongResponse;
         try {
@@ -57,7 +57,7 @@ public class GetCredits {
 
         if (pongResponse == null) {
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
-            PingSenderLogger.info("Credits response not received");
+//            PingSenderLogger.info("Credits response not received");
             output.close();
             input.close();
             senderSocket.close();
@@ -65,7 +65,7 @@ public class GetCredits {
             APIResponse.put("message", "Credits response not received");
 
         }else {
-            PingSenderLogger.info("Credits Successful " + pongResponse);
+            PingSenderLogger.info("Credits received from " + did);
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
             output.close();
             input.close();

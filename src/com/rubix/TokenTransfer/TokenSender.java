@@ -452,7 +452,7 @@ public class TokenSender {
 
         endTime = System.currentTimeMillis();
         totalTime = endTime - startTime;
-        eventLogger.debug("Quorum QuorumSendCredits " + totalTime);
+        eventLogger.debug("Quorum check " + totalTime);
 
         if (alphaPeersList.size() < minQuorum(alphaSize) || betaPeersList.size() < 5 || gammaPeersList.size() < 5) {
             updateQuorum(quorumArray, null, false, type);
@@ -635,6 +635,12 @@ public class TokenSender {
         }
         if (tokenAuth != null && (tokenAuth.startsWith("4"))) {
             switch (tokenAuth) {
+                case "419":
+                    String tokenAuthErrorMessage = input.readLine();
+                    TokenSenderLogger.info(tokenAuthErrorMessage);
+                    TokenSenderLogger.info("Kindly re-initiate transaction later or with another token");
+                    APIResponse.put("message", tokenAuthErrorMessage + " Kindly re-initiate transaction");
+                    break;
                 case "420":
                     String doubleSpent = input.readLine();
                     String owners = input.readLine();
@@ -660,8 +666,8 @@ public class TokenSender {
                 case "424":
                     String invalidTokens = input.readLine();
                     JSONArray tokensArray = new JSONArray(invalidTokens);
-                    TokenSenderLogger.info("Ownership QuorumSendCredits Failed for " + tokensArray);
-                    APIResponse.put("message", "Ownership QuorumSendCredits Failed");
+                    TokenSenderLogger.info("Ownership check Failed for " + tokensArray);
+                    APIResponse.put("message", "Ownership check Failed");
                     break;
 
                 case "425":
@@ -683,7 +689,7 @@ public class TokenSender {
             APIResponse.put("status", "Failed");
             return APIResponse;
         }
-        TokenSenderLogger.debug("Token Auth Code: " + tokenAuth);
+
 
         JSONObject dataObject = new JSONObject();
         dataObject.put("tid", tid);
