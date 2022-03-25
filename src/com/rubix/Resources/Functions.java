@@ -17,6 +17,7 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -39,13 +40,16 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import javax.imageio.ImageIO;
 
-import io.ipfs.multiaddr.MultiAddress;
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
 public class Functions {
 
     public static boolean mutex = false;
@@ -55,7 +59,8 @@ public class Functions {
     public static String LOGGER_PATH = "";
     public static String WALLET_DATA_PATH = "";
     public static String PAYMENTS_PATH = "";
-    public static int RECEIVER_PORT, GOSSIP_SENDER, GOSSIP_RECEIVER, QUORUM_PORT, SENDER2Q1, SENDER2Q2, SENDER2Q3, SENDER2Q4, SENDER2Q5, SENDER2Q6, SENDER2Q7;
+    public static int RECEIVER_PORT, GOSSIP_SENDER, GOSSIP_RECEIVER, QUORUM_PORT, SENDER2Q1, SENDER2Q2, SENDER2Q3,
+            SENDER2Q4, SENDER2Q5, SENDER2Q6, SENDER2Q7;
     public static int QUORUM_COUNT;
     public static int SEND_PORT;
     public static int IPFS_PORT;
@@ -89,6 +94,42 @@ public class Functions {
         configPath = dirPath.concat("config.json");
     }
 
+    public static String buildVersion() throws IOException {
+        String jarPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        jarPath = jarPath.split("\\.jar")[0];
+        jarPath = jarPath.split("file:", 2)[1];
+        // trim first part of the string till first "/"
+
+        jarPath = jarPath + ".jar";
+        String hash = calculateFileHash(jarPath, "MD5");
+        return hash;
+    }
+
+    public static String calculateFileHash(String filePath, String algorithm) {
+        String hash = "";
+        try {
+            MessageDigest digest = MessageDigest.getInstance(algorithm);
+            System.out.println("File path: " + filePath);
+
+            // check if file exists at the filePath
+            File file = new File(filePath);
+            if (file.exists()) {
+                FileInputStream fis = new FileInputStream(file);
+                byte[] byteArray = new byte[1024];
+                int bytesCount = 0;
+                while ((bytesCount = fis.read(byteArray)) != -1) {
+                    digest.update(byteArray, 0, bytesCount);
+                }
+                byte[] hashBytes = digest.digest();
+                hash = bytesToHex(hashBytes);
+                fis.close();
+            }
+        } catch (NoSuchAlgorithmException | IOException e) {
+            FunctionsLogger.error("Invalid Cryptographic Algorithm while calculating file hash", e);
+            e.printStackTrace();
+        }
+        return hash;
+    }
     /**
      * This method sets the required paths used in the functions
      */
@@ -879,7 +920,7 @@ public class Functions {
         String levelHex = Integer.toHexString(level);
         if (level < 16)
             levelHex = String.valueOf(0).concat(levelHex);
-        String token = 0 + levelHex + tokenHash;
+        String token = String.valueOf(0) + levelHex + tokenHash;
         return token;
     }
 
@@ -902,7 +943,10 @@ public class Functions {
     public static Boolean integrityCheck(String consensusID) {
         File file = new File(WALLET_DATA_PATH + "QuorumSignedTransactions.json");
         if (file.exists()) {
-            return getValues(file.getAbsolutePath(), "senderdid", "consensusID", consensusID).equals("");
+            if (getValues(file.getAbsolutePath(), "senderdid", "consensusID", consensusID).equals(""))
+                return true;
+            else
+                return false;
         } else
             return true;
     }
@@ -1112,7 +1156,7 @@ public class Functions {
         }
     }
 
-    public static void correctToken(){
+    public static void correctToken() throws JSONException {
         pathSet();
         String bank = readFile(PAYMENTS_PATH.concat("BNK00.json"));
         JSONArray bankArray = new JSONArray(bank);
@@ -1127,8 +1171,7 @@ public class Functions {
         }
     }
 
-
-    public static void correctPartToken(){
+    public static void correctPartToken() throws JSONException {
         pathSet();
         String bank = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
         JSONArray bankArray = new JSONArray(bank);
@@ -1143,7 +1186,7 @@ public class Functions {
         }
     }
 
-    public static void tokenBank() {
+    public static void tokenBank() throws JSONException {
         pathSet();
         String bank = readFile(PAYMENTS_PATH.concat("BNK00.json"));
         try {
@@ -1362,6 +1405,14 @@ public class Functions {
         return balance;
     }
 
+    public static String initHash() throws IOException {
+        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        initPath = initPath.split("\\.jar")[0];
+        initPath = initPath.split("file:", 2)[1];
+        initPath = initPath + ".jar";
+        String hash = calculateFileHash(initPath, "SHA3-256");
+        return hash;
+    }
 
     public static Double partTokenBalance(String tokenHash) throws JSONException {
         pathSet();
@@ -1376,9 +1427,11 @@ public class Functions {
         Double senderCount = 0.000D, receiverCount = 0.000D;
         for (int k = 0; k < tokenChainArray.length(); k++) {
             if (tokenChainArray.getJSONObject(k).has("role")) {
-                if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender") && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
+                if (tokenChainArray.getJSONObject(k).getString("role").equals("Sender")
+                        && tokenChainArray.getJSONObject(k).getString("sender").equals(myDID)) {
                     senderCount += tokenChainArray.getJSONObject(k).getDouble("amount");
-                } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver") && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
+                } else if (tokenChainArray.getJSONObject(k).getString("role").equals("Receiver")
+                        && tokenChainArray.getJSONObject(k).getString("receiver").equals(myDID)) {
                     receiverCount += tokenChainArray.getJSONObject(k).getDouble("amount");
                 }
             }
@@ -1412,7 +1465,8 @@ public class Functions {
         try {
             JSONArray partsArray = new JSONArray(partsFile);
         for (int i = 0; i < partsArray.length(); i++) {
-            if (partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) <= 0.000 || partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) > 1.000) {
+            if (partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) <= 0.000
+                    || partTokenBalance(partsArray.getJSONObject(i).getString("tokenHash")) > 1.000) {
                 deleteFile(TOKENS_PATH.concat("PARTS/").concat(partsArray.getJSONObject(i).getString("tokenHash")));
                 partsArray.remove(i);
             }
@@ -1424,9 +1478,17 @@ public class Functions {
     }
 
     public static void backgroundChecks() {
+        try {
         Functions.tokenBank();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
+        try {
         Functions.clearParts();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
         IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
         IPFSNetwork.repo(ipfs);
@@ -1666,7 +1728,11 @@ public class Functions {
 
         }
 
-        return bootstrapConnected;
+        if (bootstrapConnected) {
+            return true;
+        } else {
+            return false;
+        }
 
     }
 

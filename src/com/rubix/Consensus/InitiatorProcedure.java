@@ -1,5 +1,6 @@
 package com.rubix.Consensus;
 
+import static com.rubix.Resources.Functions.minQuorum;
 import com.rubix.Constants.ConsensusConstants;
 import com.rubix.SplitandStore.SeperateShares;
 import com.rubix.SplitandStore.Split;
@@ -73,6 +74,7 @@ public class InitiatorProcedure {
             data1.put(ConsensusConstants.TRANSACTION_ID, tid);
             data1.put(ConsensusConstants.HASH, authSenderByQuorumHash);
             data1.put(ConsensusConstants.RECEIVERID, receiverDidIpfs);
+            data1.put(ConsensusConstants.INIT_HASH, initHash());
 
             data2.put("Share1", Q1Share);
             data2.put("Share2", Q2Share);
@@ -100,7 +102,7 @@ public class InitiatorProcedure {
 
         Thread alphaThread = new Thread(()->{
             try {
-                alphaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT,0,"alpha",alphaList,alphaSize,alphaSize, operation);
+                alphaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT, 0, "alpha", alphaList, alphaSize,
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -108,26 +110,30 @@ public class InitiatorProcedure {
 
         Thread betaThread = new Thread(()->{
             try {
-                betaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+100,1,"beta",betaList,alphaSize,7, operation);
+                betaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 100, 1, "beta", betaList,
+                        alphaSize, 7, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         });
 
-        Thread gammaThread = new Thread(()->{
+        Thread gammaThread = new Thread(() -> {
             try {
-                gammaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+107,2,"gamma",gammaList,alphaSize,7, operation);
+                gammaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 107, 2, "gamma", gammaList,
+                        alphaSize, 7, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         });
 
-        InitiatorConsensus.quorumSignature=new JSONObject();
+        InitiatorConsensus.quorumSignature = new JSONObject();
         InitiatorConsensus.finalQuorumSignsArray = new JSONArray();
         alphaThread.start();
         betaThread.start();
         gammaThread.start();
-        while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2* minQuorum(7))) {}
-        InitiatorProcedureLogger.debug("ABG Consensus completed with length " +InitiatorConsensus.quorumSignature.length());
+        while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+        }
+        InitiatorProcedureLogger
+                .debug("ABG Consensus completed with length " + InitiatorConsensus.quorumSignature.length());
     }
 }

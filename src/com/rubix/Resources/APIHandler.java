@@ -1,13 +1,25 @@
 package com.rubix.Resources;
 
+import static com.rubix.Resources.Functions.DATA_PATH;
+import static com.rubix.Resources.Functions.IPFS_PORT;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.SEND_PORT;
+import static com.rubix.Resources.Functions.SYNC_IP;
+import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
+import static com.rubix.Resources.Functions.getOsName;
+import static com.rubix.Resources.Functions.getPeerID;
+import static com.rubix.Resources.Functions.getValues;
+import static com.rubix.Resources.Functions.nodeData;
+import static com.rubix.Resources.Functions.readFile;
+import static com.rubix.Resources.Functions.writeToFile;
+import static com.rubix.Resources.IPFSNetwork.add;
+import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.pin;
+
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Mining.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
-import io.ipfs.api.*;
-import org.apache.log4j.*;
-import org.json.*;
-
-import javax.imageio.ImageIO;
+import io.ipfs.api.IPFS;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
@@ -18,10 +30,24 @@ import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 
-import static com.rubix.Resources.Functions.*;
-import static com.rubix.Resources.IPFSNetwork.*;
+import com.rubix.Mining.ProofCredits;
+import com.rubix.TokenTransfer.TokenSender;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.ipfs.api.IPFS;
+import io.ipfs.api.Peer;
 
 public class APIHandler {
     private static final Logger APILogger = Logger.getLogger(APIHandler.class);
@@ -70,6 +96,15 @@ public class APIHandler {
         return sendMessage;
 
     }
+    /**
+     * Initiates a transfer between two nodes
+     * 
+     * @param data Data specific to token transfer
+     * @return Message from the sender with transaction details
+     * @throws JSONException            handles JSON Exceptions
+     * @throws NoSuchAlgorithmException handles Invalid Algorithms Exceptions
+     * @throws IOException              handles IO Exceptions
+     */
     public static JSONObject send(String data) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -265,6 +300,7 @@ public class APIHandler {
 
     /**
      * Method to query the credits information
+     * @throws JSONException
      * @files QuorumSignedTransactions.json, MinedCreditsHistory.json
      */
     public static JSONObject creditsInfo(){
