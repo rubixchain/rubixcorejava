@@ -478,8 +478,8 @@ public class QuorumConsensus implements Runnable {
                         // if qstArray has any duplicate object
                         for (int i = 0; i < qstArray.length(); i++) {
                             for (int j = i + 1; j < qstArray.length(); j++) {
-                                if (qstArray.getJSONObject(i).getString("qst")
-                                        .equals(qstArray.getJSONObject(j).getString("qst"))) {
+                                if (qstArray.getJSONObject(i).getString("credits")
+                                        .equals(qstArray.getJSONObject(j).getString("credits"))) {
                                     flag = false;
                                     break;
                                 }
