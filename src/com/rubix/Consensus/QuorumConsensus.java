@@ -283,11 +283,11 @@ public class QuorumConsensus implements Runnable {
                                     // "/PrivateShare.png",
                                     // mineDetToSign.getString(MINE_ID)));
 
-                                    FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mystake.txt"),
+                                    FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "stake.txt"),
                                             true);
                                     shareWriter.write(genesisBlock.toString());
                                     shareWriter.close();
-                                    File readStake = new File(LOGGER_PATH + "mystake.txt");
+                                    File readStake = new File(LOGGER_PATH + "stake.txt");
                                     String mineID = add(readStake.toString(), ipfs);
                                     pin(mineID, ipfs);
 
@@ -314,7 +314,7 @@ public class QuorumConsensus implements Runnable {
                                     // QuorumConsensusLogger.debug("Quorum Share: " + credit);
                                     // updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json",
                                     // data.toString());
-                                    deleteFile(LOGGER_PATH + "mystake.txt");
+                                    deleteFile(LOGGER_PATH + "stake.txt");
 
                                     stakingSigns.put(MINE_ID, mineID);
 
@@ -475,6 +475,16 @@ public class QuorumConsensus implements Runnable {
                         JSONArray creditsArray = qstObject.getJSONArray("credits");
 
                         boolean flag = true;
+                        // if qstArray has any duplicate object
+                        for (int i = 0; i < qstArray.length(); i++) {
+                            for (int j = i + 1; j < qstArray.length(); j++) {
+                                if (qstArray.getJSONObject(i).getString("qst")
+                                        .equals(qstArray.getJSONObject(j).getString("qst"))) {
+                                    flag = false;
+                                    break;
+                                }
+                            }
+                        }
                         for (int i = 0; i < creditsRequired; i++) {
                             QuorumConsensusLogger.debug("Credit object: " + creditsArray.getJSONObject(i).toString());
                             QuorumConsensusLogger.debug(
@@ -487,6 +497,7 @@ public class QuorumConsensus implements Runnable {
                                 flag = false;
                             }
                         }
+
                         if (flag) {
 
                             boolean verifySigns = true;
