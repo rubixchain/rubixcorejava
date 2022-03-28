@@ -166,7 +166,8 @@ public class QuorumConsensus implements Runnable {
                             response_credit.append(inputLine_credit);
                         }
                         in_credit.close();
-                        QuorumConsensusLogger.debug("response from service " + response_credit.toString());
+                        // QuorumConsensusLogger.debug("response from service " +
+                        // response_credit.toString());
                         JSONObject resJsonData_credit = new JSONObject(response_credit.toString());
                         int level_credit = resJsonData_credit.getInt("level");
                         int creditsRequired = (int) Math.pow(2, (2 + level_credit));
@@ -184,10 +185,10 @@ public class QuorumConsensus implements Runnable {
                     if (genesisBlock.has("quorumSignatures")) {
 
                         int randomNumber = new Random().nextInt(15);
-                        JSONArray genesisSignatures = genesisBlock.getJSONArray("quorumSignContent");
+                        JSONObject genesisSignatures = genesisBlock.getJSONObject("quorumSignContent");
                         try {
 
-                            JSONObject VerificationPick = genesisSignatures.getJSONObject(randomNumber);
+                            JSONObject VerificationPick = genesisSignatures.getJSONObject(String.valueOf(randomNumber));
                             if (VerificationPick.getString("hash") == genesisBlock.getString("tid")) {
 
                                 if (Authenticate.verifySignature(VerificationPick.toString())) {
@@ -461,7 +462,8 @@ public class QuorumConsensus implements Runnable {
                                 response_credit.append(inputLine_credit);
                             }
                             in_credit.close();
-                            QuorumConsensusLogger.debug("response from service " + response_credit.toString());
+                            // QuorumConsensusLogger.debug("response from service " +
+                            // response_credit.toString());
                             resJsonData_credit = new JSONObject(response_credit.toString());
                             int level_credit = resJsonData_credit.getInt("level");
                             creditsRequired = (int) Math.pow(2, (2 + level_credit));

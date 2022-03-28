@@ -118,7 +118,8 @@ public class ProofCredits {
                 response_credit.append(inputLine_credit);
             }
             in_credit.close();
-            ProofCreditsLogger.debug("response from service " + response_credit.toString());
+            // ProofCreditsLogger.debug("response from service " +
+            // response_credit.toString());
             resJsonData_credit = new JSONObject(response_credit.toString());
             int level_credit = resJsonData_credit.getInt("level");
             creditsRequired = (int) Math.pow(2, (2 + level_credit));
@@ -153,7 +154,7 @@ public class ProofCredits {
                     response.append(inputLine);
                 }
                 in.close();
-                ProofCreditsLogger.debug("response from service " + response.toString());
+                // ProofCreditsLogger.debug("response from service " + response.toString());
                 resJsonData = new JSONArray(response.toString());
 
             } else
