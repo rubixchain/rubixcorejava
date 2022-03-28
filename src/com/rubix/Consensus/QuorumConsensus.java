@@ -184,24 +184,24 @@ public class QuorumConsensus implements Runnable {
                     // ! validate mined token hash and ownership
                     if (genesisBlock.has("quorumSignatures")) {
 
-                        int randomNumber = new Random().nextInt(15);
-                        JSONObject genesisSignatures = genesisBlock.getJSONObject("quorumSignContent");
                         try {
+                            int randomNumber = new Random().nextInt(15);
+                            JSONObject genesisSignatures = genesisBlock.getJSONObject("quorumSignContent");
+                            JSONArray keys = genesisSignatures.names();
+                            String signer = keys.getString(randomNumber);
+                            String signature = genesisSignatures.getString(signer);
 
-                            JSONObject VerificationPick = genesisSignatures.getJSONObject(String.valueOf(randomNumber));
-                            if (VerificationPick.getString("hash") == genesisBlock.getString("tid")) {
+                            JSONObject VerificationPick = new JSONObject();
+                            VerificationPick.put("signature", signature);
+                            VerificationPick.put("did", signer);
+                            VerificationPick.put("hash", genesisSignatures.getString("tid"));
 
-                                if (Authenticate.verifySignature(VerificationPick.toString())) {
+                            if (Authenticate.verifySignature(VerificationPick.toString())) {
 
-                                    QuorumConsensusLogger.debug("Validated signature of newly minted token");
-                                    isValid = true;
-                                } else {
-                                    QuorumConsensusLogger.debug("Signature not verified");
-                                    isValid = false;
-                                }
-
+                                QuorumConsensusLogger.debug("Validated signature of newly minted token");
+                                isValid = true;
                             } else {
-                                QuorumConsensusLogger.debug("Mined token quorum signature hash not matched");
+                                QuorumConsensusLogger.debug("Signature not verified");
                                 isValid = false;
                             }
                         } catch (Exception e) {
