@@ -240,7 +240,7 @@ public class QuorumConsensus implements Runnable {
                                 String hashForPositions = calculateHash(hashString, "SHA3-256");
                                 BufferedImage privateShare = ImageIO
                                         .read(new File(
-                                                DATA_PATH.concat(senderDidIpfsHash).concat("/PrivateShare.png")));
+                                                DATA_PATH.concat(didHash).concat("/PrivateShare.png")));
                                 String firstPrivate = PropImage.img2bin(privateShare);
                                 int[] privateIntegerArray1 = strToIntArray(firstPrivate);
                                 String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
