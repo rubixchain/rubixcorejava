@@ -1151,6 +1151,31 @@ public class Functions {
         }
     }
 
+    /**
+     * To Sync DataTable.json, if required
+     */
+    public static void syncDataTableByDID(String did) {
+        try {
+            String dataTableData = readFile(DATA_PATH + "DataTable.json");
+            boolean isObjectValid = false;
+            JSONArray dataTable = new JSONArray(dataTableData);
+            for (int i = 0; i < dataTable.length(); i++) {
+                JSONObject dataTableObject = dataTable.getJSONObject(i);
+                if ((did != null && dataTableObject.getString("didHash").equals(did))) {
+                    isObjectValid = true;
+                    break;
+                }
+            }
+            if (!isObjectValid) {
+                FunctionsLogger.debug("Syncing Datatable.json!");
+                APIHandler.networkInfo();
+            }
+        } catch (Exception e) {
+            FunctionsLogger.error("Exception Occured", e);
+            e.printStackTrace();
+        }
+    }
+
     public static void correctToken() throws JSONException {
         pathSet();
         String bank = readFile(PAYMENTS_PATH.concat("BNK00.json"));

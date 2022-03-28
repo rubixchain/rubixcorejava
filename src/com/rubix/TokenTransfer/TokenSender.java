@@ -26,6 +26,7 @@ import static com.rubix.Resources.Functions.sanityCheck;
 import static com.rubix.Resources.Functions.sanityMessage;
 import static com.rubix.Resources.Functions.strToIntArray;
 import static com.rubix.Resources.Functions.syncDataTable;
+import static com.rubix.Resources.Functions.syncDataTableByDID;
 import static com.rubix.Resources.Functions.updateJSON;
 import static com.rubix.Resources.Functions.updateQuorum;
 import static com.rubix.Resources.Functions.writeToFile;
@@ -99,6 +100,7 @@ public class TokenSender {
 
         JSONObject detailsObject = new JSONObject(data);
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
+        syncDataTableByDID(receiverDidIpfsHash);
         String receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
         String pvt = detailsObject.getString("pvt");
         double requestedAmount = detailsObject.getDouble("amount");

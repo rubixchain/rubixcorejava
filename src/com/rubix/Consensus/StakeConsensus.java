@@ -31,7 +31,7 @@ import io.ipfs.api.IPFS;
 
 public class StakeConsensus {
     public static Logger StakeConsensusLogger = Logger.getLogger(StakeConsensus.class);
-    private static int socketTimeOut = 120000;
+    private static int socketTimeOut = 1800000;
     private static volatile boolean STAKE_SUCCESS = false;
     public static volatile JSONObject stakeDetails = new JSONObject();
     // MINE_ID
