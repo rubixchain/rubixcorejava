@@ -191,7 +191,6 @@ public class StakeConsensus {
                                         }
 
                                         if (mineSignCheck) {
-                                            // ! send credits
                                             StakeConsensusLogger.debug(
                                                     "%%%%%%%%||||||||||||########--Staking Complete! Sending Credits--###########|||||||||||||%%%%%%%%%%%");
 
@@ -222,7 +221,9 @@ public class StakeConsensus {
                 });
                 quorumThreads[j].start();
             }
-            ;
+            do {
+
+            } while (!STAKE_SUCCESS);
 
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);
