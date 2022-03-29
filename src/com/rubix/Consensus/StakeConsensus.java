@@ -204,12 +204,20 @@ public class StakeConsensus {
                                 }
 
                             } else if (qResponse[j].equals("444")) {
-                                StakeConsensusLogger.debug("Error response from staker (insuff). Skipping...");
+                                StakeConsensusLogger.debug("Quorum could not verify mined token. Skipping...");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                             } else if (qResponse[j].equals("445")) {
+                                StakeConsensusLogger.debug("Insufficient quorum member balance. Skipping...");
+                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
+                            } else if (qResponse[j].equals("446")) {
+                                StakeConsensusLogger
+                                        .debug("Token files picked by quorum to stake is corroupted. Skipping...");
+                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
+                            } else if (qResponse[j].equals("447")) {
+                                StakeConsensusLogger.debug("alpha-stake-token-not-verified. Skipping...");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                             } else {
-                                StakeConsensusLogger.debug("Error response from staker. Skipping...");
+                                StakeConsensusLogger.debug("Unexpected response from staker: " + qResponse[j]);
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                             }
 

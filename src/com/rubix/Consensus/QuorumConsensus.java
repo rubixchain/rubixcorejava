@@ -206,7 +206,8 @@ public class QuorumConsensus implements Runnable {
                             }
                         } catch (Exception e) {
                             QuorumConsensusLogger
-                                    .debug("Mined token quorum signature hash not found in IPFS. Skipping...");
+                                    .debug("Mined Token - Quorum Signature Hash not found. Skipping... Exception: "
+                                            + e.getMessage());
                             // isValid = false;
                         }
 
