@@ -99,7 +99,7 @@ public class StakeConsensus {
                                         .debug("Mined Token Details validation failed. Received null response");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                             }
-                            if (!qResponse[j].contains("44")) {
+                            if (qResponse[j].length() > 3) {
 
                                 StakeConsensusLogger
                                         .debug("Mined Token Details validated. Received staked token details..");
