@@ -1,8 +1,10 @@
 package com.rubix.Consensus;
 
 import static com.rubix.Constants.ConsensusConstants.INIT_HASH;
+import static com.rubix.Constants.MiningConstants.MINED_RBT;
 import static com.rubix.Constants.MiningConstants.MINED_RBT_SIGN;
 import static com.rubix.Constants.MiningConstants.MINE_ID;
+import static com.rubix.Constants.MiningConstants.MINE_TID;
 import static com.rubix.Constants.MiningConstants.MINING_TID_SIGN;
 import static com.rubix.Constants.MiningConstants.STAKED_TOKEN_SIGN;
 import static com.rubix.Resources.Functions.DATA_PATH;
@@ -223,10 +225,12 @@ public class QuorumConsensus implements Runnable {
 
                         if (bankArray.length() != 0) {
 
-                            // pick last object from bank array
                             JSONObject bankObject = bankArray.getJSONObject(0);
                             String tokenHash = bankObject.getString("tokenHash");
                             tokenToStake.put(tokenHash);
+                            bankArray.remove(0);
+                            bankArray.put(bankObject);
+                            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
 
                             File tokenFile = new File(TOKENS_PATH + tokenHash);
                             File tokenchainFile = new File(TOKENCHAIN_PATH + tokenHash + ".json");
@@ -235,7 +239,8 @@ public class QuorumConsensus implements Runnable {
                             if (tokenFile.exists() && tokenchainFile.exists()) {
 
                                 String tokenChain = readFile(TOKENCHAIN_PATH + tokenHash + ".json");
-                                tokenToStake.put(tokenChain);
+                                JSONArray tokenChainArray = new JSONArray(tokenChain);
+                                tokenToStake.put(tokenChainArray);
 
                                 String hashString = tokenHash.concat(senderDidIpfsHash);
                                 String hashForPositions = calculateHash(hashString, "SHA3-256");
@@ -275,9 +280,11 @@ public class QuorumConsensus implements Runnable {
                                             MINING_TID_SIGN,
                                             getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
                                                     genesisBlock.getString("tid")));
+                                    stakingSigns.put(MINE_TID, genesisBlock.getString("tid"));
                                     stakingSigns.put(
                                             MINED_RBT_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
                                                     genesisBlock.getString("tokenHash")));
+                                    stakingSigns.put(MINED_RBT, genesisBlock.getString("tokenHash"));
 
                                     genesisBlock.put("stakerSignatures", stakingSigns);
 
@@ -326,20 +333,6 @@ public class QuorumConsensus implements Runnable {
                                     out.println(stakingSigns.toString());
 
                                     // ! receive credits equal to credits required to mine token
-
-                                    String credits = null;
-                                    try {
-                                        credits = in.readLine();
-                                        // convert mineData to JSONObject
-                                        System.out.println("credits received " + credits);
-                                    } catch (SocketException e) {
-                                        QuorumConsensusLogger.debug("Sender Input Stream Null - Adding Credits Failed");
-                                        socket.close();
-                                        serverSocket.close();
-                                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-                                    }
-
-                                    System.out.println("credits received " + credits);
 
                                     // JSONArray creditArray = new JSONArray(credits);
 

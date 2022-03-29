@@ -569,10 +569,6 @@ public class TokenReceiver {
                         ownerCheck = false;
                         invalidTokens.put(tokens);
                     }
-                } else if (lastObject.length() == 0) {
-                    TokenReceiverLogger.debug("Staking check failed: No Token Chain data found for token: " + tokens);
-                    // ownerCheck = false;
-                    // invalidTokens.put(tokens);
                 }
                 // ! staking checks ends here
             }
