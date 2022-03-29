@@ -198,7 +198,7 @@ public class StakeConsensus {
 
                                         if (mineSignCheck) {
                                             StakeConsensusLogger.debug(
-                                                    "%%%%%%%%||||||||||||########--Staking Complete! Sending Credits--###########|||||||||||||%%%%%%%%%%%");
+                                                    "%%%%%%%%||||||||||||########--Staking Complete!--###########|||||||||||||%%%%%%%%%%%");
 
                                             qOut[j].println("staking-completed");
                                             STAKE_SUCCESS = true;
@@ -238,7 +238,7 @@ public class StakeConsensus {
             }
             do {
 
-            } while (!STAKE_SUCCESS && !STAKE_LOCKED && stakeDetails.length() > 0);
+            } while (!STAKE_SUCCESS && !STAKE_LOCKED && stakeDetails.length() < 4);
 
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);
