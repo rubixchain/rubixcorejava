@@ -262,6 +262,8 @@ public class QuorumConsensus implements Runnable {
 
                                 try {
                                     response = in.readLine();
+                                    QuorumConsensusLogger
+                                            .debug("Staking response after verifying staked token: " + response);
                                 } catch (SocketException e) {
                                     QuorumConsensusLogger
                                             .debug("Sender Input Stream Null - Stake Token Validation by Miner Failed");

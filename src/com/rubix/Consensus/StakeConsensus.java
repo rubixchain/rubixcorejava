@@ -32,6 +32,7 @@ import io.ipfs.api.IPFS;
 public class StakeConsensus {
     public static Logger StakeConsensusLogger = Logger.getLogger(StakeConsensus.class);
     private static int socketTimeOut = 1800000;
+    private static volatile boolean STAKE_LOCKED = false;
     private static volatile boolean STAKE_SUCCESS = false;
     public static volatile JSONObject stakeDetails = new JSONObject();
     // MINE_ID
@@ -114,10 +115,14 @@ public class StakeConsensus {
                                 // ! check ownership of stakeTC from Token Receiver logic
 
                                 if (stakeTC.length() > 0 && stakeTokenHash != null && positionsArray != null) {
+
                                     JSONObject lastObject = stakeTC.getJSONObject(stakeTC.length() - 1);
                                     StakeConsensusLogger.debug("Last Object = " + lastObject);
                                     if (lastObject.has("owner")) {
-                                        StakeConsensusLogger.debug("Checking ownership");
+                                        StakeConsensusLogger
+                                                .debug("Checking ownership of " + stakeTokenHash + " from DID "
+                                                        + lastObject.getString("owner") + " for positions send: "
+                                                        + positionsArray);
                                         String owner = lastObject.getString("owner");
                                         String tokens = stakeTokenHash;
                                         String hashString = tokens.concat(stakerDID);
@@ -135,7 +140,8 @@ public class StakeConsensus {
 
                                         if (!owner.equals(ownerRecalculated)) {
                                             ownerCheck = false;
-                                            StakeConsensusLogger.debug("Ownership Check Failed");
+                                            StakeConsensusLogger.debug(
+                                                    "Ownership Check Failed for index " + j + " with DID: " + owner);
                                             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                         }
                                     }
@@ -144,9 +150,10 @@ public class StakeConsensus {
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                 }
 
-                                if (ownerCheck && !STAKE_SUCCESS) {
-                                    StakeConsensusLogger.debug("Ownership Check Success for: PID" + quorumPID[j]);
-                                    STAKE_SUCCESS = true;
+                                if (ownerCheck && !STAKE_LOCKED) {
+                                    StakeConsensusLogger.debug("Ownership Check Success for Peer: " + quorumPID[j]);
+                                    STAKE_LOCKED = true;
+                                    StakeConsensusLogger.debug("Staking locked with for Peer: " + quorumPID[j]);
                                     qOut[j].println("alpha-stake-token-verified");
                                     StakeConsensusLogger.debug("Waiting for stake signatures");
 
@@ -159,7 +166,7 @@ public class StakeConsensus {
                                                 .debug("Mined Token Details validation failed. Received null response");
                                     }
 
-                                    if (!qResponse[j].contains("44")) {
+                                    if (qResponse[j].length() > 3) {
 
                                         // ! add mine signs to tokenchain
                                         StakeConsensusLogger.debug("Adding mine signatures");
@@ -194,6 +201,7 @@ public class StakeConsensus {
                                                     "%%%%%%%%||||||||||||########--Staking Complete! Sending Credits--###########|||||||||||||%%%%%%%%%%%");
 
                                             qOut[j].println("staking-completed");
+                                            STAKE_SUCCESS = true;
                                         }
 
                                     }
@@ -230,7 +238,7 @@ public class StakeConsensus {
             }
             do {
 
-            } while (!STAKE_SUCCESS);
+            } while (!STAKE_SUCCESS && !STAKE_LOCKED && stakeDetails.length() > 0);
 
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);
