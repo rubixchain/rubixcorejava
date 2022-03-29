@@ -238,6 +238,8 @@ public class QuorumConsensus implements Runnable {
                             // check if token file and tokenchain file exists
                             if (tokenFile.exists() && tokenchainFile.exists()) {
 
+                                QuorumConsensusLogger.debug("Token and TokenChain files found");
+
                                 String tokenChain = readFile(TOKENCHAIN_PATH + tokenHash + ".json");
                                 JSONArray tokenChainArray = new JSONArray(tokenChain);
                                 tokenToStake.put(tokenChainArray);
@@ -390,13 +392,14 @@ public class QuorumConsensus implements Runnable {
                                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
 
                                 } else {
-                                    QuorumConsensusLogger.debug("Token file not found");
+                                    QuorumConsensusLogger.debug("Token to stake not verified");
                                     out.println("447");
                                     socket.close();
                                     serverSocket.close();
                                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                                 }
                             } else {
+                                QuorumConsensusLogger.debug("Token to stake not found");
                                 out.println("446");
                                 socket.close();
                                 serverSocket.close();

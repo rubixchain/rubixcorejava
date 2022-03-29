@@ -108,14 +108,13 @@ public class StakeConsensus {
                                         quorumPID[j]);
                                 JSONArray stakeTokenArray = new JSONArray(qResponse[j]);
                                 String stakeTokenHash = stakeTokenArray.getString(0);
-                                String stakeTCObject = stakeTokenArray.getString(1);
+                                JSONArray stakeTC = stakeTokenArray.getJSONArray(1);
                                 String positionsArray = stakeTokenArray.getString(2);
-                                JSONArray stakeTC = new JSONArray(stakeTCObject);
 
                                 // ! check ownership of stakeTC from Token Receiver logic
 
                                 if (stakeTC.length() > 0 && stakeTokenHash != null && positionsArray != null) {
-                                    JSONObject lastObject = stakeTC.getJSONObject(stakeTCObject.length() - 1);
+                                    JSONObject lastObject = stakeTC.getJSONObject(stakeTC.length() - 1);
                                     StakeConsensusLogger.debug("Last Object = " + lastObject);
                                     if (lastObject.has("owner")) {
                                         StakeConsensusLogger.debug("Checking ownership");
