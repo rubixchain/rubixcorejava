@@ -166,7 +166,7 @@ public class StakeConsensus {
                                                 .debug("Mined Token Details validation failed. Received null response");
                                     }
 
-                                    if (qResponse[j].length() > 3) {
+                                    if (qResponse[j].length() == 6) {
 
                                         // ! add mine signs to tokenchain
                                         StakeConsensusLogger.debug("Adding mine signatures");
@@ -204,6 +204,10 @@ public class StakeConsensus {
                                             STAKE_SUCCESS = true;
                                         }
 
+                                    } else {
+                                        StakeConsensusLogger.debug(
+                                                "Stake signatures not received.. Quorum response: " + qResponse[j]);
+                                        IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                     }
                                 } else {
                                     StakeConsensusLogger.debug("Ownership Check Failed");
