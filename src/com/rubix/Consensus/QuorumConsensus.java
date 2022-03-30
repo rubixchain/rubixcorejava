@@ -272,7 +272,7 @@ public class QuorumConsensus implements Runnable {
                                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                                 }
 
-                                if (response == "alpha-stake-token-verified") {
+                                if (response.equals("alpha-stake-token-verified")) {
 
                                     JSONObject stakingSigns = new JSONObject();
 
@@ -441,7 +441,7 @@ public class QuorumConsensus implements Runnable {
                     // Verify QST Credits
                     JSONObject qstObject = new JSONObject(getNewCreditsData);
 
-                    if (qstObject.getString(INIT_HASH) == initHash()) {
+                    if (qstObject.getString(INIT_HASH).equals(initHash())) {
 
                         // Get level of token from advisory node
                         int creditsRequired = 0;
@@ -572,7 +572,7 @@ public class QuorumConsensus implements Runnable {
                         transactionID = readSenderData.getString("Tid");
                         verifySenderHash = readSenderData.getString("Hash");
                         receiverDID = readSenderData.getString("RID");
-                        initHash = readSenderData.getString(INIT_HASH);
+                        // initHash = readSenderData.getString(INIT_HASH);
 
                         syncDataTable(senderDidIpfsHash, null);
 

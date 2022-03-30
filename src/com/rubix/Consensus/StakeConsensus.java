@@ -198,7 +198,7 @@ public class StakeConsensus {
 
                                         if (mineSignCheck) {
                                             StakeConsensusLogger.debug(
-                                                    "%%%%%%%%||||||||||||########--Staking Complete!--###########|||||||||||||%%%%%%%%%%%");
+                                                    "########--Staking Complete!--###########");
 
                                             qOut[j].println("staking-completed");
                                             STAKE_SUCCESS = true;
