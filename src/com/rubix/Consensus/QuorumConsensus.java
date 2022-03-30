@@ -331,7 +331,7 @@ public class QuorumConsensus implements Runnable {
 
                                     stakingSigns.put(MINE_ID, mineID);
 
-                                    QuorumConsensusLogger.debug("Staking Token Staked Successfully. MINE ID: " +
+                                    QuorumConsensusLogger.debug("Token Staked Successfully. MINE ID: " +
                                             mineID);
 
                                     out.println(stakingSigns.toString());

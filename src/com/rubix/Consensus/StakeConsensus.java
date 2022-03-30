@@ -166,11 +166,11 @@ public class StakeConsensus {
                                                 .debug("Mined Token Details validation failed. Received null response");
                                     }
 
-                                    if (qResponse[j].length() == 6) {
+                                    // ! add mine signs to tokenchain
+                                    StakeConsensusLogger.debug("Adding mine signatures");
+                                    JSONObject mineSigns = new JSONObject(qResponse[j]);
 
-                                        // ! add mine signs to tokenchain
-                                        StakeConsensusLogger.debug("Adding mine signatures");
-                                        JSONObject mineSigns = new JSONObject(qResponse[j]);
+                                    if (mineSigns.length() > 0) {
 
                                         stakeDetails = mineSigns;
 
