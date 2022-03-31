@@ -421,8 +421,8 @@ public class ProofCredits {
                             tokenChainGenesisObject, ipfs, SEND_PORT + 3,
                             "alpha-stake-token");
 
-                    // do {
-                    // } while (StakeConsensus.stakeDetails.length() < 6);
+                    do {
+                    } while (StakeConsensus.stakeDetails.length() < 8);
 
                     if (StakeConsensus.stakeDetails.length() > 0) {
                         tokenChainArray.put(StakeConsensus.stakeDetails);
