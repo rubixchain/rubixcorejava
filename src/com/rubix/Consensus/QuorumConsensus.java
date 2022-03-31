@@ -297,7 +297,6 @@ public class QuorumConsensus implements Runnable {
                                     stakingSigns.put(
                                             MINED_RBT_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
                                                     genesisBlock.getString("tokenHash")));
-                                    stakingSigns.put("sender", genesisBlock.getString("sender"));
 
                                     genesisBlock.put(STAKE_DATA, stakingSigns);
 
@@ -323,6 +322,7 @@ public class QuorumConsensus implements Runnable {
 
                                     // mine ID
                                     stakingSigns.put(MINE_ID, mineID);
+                                    stakingSigns.put("sender", genesisBlock.getString("sender"));
 
                                     QuorumConsensusLogger.debug("Token Staked Successfully. MINE ID: " +
                                             mineID);
