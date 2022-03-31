@@ -1,5 +1,10 @@
 package com.rubix.TokenTransfer;
 
+import static com.rubix.Constants.MiningConstants.MINE_ID;
+import static com.rubix.Constants.MiningConstants.MINE_ID_SIGN;
+import static com.rubix.Constants.MiningConstants.STAKED_QUORUM_DID;
+import static com.rubix.Constants.MiningConstants.STAKED_TOKEN;
+import static com.rubix.Constants.MiningConstants.STAKED_TOKEN_SIGN;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.FunctionsLogger;
 import static com.rubix.Resources.Functions.IPFS_PORT;
@@ -466,29 +471,26 @@ public class TokenReceiver {
                     int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
                     int tokenNumber = 1200001;
 
-                    if (ownerCheck && (tokenChain.length() < tokenLevelValue) && (tokenLevelInt < 4)
+                    if (ownerCheck && (tokenChain.length() < tokenLevelValue) && (tokenLevelInt >= 4)
                             && (tokenNumber > 1200000)) {
 
                         // ! staking checks (2): For incoming new mint token, verify the staked token
 
                         JSONObject secondObject = tokenChain.getJSONObject(1);
-                        String stakedTokenTC = secondObject.getString("stakedToken");
-                        String stakedTokenSignTC = secondObject.getString("stakedTokenSignature");
-                        String stakerDIDTC = secondObject.getString("stakerDID");
-                        String stakerDIDSignTC = secondObject.getString("stakerDIDSignature");
-                        String mineIDTC = secondObject.getString("mineID");
-                        String mineIDSignTC = secondObject.getString("mineIDSignature");
+                        String stakedTokenTC = secondObject.getString(STAKED_TOKEN);
+                        String stakedTokenSignTC = secondObject.getString(STAKED_TOKEN_SIGN);
+                        String stakerDIDTC = secondObject.getString(STAKED_QUORUM_DID);
+                        String mineIDTC = secondObject.getString(MINE_ID);
+                        String mineIDSignTC = secondObject.getString(MINE_ID_SIGN);
 
                         String mineIDContent = get(mineIDTC, ipfs);
                         JSONObject mineIDContentJSON = new JSONObject(mineIDContent);
-                        String stakerDIDMineData = mineIDContentJSON.getString("stakerDID");
-                        String stakerDIDSignMineData = mineIDContentJSON.getString("stakerDID");
-                        String stakedTokenMineData = mineIDContentJSON.getString("stakedToken");
-                        String stakedTokenSignMineData = mineIDContentJSON.getString("stakedToken");
+                        String stakerDIDMineData = mineIDContentJSON.getString(STAKED_QUORUM_DID);
+                        String stakedTokenMineData = mineIDContentJSON.getString(STAKED_TOKEN);
+                        String stakedTokenSignMineData = mineIDContentJSON.getString(STAKED_TOKEN_SIGN);
 
                         if (stakerDIDTC.equals(stakerDIDMineData) && stakedTokenTC.equals(stakedTokenMineData)
-                                && stakedTokenSignTC.equals(stakedTokenSignMineData)
-                                && stakerDIDSignTC.equals(stakerDIDSignMineData)) {
+                                && stakedTokenSignTC.equals(stakedTokenSignMineData)) {
 
                             JSONObject detailsToVerify = new JSONObject();
                             detailsToVerify.put("did", stakerDIDTC);
@@ -527,28 +529,21 @@ public class TokenReceiver {
                         }
                     }
 
-                } else if (lastObject.has("mineID")) {
+                } else if (lastObject.has(MINE_ID)) {
 
-                    String mineID = lastObject.getString("mineID");
+                    String mineID = lastObject.getString(MINE_ID);
                     String mineIDContent = get(mineID, ipfs);
                     JSONObject mineIDContentJSON = new JSONObject(mineIDContent);
-                    String stakerDID = mineIDContentJSON.getString("stakerDID");
-                    String stakerDIDSign = mineIDContentJSON.getString("stakerDIDSignature");
-                    String stakedToken = mineIDContentJSON.getString("stakedToken");
-                    String stakedTokenSign = mineIDContentJSON.getString("stakedTokenSignature");
-
-                    JSONObject StakerToVerify = new JSONObject();
-                    StakerToVerify.put("did", senderDidIpfsHash);
-                    StakerToVerify.put("hash", stakerDID);
-                    StakerToVerify.put("signature", stakerDIDSign);
+                    String stakerDID = mineIDContentJSON.getString(STAKED_QUORUM_DID);
+                    String stakedToken = mineIDContentJSON.getString(STAKED_TOKEN);
+                    String stakedTokenSign = mineIDContentJSON.getString(STAKED_TOKEN_SIGN);
 
                     JSONObject tokenToVerify = new JSONObject();
                     tokenToVerify.put("did", senderDidIpfsHash);
                     tokenToVerify.put("hash", stakedToken);
                     tokenToVerify.put("signature", stakedTokenSign);
 
-                    if (Authenticate.verifySignature(StakerToVerify.toString())
-                            && Authenticate.verifySignature(tokenToVerify.toString())) {
+                    if (Authenticate.verifySignature(tokenToVerify.toString())) {
 
                         // ArrayList ownersArray = new ArrayList();
                         // ownersArray = IPFSNetwork.dhtOwnerCheck(stakedToken);

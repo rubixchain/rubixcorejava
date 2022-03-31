@@ -2,10 +2,12 @@ package com.rubix.Consensus;
 
 import static com.rubix.Constants.ConsensusConstants.INIT_HASH;
 import static com.rubix.Constants.MiningConstants.MINED_RBT;
-import static com.rubix.Constants.MiningConstants.MINED_RBT_SIGN;
+import static com.rubix.Constants.MiningConstants.*;
 import static com.rubix.Constants.MiningConstants.MINE_ID;
 import static com.rubix.Constants.MiningConstants.MINE_TID;
 import static com.rubix.Constants.MiningConstants.MINING_TID_SIGN;
+import static com.rubix.Constants.MiningConstants.STAKED_QUORUM_DID;
+import static com.rubix.Constants.MiningConstants.STAKED_TOKEN;
 import static com.rubix.Constants.MiningConstants.STAKED_TOKEN_SIGN;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
@@ -226,25 +228,25 @@ public class QuorumConsensus implements Runnable {
                         if (bankArray.length() != 0) {
 
                             JSONObject bankObject = bankArray.getJSONObject(0);
-                            String tokenHash = bankObject.getString("tokenHash");
-                            tokenToStake.put(tokenHash);
+                            String stakedTokenHash = bankObject.getString("tokenHash");
+                            tokenToStake.put(stakedTokenHash);
                             bankArray.remove(0);
                             bankArray.put(bankObject);
                             writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
 
-                            File tokenFile = new File(TOKENS_PATH + tokenHash);
-                            File tokenchainFile = new File(TOKENCHAIN_PATH + tokenHash + ".json");
+                            File tokenFile = new File(TOKENS_PATH + stakedTokenHash);
+                            File tokenchainFile = new File(TOKENCHAIN_PATH + stakedTokenHash + ".json");
 
                             // check if token file and tokenchain file exists
                             if (tokenFile.exists() && tokenchainFile.exists()) {
 
                                 QuorumConsensusLogger.debug("Token and TokenChain files found");
 
-                                String tokenChain = readFile(TOKENCHAIN_PATH + tokenHash + ".json");
+                                String tokenChain = readFile(TOKENCHAIN_PATH + stakedTokenHash + ".json");
                                 JSONArray tokenChainArray = new JSONArray(tokenChain);
                                 tokenToStake.put(tokenChainArray);
 
-                                String hashString = tokenHash.concat(senderDidIpfsHash);
+                                String hashString = stakedTokenHash.concat(senderDidIpfsHash);
                                 String hashForPositions = calculateHash(hashString, "SHA3-256");
                                 BufferedImage privateShare = ImageIO
                                         .read(new File(
@@ -275,22 +277,27 @@ public class QuorumConsensus implements Runnable {
                                 if (response.equals("alpha-stake-token-verified")) {
 
                                     JSONObject stakingSigns = new JSONObject();
-
+                                    // staker DID
+                                    stakingSigns.put(STAKED_QUORUM_DID, didHash);
+                                    // staked token and sign from staker
+                                    stakingSigns.put(STAKED_TOKEN, stakedTokenHash);
                                     stakingSigns.put(
                                             STAKED_TOKEN_SIGN, getSignFromShares(DATA_PATH + didHash +
                                                     "/PrivateShare.png",
-                                                    tokenHash));
+                                                    stakedTokenHash));
+                                    // tid and sign from staker
+                                    stakingSigns.put(MINE_TID, genesisBlock.getString("tid"));
                                     stakingSigns.put(
                                             MINING_TID_SIGN,
                                             getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
                                                     genesisBlock.getString("tid")));
-                                    stakingSigns.put(MINE_TID, genesisBlock.getString("tid"));
+                                    // mined token and sign from staker
+                                    stakingSigns.put(MINED_RBT, genesisBlock.getString("tokenHash"));
                                     stakingSigns.put(
                                             MINED_RBT_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
                                                     genesisBlock.getString("tokenHash")));
-                                    stakingSigns.put(MINED_RBT, genesisBlock.getString("tokenHash"));
 
-                                    genesisBlock.put("stakerSignatures", stakingSigns);
+                                    genesisBlock.put(STAKE_DATA, stakingSigns);
 
                                     // stakingSigns.put(MINE_ID_SIGN, getSignFromShares(DATA_PATH + didHash +
                                     // "/PrivateShare.png",
@@ -310,83 +317,19 @@ public class QuorumConsensus implements Runnable {
                                         stakeFile.createNewFile();
                                     writeToFile(stakeFile.toString(), genesisBlock.toString(), false);
 
-                                    // QuorumConsensusLogger.debug("Credit object: " + credit);
-                                    // QuorumConsensusLogger.debug("Credit Hash: " + calculateHash(credit,
-                                    // "SHA3-256"));
-                                    // JSONObject storeDetailsQuorum = new JSONObject();
-                                    // storeDetailsQuorum.put("tid", transactionID);
-                                    // storeDetailsQuorum.put("consensusID", verifySenderHash);
-                                    // storeDetailsQuorum.put("sign", senderPrivatePos);
-                                    // storeDetailsQuorum.put("credits", credit);
-                                    // storeDetailsQuorum.put("creditHash", calculateHash(credit, "SHA3-256"));
-                                    // storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
-                                    // storeDetailsQuorum.put("Date", Functions.getCurrentUtcTime());
-                                    // storeDetailsQuorum.put("recdid", receiverDID);
-                                    // JSONArray data = new JSONArray();
-                                    // data.put(storeDetailsQuorum);
-                                    // QuorumConsensusLogger.debug("Quorum Share: " + credit);
-                                    // updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json",
-                                    // data.toString());
                                     deleteFile(LOGGER_PATH + "stake.txt");
 
+                                    // mine ID
                                     stakingSigns.put(MINE_ID, mineID);
 
                                     QuorumConsensusLogger.debug("Token Staked Successfully. MINE ID: " +
                                             mineID);
 
                                     out.println(stakingSigns.toString());
+                                    tokenChainArray.put(stakingSigns);
+                                    writeToFile(TOKENCHAIN_PATH + stakedTokenHash + ".json", tokenChainArray.toString(),
+                                            false);
 
-                                    // ! receive credits equal to credits required to mine token
-
-                                    // JSONArray creditArray = new JSONArray(credits);
-
-                                    // // Get level of token from advisory node
-                                    // int creditsRequired = 0;
-                                    // JSONObject resJsonData_credit = new JSONObject();
-                                    // String GET_URL_credit = SYNC_IP + "/getlevel";
-                                    // URL URLobj_credit = new URL(GET_URL_credit);
-                                    // HttpURLConnection con_credit = (HttpURLConnection)
-                                    // URLobj_credit.openConnection();
-                                    // con_credit.setRequestMethod("GET");
-                                    // int responseCode_credit = con_credit.getResponseCode();
-                                    // System.out.println("GET Response Code :: " + responseCode_credit);
-                                    // if (responseCode_credit == HttpURLConnection.HTTP_OK) {
-                                    // BufferedReader in_credit = new BufferedReader(
-                                    // new InputStreamReader(con_credit.getInputStream()));
-                                    // String inputLine_credit;
-                                    // StringBuffer response_credit = new StringBuffer();
-                                    // while ((inputLine_credit = in_credit.readLine()) != null) {
-                                    // response_credit.append(inputLine_credit);
-                                    // }
-                                    // in_credit.close();
-                                    // QuorumConsensusLogger
-                                    // .debug("response from service " + response_credit.toString());
-                                    // resJsonData_credit = new JSONObject(response_credit.toString());
-                                    // int level_credit = resJsonData_credit.getInt("level");
-                                    // creditsRequired = (int) Math.pow(2, (2 + level_credit));
-                                    // QuorumConsensusLogger.debug("credits required " + creditsRequired);
-
-                                    // } else
-                                    // QuorumConsensusLogger.debug("GET request not worked");
-
-                                    // if (!(creditArray.length() != creditsRequired) && !(creditsRequired != 0)) {
-
-                                    // QuorumConsensusLogger.debug("Credits received");
-                                    // out.println("200");
-                                    // socket.close();
-                                    // serverSocket.close();
-                                    // executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-
-                                    // // ! store the credits
-
-                                    // } else {
-
-                                    // QuorumConsensusLogger.debug("Credits not received");
-                                    // out.println("448");
-                                    // socket.close();
-                                    // serverSocket.close();
-                                    // executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-                                    // }
                                     QuorumConsensusLogger.debug("Staking Completed!");
                                     out.println("200");
                                     socket.close();
@@ -500,7 +443,6 @@ public class QuorumConsensus implements Runnable {
                         }
 
                         if (flag) {
-
                             boolean verifySigns = true;
                             for (int i = 0; i < creditsRequired; i++) {
                                 if (!Authenticate.verifySignature(creditsArray.getJSONObject(i).toString()))
