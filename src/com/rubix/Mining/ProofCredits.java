@@ -424,7 +424,7 @@ public class ProofCredits {
                     // do {
                     // } while (StakeConsensus.stakeDetails.length() < 6);
 
-                    if (StakeConsensus.stakeDetails.length() == 6) {
+                    if (StakeConsensus.stakeDetails.length() > 0) {
                         tokenChainArray.put(StakeConsensus.stakeDetails);
                         ProofCreditsLogger.debug("Stake Details for new mined token: " + StakeConsensus.stakeDetails);
                     } else {
