@@ -242,7 +242,7 @@ public class StakeConsensus {
             }
             do {
 
-            } while (!STAKE_SUCCESS && !STAKE_LOCKED && stakeDetails.length() < 4);
+            } while (!STAKE_SUCCESS && !STAKE_LOCKED && stakeDetails.length() < 7);
 
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);

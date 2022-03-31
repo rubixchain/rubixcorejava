@@ -2,13 +2,14 @@ package com.rubix.Consensus;
 
 import static com.rubix.Constants.ConsensusConstants.INIT_HASH;
 import static com.rubix.Constants.MiningConstants.MINED_RBT;
-import static com.rubix.Constants.MiningConstants.*;
+import static com.rubix.Constants.MiningConstants.MINED_RBT_SIGN;
 import static com.rubix.Constants.MiningConstants.MINE_ID;
 import static com.rubix.Constants.MiningConstants.MINE_TID;
 import static com.rubix.Constants.MiningConstants.MINING_TID_SIGN;
 import static com.rubix.Constants.MiningConstants.STAKED_QUORUM_DID;
 import static com.rubix.Constants.MiningConstants.STAKED_TOKEN;
 import static com.rubix.Constants.MiningConstants.STAKED_TOKEN_SIGN;
+import static com.rubix.Constants.MiningConstants.STAKE_DATA;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -296,6 +297,7 @@ public class QuorumConsensus implements Runnable {
                                     stakingSigns.put(
                                             MINED_RBT_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
                                                     genesisBlock.getString("tokenHash")));
+                                    stakingSigns.put("sender", genesisBlock.getString("sender"));
 
                                     genesisBlock.put(STAKE_DATA, stakingSigns);
 
