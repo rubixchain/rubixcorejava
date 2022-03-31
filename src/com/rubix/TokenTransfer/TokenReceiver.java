@@ -557,6 +557,10 @@ public class TokenReceiver {
                         // ownerCheck = false;
                         // invalidTokens.put(tokens);
                         // }
+                        TokenReceiverLogger.debug(
+                                "Staking check failed: Found staked token but unable to transfer while mined token height is not satisfied for the network");
+                        ownerCheck = false;
+                        invalidTokens.put(tokens);
 
                     } else {
                         TokenReceiverLogger.debug(
