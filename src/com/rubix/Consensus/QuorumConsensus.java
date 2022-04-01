@@ -257,8 +257,8 @@ public class QuorumConsensus implements Runnable {
                                     JSONObject lastTokenChainObject = stakedTokenChainArray
                                             .getJSONObject(stakedTokenChainArray.length() - 1);
 
-                                    if (!lastTokenChainObject.has(MINE_ID) && !tokenAvailableToStake
-                                            && stakedTokenChainArray.length() > tokenLevelValue) {
+                                    if (!lastTokenChainObject.has(MINE_ID) && !tokenAvailableToStake) {
+                                        // && stakedTokenChainArray.length() > tokenLevelValue
 
                                         QuorumConsensusLogger.debug("Staking 1 RBT for incoming mining transaction...");
                                         tokenToStake.put(stakedTokenHash);
