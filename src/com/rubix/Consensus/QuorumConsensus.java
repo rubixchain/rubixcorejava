@@ -204,6 +204,8 @@ public class QuorumConsensus implements Runnable {
                             VerificationPick.put("did", signer);
                             VerificationPick.put("hash", genesisBlock.getString("tid"));
 
+                            QuorumConsensusLogger.debug("Verifying credit signature of new token: " + VerificationPick);
+
                             if (Authenticate.verifySignature(VerificationPick.toString())) {
 
                                 QuorumConsensusLogger.debug("Validated signature of newly minted token");
@@ -221,7 +223,8 @@ public class QuorumConsensus implements Runnable {
 
                     }
 
-                    if (LEVEL_VALID && MINE_CREDIT_VALID) {
+                    if (LEVEL_VALID) {
+                        // && MINE_CREDIT_VALID
 
                         QuorumConsensusLogger.debug("Sending staking token details...");
                         JSONArray tokenToStake = new JSONArray();
