@@ -422,7 +422,7 @@ public class ProofCredits {
                             "alpha-stake-token");
 
                     do {
-                    } while (StakeConsensus.stakeDetails.length() < 8);
+                    } while (StakeConsensus.stakeDetails.length() < 8 || StakeConsensus.STAKE_FAILED == 5);
 
                     if (StakeConsensus.stakeDetails.length() > 0) {
                         tokenChainArray.put(StakeConsensus.stakeDetails);

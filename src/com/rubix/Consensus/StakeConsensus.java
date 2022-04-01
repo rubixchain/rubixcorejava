@@ -34,7 +34,7 @@ public class StakeConsensus {
     private static int socketTimeOut = 1800000;
     private static volatile boolean STAKE_LOCKED = false;
     private static volatile boolean STAKE_SUCCESS = false;
-    private static volatile int STAKE_FAILED = 0;
+    public static volatile int STAKE_FAILED = 0;
     public static volatile JSONObject stakeDetails = new JSONObject();
     // MINE_ID
     // QST_HEIGHT
