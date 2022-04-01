@@ -228,24 +228,51 @@ public class QuorumConsensus implements Runnable {
 
                         if (bankArray.length() != 0) {
 
-                            JSONObject bankObject = bankArray.getJSONObject(0);
-                            String stakedTokenHash = bankObject.getString("tokenHash");
-                            tokenToStake.put(stakedTokenHash);
-                            bankArray.remove(0);
-                            bankArray.put(bankObject);
-                            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
+                            File tokenFile;
+                            File tokenchainFile;
+                            JSONObject bankObject = new JSONObject();
+                            String stakedTokenHash = "";
+                            boolean tokenAvailableToStake = false;
+                            JSONArray stakedTokenChainArray = new JSONArray();
 
-                            File tokenFile = new File(TOKENS_PATH + stakedTokenHash);
-                            File tokenchainFile = new File(TOKENCHAIN_PATH + stakedTokenHash + ".json");
+                            // for loop to check bankArray for token
+                            for (int i = 0; i < bankArray.length(); i++) {
 
-                            // check if token file and tokenchain file exists
-                            if (tokenFile.exists() && tokenchainFile.exists()) {
+                                bankObject = bankArray.getJSONObject(i);
+                                stakedTokenHash = bankObject.getString("tokenHash");
+
+                                tokenFile = new File(TOKENS_PATH + stakedTokenHash);
+                                tokenchainFile = new File(TOKENCHAIN_PATH + stakedTokenHash + ".json");
+
+                                if (tokenFile.exists() && tokenchainFile.exists()) {
+
+                                    String tokenChain = readFile(TOKENCHAIN_PATH + stakedTokenHash + ".json");
+                                    stakedTokenChainArray = new JSONArray(tokenChain);
+
+                                    // get last object of tokenchainarray
+                                    JSONObject lastTokenChainObject = stakedTokenChainArray
+                                            .getJSONObject(stakedTokenChainArray.length() - 1);
+
+                                    if (!lastTokenChainObject.has(MINE_ID) && !tokenAvailableToStake) {
+
+                                        QuorumConsensusLogger.debug("Staking 1 RBT for incoming mining transaction...");
+                                        tokenToStake.put(stakedTokenHash);
+                                        tokenToStake.put(stakedTokenChainArray);
+
+                                        bankArray.remove(i);
+                                        bankArray.put(bankObject);
+                                        writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
+
+                                        tokenAvailableToStake = true;
+
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (tokenAvailableToStake) {
 
                                 QuorumConsensusLogger.debug("Token and TokenChain files found");
-
-                                String tokenChain = readFile(TOKENCHAIN_PATH + stakedTokenHash + ".json");
-                                JSONArray tokenChainArray = new JSONArray(tokenChain);
-                                tokenToStake.put(tokenChainArray);
 
                                 String hashString = stakedTokenHash.concat(senderDidIpfsHash);
                                 String hashForPositions = calculateHash(hashString, "SHA3-256");
@@ -300,10 +327,6 @@ public class QuorumConsensus implements Runnable {
 
                                     genesisBlock.put(STAKE_DATA, stakingSigns);
 
-                                    // stakingSigns.put(MINE_ID_SIGN, getSignFromShares(DATA_PATH + didHash +
-                                    // "/PrivateShare.png",
-                                    // mineDetToSign.getString(MINE_ID)));
-
                                     FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "stake.txt"),
                                             true);
                                     shareWriter.write(genesisBlock.toString());
@@ -328,8 +351,9 @@ public class QuorumConsensus implements Runnable {
                                             mineID);
 
                                     out.println(stakingSigns.toString());
-                                    tokenChainArray.put(stakingSigns);
-                                    writeToFile(TOKENCHAIN_PATH + stakedTokenHash + ".json", tokenChainArray.toString(),
+                                    stakedTokenChainArray.put(stakingSigns);
+                                    writeToFile(TOKENCHAIN_PATH + stakedTokenHash + ".json",
+                                            stakedTokenChainArray.toString(),
                                             false);
 
                                     QuorumConsensusLogger.debug("Staking Completed!");
