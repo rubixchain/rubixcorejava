@@ -148,7 +148,8 @@ public class QuorumConsensus implements Runnable {
                     QuorumConsensusLogger.debug("Validating new token details: " + genesisBlock);
                     System.out.println(genesisBlock);
 
-                    boolean isValid = false;
+                    boolean LEVEL_VALID = false;
+                    boolean MINE_CREDIT_VALID = false;
 
                     // ! check token is in same level
                     String TokenContent = genesisBlock.getString("tokenContent");
@@ -180,7 +181,10 @@ public class QuorumConsensus implements Runnable {
                         if (level_credit == tokenLevelInt) {
 
                             QuorumConsensusLogger.debug("Validated level of newly minted token");
-                            isValid = true;
+                            LEVEL_VALID = true;
+                        } else {
+                            QuorumConsensusLogger.debug("Invalid level of newly minted token");
+                            LEVEL_VALID = false;
                         }
 
                     } else
@@ -204,21 +208,21 @@ public class QuorumConsensus implements Runnable {
                             if (Authenticate.verifySignature(VerificationPick.toString())) {
 
                                 QuorumConsensusLogger.debug("Validated signature of newly minted token");
-                                isValid = true;
+                                MINE_CREDIT_VALID = true;
                             } else {
                                 QuorumConsensusLogger.debug("Signature not verified");
-                                isValid = false;
+                                MINE_CREDIT_VALID = false;
                             }
                         } catch (Exception e) {
                             QuorumConsensusLogger
                                     .debug("Mined Token - Quorum Signature Hash not found. Skipping... Exception: "
                                             + e.getMessage());
-                            // isValid = false;
+                            MINE_CREDIT_VALID = false;
                         }
 
                     }
 
-                    if (isValid) {
+                    if (LEVEL_VALID && MINE_CREDIT_VALID) {
 
                         QuorumConsensusLogger.debug("Sending staking token details...");
                         JSONArray tokenToStake = new JSONArray();
@@ -253,7 +257,8 @@ public class QuorumConsensus implements Runnable {
                                     JSONObject lastTokenChainObject = stakedTokenChainArray
                                             .getJSONObject(stakedTokenChainArray.length() - 1);
 
-                                    if (!lastTokenChainObject.has(MINE_ID) && !tokenAvailableToStake) {
+                                    if (!lastTokenChainObject.has(MINE_ID) && !tokenAvailableToStake
+                                            && stakedTokenChainArray.length() > tokenLevelValue) {
 
                                         QuorumConsensusLogger.debug("Staking 1 RBT for incoming mining transaction...");
                                         tokenToStake.put(stakedTokenHash);

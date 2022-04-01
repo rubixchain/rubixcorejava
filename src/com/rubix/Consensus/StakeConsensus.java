@@ -98,6 +98,7 @@ public class StakeConsensus {
                             } catch (SocketException e) {
                                 StakeConsensusLogger
                                         .debug("Mined Token Details validation failed. Received null response");
+                                qOut[j].println("alpha-stake-token-not-verified");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                             }
                             if (qResponse[j].length() > 3) {
@@ -142,11 +143,13 @@ public class StakeConsensus {
                                             ownerCheck = false;
                                             StakeConsensusLogger.debug(
                                                     "Ownership Check Failed for index " + j + " with DID: " + owner);
+                                            qOut[j].println("alpha-stake-token-not-verified");
                                             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                         }
                                     }
                                 } else {
                                     StakeConsensusLogger.debug("insufficient stake token height details");
+                                    qOut[j].println("alpha-stake-token-not-verified");
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                 }
 
