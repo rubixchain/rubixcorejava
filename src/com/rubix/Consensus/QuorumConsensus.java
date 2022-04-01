@@ -146,7 +146,6 @@ public class QuorumConsensus implements Runnable {
 
                     JSONObject genesisBlock = new JSONObject(response);
                     QuorumConsensusLogger.debug("Validating new token details: " + genesisBlock);
-                    System.out.println(genesisBlock);
 
                     boolean LEVEL_VALID = false;
                     boolean MINE_CREDIT_VALID = false;
@@ -203,7 +202,7 @@ public class QuorumConsensus implements Runnable {
                             JSONObject VerificationPick = new JSONObject();
                             VerificationPick.put("signature", signature);
                             VerificationPick.put("did", signer);
-                            VerificationPick.put("hash", genesisSignatures.getString("tid"));
+                            VerificationPick.put("hash", genesisBlock.getString("tid"));
 
                             if (Authenticate.verifySignature(VerificationPick.toString())) {
 
