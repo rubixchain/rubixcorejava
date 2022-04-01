@@ -194,6 +194,10 @@ public class TokenSender {
             String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
             JSONArray tokenChainFileArray = new JSONArray(tokenChainFileContent);
             JSONArray previousSenderArray = new JSONArray();
+            JSONObject lastObject = tokenChainFileArray.getJSONObject(tokenChainFileArray.length() - 1);
+            if (lastObject.has("mineID")) {
+                wholeTokens.remove(i);
+            }
             for (int j = 0; j < tokenChainFileArray.length(); j++) {
                 String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
                         tokenChainFileArray.getJSONObject(j).getString("sender"));

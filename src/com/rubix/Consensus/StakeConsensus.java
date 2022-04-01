@@ -257,7 +257,7 @@ public class StakeConsensus {
             do {
                 // StakeConsensusLogger.debug("Staking in progress...Rejected by α Quorums: " +
                 // STAKE_FAILED + " of 5");
-            } while ((!STAKE_SUCCESS && !STAKE_LOCKED && stakeDetails.length() < 8) || STAKE_FAILED == 5);
+            } while ((!STAKE_SUCCESS && !STAKE_LOCKED && stakeDetails.length() < 8) || STAKE_FAILED < 5);
 
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);

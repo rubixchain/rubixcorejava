@@ -405,7 +405,7 @@ public class TokenReceiver {
                 JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
                 TokenReceiverLogger.debug("Last Object = " + lastObject);
 
-                if (lastObject.has("owner")) {
+                if (lastObject.has("senderSign")) {
 
                     TokenReceiverLogger.debug("Checking ownership");
                     String owner = lastObject.getString("owner");
@@ -529,7 +529,8 @@ public class TokenReceiver {
                         }
                     }
 
-                } else if (lastObject.has(MINE_ID)) {
+                }
+                if (lastObject.has(MINE_ID)) {
 
                     String mineID = lastObject.getString(MINE_ID);
                     String mineIDContent = get(mineID, ipfs);
