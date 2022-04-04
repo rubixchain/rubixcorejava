@@ -469,10 +469,11 @@ public class TokenReceiver {
                     String tokenLevel = TokenContent.substring(0, 3);
                     int tokenLevelInt = Integer.parseInt(tokenLevel);
                     int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
-                    int tokenNumber = 1200001;
+                    int minumumStakeHeight = tokenLevelValue * 4;
+                    int tokenNumber = 1204401;
 
-                    if (ownerCheck && (tokenChain.length() < tokenLevelValue) && (tokenLevelInt >= 4)
-                            && (tokenNumber > 1200000)) {
+                    if (ownerCheck && (tokenChain.length() < minumumStakeHeight) && (tokenLevelInt >= 4)
+                            && (tokenNumber > 1204400)) {
 
                         // ! staking checks (2): For incoming new mint token, verify the staked token
 
