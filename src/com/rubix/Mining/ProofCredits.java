@@ -104,7 +104,7 @@ public class ProofCredits {
         QSTHeight = availableCredits + creditsHistoryArray.length();
 
         ProofCreditsLogger.debug("Credits available: " + availableCredits);
-        String GET_URL_credit = SYNC_IP + "/getlevel";
+        String GET_URL_credit = SYNC_IP + "/getCurrentLevel";
         URL URLobj_credit = new URL(GET_URL_credit);
         HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
         con_credit.setRequestMethod("GET");
@@ -140,7 +140,7 @@ public class ProofCredits {
             ProofCreditsLogger.debug("Credits Old: " + oldCreditsFlag);
 
             // String GET_URL = SYNC_IP+"/getInfo?count="+availableCredits;
-            String GET_URL = SYNC_IP + "/minetoken";
+            String GET_URL = SYNC_IP + "/getTokenToMine";
             URL URLobj = new URL(GET_URL);
             HttpURLConnection con = (HttpURLConnection) URLobj.openConnection();
             con.setRequestMethod("GET");

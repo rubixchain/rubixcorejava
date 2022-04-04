@@ -156,7 +156,7 @@ public class QuorumConsensus implements Runnable {
                     int tokenLevelInt = Integer.parseInt(tokenLevel);
                     int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
 
-                    String GET_URL_credit = SYNC_IP + "/getlevel";
+                    String GET_URL_credit = SYNC_IP + "/getCurentLevel";
                     URL URLobj_credit = new URL(GET_URL_credit);
                     HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
                     con_credit.setRequestMethod("GET");
@@ -422,7 +422,7 @@ public class QuorumConsensus implements Runnable {
                         // Get level of token from advisory node
                         int creditsRequired = 0;
                         JSONObject resJsonData_credit = new JSONObject();
-                        String GET_URL_credit = SYNC_IP + "/getlevel";
+                        String GET_URL_credit = SYNC_IP + "/getCurrentLevel";
                         URL URLobj_credit = new URL(GET_URL_credit);
                         HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
                         con_credit.setRequestMethod("GET");
