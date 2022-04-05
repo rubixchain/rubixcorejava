@@ -1,24 +1,18 @@
 package com.rubix.Ping;
 
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.IPFS_PORT;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.getPeerID;
-import static com.rubix.Resources.Functions.pathSet;
+import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.repo;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -58,6 +52,7 @@ public class QuorumPingReceive {
             BufferedReader input = new BufferedReader(new InputStreamReader(sk.getInputStream()));
             PrintStream output = new PrintStream(sk.getOutputStream());
 
+            int height = 0;
             String pingRequest;
             try {
                 pingRequest = input.readLine();
@@ -83,7 +78,52 @@ public class QuorumPingReceive {
                 APIResponse.put("message", "Pong Sent");
                 QuorumPingReceiverLogger.info("Pong Sent");
 
-            } else {
+            }
+            else if (pingRequest != null && pingRequest.contains("Get-TokenChain-Height")) {
+                String tokenHash;
+                try {
+                    tokenHash = input.readLine();
+                } catch (SocketException e) {
+                    QuorumPingReceiverLogger.warn("Sender Stream Null - tokenHash");
+                    APIResponse.put("did", "");
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Sender Stream Null - tokenHash");
+
+                    output.close();
+                    input.close();
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
+
+                }
+                if (tokenHash != null && tokenHash.startsWith("Qm") && tokenHash.length() == 46) {
+                    QuorumPingReceiverLogger.info("Token chain height requested for: " + tokenHash);
+                    File tokenChainFile = new File(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                    if(!tokenChainFile.exists()) {
+                        QuorumPingReceiverLogger.info("Token chain file not found");
+                        height = 0;
+                    }
+                    else{
+                        String tokenChain = readFile(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                        JSONArray chainArray = new JSONArray(tokenChain);
+                        height = chainArray.length()-1;
+                        QuorumPingReceiverLogger.info("Chain height: " + height);
+                    }
+                }
+                else{
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Request Failed");
+                    QuorumPingReceiverLogger.info("Request Failed");
+                }
+                output.println(height);
+
+                APIResponse.put("status", "Success");
+                APIResponse.put("message", "Pong Sent");
+                QuorumPingReceiverLogger.info("Pong Sent");
+
+            }
+            else {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Pong Failed");
                 QuorumPingReceiverLogger.info("Pong Failed");
