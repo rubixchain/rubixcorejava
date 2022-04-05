@@ -430,10 +430,20 @@ public class TokenReceiver {
 
                     // ! staking checks (1..4) starts here
 
-                    // ! staking checks (3): Verify the signatures earned during the mining of the
-                    // ! incoming mint token
-                    JSONObject genesiObject = tokenChain.getJSONObject(0);
-                    if (genesiObject.has("blockNumber")) {
+                    // ! staking checks (1): Check incoming token level
+                    String TokenContent = get(wholeTokens.getString(count), ipfs);
+                    String tokenLevel = TokenContent.substring(0, 3);
+                    int tokenLevelInt = Integer.parseInt(tokenLevel);
+                    int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
+                    int minumumStakeHeight = tokenLevelValue * 4;
+                    int tokenNumber = 1204401;
+
+                    if (ownerCheck && (tokenChain.length() < minumumStakeHeight) && (tokenLevelInt >= 4)
+                            && (tokenNumber > 1204400)) {
+
+                        // ! staking checks (3): Verify the signatures earned during the mining of the
+                        // ! incoming mint token
+                        JSONObject genesiObject = tokenChain.getJSONObject(0);
 
                         int randomNumber = new Random().nextInt(15);
                         String genesisSignaturesContent = genesiObject.getString("quorumSigContent");
@@ -450,7 +460,6 @@ public class TokenReceiver {
                                 ownerCheck = false;
                                 invalidTokens.put(tokens);
                             }
-
                         } else {
                             TokenReceiverLogger.debug(
                                     "Staking check (3) failed: Genesis TID is not equal to the hash of the genesis signature");
@@ -458,24 +467,12 @@ public class TokenReceiver {
                             invalidTokens.put(tokens);
                         }
 
-                    }
-                    // else {
-                    // TokenReceiverLogger.debug("Staking check (3) failed: Genesis Signature not
-                    // found");
-                    // ownerCheck = false;
-                    // invalidTokens.put(tokens);
-                    // }
-
-                    // ! staking checks (1): Check incoming token level
-                    String TokenContent = get(wholeTokens.getString(count), ipfs);
-                    String tokenLevel = TokenContent.substring(0, 3);
-                    int tokenLevelInt = Integer.parseInt(tokenLevel);
-                    int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
-                    int minumumStakeHeight = tokenLevelValue * 4;
-                    int tokenNumber = 1204401;
-
-                    if (ownerCheck && (tokenChain.length() < minumumStakeHeight) && (tokenLevelInt >= 4)
-                            && (tokenNumber > 1204400)) {
+                        // else {
+                        // TokenReceiverLogger.debug("Staking check (3) failed: Genesis Signature not
+                        // found");
+                        // ownerCheck = false;
+                        // invalidTokens.put(tokens);
+                        // }
 
                         // ! staking checks (2): For incoming new mint token, verify the staked token
 
