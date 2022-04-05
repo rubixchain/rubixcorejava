@@ -156,7 +156,7 @@ public class QuorumConsensus implements Runnable {
                     int tokenLevelInt = Integer.parseInt(tokenLevel);
                     int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
 
-                    String GET_URL_credit = SYNC_IP + "/getlevel";
+                    String GET_URL_credit = SYNC_IP + "/getCurrentLevel";
                     URL URLobj_credit = new URL(GET_URL_credit);
                     HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
                     con_credit.setRequestMethod("GET");
@@ -256,23 +256,28 @@ public class QuorumConsensus implements Runnable {
                                     stakedTokenChainArray = new JSONArray(tokenChain);
 
                                     // get last object of tokenchainarray
-                                    JSONObject lastTokenChainObject = stakedTokenChainArray
-                                            .getJSONObject(stakedTokenChainArray.length() - 1);
+                                    if (tokenChain.length() > 0) {
 
-                                    if (!lastTokenChainObject.has(MINE_ID) && !tokenAvailableToStake) {
-                                        // && stakedTokenChainArray.length() > tokenLevelValue
+                                        JSONObject lastTokenChainObject = stakedTokenChainArray
+                                                .getJSONObject(stakedTokenChainArray.length() - 1);
 
-                                        QuorumConsensusLogger.debug("Staking 1 RBT for incoming mining transaction...");
-                                        tokenToStake.put(stakedTokenHash);
-                                        tokenToStake.put(stakedTokenChainArray);
+                                        if (!lastTokenChainObject.has(MINE_ID) && !tokenAvailableToStake) {
+                                            // && stakedTokenChainArray.length() > tokenLevelValue
 
-                                        bankArray.remove(i);
-                                        bankArray.put(bankObject);
-                                        writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
+                                            QuorumConsensusLogger
+                                                    .debug("Staking 1 RBT for incoming mining transaction...");
+                                            tokenToStake.put(stakedTokenHash);
+                                            tokenToStake.put(stakedTokenChainArray);
 
-                                        tokenAvailableToStake = true;
+                                            bankArray.remove(i);
+                                            bankArray.put(bankObject);
+                                            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(),
+                                                    false);
 
-                                        break;
+                                            tokenAvailableToStake = true;
+
+                                            break;
+                                        }
                                     }
                                 }
                             }
@@ -422,7 +427,7 @@ public class QuorumConsensus implements Runnable {
                         // Get level of token from advisory node
                         int creditsRequired = 0;
                         JSONObject resJsonData_credit = new JSONObject();
-                        String GET_URL_credit = SYNC_IP + "/getlevel";
+                        String GET_URL_credit = SYNC_IP + "/getCurrentLevel";
                         URL URLobj_credit = new URL(GET_URL_credit);
                         HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
                         con_credit.setRequestMethod("GET");

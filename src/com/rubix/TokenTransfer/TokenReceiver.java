@@ -469,66 +469,101 @@ public class TokenReceiver {
                     String tokenLevel = TokenContent.substring(0, 3);
                     int tokenLevelInt = Integer.parseInt(tokenLevel);
                     int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
+                    int minumumStakeHeight = tokenLevelValue * 4;
+                    // TODO: get correct token number from token content
                     int tokenNumber = 1200001;
 
-                    if (ownerCheck && (tokenChain.length() < tokenLevelValue) && (tokenLevelInt >= 4)
-                            && (tokenNumber > 1200000)) {
+                    if (ownerCheck && (tokenChain.length() < minumumStakeHeight) && (tokenLevelInt >= 4)
+                            && (tokenNumber > 1204400)) {
 
                         // ! staking checks (2): For incoming new mint token, verify the staked token
 
-                        JSONObject secondObject = tokenChain.getJSONObject(1);
-                        String stakedTokenTC = secondObject.getString(STAKED_TOKEN);
-                        String stakedTokenSignTC = secondObject.getString(STAKED_TOKEN_SIGN);
-                        String stakerDIDTC = secondObject.getString(STAKED_QUORUM_DID);
-                        String mineIDTC = secondObject.getString(MINE_ID);
-                        String mineIDSignTC = secondObject.getString(MINE_ID_SIGN);
+                        JSONObject oneOfThreeStake = tokenChain.getJSONObject(1);
+                        JSONObject twoOfThreeStake = tokenChain.getJSONObject(2);
+                        JSONObject threeOfThreeStake = tokenChain.getJSONObject(3);
 
-                        String mineIDContent = get(mineIDTC, ipfs);
-                        JSONObject mineIDContentJSON = new JSONObject(mineIDContent);
-                        String stakerDIDMineData = mineIDContentJSON.getString(STAKED_QUORUM_DID);
-                        String stakedTokenMineData = mineIDContentJSON.getString(STAKED_TOKEN);
-                        String stakedTokenSignMineData = mineIDContentJSON.getString(STAKED_TOKEN_SIGN);
+                        String[] stakedTokenTC = new String[3];
+                        String[] stakedTokenSignTC = new String[3];
+                        String[] stakerDIDTC = new String[3];
+                        String[] mineIDTC = new String[3];
+                        String[] mineIDSignTC = new String[3];
 
-                        if (stakerDIDTC.equals(stakerDIDMineData) && stakedTokenTC.equals(stakedTokenMineData)
-                                && stakedTokenSignTC.equals(stakedTokenSignMineData)) {
+                        stakedTokenTC[0] = oneOfThreeStake.getString(STAKED_TOKEN);
+                        stakedTokenSignTC[0] = oneOfThreeStake.getString(STAKED_TOKEN_SIGN);
+                        stakerDIDTC[0] = oneOfThreeStake.getString(STAKED_QUORUM_DID);
+                        mineIDTC[0] = oneOfThreeStake.getString(MINE_ID);
+                        mineIDSignTC[0] = oneOfThreeStake.getString(MINE_ID_SIGN);
 
-                            JSONObject detailsToVerify = new JSONObject();
-                            detailsToVerify.put("did", stakerDIDTC);
-                            detailsToVerify.put("hash", mineIDTC);
-                            detailsToVerify.put("signature", mineIDSignTC);
-                            if (Authenticate.verifySignature(detailsToVerify.toString())) {
+                        stakedTokenTC[1] = twoOfThreeStake.getString(STAKED_TOKEN);
+                        stakedTokenSignTC[1] = twoOfThreeStake.getString(STAKED_TOKEN_SIGN);
+                        stakerDIDTC[1] = twoOfThreeStake.getString(STAKED_QUORUM_DID);
+                        mineIDTC[1] = twoOfThreeStake.getString(MINE_ID);
+                        mineIDSignTC[1] = twoOfThreeStake.getString(MINE_ID_SIGN);
 
-                                ArrayList ownersArray = new ArrayList();
-                                ownersArray = IPFSNetwork.dhtOwnerCheck(stakedTokenMineData);
+                        stakedTokenTC[2] = threeOfThreeStake.getString(STAKED_TOKEN);
+                        stakedTokenSignTC[2] = threeOfThreeStake.getString(STAKED_TOKEN_SIGN);
+                        stakerDIDTC[2] = threeOfThreeStake.getString(STAKED_QUORUM_DID);
+                        mineIDTC[2] = threeOfThreeStake.getString(MINE_ID);
+                        mineIDSignTC[2] = threeOfThreeStake.getString(MINE_ID_SIGN);
 
-                                if (ownersArray.contains(stakerDIDTC)) {
-                                    TokenReceiverLogger.debug("Staking check passed: " + stakerDIDTC);
+                        for (int stakeCount = 0; stakeCount < mineIDTC.length; stakeCount++) {
+
+                            String mineIDContent = get(mineIDTC[0], ipfs);
+                            JSONObject mineIDContentJSON = new JSONObject(mineIDContent);
+                            String stakerDIDMineData = mineIDContentJSON.getString(STAKED_QUORUM_DID);
+                            String stakedTokenMineData = mineIDContentJSON.getString(STAKED_TOKEN);
+                            String stakedTokenSignMineData = mineIDContentJSON.getString(STAKED_TOKEN_SIGN);
+
+                            if (stakerDIDTC[stakeCount].equals(stakerDIDMineData)
+                                    && stakedTokenTC[stakeCount].equals(stakedTokenMineData)
+                                    && stakedTokenSignTC[stakeCount].equals(stakedTokenSignMineData)) {
+
+                                JSONObject detailsToVerify = new JSONObject();
+                                detailsToVerify.put("did", stakerDIDTC);
+                                detailsToVerify.put("hash", mineIDTC);
+                                detailsToVerify.put("signature", mineIDSignTC);
+                                if (Authenticate.verifySignature(detailsToVerify.toString())) {
+
+                                    ArrayList ownersArray = new ArrayList();
+                                    ownersArray = IPFSNetwork.dhtOwnerCheck(stakedTokenMineData);
+
+                                    if (ownersArray.contains(stakerDIDTC)) {
+                                        TokenReceiverLogger.debug("Staking check passed: " + stakerDIDTC);
+                                    } else {
+                                        TokenReceiverLogger.debug(
+                                                "Staking check (2) failed - staked token " + stakedTokenMineData
+                                                        + " is not owned by staker: "
+                                                        + stakerDIDTC);
+                                        ownerCheck = false;
+                                        invalidTokens.put(tokens);
+                                    }
+
                                 } else {
                                     TokenReceiverLogger.debug(
-                                            "Staking check (2) failed - staked token " + stakedTokenMineData
-                                                    + " is not owned by staker: "
+                                            "Staking check (2) failed - unable to verify mine ID signature by staker: "
                                                     + stakerDIDTC);
                                     ownerCheck = false;
                                     invalidTokens.put(tokens);
                                 }
 
-                            } else {
-                                TokenReceiverLogger.debug(
-                                        "Staking check (2) failed - unable to verify mine ID signature by staker: "
+                                TokenReceiverLogger
+                                        .debug("MineID Verification Successful with Staking node: "
                                                 + stakerDIDTC);
+                            } else {
+                                TokenReceiverLogger.debug("Staking check (2) failed");
                                 ownerCheck = false;
                                 invalidTokens.put(tokens);
                             }
 
-                            TokenReceiverLogger
-                                    .debug("MineID Verification Successful with Staking node: " + stakerDIDTC);
-                        } else {
-                            TokenReceiverLogger.debug("Staking check (2) failed");
-                            ownerCheck = false;
-                            invalidTokens.put(tokens);
+                            TokenReceiverLogger.debug("Staking check (2) successful");
+                            // } else {
+                            // TokenReceiverLogger.debug(
+                            // "Staking check (2) failed: Could not verify mine ID signature");
+                            // ownerCheck = false;
+                            // invalidTokens.put(tokens);
+                            // }
                         }
                     }
-
                 }
                 if (lastObject.has(MINE_ID)) {
 

@@ -104,7 +104,7 @@ public class ProofCredits {
         QSTHeight = availableCredits + creditsHistoryArray.length();
 
         ProofCreditsLogger.debug("Credits available: " + availableCredits);
-        String GET_URL_credit = SYNC_IP + "/getlevel";
+        String GET_URL_credit = SYNC_IP + "/getCurrentLevel";
         URL URLobj_credit = new URL(GET_URL_credit);
         HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
         con_credit.setRequestMethod("GET");
@@ -140,7 +140,7 @@ public class ProofCredits {
             ProofCreditsLogger.debug("Credits Old: " + oldCreditsFlag);
 
             // String GET_URL = SYNC_IP+"/getInfo?count="+availableCredits;
-            String GET_URL = SYNC_IP + "/minetoken";
+            String GET_URL = SYNC_IP + "/getTokenToMine";
             URL URLobj = new URL(GET_URL);
             HttpURLConnection con = (HttpURLConnection) URLobj.openConnection();
             con.setRequestMethod("GET");
@@ -172,7 +172,6 @@ public class ProofCredits {
                             resJsonData.getJSONObject(i).getInt("token")));
 
                     creditUsed += (int) Math.pow(2, (2 + resJsonData.getJSONObject(i).getInt("level")));
-
                 }
 
                 if (resJsonData.getJSONObject(0).getInt("level") == 1)
@@ -360,7 +359,6 @@ public class ProofCredits {
                 for (int i = 0; i < token.length(); i++) {
                     writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
                     String tokenHash = IPFSNetwork.add(LOGGER_PATH + "tempToken", ipfs);
-                    writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
                     deleteFile(LOGGER_PATH + "tempToken");
 
                     FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
@@ -422,10 +420,14 @@ public class ProofCredits {
                             "alpha-stake-token");
 
                     do {
-                    } while (StakeConsensus.stakeDetails.length() < 8 || StakeConsensus.STAKE_FAILED == 5);
+                    } while (StakeConsensus.stakeDetails.length() < 3 || StakeConsensus.STAKE_FAILED < 3);
 
-                    if (StakeConsensus.stakeDetails.length() > 0) {
-                        tokenChainArray.put(StakeConsensus.stakeDetails);
+                    if (StakeConsensus.stakeDetails.length() == 3) {
+
+                        for (int j = 0; j < StakeConsensus.stakeDetails.length(); j++) {
+                            tokenChainArray.put(StakeConsensus.stakeDetails.getJSONObject(j));
+                        }
+
                         ProofCreditsLogger.debug("Stake Details for new mined token: " + StakeConsensus.stakeDetails);
                     } else {
                         updateQuorum(quorumArray, null, false, type);
@@ -438,6 +440,7 @@ public class ProofCredits {
                         return APIResponse;
                     }
 
+                    writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
                     JSONObject temp = new JSONObject();
                     temp.put("tokenHash", tokenHash);
