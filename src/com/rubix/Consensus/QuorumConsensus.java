@@ -157,6 +157,7 @@ public class QuorumConsensus implements Runnable {
                     int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
 
                     String GET_URL_credit = SYNC_IP + "/getCurrentLevel";
+
                     URL URLobj_credit = new URL(GET_URL_credit);
                     HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
                     con_credit.setRequestMethod("GET");
@@ -223,8 +224,8 @@ public class QuorumConsensus implements Runnable {
 
                     }
 
-                    if (LEVEL_VALID) {
-                        // && MINE_CREDIT_VALID
+                    if (true) {
+                        // LEVEL_VALID && MINE_CREDIT_VALID
 
                         QuorumConsensusLogger.debug("Sending staking token details...");
                         JSONArray tokenToStake = new JSONArray();
@@ -260,6 +261,9 @@ public class QuorumConsensus implements Runnable {
 
                                         JSONObject lastTokenChainObject = stakedTokenChainArray
                                                 .getJSONObject(stakedTokenChainArray.length() - 1);
+                                    if (!lastTokenChainObject.has(MINE_ID)) {
+                                        // && stakedTokenChainArray.length() > tokenLevelValue
+
 
                                         if (!lastTokenChainObject.has(MINE_ID) && !tokenAvailableToStake) {
                                             // && stakedTokenChainArray.length() > tokenLevelValue

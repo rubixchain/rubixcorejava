@@ -470,8 +470,7 @@ public class TokenReceiver {
                     int tokenLevelInt = Integer.parseInt(tokenLevel);
                     int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
                     int minumumStakeHeight = tokenLevelValue * 4;
-                    // TODO: get correct token number from token content
-                    int tokenNumber = 1200001;
+                    int tokenNumber = 1204401;
 
                     if (ownerCheck && (tokenChain.length() < minumumStakeHeight) && (tokenLevelInt >= 4)
                             && (tokenNumber > 1204400)) {

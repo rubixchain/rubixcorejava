@@ -439,7 +439,6 @@ public class ProofCredits {
                         ProofCreditsLogger.warn("Staking failed");
                         return APIResponse;
                     }
-
                     writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
                     JSONObject temp = new JSONObject();
