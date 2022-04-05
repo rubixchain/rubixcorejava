@@ -292,13 +292,13 @@ public class StakeConsensus {
                     } catch (Exception e) {
                         StakeConsensusLogger.error("Error in quorum consensus thread: " + e);
                     }
-                    StakeConsensusLogger.error("*******STAKE_SUCCESS********* " + STAKE_SUCCESS
+                    StakeConsensusLogger.debug("*******STAKE_SUCCESS********* " + STAKE_SUCCESS
                             + " **********STAKE_FAILED*********** " + STAKE_FAILED);
                 });
                 quorumThreads[j].start();
 
                 do {
-                } while (!(STAKE_SUCCESS == 3) || STAKE_FAILED < 2);
+                } while (!(STAKE_SUCCESS < 2) || STAKE_FAILED < 3);
 
             }
 
