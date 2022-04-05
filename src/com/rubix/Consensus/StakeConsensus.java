@@ -92,7 +92,12 @@ public class StakeConsensus {
                         if (operation.equals("alpha-stake-token")) {
 
                             qOut[j].println(data.toString());
-                            StakeConsensusLogger.debug("Mined Token Details sent for validation...");
+
+                            String stakerDID = getValues(DATA_PATH + "DataTable.json", "didHash",
+                                    "peerid",
+                                    quorumPID[j]);
+
+                            StakeConsensusLogger.debug("Mined Token Details sent for validation...DID: " + stakerDID);
 
                             try {
                                 qResponse[j] = qIn[j].readLine();
@@ -106,11 +111,10 @@ public class StakeConsensus {
                                             /****** start */
 
                                             StakeConsensusLogger
-                                                    .debug("Mined Token Details validated. Received staked token details..");
+                                                    .debug("Mined Token Details validated. Received staked token details from DID: "
+                                                            + stakerDID);
                                             Boolean ownerCheck = true;
-                                            String stakerDID = getValues(DATA_PATH + "DataTable.json", "didHash",
-                                                    "peerid",
-                                                    quorumPID[j]);
+
                                             JSONArray stakeTokenArray = new JSONArray(qResponse[j]);
                                             String stakeTokenHash = stakeTokenArray.getString(0);
                                             JSONArray stakeTC = stakeTokenArray.getJSONArray(1);
@@ -159,7 +163,9 @@ public class StakeConsensus {
                                                 }
                                             } else {
                                                 STAKE_FAILED++;
-                                                StakeConsensusLogger.debug("insufficient stake token height details");
+                                                StakeConsensusLogger
+                                                        .debug("insufficient stake token height details from DID: "
+                                                                + stakerDID);
                                                 IPFSNetwork
                                                         .executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                             }
@@ -197,7 +203,9 @@ public class StakeConsensus {
                                                                     quorumPID[j]);
 
                                                             // ! validate signatures
-                                                            StakeConsensusLogger.debug("Validating Signatures");
+                                                            StakeConsensusLogger
+                                                                    .debug("Validating Signatures from DID: "
+                                                                            + stakerDID);
                                                             JSONObject mineIDSign = new JSONObject();
                                                             mineIDSign.put("did", quorumDID);
                                                             mineIDSign.put("hash", mineSigns.getString(MINE_ID));
@@ -234,7 +242,8 @@ public class StakeConsensus {
                                                         } else {
                                                             STAKE_FAILED++;
                                                             StakeConsensusLogger.debug(
-                                                                    "Stake signatures not received.. Quorum response: "
+                                                                    "Stake signatures not received from DID: "
+                                                                            + stakerDID + " Quorum response: "
                                                                             + qResponse[j]);
                                                             IPFSNetwork.executeIPFSCommands(
                                                                     "ipfs p2p close -t /p2p/" + quorumPID[j]);
@@ -243,7 +252,8 @@ public class StakeConsensus {
 
                                                 } catch (SocketException e) {
                                                     StakeConsensusLogger
-                                                            .debug("Mined Token Details validation failed. Received null response");
+                                                            .debug("Mined Token Details validation failed for DID: "
+                                                                    + stakerDID + " Received null response");
                                                 }
 
                                             } else {
@@ -265,15 +275,18 @@ public class StakeConsensus {
                                 } else if (qResponse[j] != null && qResponse[j].equals("446")) {
                                     STAKE_FAILED++;
                                     StakeConsensusLogger
-                                            .debug("Token files picked by quorum to stake is corroupted. Skipping...");
+                                            .debug("Token files picked by quorum to stake is corroupted. Skipping...DID: "
+                                                    + stakerDID);
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                 } else if (qResponse[j].equals("445")) {
                                     STAKE_FAILED++;
-                                    StakeConsensusLogger.debug("Insufficient quorum member balance. Skipping...");
+                                    StakeConsensusLogger.debug("Insufficient quorum member balance. Skipping...DID: "
+                                            + stakerDID);
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                 } else if (qResponse[j].equals("444")) {
                                     STAKE_FAILED++;
-                                    StakeConsensusLogger.debug("Quorum could not verify mined token. Skipping...");
+                                    StakeConsensusLogger.debug("Quorum could not verify mined token. Skipping...DID: "
+                                            + stakerDID);
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                 } else {
                                     STAKE_FAILED++;
@@ -283,7 +296,8 @@ public class StakeConsensus {
 
                             } catch (SocketException e) {
                                 StakeConsensusLogger
-                                        .debug("Mined Token Details validation failed. Received null response");
+                                        .debug("Mined Token Details validation failed for DID: " + stakerDID
+                                                + " Received null response");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                             }
 
