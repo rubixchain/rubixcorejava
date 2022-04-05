@@ -358,7 +358,12 @@ public class ProofCredits {
                 // String tkHash = null;
 
                 for (int i = 0; i < token.length(); i++) {
-
+                	
+                	  writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
+                      String tokenHash = IPFSNetwork.add(LOGGER_PATH + "tempToken", ipfs);
+                      writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
+                      deleteFile(LOGGER_PATH + "tempToken");
+                	
                     FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
                     shareWriter.write(InitiatorConsensus.quorumSignature.toString());
                     shareWriter.close();
@@ -434,11 +439,6 @@ public class ProofCredits {
                         return APIResponse;
                     }
                     
-                    writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
-                    String tokenHash = IPFSNetwork.add(LOGGER_PATH + "tempToken", ipfs);
-                    writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
-                    deleteFile(LOGGER_PATH + "tempToken");
-
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
                     JSONObject temp = new JSONObject();
                     temp.put("tokenHash", tokenHash);
