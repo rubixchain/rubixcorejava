@@ -405,6 +405,7 @@ public class TokenReceiver {
                 String tokens = null;
                 JSONArray tokenChain = new JSONArray(allTokensChains.get(count).toString());
                 JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
+                JSONObject firstTCObject = tokenChain.getJSONObject(0);
                 TokenReceiverLogger.debug("Last Object = " + lastObject);
 
                 if (lastObject.has("owner") && !lastObject.has(MINE_ID)) {
@@ -438,10 +439,11 @@ public class TokenReceiver {
                     int tokenLevelInt = Integer.parseInt(tokenLevel);
                     int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
                     int minumumStakeHeight = tokenLevelValue * 4;
-                    int tokenNumber = 1204401;
+                    int tokenNumber = 1204400;
 
                     if (ownerCheck && (tokenChain.length() < minumumStakeHeight) && (tokenLevelInt >= 4)
-                            && (tokenNumber > 1204400)) {
+                            && firstTCObject.has("QSTHeight")) {
+                        // && (tokenNumber > 1204400)
 
                         // ! staking checks (3): Verify the signatures earned during the mining of the
                         // ! incoming mint token
