@@ -158,10 +158,15 @@ public class StakeConsensus {
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                 }
 
-                                if (ownerCheck && !(STAKE_LOCKED == 3)) {
+                                if (ownerCheck && !(STAKE_LOCKED > 2)) {
                                     StakeConsensusLogger.debug("Ownership Check Success for Peer: " + quorumPID[j]);
                                     STAKE_LOCKED++;
                                     StakeConsensusLogger.debug("Staking locked with for Peer: " + quorumPID[j]);
+
+                                    // ! wait for all 3 tokens to complete till this step
+                                    // !
+                                    // !
+                                    // !
                                     qOut[j].println("alpha-stake-token-verified");
                                     StakeConsensusLogger.debug("Waiting for stake signatures");
 
@@ -171,7 +176,7 @@ public class StakeConsensus {
                                                 .debug("Received stake token signatures: " + qResponse[j]);
                                     } catch (SocketException e) {
                                         StakeConsensusLogger
-                                                .debug("Mined Token Details validation failed. Received null response");
+                                                .debug("Mined Token Details not received from quorum. Received null response");
                                     }
 
                                     // ! add mine signs to tokenchain

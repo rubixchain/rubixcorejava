@@ -4,6 +4,7 @@ import static com.rubix.Constants.ConsensusConstants.INIT_HASH;
 import static com.rubix.Constants.MiningConstants.MINED_RBT;
 import static com.rubix.Constants.MiningConstants.MINED_RBT_SIGN;
 import static com.rubix.Constants.MiningConstants.MINE_ID;
+import static com.rubix.Constants.MiningConstants.MINE_ID_SIGN;
 import static com.rubix.Constants.MiningConstants.MINE_TID;
 import static com.rubix.Constants.MiningConstants.MINING_TID_SIGN;
 import static com.rubix.Constants.MiningConstants.STAKED_QUORUM_DID;
@@ -352,6 +353,9 @@ public class QuorumConsensus implements Runnable {
 
                                     // mine ID
                                     stakingSigns.put(MINE_ID, mineID);
+                                    stakingSigns.put(MINE_ID_SIGN,
+                                            getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
+                                                    mineID));
                                     stakingSigns.put("sender", genesisBlock.getString("sender"));
 
                                     QuorumConsensusLogger.debug("Token Staked Successfully. MINE ID: " +
