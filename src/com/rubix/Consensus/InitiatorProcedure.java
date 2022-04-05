@@ -24,11 +24,13 @@ public class InitiatorProcedure {
 
     /**
      * This function sets up the initials before the consensus
+     * 
      * @param data Data required for hashing and signing
      * @param ipfs IPFS instance
      * @param PORT port for forwarding to quorum
      */
-    public static void consensusSetUp(String data,IPFS ipfs, int PORT,int alphaSize, String operation) throws JSONException {
+    public static void consensusSetUp(String data, IPFS ipfs, int PORT, int alphaSize, String operation)
+            throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         JSONObject dataObject = new JSONObject(data);
@@ -42,7 +44,8 @@ public class InitiatorProcedure {
         JSONArray betaList = dataObject.getJSONArray("betaList");
         JSONArray gammaList = dataObject.getJSONArray("gammaList");
 
-        String authSenderByQuorumHash = calculateHash(message , "SHA3-256");
+        String authSenderByQuorumHash = calculateHash(message, "SHA3-256");
+
         String authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
 
         try {
@@ -90,44 +93,79 @@ public class InitiatorProcedure {
         InitiatorProcedureLogger.debug("Invoking Consensus");
 
         JSONObject dataSend = new JSONObject();
-        dataSend.put("hash",authQuorumHash);
-        dataSend.put("details",detailsForQuorum);
+        dataSend.put("hash", authQuorumHash);
+        dataSend.put("details", detailsForQuorum);
 
-        if(operation.equals("new-credits-mining")) {
+        if (operation.equals("new-credits-mining")) {
             JSONObject qstDetails = dataObject.getJSONObject("qstDetails");
             dataSend.put("qstDetails", qstDetails);
         }
 
-        Thread alphaThread = new Thread(()->{
+        if (operation.equals("NFT")) {
+            JSONObject nftdetails = new JSONObject();
+            nftdetails.put("sellerPubKeyIpfsHash", dataObject.getString("sellerPubKeyIpfsHash"));
+            nftdetails.put("saleContractIpfsHash", dataObject.getString("saleContractIpfsHash"));
+            nftdetails.put("nftTokenDetails", dataObject.getJSONObject("nftTokenDetails"));
+            nftdetails.put("rbtTokenDetails", dataObject.getJSONObject("rbtTokenDetails"));
+            // nftdetails.put("sellerPvtKeySign", dataObject.getString("sellerPvtKeySign"));
+            nftdetails.put("tokenAmount", dataObject.getDouble("tokenAmount"));
+            String authNftSenderByQuorumHash = calculateHash(dataObject.getJSONObject("nftTokenDetails").toString(),
+                    "SHA3-256");
+            nftdetails.put("nftHash", authNftSenderByQuorumHash);
+            nftdetails.put("nftBuyerDid", senderDidIpfs);
+
+            dataSend.put("nftDetails", nftdetails);
+
+        }
+
+        Thread alphaThread = new Thread(() -> {
             try {
-                alphaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT,0,"alpha",alphaList,alphaSize,alphaSize, operation);
+                alphaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT, 0, "alpha", alphaList, alphaSize,
+                        alphaSize, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         });
 
-        Thread betaThread = new Thread(()->{
+        Thread betaThread = new Thread(() -> {
             try {
-                betaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+100,1,"beta",betaList,alphaSize,7, operation);
+                betaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 100, 1, "beta", betaList,
+                        alphaSize, 7, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         });
 
-        Thread gammaThread = new Thread(()->{
+        Thread gammaThread = new Thread(() -> {
             try {
-                gammaReply = InitiatorConsensus.start(dataSend.toString(),ipfs,PORT+107,2,"gamma",gammaList,alphaSize,7, operation);
+                gammaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 107, 2, "gamma", gammaList,
+                        alphaSize, 7, operation);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         });
 
-        InitiatorConsensus.quorumSignature=new JSONObject();
+        InitiatorConsensus.quorumSignature = new JSONObject();
         InitiatorConsensus.finalQuorumSignsArray = new JSONArray();
         alphaThread.start();
         betaThread.start();
         gammaThread.start();
-        while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2* minQuorum(7))) {}
-        InitiatorProcedureLogger.debug("ABG Consensus completed with length " +InitiatorConsensus.quorumSignature.length());
+
+        if (operation.equals("NFT")) {
+            while ((InitiatorConsensus.quorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7))))
+                    && (InitiatorConsensus.nftQuorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7))))) {
+            }
+            InitiatorProcedureLogger.debug(
+                    "ABG NFT Consensus completed with length for NFT :" + InitiatorConsensus.nftQuorumSignature.length()
+                            + " RBT " + InitiatorConsensus.quorumSignature.length());
+        } else {
+            while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+            }
+            InitiatorProcedureLogger
+                    .debug("ABG Consensus completed with length " + InitiatorConsensus.quorumSignature.length());
+        }
+
+        InitiatorProcedureLogger.debug("InitiatorProcedure.java class finished");
     }
+   
 }

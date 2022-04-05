@@ -1,6 +1,5 @@
 package com.rubix.TokenTransfer;
 
-import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
 import com.rubix.Resources.Functions;
@@ -12,9 +11,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import javax.imageio.ImageIO;
 import javax.net.ssl.HttpsURLConnection;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
@@ -56,30 +53,19 @@ public class TokenSender {
         JSONObject APIResponse = new JSONObject();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
+        String receiverPeerId;
         JSONObject detailsObject = new JSONObject(data);
         String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
-        String receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
         String pvt = detailsObject.getString("pvt");
         double requestedAmount = detailsObject.getDouble("amount");
         int type = detailsObject.getInt("type");
         String comment = detailsObject.getString("comment");
         APIResponse = new JSONObject();
 
-        int intPart = (int) requestedAmount, wholeAmount;
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         TokenSenderLogger.debug("sender peer id" + senderPeerID);
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
         TokenSenderLogger.debug("sender did ipfs hash" + senderDidIpfsHash);
-
-        boolean sanityCheck = sanityCheck(receiverPeerId, ipfs, port+10);
-        if(!sanityCheck){
-            APIResponse.put("did", senderDidIpfsHash);
-            APIResponse.put("tid", "null");
-            APIResponse.put("status", "Failed");
-            APIResponse.put("message", sanityMessage);
-            TokenSenderLogger.warn(sanityMessage);
-            return APIResponse;
-        }
 
         if (senderMutex) {
             APIResponse.put("did", senderDidIpfsHash);
@@ -106,7 +92,7 @@ public class TokenSender {
             writeToFile(partTokensFile.toString(), "[]", false);
         }
 
-
+        int intPart = (int) requestedAmount, wholeAmount;
         TokenSenderLogger.debug("Requested Part: " +requestedAmount);
         TokenSenderLogger.debug("Int Part: " +intPart);
         String bankFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
@@ -130,7 +116,6 @@ public class TokenSender {
         }
         JSONArray wholeTokenChainHash = new JSONArray();
         JSONArray tokenPreviousSender = new JSONArray();
-
         for (int i = 0; i < wholeTokens.length(); i++) {
             File token = new File(TOKENS_PATH + wholeTokens.get(i));
             File tokenchain = new File(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
@@ -162,7 +147,6 @@ public class TokenSender {
             previousSenderObject.put("token", wholeTokenHash);
             previousSenderObject.put("sender", previousSenderArray);
             tokenPreviousSender.put(previousSenderObject);
-
         }
 
         Double decimalAmount = requestedAmount - wholeAmount;
@@ -188,7 +172,7 @@ public class TokenSender {
 
             } else {
                 Double counter = decimalAmount;
-                JSONArray selectParts = new JSONArray(partContentArray);
+                JSONArray selectParts = new JSONArray(partFileContent);
                 while (counter > 0.000D) {
                     counter = formatAmount(counter);
                     TokenSenderLogger.debug("Counter: " + formatAmount(counter) );
@@ -303,39 +287,7 @@ public class TokenSender {
         TokenSenderLogger.debug("TID on sender " + tid);
 
 
-
-        JSONArray allTokens = new JSONArray();
-        for(int i = 0; i < wholeTokens.length(); i++)
-            allTokens.put(wholeTokens.getString(i));
-        for(int i = 0; i < partTokens.length(); i++)
-            allTokens.put(partTokens.getString(i));
-
-
-        JSONArray positionsArray = new JSONArray();
-        for(int i = 0; i < allTokens.length(); i++) {
-            String tokens = allTokens.getString(i);
-            String hashString = tokens.concat(senderDidIpfsHash);
-            String hashForPositions = calculateHash(hashString, "SHA3-256");
-            BufferedImage privateShare = ImageIO.read(new File(DATA_PATH.concat(senderDidIpfsHash).concat("/PrivateShare.png")));
-            String firstPrivate = PropImage.img2bin(privateShare);
-            int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-            String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-            String positions = "";
-            for(int j = 0; j < privateIntegerArray1.length; j+=49152){
-                positions+=privateBinary.charAt(j);
-            }
-            positionsArray.put(positions);
-
-            TokenSenderLogger.debug("Ownership Here Sender Calculation");
-            TokenSenderLogger.debug("tokens: " + tokens);
-            TokenSenderLogger.debug("hashString: " + hashString);
-            TokenSenderLogger.debug("hashForPositions: " + hashForPositions);
-            TokenSenderLogger.debug("p1: " + positions);
-        }
-
-
-
-
+        JSONArray quorumArray;
         JSONArray alphaQuorum = new JSONArray();
         JSONArray betaQuorum = new JSONArray();
         JSONArray gammaQuorum = new JSONArray();
@@ -345,8 +297,7 @@ public class TokenSender {
         ArrayList betaPeersList;
         ArrayList gammaPeersList;
 
-        int arrangeCode = 0;
-        JSONArray quorumArray;
+        long startTime = System.currentTimeMillis();
         switch (type) {
             case 1: {
                 writeToFile(LOGGER_PATH + "tempbeta", tid.concat(senderDidIpfsHash), false);
@@ -357,13 +308,12 @@ public class TokenSender {
                 String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
                 deleteFile(LOGGER_PATH + "tempgamma");
 
-                quorumArray = getQuorum(betaHash, gammaHash, senderDidIpfsHash, receiverDidIpfsHash, allTokens.length());
+                quorumArray = getQuorum(betaHash, gammaHash, senderDidIpfsHash, receiverDidIpfsHash, wholeTokens.length());
                 break;
             }
 
             case 2: {
                 quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
-                arrangeCode = arrangeQuorum(quorumArray, port+15, requestedAmount);
                 break;
             }
             case 3: {
@@ -379,61 +329,18 @@ public class TokenSender {
             }
         }
 
-        if(arrangeCode == 401){
-            APIResponse.put("did", senderDidIpfsHash);
-            APIResponse.put("tid", "null");
-            APIResponse.put("status", "Failed");
-            String message = "Could not collect all(min. 21) credits";
-            APIResponse.put("message", message);
-            TokenSenderLogger.warn(message);
-            return APIResponse;
-        }
-        else if(arrangeCode == 402){
-            APIResponse.put("did", senderDidIpfsHash);
-            APIResponse.put("tid", "null");
-            APIResponse.put("status", "Failed");
-            String message = "7 alpha node credits not summing up to requested amount";
-            APIResponse.put("message", message);
-            TokenSenderLogger.warn(message);
-            senderMutex = false;
-            return APIResponse;
-        }
-        else if(arrangeCode == 200){
-            quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
-        }
+        TokenSenderLogger.debug("1");
+        TokenSenderLogger.debug("Whole tokens: " + wholeTokens);
+        TokenSenderLogger.debug("Part tokens: " + partTokens);
+        long endTime = System.currentTimeMillis();
+        long totalTime = endTime - startTime;
+        eventLogger.debug("Get Quorum List " + totalTime);
 
-        int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
-        JSONArray sanityFailedQuorum = new JSONArray();
-        for(int i = 0; i < quorumArray.length(); i++){
-            String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorumArray.getString(i));
-            boolean quorumSanityCheck = sanityCheck(quorumPeerID, ipfs, port+11);
-
-            if(!quorumSanityCheck){
-                sanityFailedQuorum.put(quorumPeerID);
-                if(i <= 6)
-                    alphaCheck++;
-                if(i >= 7 && i <= 13)
-                    betaCheck++;
-                if(i >= 14 && i <= 20)
-                    gammaCheck++;
-            }
-        }
-
-        if(alphaCheck > 2 || betaCheck > 2 || gammaCheck > 2){
-            APIResponse.put("did", senderDidIpfsHash);
-            APIResponse.put("tid", "null");
-            APIResponse.put("status", "Failed");
-            String message = "Quorum: ".concat(sanityFailedQuorum.toString()).concat(" ");
-            APIResponse.put("message", message.concat(sanityMessage));
-            TokenSenderLogger.warn("Quorum: ".concat(message.concat(sanityMessage)));
-            senderMutex = false;
-            return APIResponse;
-        }
-
-        long startTime, endTime, totalTime;
-
+        startTime = System.currentTimeMillis();
         QuorumSwarmConnect(quorumArray, ipfs);
-
+        endTime = System.currentTimeMillis();
+        totalTime = endTime - startTime;
+        eventLogger.debug("Swarm Connect " + totalTime);
 
         alphaSize = quorumArray.length() - 14;
 
@@ -452,7 +359,7 @@ public class TokenSender {
 
         endTime = System.currentTimeMillis();
         totalTime = endTime - startTime;
-        eventLogger.debug("Quorum check " + totalTime);
+        eventLogger.debug("Quorum Check " + totalTime);
 
         if (alphaPeersList.size() < minQuorum(alphaSize) || betaPeersList.size() < 5 || gammaPeersList.size() < 5) {
             updateQuorum(quorumArray, null, false, type);
@@ -467,7 +374,7 @@ public class TokenSender {
 
 
         syncDataTable(receiverDidIpfsHash, null);
-//        receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
+        receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
 
         if (!receiverPeerId.equals("")) {
             TokenSenderLogger.debug("Swarm connecting to " + receiverPeerId);
@@ -602,7 +509,6 @@ public class TokenSender {
         JSONObject tokenObject = new JSONObject();
         tokenObject.put("tokenDetails", tokenDetails);
         tokenObject.put("previousSender", tokenPreviousSender);
-        tokenObject.put("positions", positionsArray);
         tokenObject.put("amount", requestedAmount);
         tokenObject.put("amountLedger", amountLedger);
 
@@ -617,7 +523,6 @@ public class TokenSender {
         String tokenAuth;
         try {
             tokenAuth = input.readLine();
-            TokenSenderLogger.debug("Token Auth Code: " + tokenAuth);
         } catch (SocketException e) {
             TokenSenderLogger.warn("Receiver " + receiverDidIpfsHash + " is unable to Respond! - Token Auth");
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
@@ -633,46 +538,35 @@ public class TokenSender {
 
             return APIResponse;
         }
-        if (tokenAuth != null && (tokenAuth.startsWith("4"))) {
+        if (tokenAuth != null && (!tokenAuth.equals("200"))) {
             switch (tokenAuth) {
-                case "419":
-                    String tokenAuthErrorMessage = input.readLine();
-                    TokenSenderLogger.info(tokenAuthErrorMessage);
-                    TokenSenderLogger.info("Kindly re-initiate transaction later or with another token");
-                    APIResponse.put("message", tokenAuthErrorMessage + " Kindly re-initiate transaction");
-                    break;
                 case "420":
                     String doubleSpent = input.readLine();
                     String owners = input.readLine();
                     JSONArray ownersArray = new JSONArray(owners);
                     TokenSenderLogger.info("Multiple Owners for " + doubleSpent);
-                    TokenSenderLogger.info("Owners " + ownersArray);
-                    TokenSenderLogger.info("Kindly re-initiate transaction");
-                    APIResponse.put("message", "Multiple Owners for " + doubleSpent + " Owners: " + ownersArray +". Kindly re-initiate transaction");
+                    APIResponse.put("message", "Multiple Owners for " + doubleSpent);
+                    APIResponse.put("Owners", ownersArray);
+                    //removeToken();
                     break;
                 case "421":
-                    TokenSenderLogger.info("Consensus ID not unique. Kindly re-initiate transaction");
-                    APIResponse.put("message", "Consensus ID not unique. Kindly re-initiate transaction");
+                    TokenSenderLogger.info("Consensus ID not unique");
+                    APIResponse.put("message", "Consensus ID not unique");
+                    //removeToken();
                     break;
                 case "422":
-                    TokenSenderLogger.info("Tokens Not Verified. Kindly re-initiate transaction");
-                    APIResponse.put("message", "Tokens Not Verified. Kindly re-initiate transaction");
+                    TokenSenderLogger.info("Tokens Not Verified");
+                    APIResponse.put("message", "Tokens Not Verified");
+                    //removeToken();
                     break;
                 case "423":
-                    TokenSenderLogger.info("Broken Cheque Chain. Kindly re-initiate transaction");
-                    APIResponse.put("message", "Broken Cheque Chain. Kindly re-initiate transaction");
+                    TokenSenderLogger.info("Broken Cheque Chain");
+                    APIResponse.put("message", "Broken Cheque Chain");
                     break;
 
                 case "424":
-                    String invalidTokens = input.readLine();
-                    JSONArray tokensArray = new JSONArray(invalidTokens);
-                    TokenSenderLogger.info("Ownership check Failed for " + tokensArray);
-                    APIResponse.put("message", "Ownership check Failed");
-                    break;
-
-                case "425":
-                    TokenSenderLogger.info("Token wholly spent already. Kindly re-initiate transaction");
-                    APIResponse.put("message", "Token wholly spent already. Kindly re-initiate transaction");
+                    TokenSenderLogger.info("Token wholly spent already");
+                    APIResponse.put("message", "Token wholly spent already");
                     break;
 
             }
@@ -690,7 +584,6 @@ public class TokenSender {
             return APIResponse;
         }
 
-
         JSONObject dataObject = new JSONObject();
         dataObject.put("tid", tid);
         dataObject.put("message", doubleSpendString);
@@ -701,6 +594,7 @@ public class TokenSender {
         dataObject.put("alphaList", alphaPeersList);
         dataObject.put("betaList", betaPeersList);
         dataObject.put("gammaList", gammaPeersList);
+
 
         InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize, "");
         TokenSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count " + InitiatorConsensus.quorumResponse);
@@ -861,6 +755,18 @@ public class TokenSender {
         APIResponse.put("totaltime", totalTime);
 
         updateQuorum(quorumArray, signedQuorumList, true, type);
+
+
+        JSONArray allTokens = new JSONArray();
+        for(int i = 0; i < wholeTokens.length(); i++)
+            allTokens.put(wholeTokens.getString(i));
+        for(int i = 0; i < partTokens.length(); i++)
+            allTokens.put(partTokens.getString(i));
+
+        TokenSenderLogger.debug("4");
+        TokenSenderLogger.debug("All tokens: " + allTokens);
+        TokenSenderLogger.debug("Whole tokens: " + wholeTokens);
+        TokenSenderLogger.debug("Part tokens: " + partTokens);
 
         JSONObject transactionRecord = new JSONObject();
         transactionRecord.put("role", "Sender");

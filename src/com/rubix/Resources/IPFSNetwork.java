@@ -544,7 +544,7 @@ public class IPFSNetwork {
         }
     }
 
-    public static boolean swarmConnectP2P(String peerid, IPFS ipfs) throws JSONException {
+    public static void swarmConnectP2P(String peerid, IPFS ipfs) throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         String bootNode;
         boolean swarmConnected = false;
@@ -569,22 +569,17 @@ public class IPFSNetwork {
                       output = swarmConnectProcess(multiAddress);
                       if (!output.contains("success")) {
                         IPFSNetworkLogger.debug("swarm attempt failed with " + peerid);
-                        swarmConnected = false;
                       } else {
                         IPFSNetworkLogger.debug("swarm Connected : " + peerid);
                         swarmConnected = true;
                       } 
                     } else {
                       IPFSNetworkLogger.debug("bootstrap connection failed! " + bootNode);
-                      swarmConnected = false;
                     } 
 
                 }
             }
-        }else {
-        	swarmConnected = true;
         }
-        return swarmConnected;
 
     }
 
