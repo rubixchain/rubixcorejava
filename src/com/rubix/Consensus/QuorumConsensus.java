@@ -224,7 +224,7 @@ public class QuorumConsensus implements Runnable {
 
                     }
 
-                    if (true) {
+                    if (LEVEL_VALID) {
                         // LEVEL_VALID && MINE_CREDIT_VALID
 
                         QuorumConsensusLogger.debug("Sending staking token details...");
@@ -233,7 +233,7 @@ public class QuorumConsensus implements Runnable {
                         String bankFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
                         JSONArray bankArray = new JSONArray(bankFile);
 
-                        if (bankArray.length() != 0) {
+                        if (bankArray.length() > 0) {
 
                             File tokenFile;
                             File tokenchainFile;
@@ -250,6 +250,8 @@ public class QuorumConsensus implements Runnable {
 
                                 tokenFile = new File(TOKENS_PATH + stakedTokenHash);
                                 tokenchainFile = new File(TOKENCHAIN_PATH + stakedTokenHash + ".json");
+
+                                QuorumConsensusLogger.debug("Checking token" + stakedTokenHash + " for staking...");
 
                                 if (tokenFile.exists() && tokenchainFile.exists()) {
 
@@ -354,7 +356,8 @@ public class QuorumConsensus implements Runnable {
 
                                     // mine ID
                                     stakingSigns.put(MINE_ID, mineID);
-                                    stakingSigns.put(MINE_ID_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png", mineID)); 
+                                    stakingSigns.put(MINE_ID_SIGN,
+                                            getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png", mineID));
                                     stakingSigns.put("sender", genesisBlock.getString("sender"));
 
                                     QuorumConsensusLogger.debug("Token Staked Successfully. MINE ID: " +
