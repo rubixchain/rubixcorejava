@@ -223,8 +223,8 @@ public class QuorumConsensus implements Runnable {
 
                     }
 
-                    if (LEVEL_VALID) {
-                        // && MINE_CREDIT_VALID
+                    if (true) {
+                        // LEVEL_VALID && MINE_CREDIT_VALID
 
                         QuorumConsensusLogger.debug("Sending staking token details...");
                         JSONArray tokenToStake = new JSONArray();
