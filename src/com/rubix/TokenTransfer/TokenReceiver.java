@@ -458,11 +458,13 @@ public class TokenReceiver {
                             invalidTokens.put(tokens);
                         }
 
-                    } else {
-                        TokenReceiverLogger.debug("Staking check (3) failed: Genesis Signature not found");
-                        ownerCheck = false;
-                        invalidTokens.put(tokens);
                     }
+                    // else {
+                    // TokenReceiverLogger.debug("Staking check (3) failed: Genesis Signature not
+                    // found");
+                    // ownerCheck = false;
+                    // invalidTokens.put(tokens);
+                    // }
 
                     // ! staking checks (1): Check incoming token level
                     String TokenContent = get(wholeTokens.getString(count), ipfs);
