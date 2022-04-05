@@ -433,7 +433,7 @@ public class TokenReceiver {
                     // ! staking checks (3): Verify the signatures earned during the mining of the
                     // ! incoming mint token
                     JSONObject genesiObject = tokenChain.getJSONObject(0);
-                    if (genesiObject.has("genesisSignatures")) {
+                    if (genesiObject.has("blockNumber")) {
 
                         int randomNumber = new Random().nextInt(15);
                         String genesisSignaturesContent = genesiObject.getString("quorumSigContent");
