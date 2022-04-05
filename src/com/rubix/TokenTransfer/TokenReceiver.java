@@ -11,6 +11,7 @@ import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
 import static com.rubix.Resources.Functions.PAYMENTS_PATH;
 import static com.rubix.Resources.Functions.RECEIVER_PORT;
+import static com.rubix.Resources.Functions.SEND_PORT;
 import static com.rubix.Resources.Functions.TOKENCHAIN_PATH;
 import static com.rubix.Resources.Functions.TOKENS_PATH;
 import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
@@ -53,6 +54,7 @@ import javax.imageio.ImageIO;
 
 import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.VerifyStakedToken;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
@@ -522,16 +524,18 @@ public class TokenReceiver {
                                 detailsToVerify.put("signature", mineIDSignTC);
                                 if (Authenticate.verifySignature(detailsToVerify.toString())) {
 
-                                    ArrayList ownersArray = new ArrayList();
-                                    ownersArray = IPFSNetwork.dhtOwnerCheck(stakedTokenMineData);
-
-                                    if (ownersArray.contains(stakerDIDTC)) {
-                                        TokenReceiverLogger.debug("Staking check passed: " + stakerDIDTC);
-                                    } else {
+                                    boolean minedTokenStatus = true;
+                                    ArrayList<String> ownersArray = IPFSNetwork
+                                            .dhtOwnerCheck(stakedTokenTC[stakeCount]);
+                                    for (int i = 0; i < ownersArray.size(); i++) {
+                                        if (!VerifyStakedToken.Contact(ownersArray.get(i), SEND_PORT + 16,
+                                                stakedTokenTC[stakeCount])) {
+                                            minedTokenStatus = false;
+                                        }
+                                    }
+                                    if (!minedTokenStatus) {
                                         TokenReceiverLogger.debug(
-                                                "Staking check (2) failed - staked token " + stakedTokenMineData
-                                                        + " is not owned by staker: "
-                                                        + stakerDIDTC);
+                                                "Staking check failed: Found staked token but token height < 46");
                                         ownerCheck = false;
                                         invalidTokens.put(tokens);
                                     }
@@ -579,18 +583,19 @@ public class TokenReceiver {
 
                     if (Authenticate.verifySignature(tokenToVerify.toString())) {
 
-                        // ArrayList ownersArray = new ArrayList();
-                        // ownersArray = IPFSNetwork.dhtOwnerCheck(stakedToken);
+                        boolean minedTokenStatus = true;
+                        ArrayList<String> ownersArray = IPFSNetwork.dhtOwnerCheck(stakedToken);
+                        for (int i = 0; i < ownersArray.size(); i++) {
+                            if (!VerifyStakedToken.Contact(ownersArray.get(i), SEND_PORT + 16, stakedToken)) {
+                                minedTokenStatus = false;
+                            }
+                        }
+                        if (!minedTokenStatus) {
+                            TokenReceiverLogger.debug("Staking check failed: Found staked token but token height < 46");
+                            ownerCheck = false;
+                            invalidTokens.put(tokens);
+                        }
 
-                        // if (ownersArray.contains(senderDidIpfsHash)) {
-                        // } else {
-                        // TokenReceiverLogger.debug(
-                        // "Staking check failed - staked token " + stakedToken + " is not owned by
-                        // staker: "
-                        // + senderDidIpfsHash);
-                        // ownerCheck = false;
-                        // invalidTokens.put(tokens);
-                        // }
                         TokenReceiverLogger.debug(
                                 "Staking check failed: Found staked token but unable to transfer while mined token height is not satisfied for the network");
                         ownerCheck = false;
