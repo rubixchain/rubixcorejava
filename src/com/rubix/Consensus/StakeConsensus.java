@@ -199,7 +199,7 @@ public class StakeConsensus {
                                                             // ! validate signatures
                                                             StakeConsensusLogger.debug("Validating Signatures");
                                                             JSONObject mineIDSign = new JSONObject();
-                                                            mineIDSign.put("did", mineSigns.getString(quorumDID));
+                                                            mineIDSign.put("did", quorumDID);
                                                             mineIDSign.put("hash", mineSigns.getString(MINE_ID));
                                                             mineIDSign.put("signature",
                                                                     mineSigns.getString(MINE_ID_SIGN));
