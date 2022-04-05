@@ -91,26 +91,25 @@ public class StakeConsensus {
                         qOut[j].println(operation);
                         if (operation.equals("alpha-stake-token")) {
 
-                            String stakerDID = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
-                                    quorumPID[j]);
-
                             qOut[j].println(data.toString());
                             StakeConsensusLogger.debug("Mined Token Details sent for validation...");
 
                             try {
                                 qResponse[j] = qIn[j].readLine();
-                            } catch (SocketException e) {
-                                StakeConsensusLogger
-                                        .debug("Mined Token Details validation failed. Received null response");
-                                qOut[j].println("alpha-stake-token-not-verified");
-                                STAKE_FAILED++;
-                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
-                            }
-                            if (qResponse[j].length() > 3) {
+                                
+                                if(qResponse[j] !=null && qResponse[j].equals("tokenToStake")) {
+                                	
+                                	try {
+                                		qResponse[j] = qIn[j].readLine();
+                                		
+                                		if(qResponse[j] != null) {
+                                			/****** start */
 
                                 StakeConsensusLogger
                                         .debug("Mined Token Details validated. Received staked token details..");
                                 Boolean ownerCheck = true;
+		                                    String stakerDID = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
+		                                            quorumPID[j]);
                                 JSONArray stakeTokenArray = new JSONArray(qResponse[j]);
                                 String stakeTokenHash = stakeTokenArray.getString(0);
                                 JSONArray stakeTC = stakeTokenArray.getJSONArray(1);
@@ -144,41 +143,36 @@ public class StakeConsensus {
 
                                         if (!owner.equals(ownerRecalculated)) {
                                             ownerCheck = false;
+		                                                STAKE_FAILED++;
                                             StakeConsensusLogger.debug(
                                                     "Ownership Check Failed for index " + j + " with DID: " + owner);
-                                            qOut[j].println("alpha-stake-token-not-verified");
-                                            STAKE_FAILED++;
                                             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                         }
+		                                            
                                     }
                                 } else {
+		                                    	STAKE_FAILED++;
                                     StakeConsensusLogger.debug("insufficient stake token height details");
-                                    qOut[j].println("alpha-stake-token-not-verified");
-                                    STAKE_FAILED++;
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                 }
 
+		                                        qOut[j].println("alpha-stake-         
                                 if (ownerCheck && !(STAKE_LOCKED > 2)) {
                                     StakeConsensusLogger.debug("Ownership Check Success for Peer: " + quorumPID[j]);
                                     STAKE_LOCKED++;
-                                    StakeConsensusLogger.debug("Staking locked with for Peer: " + quorumPID[j]);
-
-                                    // ! wait for all 3 tokens to complete till this step
-                                    // !
-                                    // !
-                                    // !
-                                    qOut[j].println("alpha-stake-token-verified");
+		                                        StakeConsensusLogger.debug("Staking locked with for Peer: " + quorumPID[j]);token-verified");
                                     StakeConsensusLogger.debug("Waiting for stake signatures");
 
                                     try {
                                         qResponse[j] = qIn[j].readLine();
                                         StakeConsensusLogger
                                                 .debug("Received stake token signatures: " + qResponse[j]);
-                                    } catch (SocketException e) {
-                                        StakeConsensusLogger
-                                                .debug("Mined Token Details not received from quorum. Received null response");
-                                    }
 
+		                                            if(qResponse[j] != null && qResponse[j].equals("447")) {
+		                                            	STAKE_FAILED++;
+		                                            	StakeConsensusLogger.debug("Token to stake not verified");
+		                                            	IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
+		                                            }else if(qResponse[j] != null) {
                                     // ! add mine signs to tokenchain
                                     StakeConsensusLogger.debug("Adding mine signatures");
                                     JSONObject mineSigns = new JSONObject(qResponse[j]);
@@ -225,58 +219,77 @@ public class StakeConsensus {
                                                 "Stake signatures not received.. Quorum response: " + qResponse[j]);
                                         IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                     }
+		                                            }
+		                                            
+		                                            
+		                                        } catch (SocketException e) {
+		                                            StakeConsensusLogger
+		                                                    .debug("Mined Token Details validation failed. Received null response");
+		                                        }
+		                                        
                                 } else {
                                     STAKE_FAILED++;
                                     StakeConsensusLogger.debug("Ownership Check Failed");
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                 }
 
-                            } else if (qResponse[j].equals("444")) {
+                                			/** End */
+                                		}
+                                        
+                                	}catch(SocketException e) {
+                                		 StakeConsensusLogger
+                                         .debug("Mined Token Details validation failed. Received null response");
+                                		 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
+                                	}
+                                	
+                                }else if(qResponse[j] !=null && qResponse[j].equals("446")) {
                                 STAKE_FAILED++;
-                                StakeConsensusLogger.debug(
-                                        "Quorum (DID: " + stakerDID + ") could not verify mined token. Skipping...");
+                                	 StakeConsensusLogger.debug("Token files picked by quorum to stake is corroupted. Skipping...");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
-                            } else if (qResponse[j].equals("445")) {
+                                }else if (qResponse[j].equals("445")) {
                                 STAKE_FAILED++;
-                                StakeConsensusLogger.debug("Insufficient quorum (DID: " + stakerDID
-                                        + ") member balance. Skipping...");
+                                    StakeConsensusLogger.debug("Insufficient quorum member balance. Skipping...");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
-                            } else if (qResponse[j].equals("446")) {
+                                }else if (qResponse[j].equals("444")) {
                                 STAKE_FAILED++;
+                                    StakeConsensusLogger.debug("Quorum could not verify mined token. Skipping...");
+                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
+                                }else {
+                                STAKE_FAILED++;
+                                    StakeConsensusLogger.debug("Unexpected response from staker: " + qResponse[j]);
+                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
+                                }
+                              
+                            } catch (SocketException e) {
                                 StakeConsensusLogger
-                                        .debug("Token files picked by quorum (DID: " + stakerDID
-                                                + ") to stake is corroupted. Skipping...");
-                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
-                            } else if (qResponse[j].equals("447")) {
-                                STAKE_FAILED++;
-                                StakeConsensusLogger.debug("alpha-stake-token-not-verified. (DID: " + stakerDID
-                                        + ") Skipping...");
-                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
-                            } else {
-                                StakeConsensusLogger.debug("Unexpected response from staker (DID: " + stakerDID
-                                        + ") : " + qResponse[j]);
-                                STAKE_FAILED++;
+                                        .debug("Mined Token Details validation failed. Received null response");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                             }
+                             
 
                         }
 
                     } catch (Exception e) {
                         StakeConsensusLogger.error("Error in quorum consensus thread: " + e);
                     }
+                    StakeConsensusLogger.error("*******STAKE_SUCCESS********* "+STAKE_SUCCESS+" **********STAKE_FAILED*********** " + STAKE_FAILED);
                 });
                 quorumThreads[j].start();
-            }
+                
+                
             do {
-                // StakeConsensusLogger.debug("Staking in progress...Rejected by α Quorums: " +
-                // STAKE_FAILED + " of 5");
-                // } while ((!STAKE_SUCCESS && !STAKE_LOCKED && stakeDetails.length() < 8) ||
-                // STAKE_FAILED < 3);
-            } while ((!(STAKE_SUCCESS == 3) && !(STAKE_LOCKED == 3) && stakeDetails.length() < 8) || STAKE_FAILED < 3);
+      			  	} while (!(STAKE_SUCCESS == 3) || STAKE_FAILED < 2);
+  			 
+            }
+            
+			
+			 
 
-        } catch (Exception e) {
+        }catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);
         }
+        
+     
     }
 
 }

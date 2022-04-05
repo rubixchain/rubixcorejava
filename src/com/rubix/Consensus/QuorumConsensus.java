@@ -296,6 +296,7 @@ public class QuorumConsensus implements Runnable {
                                 }
                                 tokenToStake.put(positions);
                                 // ! token which will be staked
+                                out.println("tokenToStake");
                                 out.println(tokenToStake);
 
                                 try {
@@ -353,22 +354,19 @@ public class QuorumConsensus implements Runnable {
 
                                     // mine ID
                                     stakingSigns.put(MINE_ID, mineID);
-                                    stakingSigns.put(MINE_ID_SIGN,
-                                            getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
-                                                    mineID));
+                                    stakingSigns.put(MINE_ID_SIGN, getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png", mineID)); 
                                     stakingSigns.put("sender", genesisBlock.getString("sender"));
 
                                     QuorumConsensusLogger.debug("Token Staked Successfully. MINE ID: " +
                                             mineID);
 
-                                    out.println(stakingSigns.toString());
                                     stakedTokenChainArray.put(stakingSigns);
                                     writeToFile(TOKENCHAIN_PATH + stakedTokenHash + ".json",
                                             stakedTokenChainArray.toString(),
                                             false);
 
                                     QuorumConsensusLogger.debug("Staking Completed!");
-                                    out.println("200");
+                                    out.println(stakingSigns.toString());
                                     socket.close();
                                     serverSocket.close();
                                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);

@@ -69,6 +69,10 @@ public class ProofCredits {
 
     public static JSONObject create(String data, IPFS ipfs) throws IOException, JSONException {
 
+    	  StakeConsensus.STAKE_SUCCESS = 0;
+    	  StakeConsensus.STAKE_LOCKED = 0;
+    	  StakeConsensus.STAKE_FAILED = 0;
+    	  StakeConsensus.stakeDetails = new JSONArray();
         repo(ipfs);
         JSONObject APIResponse = new JSONObject();
         JSONObject detailsObject = new JSONObject(data);
@@ -160,6 +164,7 @@ public class ProofCredits {
             } else
                 ProofCreditsLogger.debug("GET request not worked");
 
+            ProofCreditsLogger.debug("*************resJsonData.length()**********"+resJsonData.length());
             // Check if node can mine token
             if (resJsonData.length() > 0) {
                 // Calling Mine token function
@@ -168,10 +173,14 @@ public class ProofCredits {
                 level = resJsonData.getJSONObject(0).getInt("level");
 
                 for (int i = 0; i < resJsonData.length(); i++) {
+                	 ProofCreditsLogger.debug("*************level**********"+resJsonData.getJSONObject(i).getInt("level"));
+                     ProofCreditsLogger.debug("*************token**********"+resJsonData.getJSONObject(i).getInt("token"));
+                    
                     token.put(Functions.mineToken(resJsonData.getJSONObject(i).getInt("level"),
                             resJsonData.getJSONObject(i).getInt("token")));
 
                     creditUsed += (int) Math.pow(2, (2 + resJsonData.getJSONObject(i).getInt("level")));
+
                 }
 
                 if (resJsonData.getJSONObject(0).getInt("level") == 1)
@@ -357,8 +366,10 @@ public class ProofCredits {
                 // String tkHash = null;
 
                 for (int i = 0; i < token.length(); i++) {
+                	
                     writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
                     String tokenHash = IPFSNetwork.add(LOGGER_PATH + "tempToken", ipfs);
+                      writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
                     deleteFile(LOGGER_PATH + "tempToken");
 
                     FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
@@ -415,19 +426,33 @@ public class ProofCredits {
                     tokenChainArray.put(tokenChainGenesisObject);
 
                     // ! new token will now need a staked token
+                  
+
+					/*
+					 * do { } while (StakeConsensus.stakeDetails.length() < 8 ||
+					 * StakeConsensus.STAKE_FAILED == 5);
+					 */
+                    
+                    
+                    Thread stakingThread = new Thread(() -> {
+                        try {
                     StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
                             tokenChainGenesisObject, ipfs, SEND_PORT + 3,
                             "alpha-stake-token");
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    stakingThread.start();
 
-                    do {
-                    } while (StakeConsensus.stakeDetails.length() < 3 || StakeConsensus.STAKE_FAILED < 3);
 
-                    if (StakeConsensus.stakeDetails.length() == 3) {
+					  while((StakeConsensus.STAKE_SUCCESS == false && StakeConsensus.STAKE_FAILED < 5)) {
 
-                        for (int j = 0; j < StakeConsensus.stakeDetails.length(); j++) {
-                            tokenChainArray.put(StakeConsensus.stakeDetails.getJSONObject(j));
                         }
 
+                    ProofCreditsLogger.debug(StakeConsensus.STAKE_SUCCESS+ "************" + StakeConsensus.STAKE_FAILED+"******"+StakeConsensus.stakeDetails.length()+"<<<<<<<<<<<<<"+StakeConsensus.stakeDetails.toString());
+                    if (StakeConsensus.stakeDetails.length() > 0) {
+                        tokenChainArray.put(StakeConsensus.stakeDetails);
                         ProofCreditsLogger.debug("Stake Details for new mined token: " + StakeConsensus.stakeDetails);
                     } else {
                         updateQuorum(quorumArray, null, false, type);
@@ -439,7 +464,7 @@ public class ProofCredits {
                         ProofCreditsLogger.warn("Staking failed");
                         return APIResponse;
                     }
-                    writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
+                    
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
                     JSONObject temp = new JSONObject();
                     temp.put("tokenHash", tokenHash);
