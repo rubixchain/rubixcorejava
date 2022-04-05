@@ -298,7 +298,7 @@ public class StakeConsensus {
                 quorumThreads[j].start();
 
                 do {
-                } while (!(STAKE_SUCCESS < 2) || STAKE_FAILED < 3);
+                } while (STAKE_SUCCESS < 2 || STAKE_FAILED < 3);
 
             }
 
