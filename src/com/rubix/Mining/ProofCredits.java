@@ -143,6 +143,25 @@ public class ProofCredits {
 
             ProofCreditsLogger.debug("Credits Old: " + oldCreditsFlag);
 
+            JSONArray quorumArray;
+            switch (type) {
+                case 2: {
+                    quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                    break;
+                }
+                default: {
+                    quorumArray = getQuorum(DID, DID, 1);
+                    if (quorumArray.length() == 1) {
+                        APIResponse.put("did", DID);
+                        APIResponse.put("tid", "null");
+                        APIResponse.put("status", "Failed");
+                        APIResponse.put("message", "Type 1 mining not allowed. Please use subnet quorum to mine.");
+                        ProofCreditsLogger.warn("Quorum Members not available for type 1 mining");
+                        return APIResponse;
+                    }
+                }
+            }
+
             // String GET_URL = SYNC_IP+"/getInfo?count="+availableCredits;
             String GET_URL = SYNC_IP + "/getTokenToMine";
             URL URLobj = new URL(GET_URL);
@@ -193,25 +212,6 @@ public class ProofCredits {
 
                 String authSenderByRecHash = calculateHash(token + DID + comments, "SHA3-256");
                 String tid = calculateHash(authSenderByRecHash, "SHA3-256");
-
-                writeToFile(LOGGER_PATH + "tempbeta", tid.concat(DID), false);
-                String betaHash = IPFSNetwork.add(LOGGER_PATH + "tempbeta", ipfs);
-                deleteFile(LOGGER_PATH + "tempbeta");
-
-                writeToFile(LOGGER_PATH + "tempgamma", tid.concat(DID), false);
-                String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
-                deleteFile(LOGGER_PATH + "tempgamma");
-
-                JSONArray quorumArray;
-                switch (type) {
-                    case 2: {
-                        quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
-                        break;
-                    }
-                    default: {
-                        quorumArray = getQuorum(betaHash, gammaHash, DID, DID, token.length());
-                    }
-                }
 
                 QuorumSwarmConnect(quorumArray, ipfs);
 

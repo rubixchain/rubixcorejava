@@ -1022,7 +1022,7 @@ public class Functions {
      * @return JSONArray of quorum nodes
      */
 
-    public static JSONArray getQuorum(String betaHash, String gammaHash, String senderDidIpfsHash,
+    public static JSONArray getQuorum(String senderDidIpfsHash,
             String receiverDidIpfsHash, int tokenslength) throws IOException, JSONException {
         JSONArray quorumArray;
         String urlQuorumPick = ADVISORY_IP + "/getQuorum";
@@ -1036,8 +1036,7 @@ public class Functions {
         conQuorumPick.setRequestProperty("Authorization", "null");
 
         JSONObject dataToSendQuorumPick = new JSONObject();
-        dataToSendQuorumPick.put("betahash", betaHash);
-        dataToSendQuorumPick.put("gammahash", gammaHash);
+
         dataToSendQuorumPick.put("sender", senderDidIpfsHash);
         dataToSendQuorumPick.put("receiver", receiverDidIpfsHash);
         dataToSendQuorumPick.put("tokencount", tokenslength);
@@ -1054,17 +1053,25 @@ public class Functions {
         FunctionsLogger.debug("Post Data : " + populateQuorumPick);
         FunctionsLogger.debug("Response Code : " + responseCodeQuorumPick);
 
-        BufferedReader inQuorumPick = new BufferedReader(
-                new InputStreamReader(conQuorumPick.getInputStream()));
-        String outputQuorumPick;
-        StringBuffer responseQuorumPick = new StringBuffer();
-        while ((outputQuorumPick = inQuorumPick.readLine()) != null) {
-            responseQuorumPick.append(outputQuorumPick);
+        if (responseCodeQuorumPick == 200) {
+
+            BufferedReader inQuorumPick = new BufferedReader(
+                    new InputStreamReader(conQuorumPick.getInputStream()));
+            String outputQuorumPick;
+            StringBuffer responseQuorumPick = new StringBuffer();
+            while ((outputQuorumPick = inQuorumPick.readLine()) != null) {
+                responseQuorumPick.append(outputQuorumPick);
+            }
+            inQuorumPick.close();
+            FunctionsLogger.debug(" responsequorumpick " + responseQuorumPick.toString());
+            quorumArray = new JSONArray(responseQuorumPick.toString());
+            return quorumArray;
+
+        } else {
+            quorumArray = new JSONArray();
+            quorumArray.put(false);
+            return quorumArray;
         }
-        inQuorumPick.close();
-        FunctionsLogger.debug(" responsequorumpick " + responseQuorumPick.toString());
-        quorumArray = new JSONArray(responseQuorumPick.toString());
-        return quorumArray;
     }
 
     /**
@@ -1535,7 +1542,7 @@ public class Functions {
                 sanityMessage = "Bootstrap connection unsuccessful for Receiver " + peerid;
             }
         }
-        
+
         if (sanityCheckErrorFlag) {
             if (ping(peerid, port)) {
                 FunctionsLogger.debug("Rceiver is running the latest Jar " + peerid);
@@ -1547,7 +1554,7 @@ public class Functions {
                 sanityMessage = "Receiver is not running the latest Jar. PID: " + peerid;
             }
         }
-        
+
         if (sanityCheckErrorFlag) {
             if (portCheckAndKill(port)) {
                 FunctionsLogger.debug("Ports are available for transcations in " + peerid);

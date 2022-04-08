@@ -402,7 +402,7 @@ public class TokenSender {
                 String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
                 deleteFile(LOGGER_PATH + "tempgamma");
 
-                quorumArray = getQuorum(betaHash, gammaHash, senderDidIpfsHash, receiverDidIpfsHash,
+                quorumArray = getQuorum(senderDidIpfsHash, receiverDidIpfsHash,
                         allTokens.length());
                 break;
             }
