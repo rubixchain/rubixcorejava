@@ -4,6 +4,7 @@ import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
 import static com.rubix.Resources.Functions.getPeerID;
+import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.pathSet;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.listen;
@@ -77,10 +78,10 @@ public class PingReceive {
             }
             PingReceiverLogger.debug("Ping Request Received: " + pingRequest);
             if (pingRequest != null && pingRequest.contains("PingCheck")) {
-                output.println("Pong");
+                output.println(initHash());
 
                 APIResponse.put("status", "Success");
-                APIResponse.put("message", "Pong Sent");
+                APIResponse.put("message", "Pong Sent to Sender with Check Sum");
                 PingReceiverLogger.info("Pong Sent");
 
             } else {

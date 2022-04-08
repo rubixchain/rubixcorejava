@@ -1512,41 +1512,42 @@ public class Functions {
     public static String sanityMessage;
 
     public static boolean sanityCheck(String peerid, IPFS ipfs, int port) throws IOException, JSONException {
-        FunctionsLogger.info("Entering SanityCheck");
+        FunctionsLogger.info("Entering Receiver SanityCheck");
         boolean sanityCheckErrorFlag = true;
         if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
-            FunctionsLogger.debug("IPFS is working in " + peerid);
-            FunctionsLogger.debug("IPFS check true");
+            FunctionsLogger.debug("Receiver IPFS is working in " + peerid);
+            FunctionsLogger.debug("Receiver IPFS check true");
         } else {
             sanityCheckErrorFlag = false;
-            FunctionsLogger.debug("IPFS is not working in " + peerid);
-            FunctionsLogger.debug("IPFS check false");
-            sanityMessage = "IPFS is not working in " + peerid;
+            FunctionsLogger.debug("Receiver IPFS is not working in " + peerid);
+            FunctionsLogger.debug("Receiver IPFS check false");
+            sanityMessage = "Receiver IPFS is not working in " + peerid;
         }
 
         if (sanityCheckErrorFlag) {
             if (bootstrapConnect(peerid, ipfs)) {
-                FunctionsLogger.debug("Bootstrap connected for " + peerid);
+                FunctionsLogger.debug("Bootstrap connected for Receiver " + peerid);
                 FunctionsLogger.debug("Bootstrap check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Bootstrap connection unsuccessful for " + peerid);
+                FunctionsLogger.debug("Bootstrap connection unsuccessful for Receiver " + peerid);
                 FunctionsLogger.debug("Bootstrap check false");
-                sanityMessage = "Bootstrap connection unsuccessful for " + peerid;
+                sanityMessage = "Bootstrap connection unsuccessful for Receiver " + peerid;
             }
         }
-
+        
         if (sanityCheckErrorFlag) {
             if (ping(peerid, port)) {
-                FunctionsLogger.debug("Jar is running as expected in " + peerid);
-                FunctionsLogger.debug("Jar check true");
+                FunctionsLogger.debug("Rceiver is running the latest Jar " + peerid);
+                FunctionsLogger.debug("Latest Jar check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Jar is not running in " + peerid);
-                FunctionsLogger.debug("Jar check false");
-                sanityMessage = "Jar is not running in " + peerid;
+                FunctionsLogger.debug("Receiver is not running the latest Jar " + peerid);
+                FunctionsLogger.debug("Latest Jar check false");
+                sanityMessage = "Receiver is not running the latest Jar. PID: " + peerid;
             }
         }
+        
         if (sanityCheckErrorFlag) {
             if (portCheckAndKill(port)) {
                 FunctionsLogger.debug("Ports are available for transcations in " + peerid);

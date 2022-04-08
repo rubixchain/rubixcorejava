@@ -3,7 +3,7 @@ package com.rubix.Ping;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.getValues;
+import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.Functions.nodeData;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.forward;
@@ -82,7 +82,7 @@ public class PingCheck {
             return APIResponse;
         }
 
-        if (pongResponse != null && (!pongResponse.equals("Pong"))) {
+        if (pongResponse != null && (!pongResponse.equals(initHash()))) {
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
             PingSenderLogger.info("Pong response not received");
             output.close();
