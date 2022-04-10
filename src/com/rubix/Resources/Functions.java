@@ -1703,12 +1703,12 @@ public class Functions {
     public static boolean portCheckAndKill(int port) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         boolean portStatus = false;
-
+        long pid = ProcessHandle.current().pid();
+        FunctionsLogger.info("Current OS is "+getOsName());
         try {
-            if (getOsName() != "Windows") {
+            if (!getOsName().toLowerCase().contains("windows")) {
                 portStatus = releasePorts(port);
             } else {
-                portStatusWindows(port);
                 portStatus = portStatusWindows(port);
             }
         } catch (Exception e) {
@@ -1717,7 +1717,6 @@ public class Functions {
         return portStatus;
 
     }
-
     /**
      * This function will release the port in linux based machines if the port is
      * already in use
@@ -1765,35 +1764,52 @@ public class Functions {
     public static boolean portStatusWindows(int port) {
         FunctionsLogger.info("Starting portStatusWindows");
         boolean releasedPort = false;
-        String processStr;
+        String portProcessStr;
         Process p;
+        ArrayList<Integer> pidTree = new ArrayList<Integer>();
+        ArrayList<Integer> portPidTree = new ArrayList<Integer>();
         try {
             Runtime rt = Runtime.getRuntime();
-            Process proc = rt.exec("cmd /c netstat -ano | findstr " + port);
-            FunctionsLogger.info("Checking port status");
-            long currentPid = ProcessHandle.current().pid();
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            processStr = stdInput.readLine();
-            FunctionsLogger.info("Process id found for port is " + processStr + " current jar pid is " + currentPid);
-            if (processStr != null && String.valueOf(currentPid) != processStr) {
-                int index = processStr.lastIndexOf(" ");
-                String sc = processStr.substring(index, processStr.length());
-                // System.out.println("Port "+port+" is locked by PID "+sc+". Kindly close this
-                // port and retry transcation");
-                if (sc != String.valueOf(currentPid)) {
-                    FunctionsLogger.debug("Port " + port + " is locked by PID " + sc);
-                } else {
-                    FunctionsLogger.debug("Port " + port + " is locked by current jar with PID " + sc);
+            Process getJarPid = rt.exec("cmd /c netstat -ano | findstr 1898");
+            BufferedReader getJarPidBR = new BufferedReader(new InputStreamReader(getJarPid.getInputStream()));
+            String getJarPidline;
+                while ((getJarPidline = getJarPidBR.readLine()) != null) {
+                    String[] getJarPidTree = getJarPidline.split("\\s+");
+                    int temp=Integer.parseInt(getJarPidTree[getJarPidTree.length-1]);
+                    pidTree.add(temp);
                 }
-            } else {
-                releasedPort = true;
-                FunctionsLogger.info("Port is unlocked");
+                
+                FunctionsLogger.info("PIDs occupied by Rubix.jar are " + pidTree);
+            
+            Set<Integer> pidSet = new LinkedHashSet<Integer>(pidTree);
+            FunctionsLogger.info("Pid occupied by port 1898 is pidSet"+pidSet);
+            Process getPortPid = rt.exec("cmd /c netstat -ano | findstr "+ port);
+            BufferedReader getPortPidBr = new BufferedReader(new InputStreamReader(getPortPid.getInputStream()));
+            String getPortPidLine;
+            while((getPortPidLine = getPortPidBr.readLine())!=null){
+                String[] getPortPidTree = getPortPidLine.split("\\s+");
+                    int temp=Integer.parseInt(getPortPidTree[getPortPidTree.length-1]);
+                    portPidTree.add(temp);
             }
+            
+            Set<Integer> pidToKill = new LinkedHashSet<Integer>(portPidTree);
+            FunctionsLogger.info("Pid used by port "+ port +"is "+ pidToKill);
+            pidToKill.removeAll(pidSet);
+            pidToKill.remove(0);
+            FunctionsLogger.info("Pid using port "+ port +" but not in 1898"+pidToKill);
+            if(pidToKill.size()>0){
+                System.out.println("Port "+port+" is occupied by PIDs"+pidToKill);
+            }
+            else {
+                releasedPort = true;
+            }
+            
+            
         } catch (Exception e) {
-            FunctionsLogger.error("Exception occured at portStatusWindows", e);
-            e.printStackTrace();
+           FunctionsLogger.error("Exception occured at portStatusWindows", e);
         }
         return releasedPort;
-    }
+
+}
 
 }
