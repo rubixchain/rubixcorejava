@@ -32,6 +32,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import javax.imageio.ImageIO;
 
@@ -1704,7 +1706,7 @@ public class Functions {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         boolean portStatus = false;
         long pid = ProcessHandle.current().pid();
-        FunctionsLogger.info("Current OS is "+getOsName());
+        FunctionsLogger.info("Current OS is " + getOsName());
         try {
             if (!getOsName().toLowerCase().contains("windows")) {
                 portStatus = releasePorts(port);
@@ -1717,6 +1719,7 @@ public class Functions {
         return portStatus;
 
     }
+
     /**
      * This function will release the port in linux based machines if the port is
      * already in use
@@ -1773,43 +1776,41 @@ public class Functions {
             Process getJarPid = rt.exec("cmd /c netstat -ano | findstr 1898");
             BufferedReader getJarPidBR = new BufferedReader(new InputStreamReader(getJarPid.getInputStream()));
             String getJarPidline;
-                while ((getJarPidline = getJarPidBR.readLine()) != null) {
-                    String[] getJarPidTree = getJarPidline.split("\\s+");
-                    int temp=Integer.parseInt(getJarPidTree[getJarPidTree.length-1]);
-                    pidTree.add(temp);
-                }
-                
-                FunctionsLogger.info("PIDs occupied by Rubix.jar are " + pidTree);
-            
+            while ((getJarPidline = getJarPidBR.readLine()) != null) {
+                String[] getJarPidTree = getJarPidline.split("\\s+");
+                int temp = Integer.parseInt(getJarPidTree[getJarPidTree.length - 1]);
+                pidTree.add(temp);
+            }
+
+            FunctionsLogger.info("PIDs occupied by Rubix.jar are " + pidTree);
+
             Set<Integer> pidSet = new LinkedHashSet<Integer>(pidTree);
-            FunctionsLogger.info("Pid occupied by port 1898 is pidSet"+pidSet);
-            Process getPortPid = rt.exec("cmd /c netstat -ano | findstr "+ port);
+            FunctionsLogger.info("Pid occupied by port 1898 is pidSet" + pidSet);
+            Process getPortPid = rt.exec("cmd /c netstat -ano | findstr " + port);
             BufferedReader getPortPidBr = new BufferedReader(new InputStreamReader(getPortPid.getInputStream()));
             String getPortPidLine;
-            while((getPortPidLine = getPortPidBr.readLine())!=null){
+            while ((getPortPidLine = getPortPidBr.readLine()) != null) {
                 String[] getPortPidTree = getPortPidLine.split("\\s+");
-                    int temp=Integer.parseInt(getPortPidTree[getPortPidTree.length-1]);
-                    portPidTree.add(temp);
+                int temp = Integer.parseInt(getPortPidTree[getPortPidTree.length - 1]);
+                portPidTree.add(temp);
             }
-            
+
             Set<Integer> pidToKill = new LinkedHashSet<Integer>(portPidTree);
-            FunctionsLogger.info("Pid used by port "+ port +"is "+ pidToKill);
+            FunctionsLogger.info("Pid used by port " + port + "is " + pidToKill);
             pidToKill.removeAll(pidSet);
             pidToKill.remove(0);
-            FunctionsLogger.info("Pid using port "+ port +" but not in 1898"+pidToKill);
-            if(pidToKill.size()>0){
-                System.out.println("Port "+port+" is occupied by PIDs"+pidToKill);
-            }
-            else {
+            FunctionsLogger.info("Pid using port " + port + " but not in 1898" + pidToKill);
+            if (pidToKill.size() > 0) {
+                System.out.println("Port " + port + " is occupied by PIDs" + pidToKill);
+            } else {
                 releasedPort = true;
             }
-            
-            
+
         } catch (Exception e) {
-           FunctionsLogger.error("Exception occured at portStatusWindows", e);
+            FunctionsLogger.error("Exception occured at portStatusWindows", e);
         }
         return releasedPort;
 
-}
+    }
 
 }
