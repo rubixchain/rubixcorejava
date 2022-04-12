@@ -194,14 +194,16 @@ public class TokenSender {
             String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
             JSONArray tokenChainFileArray = new JSONArray(tokenChainFileContent);
             JSONArray previousSenderArray = new JSONArray();
-            JSONObject lastObject = tokenChainFileArray.getJSONObject(tokenChainFileArray.length() - 1);
-            if (lastObject.has("mineID")) {
-                wholeTokens.remove(i);
-            }
-            for (int j = 0; j < tokenChainFileArray.length(); j++) {
-                String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
-                        tokenChainFileArray.getJSONObject(j).getString("sender"));
-                previousSenderArray.put(peerID);
+
+            if (tokenChainFileArray.length() > 0) {
+                // JSONObject lastObject =
+                // tokenChainFileArray.getJSONObject(tokenChainFileArray.length() - 1);
+
+                for (int j = 0; j < tokenChainFileArray.length(); j++) {
+                    String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
+                            tokenChainFileArray.getJSONObject(j).getString("sender"));
+                    previousSenderArray.put(peerID);
+                }
             }
 
             JSONObject previousSenderObject = new JSONObject();
@@ -717,8 +719,7 @@ public class TokenSender {
         dataObject.put("gammaList", gammaPeersList);
 
         InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize, "");
-        TokenSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count "
-                + InitiatorConsensus.quorumResponse);
+
         if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
             TokenSenderLogger.debug("Consensus Failed");
             senderDetails2Receiver.put("status", "Consensus Failed");

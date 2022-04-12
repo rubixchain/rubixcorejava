@@ -49,6 +49,7 @@ import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
 import com.rubix.Consensus.StakeConsensus;
+import com.rubix.Constants.MiningConstants;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
@@ -73,6 +74,10 @@ public class ProofCredits {
         StakeConsensus.STAKE_LOCKED = 0;
         StakeConsensus.STAKE_FAILED = 0;
         StakeConsensus.stakeDetails = new JSONArray();
+        InitiatorConsensus.signedAphaQuorumArray = new JSONArray();
+        InitiatorConsensus.quorumWithShares = new ArrayList<>();
+        InitiatorConsensus.finalQuorumSignsArray = new JSONArray();
+        InitiatorConsensus.quorumSignature = new JSONObject();
         repo(ipfs);
         JSONObject APIResponse = new JSONObject();
         JSONObject detailsObject = new JSONObject(data);
@@ -183,7 +188,6 @@ public class ProofCredits {
             } else
                 ProofCreditsLogger.debug("GET request not worked");
 
-            ProofCreditsLogger.debug("*************resJsonData.length()**********" + resJsonData.length());
             // Check if node can mine token
             if (resJsonData.length() > 0) {
                 // Calling Mine token function
@@ -212,6 +216,14 @@ public class ProofCredits {
 
                 String authSenderByRecHash = calculateHash(token + DID + comments, "SHA3-256");
                 String tid = calculateHash(authSenderByRecHash, "SHA3-256");
+
+                // writeToFile(LOGGER_PATH + "tempbeta", tid.concat(DID), false);
+                // String betaHash = IPFSNetwork.add(LOGGER_PATH + "tempbeta", ipfs);
+                // deleteFile(LOGGER_PATH + "tempbeta");
+
+                // writeToFile(LOGGER_PATH + "tempgamma", tid.concat(DID), false);
+                // String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
+                // deleteFile(LOGGER_PATH + "tempgamma");
 
                 QuorumSwarmConnect(quorumArray, ipfs);
 
@@ -371,8 +383,6 @@ public class ProofCredits {
 
                     writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
                     String tokenHash = IPFSNetwork.add(LOGGER_PATH + "tempToken", ipfs);
-                    writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
-                    deleteFile(LOGGER_PATH + "tempToken");
 
                     FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
                     shareWriter.write(InitiatorConsensus.quorumSignature.toString());
@@ -395,6 +405,7 @@ public class ProofCredits {
                     int[] privateIntegerArray1 = strToIntArray(firstPrivate);
                     String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
                     String positions = "";
+
                     for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
                         positions += privateBinary.charAt(j);
                     }
@@ -421,12 +432,13 @@ public class ProofCredits {
                     tokenChainGenesisObject.put("QSTHeight", QSTHeight);
                     tokenChainGenesisObject.put("tokenHash", tokenHash);
                     tokenChainGenesisObject.put("tokenContent", token.getString(i));
+
                     tokenChainGenesisObject.put("nextHash", calculateHash(tid, "SHA3-256"));
                     tokenChainGenesisObject.put("previousHash", "");
                     // stakingData = tokenChainGenesisObject;
                     // tkHash = tokenHash;
-                    tokenChainArray.put(tokenChainGenesisObject);
 
+                    tokenChainArray.put(tokenChainGenesisObject);
                     // ! new token will now need a staked token
 
                     /*
@@ -437,7 +449,7 @@ public class ProofCredits {
                     Thread stakingThread = new Thread(() -> {
                         try {
                             StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
-                                    tokenChainGenesisObject, ipfs, SEND_PORT + 3,
+                                    tokenChainGenesisObject, ipfs, SEND_PORT + 150,
                                     "alpha-stake-token");
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -445,15 +457,14 @@ public class ProofCredits {
                     });
                     stakingThread.start();
 
-                    while ((StakeConsensus.STAKE_SUCCESS < 2 && StakeConsensus.STAKE_FAILED < 3)) {
+                    while ((StakeConsensus.STAKE_SUCCESS < 3 && StakeConsensus.STAKE_FAILED < 3)) {
 
                     }
 
-                    ProofCreditsLogger.debug(StakeConsensus.STAKE_SUCCESS + "************" + StakeConsensus.STAKE_FAILED
-                            + "******" + StakeConsensus.stakeDetails.length() + "<<<<<<<<<<<<<"
-                            + StakeConsensus.stakeDetails.toString());
                     if (StakeConsensus.stakeDetails.length() > 0) {
-                        tokenChainArray.put(StakeConsensus.stakeDetails);
+                        tokenChainGenesisObject.put(MiningConstants.MINE_ID, StakeConsensus.stakeDetails);
+                        tokenChainArray.put(tokenChainGenesisObject);
+
                         ProofCreditsLogger.debug("Stake Details for new mined token: " + StakeConsensus.stakeDetails);
                     } else {
                         updateQuorum(quorumArray, null, false, type);
@@ -465,7 +476,10 @@ public class ProofCredits {
                         ProofCreditsLogger.warn("Staking failed");
                         return APIResponse;
                     }
-
+                    writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
+                    ProofCreditsLogger.warn(" TOKENHASH " + tokenHash);
+                    ProofCreditsLogger.warn(" TOKENS " + token.getString(i));
+                    deleteFile(LOGGER_PATH + "tempToken");
                     writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
                     JSONObject temp = new JSONObject();
                     temp.put("tokenHash", tokenHash);

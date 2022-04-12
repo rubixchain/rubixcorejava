@@ -62,9 +62,9 @@ public class Authenticate {
         JSONObject P = randomPositions("verifier", hash, 32, SenderSign);
         int[] posForSign = (int[]) P.get("posForSign");
         int[] originalPos = (int[]) P.get("originalPos");
-        for (int positionsLevelTwoTrail : posForSign)
+        for (int positionsLevelTwoTrail : posForSign) {
             senderWalletID.append(walletID.charAt(positionsLevelTwoTrail));
-
+        }
         String recombinedResult = PropImage.getpos(senderWalletID.toString(), signature);
         int[] positionsLevelZero = new int[32];
 
@@ -74,6 +74,7 @@ public class Authenticate {
         StringBuilder decentralizedIDForAuth = new StringBuilder();
         for (int value : positionsLevelZero)
             decentralizedIDForAuth.append(senderDIDBin.charAt(value));
+
         if (recombinedResult.equals(decentralizedIDForAuth.toString())) {
             return true;
         } else {

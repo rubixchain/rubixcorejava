@@ -211,8 +211,10 @@ public class StakeConsensus {
                                                             mineIDSign.put("hash", mineSigns.getString(MINE_ID));
                                                             mineIDSign.put("signature",
                                                                     mineSigns.getString(MINE_ID_SIGN));
-                                                            boolean mineSignCheck = Authenticate
-                                                                    .verifySignature(mineIDSign.toString());
+															
+															boolean mineSignCheck = Authenticate
+															  .verifySignature(mineIDSign.toString());
+															
 
                                                             ArrayList ownersArray = new ArrayList();
                                                             ownersArray = IPFSNetwork.dhtOwnerCheck(MINE_ID);
@@ -226,19 +228,18 @@ public class StakeConsensus {
                                                                         "Staking pin check failed for DID: " + mineSigns
                                                                                 .getString(STAKED_QUORUM_DID));
                                                             }
-
+                                                           
                                                             if (mineSignCheck) {
                                                                 StakeConsensusLogger.debug(
                                                                         "########--Staking Complete " + STAKE_SUCCESS
                                                                                 + "/5 !--########");
 
-                                                                qOut[j].println("staking-completed");
+                                                              // qOut[j].println("200");
                                                                 StakeConsensusLogger.debug(
                                                                         "Staking completed for Peer: " + quorumPID[j]);
                                                                 stakeDetails.put(mineSigns);
                                                                 STAKE_SUCCESS++;
                                                             }
-
                                                         } else {
                                                             STAKE_FAILED++;
                                                             StakeConsensusLogger.debug(
@@ -275,7 +276,7 @@ public class StakeConsensus {
                                 } else if (qResponse[j] != null && qResponse[j].equals("446")) {
                                     STAKE_FAILED++;
                                     StakeConsensusLogger
-                                            .debug("Token files picked by quorum to stake is corroupted. Skipping...DID: "
+                                            .debug("No token is available to stake is corroupted. Skipping...DID: "
                                                     + stakerDID);
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                 } else if (qResponse[j].equals("445")) {
@@ -317,7 +318,7 @@ public class StakeConsensus {
             }
 
             do {
-            } while (STAKE_SUCCESS < 2 || STAKE_FAILED < 3);
+            } while (STAKE_SUCCESS < 3 && STAKE_FAILED < 3);
 
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);

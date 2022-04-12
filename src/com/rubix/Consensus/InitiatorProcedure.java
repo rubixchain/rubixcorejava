@@ -102,6 +102,9 @@ public class InitiatorProcedure {
         JSONObject dataSend = new JSONObject();
         dataSend.put("hash", authQuorumHash);
         dataSend.put("details", detailsForQuorum);
+        
+        InitiatorProcedureLogger.debug("hash"+authQuorumHash);
+        InitiatorProcedureLogger.debug("data1"+data1.toString());
 
         if (operation.equals("new-credits-mining")) {
             JSONObject qstDetails = dataObject.getJSONObject("qstDetails");
