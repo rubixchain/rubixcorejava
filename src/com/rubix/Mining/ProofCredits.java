@@ -438,7 +438,7 @@ public class ProofCredits {
                     // stakingData = tokenChainGenesisObject;
                     // tkHash = tokenHash;
 
-                    tokenChainArray.put(tokenChainGenesisObject);
+                    //tokenChainArray.put(tokenChainGenesisObject);
                     // ! new token will now need a staked token
 
                     /*
