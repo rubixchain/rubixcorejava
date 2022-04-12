@@ -324,7 +324,7 @@ public class StakeConsensus {
             }
 
             do {
-            } while (STAKE_SUCCESS < 3 && STAKE_FAILED < 3);
+            } while (STAKE_SUCCESS < 2 && STAKE_FAILED < 2);
 
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);
