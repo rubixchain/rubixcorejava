@@ -211,10 +211,9 @@ public class StakeConsensus {
                                                             mineIDSign.put("hash", mineSigns.getString(MINE_ID));
                                                             mineIDSign.put("signature",
                                                                     mineSigns.getString(MINE_ID_SIGN));
-															
-															boolean mineSignCheck = Authenticate
-															  .verifySignature(mineIDSign.toString());
-															
+
+                                                            boolean mineSignCheck = Authenticate
+                                                                    .verifySignature(mineIDSign.toString());
 
                                                             ArrayList ownersArray = new ArrayList();
                                                             ownersArray = IPFSNetwork.dhtOwnerCheck(MINE_ID);
@@ -224,17 +223,20 @@ public class StakeConsensus {
                                                                         .debug("Staking pin check passed: " + mineSigns
                                                                                 .getString(STAKED_QUORUM_DID));
                                                             } else {
+                                                                STAKE_FAILED++;
+                                                                IPFSNetwork.executeIPFSCommands(
+                                                                        "ipfs p2p close -t /p2p/" + quorumPID[j]);
                                                                 StakeConsensusLogger.debug(
                                                                         "Staking pin check failed for DID: " + mineSigns
                                                                                 .getString(STAKED_QUORUM_DID));
                                                             }
-                                                           
+
                                                             if (mineSignCheck) {
                                                                 StakeConsensusLogger.debug(
                                                                         "########--Staking Complete " + STAKE_SUCCESS
                                                                                 + "/5 !--########");
 
-                                                              // qOut[j].println("200");
+                                                                // qOut[j].println("200");
                                                                 StakeConsensusLogger.debug(
                                                                         "Staking completed for Peer: " + quorumPID[j]);
                                                                 stakeDetails.put(mineSigns);
@@ -252,6 +254,7 @@ public class StakeConsensus {
                                                     }
 
                                                 } catch (SocketException e) {
+                                                    STAKE_FAILED++;
                                                     StakeConsensusLogger
                                                             .debug("Mined Token Details validation failed for DID: "
                                                                     + stakerDID + " Received null response");
@@ -268,6 +271,7 @@ public class StakeConsensus {
                                         }
 
                                     } catch (SocketException e) {
+                                        STAKE_FAILED++;
                                         StakeConsensusLogger
                                                 .debug("Mined Token Details validation failed. Received null response");
                                         IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
@@ -296,6 +300,7 @@ public class StakeConsensus {
                                 }
 
                             } catch (SocketException e) {
+                                STAKE_FAILED++;
                                 StakeConsensusLogger
                                         .debug("Mined Token Details validation failed for DID: " + stakerDID
                                                 + " Received null response");
@@ -305,6 +310,7 @@ public class StakeConsensus {
                         }
 
                     } catch (Exception e) {
+                        STAKE_FAILED++;
                         StakeConsensusLogger.error("Error in quorum consensus thread: " + e);
                     }
                     StakeConsensusLogger.debug("*******STAKE_SUCCESS********* " + STAKE_SUCCESS
