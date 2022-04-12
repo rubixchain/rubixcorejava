@@ -449,6 +449,7 @@ public class TokenReceiver {
                         // ! staking checks (3): Verify the signatures earned during the mining of the
                         // ! incoming mint token
                         JSONObject genesiObject = tokenChain.getJSONObject(0);
+                        JSONArray stakeDataArray = genesiObject.getJSONArray(MINE_ID);
 
                         int randomNumber = new Random().nextInt(15);
                         JSONObject genesisSignaturesContent = genesiObject
@@ -489,9 +490,9 @@ public class TokenReceiver {
 
                         // ! staking checks (2): For incoming new mint token, verify the staked token
 
-                        JSONObject oneOfThreeStake = tokenChain.getJSONObject(1);
-                        JSONObject twoOfThreeStake = tokenChain.getJSONObject(2);
-                        JSONObject threeOfThreeStake = tokenChain.getJSONObject(3);
+                        JSONObject oneOfThreeStake = stakeDataArray.getJSONObject(0);
+                        JSONObject twoOfThreeStake = stakeDataArray.getJSONObject(1);
+                        JSONObject threeOfThreeStake = stakeDataArray.getJSONObject(2);
 
                         String[] stakedTokenTC = new String[3];
                         String[] stakedTokenSignTC = new String[3];
@@ -540,7 +541,7 @@ public class TokenReceiver {
                                             .dhtOwnerCheck(stakedTokenTC[stakeCount]);
                                     for (int i = 0; i < ownersArray.size(); i++) {
                                         if (!VerifyStakedToken.Contact(ownersArray.get(i), SEND_PORT + 16,
-                                                stakedTokenTC[stakeCount])) {
+                                                genesiObject.getString("tokenContent"))) {
                                             minedTokenStatus = false;
                                         }
                                     }
