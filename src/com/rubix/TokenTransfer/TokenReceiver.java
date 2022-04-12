@@ -540,14 +540,14 @@ public class TokenReceiver {
                                     ArrayList<String> ownersArray = IPFSNetwork
                                             .dhtOwnerCheck(stakedTokenTC[stakeCount]);
                                     for (int i = 0; i < ownersArray.size(); i++) {
-                                        if (!VerifyStakedToken.Contact(ownersArray.get(i), SEND_PORT + 16,
-                                                genesiObject.getString("tokenContent"))) {
+                                        if (ownersArray.get(i).equals(stakerDIDTC[stakeCount])) {
                                             minedTokenStatus = false;
                                         }
                                     }
                                     if (!minedTokenStatus) {
                                         TokenReceiverLogger.debug(
-                                                "Staking check failed: Found staked token but token height < 46");
+                                                "Staked token is not found with staker DID: "
+                                                        + stakerDIDTC[stakeCount]);
                                         ownerCheck = false;
                                         invalidTokens.put(tokens);
                                     }
@@ -579,9 +579,12 @@ public class TokenReceiver {
                         }
                     }
                 }
-                if (lastObject.has(MiningConstants.STAKED_TOKEN)) {
+                if (lastObject.has(MiningConstants.STAKED_TOKEN) && tokenChain.length() > 1) {
+
+                    Boolean minedTokenStatus = true;
 
                     String mineID = lastObject.getString(MINE_ID);
+
                     String mineIDContent = get(mineID, ipfs);
                     JSONObject mineIDContentJSON = new JSONObject(mineIDContent);
 
@@ -600,10 +603,10 @@ public class TokenReceiver {
 
                         if (Authenticate.verifySignature(tokenToVerify.toString())) {
 
-                            boolean minedTokenStatus = true;
                             ArrayList<String> ownersArray = IPFSNetwork.dhtOwnerCheck(stakedToken);
                             for (int i = 0; i < ownersArray.size(); i++) {
-                                if (!VerifyStakedToken.Contact(ownersArray.get(i), SEND_PORT + 16, stakedToken)) {
+                                if (!VerifyStakedToken.Contact(ownersArray.get(i), SEND_PORT + 16,
+                                        mineIDContentJSON.getString("tokenContent"))) {
                                     minedTokenStatus = false;
                                 }
                             }
