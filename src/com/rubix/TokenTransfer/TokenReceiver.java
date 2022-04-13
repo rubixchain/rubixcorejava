@@ -523,9 +523,12 @@ public class TokenReceiver {
 
                             String mineIDContent = get(mineIDTC[0], ipfs);
                             JSONObject mineIDContentJSON = new JSONObject(mineIDContent);
-                            String stakerDIDMineData = mineIDContentJSON.getString(STAKED_QUORUM_DID);
-                            String stakedTokenMineData = mineIDContentJSON.getString(STAKED_TOKEN);
-                            String stakedTokenSignMineData = mineIDContentJSON.getString(STAKED_TOKEN_SIGN);
+                            
+                            JSONObject stakeData = mineIDContentJSON.getJSONObject(STAKE_DATA);
+                            
+                            String stakerDIDMineData = stakeData.getString(STAKED_QUORUM_DID);
+                            String stakedTokenMineData = stakeData.getString(STAKED_TOKEN);
+                            String stakedTokenSignMineData = stakeData.getString(STAKED_TOKEN_SIGN);
 
                             if (stakerDIDTC[stakeCount].equals(stakerDIDMineData)
                                     && stakedTokenTC[stakeCount].equals(stakedTokenMineData)
