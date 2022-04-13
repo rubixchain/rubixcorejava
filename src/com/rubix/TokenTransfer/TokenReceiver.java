@@ -459,13 +459,13 @@ public class TokenReceiver {
                         for (int i = 0; i < randomNumber; i++) {
                             randomKey.next();
                         }
-                        String randomKeyString = randomKey.next().toString();
+                      /**  String randomKeyString = randomKey.next().toString();
                         JSONObject verificationPick = new JSONObject();
                         verificationPick.put("did", randomKeyString);
                         verificationPick.put("hash", genesiObject.getString("tid"));
                         verificationPick.put("signature", genesisSignaturesContent.getString(randomKeyString));
 
-                        if (verificationPick.getString("hash") == genesiObject.getString("tid")) {
+                        if (verificationPick.getString("hash").equals(genesiObject.getString("tid"))) {
 
                             if (Authenticate.verifySignature(verificationPick.toString())) {
                                 TokenReceiverLogger.debug("Staking check (3) successful");
@@ -481,7 +481,7 @@ public class TokenReceiver {
                             ownerCheck = false;
                             invalidTokens.put(tokens);
                         }
-
+                       	*/
                         // else {
                         // TokenReceiverLogger.debug("Staking check (3) failed: Genesis Signature not
                         // found");
@@ -521,8 +521,9 @@ public class TokenReceiver {
 
                         for (int stakeCount = 0; stakeCount < mineIDTC.length; stakeCount++) {
 
-                            String mineIDContent = get(mineIDTC[0], ipfs);
+                            String mineIDContent = get(mineIDTC[stakeCount], ipfs);
                             JSONObject mineIDContentJSON = new JSONObject(mineIDContent);
+                            TokenReceiverLogger.debug(mineIDContentJSON.toString());
                             
                             JSONObject stakeData = mineIDContentJSON.getJSONObject(STAKE_DATA);
                             
@@ -530,14 +531,22 @@ public class TokenReceiver {
                             String stakedTokenMineData = stakeData.getString(STAKED_TOKEN);
                             String stakedTokenSignMineData = stakeData.getString(STAKED_TOKEN_SIGN);
 
+                            TokenReceiverLogger.debug(stakerDIDTC[stakeCount]);
+                            TokenReceiverLogger.debug(stakedTokenTC[stakeCount]);
+                            TokenReceiverLogger.debug(stakedTokenSignTC[stakeCount]);
+                            
+                            TokenReceiverLogger.debug(stakerDIDMineData);
+                            TokenReceiverLogger.debug(stakedTokenMineData);
+                            TokenReceiverLogger.debug(stakedTokenSignMineData);
+                            
                             if (stakerDIDTC[stakeCount].equals(stakerDIDMineData)
                                     && stakedTokenTC[stakeCount].equals(stakedTokenMineData)
                                     && stakedTokenSignTC[stakeCount].equals(stakedTokenSignMineData)) {
 
                                 JSONObject detailsToVerify = new JSONObject();
-                                detailsToVerify.put("did", stakerDIDTC);
-                                detailsToVerify.put("hash", mineIDTC);
-                                detailsToVerify.put("signature", mineIDSignTC);
+                                detailsToVerify.put("did", stakerDIDTC[stakeCount]);
+                                detailsToVerify.put("hash", mineIDTC[stakeCount]);
+                                detailsToVerify.put("signature", mineIDSignTC[stakeCount]);
                                 if (Authenticate.verifySignature(detailsToVerify.toString())) {
 
                                     boolean minedTokenStatus = true;
@@ -559,14 +568,14 @@ public class TokenReceiver {
                                 } else {
                                     TokenReceiverLogger.debug(
                                             "Staking check (2) failed - unable to verify mine ID signature by staker: "
-                                                    + stakerDIDTC);
+                                                    + stakerDIDTC[stakeCount]);
                                     ownerCheck = false;
                                     invalidTokens.put(tokens);
                                 }
 
                                 TokenReceiverLogger
                                         .debug("MineID Verification Successful with Staking node: "
-                                                + stakerDIDTC);
+                                                + stakerDIDTC[stakeCount]);
                             } else {
                                 TokenReceiverLogger.debug("Staking check (2) failed");
                                 ownerCheck = false;

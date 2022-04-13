@@ -152,7 +152,7 @@ public class StakeConsensus {
 
                                                     if (!owner.equals(ownerRecalculated)) {
                                                         ownerCheck = false;
-                                                        STAKE_FAILED++;
+                                                        // STAKE_FAILED++;
                                                         StakeConsensusLogger.debug(
                                                                 "Ownership Check Failed for index " + j + " with DID: "
                                                                         + owner);
@@ -162,7 +162,8 @@ public class StakeConsensus {
 
                                                 }
                                             } else {
-                                                STAKE_FAILED++;
+                                            	ownerCheck = false;
+                                               // STAKE_FAILED++;
                                                 StakeConsensusLogger
                                                         .debug("insufficient stake token height details from DID: "
                                                                 + stakerDID);
@@ -212,9 +213,6 @@ public class StakeConsensus {
                                                             mineIDSign.put("signature",
                                                                     mineSigns.getString(MINE_ID_SIGN));
 
-                                                            boolean mineSignCheck = Authenticate
-                                                                    .verifySignature(mineIDSign.toString());
-
                                                             ArrayList ownersArray = new ArrayList();
                                                             ownersArray = IPFSNetwork.dhtOwnerCheck(MINE_ID);
 
@@ -223,13 +221,15 @@ public class StakeConsensus {
                                                                         .debug("Staking pin check passed: " + mineSigns
                                                                                 .getString(STAKED_QUORUM_DID));
                                                             } else {
-                                                                STAKE_FAILED++;
                                                                 IPFSNetwork.executeIPFSCommands(
                                                                         "ipfs p2p close -t /p2p/" + quorumPID[j]);
                                                                 StakeConsensusLogger.debug(
                                                                         "Staking pin check failed for DID: " + mineSigns
                                                                                 .getString(STAKED_QUORUM_DID));
                                                             }
+
+                                                            boolean mineSignCheck = Authenticate
+                                                                    .verifySignature(mineIDSign.toString());
 
                                                             if (mineSignCheck) {
                                                                 StakeConsensusLogger.debug(
@@ -241,6 +241,8 @@ public class StakeConsensus {
                                                                         "Staking completed for Peer: " + quorumPID[j]);
                                                                 stakeDetails.put(mineSigns);
                                                                 STAKE_SUCCESS++;
+                                                            }else {
+                                                            	STAKE_FAILED++;
                                                             }
                                                         } else {
                                                             STAKE_FAILED++;
@@ -324,7 +326,7 @@ public class StakeConsensus {
             }
 
             do {
-            } while (STAKE_SUCCESS < 2 && STAKE_FAILED < 2);
+            } while (STAKE_SUCCESS < 3 && STAKE_FAILED < 3);
 
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);

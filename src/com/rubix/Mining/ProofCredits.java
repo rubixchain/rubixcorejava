@@ -449,7 +449,7 @@ public class ProofCredits {
                     Thread stakingThread = new Thread(() -> {
                         try {
                             StakeConsensus.getStakeConsensus(InitiatorConsensus.signedAphaQuorumArray,
-                                    tokenChainGenesisObject, ipfs, SEND_PORT + 150,
+                                    tokenChainGenesisObject, ipfs, SEND_PORT + 3,
                                     "alpha-stake-token");
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -461,11 +461,21 @@ public class ProofCredits {
 
                     }
 
-                    if (StakeConsensus.stakeDetails.length() > 0) {
+                    if (StakeConsensus.STAKE_SUCCESS == 3 && StakeConsensus.stakeDetails.length() > 0) {
                         tokenChainGenesisObject.put(MiningConstants.MINE_ID, StakeConsensus.stakeDetails);
                         tokenChainArray.put(tokenChainGenesisObject);
 
                         ProofCreditsLogger.debug("Stake Details for new mined token: " + StakeConsensus.stakeDetails);
+                        writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
+                        ProofCreditsLogger.warn(" TOKENHASH " + tokenHash);
+                        ProofCreditsLogger.warn(" TOKENS " + token.getString(i));
+                        deleteFile(LOGGER_PATH + "tempToken");
+                        writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
+                        JSONObject temp = new JSONObject();
+                        temp.put("tokenHash", tokenHash);
+                        JSONArray tempArray = new JSONArray();
+                        tempArray.put(temp);
+                        updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
                     } else {
                         updateQuorum(quorumArray, null, false, type);
                         APIResponse.put("did", DID);
@@ -476,16 +486,8 @@ public class ProofCredits {
                         ProofCreditsLogger.warn("Staking failed");
                         return APIResponse;
                     }
-                    writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
-                    ProofCreditsLogger.warn(" TOKENHASH " + tokenHash);
-                    ProofCreditsLogger.warn(" TOKENS " + token.getString(i));
-                    deleteFile(LOGGER_PATH + "tempToken");
-                    writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
-                    JSONObject temp = new JSONObject();
-                    temp.put("tokenHash", tokenHash);
-                    JSONArray tempArray = new JSONArray();
-                    tempArray.put(temp);
-                    updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
+                    
+                   
                 }
 
                 // updateJSON("add", TOKENCHAIN_PATH + tkHash + ".json", tempArray.toString());
