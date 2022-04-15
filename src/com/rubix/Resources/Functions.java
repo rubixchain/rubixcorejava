@@ -1434,6 +1434,8 @@ public class Functions {
         String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         initPath = initPath.split("\\.jar")[0];
         initPath = initPath.split("file:", 2)[1];
+        String jarName[] = initPath.split("\\/");
+        initPath = jarName[jarName.length-1];
         initPath = initPath + ".jar";
         String hash = calculateFileHash(initPath, "SHA3-256");
         return hash;
@@ -1597,6 +1599,8 @@ public class Functions {
 
     public static boolean ping(String peerid, int port) throws IOException, JSONException {
         JSONObject pingCheck = PingCheck.Ping(peerid, port);
+        FunctionsLogger.info("Ping Check Response " + pingCheck);
+        
         if (pingCheck.getString("status").contains("Failed")) {
             return false;
         } else

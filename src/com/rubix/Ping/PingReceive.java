@@ -79,7 +79,7 @@ public class PingReceive {
             PingReceiverLogger.debug("Ping Request Received: " + pingRequest);
             if (pingRequest != null && pingRequest.contains("PingCheck")) {
                 output.println(initHash());
-
+               
                 APIResponse.put("status", "Success");
                 APIResponse.put("message", "Pong Sent to Sender with Check Sum");
                 PingReceiverLogger.info("Pong Sent");

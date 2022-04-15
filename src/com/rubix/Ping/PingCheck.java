@@ -82,23 +82,23 @@ public class PingCheck {
             return APIResponse;
         }
 
-        if (pongResponse != null && (!pongResponse.equals(initHash()))) {
-            executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
+        if (pongResponse != null && (pongResponse.equals(initHash()))) {
+        	
+        	 PingSenderLogger.info("Ping Successful");
+             executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
+             output.close();
+             input.close();
+             senderSocket.close();
+             APIResponse.put("status", "Success");
+             APIResponse.put("message", "Ping Check Success");
+        } else {
+        	executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
             PingSenderLogger.info("Pong response not received");
             output.close();
             input.close();
             senderSocket.close();
             APIResponse.put("status", "Failed");
             APIResponse.put("message", "Pong response not received");
-
-        } else {
-            PingSenderLogger.info("Ping Successful");
-            executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
-            output.close();
-            input.close();
-            senderSocket.close();
-            APIResponse.put("status", "Success");
-            APIResponse.put("message", "Ping Check Success");
 
         }
         return APIResponse;
