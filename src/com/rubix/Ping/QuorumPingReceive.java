@@ -1,19 +1,22 @@
 package com.rubix.Ping;
 
-import io.ipfs.api.IPFS;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.listen;
+import static com.rubix.Resources.IPFSNetwork.repo;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 
-import static com.rubix.Resources.Functions.*;
-import static com.rubix.Resources.IPFSNetwork.*;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.ipfs.api.IPFS;
 
 public class QuorumPingReceive {
     public static Logger QuorumPingReceiverLogger = Logger.getLogger(QuorumPingReceive.class);
@@ -28,14 +31,13 @@ public class QuorumPingReceive {
      * @throws IOException   handles IO Exceptions
      * @throws JSONException handles JSON Exceptions
      */
-    public static String receive(int port) {
+    public static String receive(int port) throws JSONException {
         pathSet();
-        ServerSocket ss ;
-        Socket sk ;
+        ServerSocket ss;
+        Socket sk;
 
         try {
             repo(ipfs);
-
 
             PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
@@ -50,6 +52,7 @@ public class QuorumPingReceive {
             BufferedReader input = new BufferedReader(new InputStreamReader(sk.getInputStream()));
             PrintStream output = new PrintStream(sk.getOutputStream());
 
+            int height = 0;
             String pingRequest;
             try {
                 pingRequest = input.readLine();
@@ -68,29 +71,59 @@ public class QuorumPingReceive {
 
             }
             QuorumPingReceiverLogger.debug("Ping Request Received: " + pingRequest);
-            if(pingRequest != null && pingRequest.contains("PingCheck")) {
+            if (pingRequest != null && pingRequest.contains("PingCheck")) {
                 output.println("Pong");
 
                 APIResponse.put("status", "Success");
                 APIResponse.put("message", "Pong Sent");
                 QuorumPingReceiverLogger.info("Pong Sent");
 
-            }if(pingRequest != null && pingRequest.contains("Get-Credits")) {
-                String qstFile = WALLET_DATA_PATH.concat("QuorumSignedTransactions.json");
-                File quorumFile = new File(qstFile);
-                int unspentCredits = 0;
-                if(quorumFile.exists()){
-                    String qFile = readFile(qstFile);
-                    JSONArray qArray = new JSONArray(qFile);
-                    unspentCredits = qArray.length();
+            }
+            else if (pingRequest != null && pingRequest.contains("Get-TokenChain-Height")) {
+                String tokenHash;
+                try {
+                    tokenHash = input.readLine();
+                } catch (SocketException e) {
+                    QuorumPingReceiverLogger.warn("Sender Stream Null - tokenHash");
+                    APIResponse.put("did", "");
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Sender Stream Null - tokenHash");
+
+                    output.close();
+                    input.close();
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
+
                 }
-                output.println(unspentCredits);
+                if (tokenHash != null && tokenHash.startsWith("Qm") && tokenHash.length() == 46) {
+                    QuorumPingReceiverLogger.info("Token chain height requested for: " + tokenHash);
+                    File tokenChainFile = new File(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                    if(!tokenChainFile.exists()) {
+                        QuorumPingReceiverLogger.info("Token chain file not found");
+                        height = 0;
+                    }
+                    else{
+                        String tokenChain = readFile(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                        JSONArray chainArray = new JSONArray(tokenChain);
+                        height = chainArray.length()-1;
+                        QuorumPingReceiverLogger.info("Chain height: " + height);
+                    }
+                }
+                else{
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Request Failed");
+                    QuorumPingReceiverLogger.info("Request Failed");
+                }
+                output.println(height);
 
                 APIResponse.put("status", "Success");
-                APIResponse.put("message", "Credits Sent");
-                QuorumPingReceiverLogger.info("Credits Sent " + unspentCredits);
+                APIResponse.put("message", "Pong Sent");
+                QuorumPingReceiverLogger.info("Pong Sent");
 
-            }else{
+            }
+            else {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Pong Failed");
                 QuorumPingReceiverLogger.info("Pong Failed");
@@ -102,8 +135,6 @@ public class QuorumPingReceive {
             ss.close();
 
         } catch (IOException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
             e.printStackTrace();
         }
         return APIResponse.toString();

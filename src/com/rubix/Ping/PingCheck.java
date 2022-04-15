@@ -1,23 +1,35 @@
 package com.rubix.Ping;
 
-import io.ipfs.api.IPFS;
+import static com.rubix.Resources.Functions.DATA_PATH;
+import static com.rubix.Resources.Functions.IPFS_PORT;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.Functions.nodeData;
+import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.forward;
+import static com.rubix.Resources.IPFSNetwork.repo;
+import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.net.Socket;
+import java.net.SocketException;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONException;
 import org.json.JSONObject;
-import java.io.*;
-import java.net.Socket;
-import java.net.SocketException;
 
-import static com.rubix.Resources.Functions.*;
-import static com.rubix.Resources.IPFSNetwork.*;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import io.ipfs.api.IPFS;
 
 public class PingCheck {
     private static final Logger PingSenderLogger = Logger.getLogger(PingCheck.class);
     public static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
+    public static BufferedReader serverInput;
 
-    public static JSONObject Ping(String peerID,  int port) throws IOException, JSONException {
+    public static JSONObject Ping(String peerID, int port) throws IOException, JSONException {
         repo(ipfs);
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
@@ -70,8 +82,7 @@ public class PingCheck {
             return APIResponse;
         }
 
-
-        if (pongResponse != null && (!pongResponse.equals("Pong"))) {
+        if (pongResponse != null && (!pongResponse.equals(initHash()))) {
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
             PingSenderLogger.info("Pong response not received");
             output.close();
@@ -80,7 +91,7 @@ public class PingCheck {
             APIResponse.put("status", "Failed");
             APIResponse.put("message", "Pong response not received");
 
-        }else {
+        } else {
             PingSenderLogger.info("Ping Successful");
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);
             output.close();

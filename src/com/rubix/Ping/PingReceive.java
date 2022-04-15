@@ -1,16 +1,29 @@
 package com.rubix.Ping;
-import io.ipfs.api.IPFS;
+
+import static com.rubix.Resources.Functions.DATA_PATH;
+import static com.rubix.Resources.Functions.IPFS_PORT;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.getPeerID;
+import static com.rubix.Resources.Functions.initHash;
+import static com.rubix.Resources.Functions.pathSet;
+import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+import static com.rubix.Resources.IPFSNetwork.listen;
+import static com.rubix.Resources.IPFSNetwork.repo;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONException;
 import org.json.JSONObject;
-import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
-import static com.rubix.Resources.Functions.*;
-import static com.rubix.Resources.IPFSNetwork.*;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
+
+import io.ipfs.api.IPFS;
 
 public class PingReceive {
     public static Logger PingReceiverLogger = Logger.getLogger(PingReceive.class);
@@ -25,14 +38,13 @@ public class PingReceive {
      * @throws IOException   handles IO Exceptions
      * @throws JSONException handles JSON Exceptions
      */
-    public static String receive(int port) {
+    public static String receive(int port) throws JSONException {
         pathSet();
-        ServerSocket ss ;
-        Socket sk ;
+        ServerSocket ss;
+        Socket sk;
 
         try {
             repo(ipfs);
-
 
             PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
@@ -65,14 +77,14 @@ public class PingReceive {
 
             }
             PingReceiverLogger.debug("Ping Request Received: " + pingRequest);
-            if(pingRequest != null && pingRequest.contains("PingCheck")) {
-                output.println("Pong");
+            if (pingRequest != null && pingRequest.contains("PingCheck")) {
+                output.println(initHash());
 
                 APIResponse.put("status", "Success");
-                APIResponse.put("message", "Pong Sent");
+                APIResponse.put("message", "Pong Sent to Sender with Check Sum");
                 PingReceiverLogger.info("Pong Sent");
 
-            }else{
+            } else {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Pong Failed");
                 PingReceiverLogger.info("Pong Failed");
@@ -84,8 +96,6 @@ public class PingReceive {
             ss.close();
 
         } catch (IOException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
             e.printStackTrace();
         }
         return APIResponse.toString();
