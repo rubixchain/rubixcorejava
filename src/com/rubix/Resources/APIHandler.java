@@ -37,34 +37,33 @@ public class APIHandler {
      */
 
 
-    public static JSONObject sortType2Quorum(){
+    public static JSONObject sortType2Quorum() {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         JSONObject sendMessage = new JSONObject();
-        JSONArray quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
-        APILogger.debug("Before Sorting: " + quorumArray);
-        int code = 0;
         try {
-            code = arrangeQuorum(quorumArray, SEND_PORT+11, 0);
+            JSONArray quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+            APILogger.debug("Before Sorting: " + quorumArray);
+            int code = 0;
+            code = arrangeQuorum(quorumArray, SEND_PORT + 11, 0);
+            if (code == 200) {
+                quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                APILogger.debug("After Sorting: " + quorumArray);
+                sendMessage.put("status", "Success");
+                sendMessage.put("message", "Sorted");
+            } else if (code == 401) {
+                APILogger.debug("Could not collect all(min. 21) credits");
+                sendMessage.put("status", "Failed");
+                sendMessage.put("message", "");
+            } else if (code == 402) {
+                APILogger.debug("7 alpha node credits not summing up to requested amount");
+                sendMessage.put("status", "Failed");
+                sendMessage.put("message", "");
+            }
+        } catch (JSONException e) {
+            // TODO: handle exception
         } catch (IOException e) {
             APILogger.debug("Credits failed");
-        }
-
-        if(code == 200) {
-            quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
-            APILogger.debug("After Sorting: " + quorumArray);
-            sendMessage.put("status", "Success");
-            sendMessage.put("message", "Sorted");
-        }
-        else if(code == 401){
-            APILogger.debug("Could not collect all(min. 21) credits");
-            sendMessage.put("status", "Failed");
-            sendMessage.put("message", "");
-        }
-        else if(code == 402){
-            APILogger.debug("7 alpha node credits not summing up to requested amount");
-            sendMessage.put("status", "Failed");
-            sendMessage.put("message", "");
         }
 
         return sendMessage;
