@@ -7,7 +7,7 @@ import static com.rubix.Constants.MiningConstants.STAKED_TOKEN;
 import static com.rubix.Constants.MiningConstants.STAKED_TOKEN_SIGN;
 import static com.rubix.Constants.MiningConstants.STAKE_DATA;
 import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.Functions.FunctionsLogger;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
 import static com.rubix.Resources.Functions.PAYMENTS_PATH;
@@ -425,7 +425,19 @@ public class TokenReceiver {
                         WALLET_DATA_PATH.concat("TokenHashTable").concat(".json"));
                 if (!tokenHashTable.exists()) {
                     tokenHashTable.createNewFile();
-                    writeToFile(tokenHashTable.toString(), , false);
+                    JSONObject tokenHashTableJSON = new JSONObject();
+                    for (int i = 1; i <= 5000000; i++) {
+                        tokenHashTableJSON.put(calculateHash(String.valueOf(i), "SHA-256"), i);
+                    }
+                    writeToFile(tokenHashTable.toString(), tokenHashTableJSON.toString(), false);
+                }
+                String tokenHashTableData = readFile(tokenHashTable.toString());
+                JSONObject tokenHashTableJSON = new JSONObject(tokenHashTableData);
+                if (tokenHashTableJSON.has(tokenNumberHash)) {
+                    tokenNumber = tokenHashTableJSON.getInt(tokenNumberHash);
+                    TokenReceiverLogger.debug("Token Number: " + tokenNumber);
+                } else {
+                    TokenReceiverLogger.debug("token : " + tokenNumberHash + " not found in TokenHashTable");
                 }
 
                 // if not create new one
