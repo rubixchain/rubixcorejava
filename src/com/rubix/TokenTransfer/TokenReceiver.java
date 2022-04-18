@@ -436,16 +436,41 @@ public class TokenReceiver {
                 if (tokenHashTableJSON.has(tokenNumberHash)) {
                     tokenNumber = tokenHashTableJSON.getInt(tokenNumberHash);
                     TokenReceiverLogger.debug("Token Number: " + tokenNumber);
+                    if (tokenNumber > tokenLimitForLevel) {
+                        String errorMessage = "Token Number is greater than Token Limit for the Level";
+                        output.println("426");
+                        APIResponse.put("did", senderDidIpfsHash);
+                        APIResponse.put("tid", "null");
+                        APIResponse.put("status", "Failed");
+                        APIResponse.put("message", errorMessage);
+                        TokenReceiverLogger.debug(errorMessage);
+                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                        output.close();
+                        input.close();
+                        sk.close();
+                        ss.close();
+                        return APIResponse.toString();
+                    }
                 } else {
-                    TokenReceiverLogger.debug("token : " + tokenNumberHash + " not found in TokenHashTable");
+                    TokenReceiverLogger.debug("Invalid Content Found in Token : " + tokenNumberHash);
+                    String errorMessage = "Invalid Content Found in Token";
+                    output.println("426");
+                    APIResponse.put("did", senderDidIpfsHash);
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", errorMessage);
+                    TokenReceiverLogger.debug(errorMessage);
+                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                    output.close();
+                    input.close();
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
                 }
 
-                // if not create new one
-
-                if (tokenChain.length() > 0 || (tokenNumber >= 1204400 && (tokenLevelInt >= 4))) {
+                if ((tokenNumber >= 1204400) && (tokenLevelInt >= 4)) {
 
                     JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
-                    JSONObject firstTCObject = tokenChain.getJSONObject(0);
                     TokenReceiverLogger.debug("Last Object = " + lastObject);
 
                     if (lastObject.has("owner") && !lastObject.has(MiningConstants.STAKED_TOKEN)) {
@@ -475,8 +500,7 @@ public class TokenReceiver {
 
                         // ! staking checks (1): Check incoming token level
 
-                        if (ownerCheck && (tokenChain.length() < minumumStakeHeight) && (tokenLevelInt >= 4)
-                                && firstTCObject.has("QSTHeight")) {
+                        if (ownerCheck && (tokenChain.length() < minumumStakeHeight)) {
                             // && (tokenNumber > 1204400)
 
                             // ! staking checks (3): Verify the signatures earned during the mining of the
@@ -637,7 +661,7 @@ public class TokenReceiver {
 
                         }
                     }
-                    if (lastObject.has(MiningConstants.STAKED_TOKEN) && tokenChain.length() > 1) {
+                    if (lastObject.has(MiningConstants.STAKED_TOKEN)) {
 
                         Boolean minedTokenStatus = true;
 
