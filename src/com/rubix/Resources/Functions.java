@@ -9,7 +9,7 @@ import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
-import java.awt.image.BufferedImage;
+import com.rubix.AuthenticateNode.PropImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -18,7 +18,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -26,28 +25,15 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
-import javax.imageio.ImageIO;
 
-import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Ping.PingCheck;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-import io.ipfs.api.IPFS;
-import io.ipfs.multiaddr.MultiAddress;
 
 public class Functions {
 
@@ -1430,6 +1416,13 @@ public class Functions {
         return balance;
     }
 
+    public static String getVersion() {
+        String CURRENT_VERSION =  Version.class.getPackage().getImplementationVersion();
+        return CURRENT_VERSION;
+    }
+    
+    
+
     public static String initHash() throws IOException {
         String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         initPath = initPath.split("\\.jar")[0];
@@ -1600,7 +1593,6 @@ public class Functions {
     public static boolean ping(String peerid, int port) throws IOException, JSONException {
         JSONObject pingCheck = PingCheck.Ping(peerid, port);
         FunctionsLogger.info("Ping Check Response " + pingCheck);
-        
         if (pingCheck.getString("status").contains("Failed")) {
             return false;
         } else
