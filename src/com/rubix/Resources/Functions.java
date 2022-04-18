@@ -10,6 +10,18 @@ import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
 import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
+
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -18,18 +30,25 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.RoundingMode;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import javax.imageio.ImageIO;
 
 
 
@@ -1416,9 +1435,30 @@ public class Functions {
         return balance;
     }
 
-    public static String getVersion() {
-        String CURRENT_VERSION =  Version.class.getPackage().getImplementationVersion();
-        return CURRENT_VERSION;
+    public static String getVersion(){
+        String version = "";
+        try {
+            URL url = new URL("http://localhost:1898/getVersion");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+            if (conn.getResponseCode() != 200) {
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + conn.getResponseCode());
+            }
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream())));
+            String output;
+            while ((output = br.readLine()) != null) {
+                version = output;
+            }
+            conn.disconnect();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return version;
     }
     
     
