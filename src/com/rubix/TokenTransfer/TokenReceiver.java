@@ -411,8 +411,11 @@ public class TokenReceiver {
                 String tokens = null;
                 JSONArray tokenChain = new JSONArray(allTokensChains.get(count).toString());
                 String TokenContent = get(wholeTokens.getString(count), ipfs);
-                String tokenLevel = TokenContent.substring(0, 3);
-                String tokenNumberHash = TokenContent.substring(3, TokenContent.indexOf("\n"));
+                String tokenLevel = TokenContent.substring(0, TokenContent.length() - 64);
+                String tokenNumberHash = TokenContent.substring(TokenContent.length() - 64);
+                // String tokenLevel = TokenContent.substring(0, 3);
+                // String tokenNumberHash = TokenContent.substring(3,
+                // TokenContent.indexOf("\n"));
 
                 int tokenLevelInt = Integer.parseInt(tokenLevel);
                 int tokenLimitForLevel = tokenLimit[tokenLevelInt];
