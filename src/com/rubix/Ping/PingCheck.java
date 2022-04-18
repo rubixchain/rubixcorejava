@@ -10,25 +10,26 @@ import static com.rubix.Resources.IPFSNetwork.forward;
 import static com.rubix.Resources.IPFSNetwork.repo;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 
+import io.ipfs.api.IPFS;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.SocketException;
-
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.ipfs.api.IPFS;
+
 
 public class PingCheck {
     private static final Logger PingSenderLogger = Logger.getLogger(PingCheck.class);
     public static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
     public static BufferedReader serverInput;
 
+    private static int socketTimeOut = 120000;
     public static JSONObject Ping(String peerID, int port) throws IOException, JSONException {
         repo(ipfs);
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -60,7 +61,7 @@ public class PingCheck {
         forward(appName, port, peerID);
         PingSenderLogger.debug("Forwarded to " + appName + " on " + port);
         Socket senderSocket = new Socket("127.0.0.1", port);
-
+        senderSocket.setSoTimeout(socketTimeOut);
         BufferedReader input = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
         PrintStream output = new PrintStream(senderSocket.getOutputStream());
 
@@ -82,7 +83,7 @@ public class PingCheck {
             return APIResponse;
         }
 
-        if (pongResponse != null && (pongResponse.equals(initHash()))) {
+        if (pongResponse != null && (pongResponse.equals(getVersion()))) {
         	
         	 PingSenderLogger.info("Ping Successful");
              executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);

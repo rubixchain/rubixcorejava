@@ -236,7 +236,7 @@ public class TokenSender {
 
             } else {
                 Double counter = decimalAmount;
-                JSONArray selectParts = new JSONArray(partFileContent);
+                JSONArray selectParts = new JSONArray(partContentArray);
                 while (counter > 0.000D) {
                     counter = formatAmount(counter);
                     TokenSenderLogger.debug("Counter: " + formatAmount(counter));
