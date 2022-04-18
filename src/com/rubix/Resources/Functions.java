@@ -9,6 +9,7 @@ import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
+<<<<<<< HEAD
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Ping.PingCheck;
 
@@ -21,6 +22,8 @@ import org.json.JSONObject;
 import io.ipfs.api.IPFS;
 import io.ipfs.multiaddr.MultiAddress;
 
+=======
+>>>>>>> parent of 5b9c76c (Update file check)
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -47,12 +50,25 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
+<<<<<<< HEAD
+
+import javax.imageio.ImageIO;
+=======
+>>>>>>> parent of 5b9c76c (Update file check)
 
 import javax.imageio.ImageIO;
 
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
 
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-
+import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
 
 public class Functions {
 
@@ -1435,6 +1451,7 @@ public class Functions {
         return balance;
     }
 
+<<<<<<< HEAD
     public static String getVersion(){
         String version = "";
         try {
@@ -1463,6 +1480,8 @@ public class Functions {
     
     
 
+=======
+>>>>>>> parent of 5b9c76c (Update file check)
     public static String initHash() throws IOException {
         String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         initPath = initPath.split("\\.jar")[0];
@@ -1633,6 +1652,7 @@ public class Functions {
     public static boolean ping(String peerid, int port) throws IOException, JSONException {
         JSONObject pingCheck = PingCheck.Ping(peerid, port);
         FunctionsLogger.info("Ping Check Response " + pingCheck);
+        
         if (pingCheck.getString("status").contains("Failed")) {
             return false;
         } else
