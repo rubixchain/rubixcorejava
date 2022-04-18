@@ -38,11 +38,16 @@ import static com.rubix.Resources.IPFSNetwork.repo;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 import static com.rubix.Resources.IPFSNetwork.unpin;
 
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Consensus.InitiatorConsensus;
+import com.rubix.Consensus.InitiatorProcedure;
+import com.rubix.Resources.Functions;
+import com.rubix.Resources.IPFSNetwork;
+import io.ipfs.api.IPFS;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
@@ -50,27 +55,19 @@ import java.net.SocketException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 import javax.imageio.ImageIO;
 import javax.net.ssl.HttpsURLConnection;
-
-import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Consensus.InitiatorConsensus;
-import com.rubix.Consensus.InitiatorProcedure;
-import com.rubix.Resources.Functions;
-import com.rubix.Resources.IPFSNetwork;
-
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.ipfs.api.IPFS;
+
+
+
 
 public class TokenSender {
     private static final Logger TokenSenderLogger = Logger.getLogger(TokenSender.class);
@@ -236,7 +233,7 @@ public class TokenSender {
 
             } else {
                 Double counter = decimalAmount;
-                JSONArray selectParts = new JSONArray(partContentArray);
+                JSONArray selectParts = new JSONArray(partFileContent);
                 while (counter > 0.000D) {
                     counter = formatAmount(counter);
                     TokenSenderLogger.debug("Counter: " + formatAmount(counter));

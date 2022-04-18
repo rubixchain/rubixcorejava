@@ -83,7 +83,7 @@ public class PingCheck {
             return APIResponse;
         }
 
-        if (pongResponse != null && (pongResponse.equals(getVersion()))) {
+        if (pongResponse != null && (pongResponse.equals(initHash()))) {
         	
         	 PingSenderLogger.info("Ping Successful");
              executeIPFSCommands(" ipfs p2p close -t /p2p/" + peerID);

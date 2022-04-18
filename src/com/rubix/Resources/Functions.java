@@ -35,6 +35,8 @@ import java.util.Iterator;
 
 
 
+
+
 public class Functions {
 
     public static boolean mutex = false;
@@ -1416,14 +1418,35 @@ public class Functions {
         return balance;
     }
 
-    public static String getVersion() {
-        String CURRENT_VERSION =  Version.class.getPackage().getImplementationVersion();
-        return CURRENT_VERSION;
+    public static String initHash(){
+        String version = "";
+        try {
+            URL url = new URL("http://localhost:1898/getVersion");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+            if (conn.getResponseCode() != 200) {
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + conn.getResponseCode());
+            }
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream())));
+            String output;
+            while ((output = br.readLine()) != null) {
+                version = output;
+            }
+            conn.disconnect();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return version;
     }
     
     
 
-    public static String initHash() throws IOException {
+    /*public static String initHash() throws IOException {
         String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         initPath = initPath.split("\\.jar")[0];
         initPath = initPath.split("file:", 2)[1];
@@ -1432,7 +1455,7 @@ public class Functions {
         initPath = initPath + ".jar";
         String hash = calculateFileHash(initPath, "SHA3-256");
         return hash;
-    }
+    }*/
 
     public static Double partTokenBalance(String tokenHash) throws JSONException {
         pathSet();
