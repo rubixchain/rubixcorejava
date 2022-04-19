@@ -38,11 +38,16 @@ import static com.rubix.Resources.IPFSNetwork.repo;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 import static com.rubix.Resources.IPFSNetwork.unpin;
 
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Consensus.InitiatorConsensus;
+import com.rubix.Consensus.InitiatorProcedure;
+import com.rubix.Resources.Functions;
+import com.rubix.Resources.IPFSNetwork;
+import io.ipfs.api.IPFS;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
@@ -50,27 +55,19 @@ import java.net.SocketException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 import javax.imageio.ImageIO;
 import javax.net.ssl.HttpsURLConnection;
-
-import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Consensus.InitiatorConsensus;
-import com.rubix.Consensus.InitiatorProcedure;
-import com.rubix.Resources.Functions;
-import com.rubix.Resources.IPFSNetwork;
-
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.ipfs.api.IPFS;
+
+
+
 
 public class TokenSender {
     private static final Logger TokenSenderLogger = Logger.getLogger(TokenSender.class);
@@ -114,7 +111,7 @@ public class TokenSender {
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
         TokenSenderLogger.debug("sender did ipfs hash" + senderDidIpfsHash);
 
-        boolean sanityCheck = sanityCheck(receiverPeerId, ipfs, port + 10);
+        boolean sanityCheck = sanityCheck("Receiver",receiverPeerId, ipfs, port + 10);
         if (!sanityCheck) {
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
@@ -431,7 +428,7 @@ public class TokenSender {
         for (int i = 0; i < quorumArray.length(); i++) {
             String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
                     quorumArray.getString(i));
-            boolean quorumSanityCheck = sanityCheck(quorumPeerID, ipfs, port + 11);
+            boolean quorumSanityCheck = sanityCheck("Quorum",quorumPeerID, ipfs, port + 11);
 
             if (!quorumSanityCheck) {
                 sanityFailedQuorum.put(quorumPeerID);

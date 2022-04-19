@@ -23,6 +23,7 @@ public class QuorumPingReceive {
 
     private static final JSONObject APIResponse = new JSONObject();
     private static final IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
+    public static String currentVersion = initHash();
 
     /**
      * Receiver Node: To receive a valid token from an authentic sender
@@ -72,8 +73,7 @@ public class QuorumPingReceive {
             }
             QuorumPingReceiverLogger.debug("Ping Request Received: " + pingRequest);
             if (pingRequest != null && pingRequest.contains("PingCheck")) {
-                output.println("Pong");
-
+                output.println("Pong "+currentVersion);
                 APIResponse.put("status", "Success");
                 APIResponse.put("message", "Pong Sent");
                 QuorumPingReceiverLogger.info("Pong Sent");
