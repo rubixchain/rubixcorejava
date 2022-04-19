@@ -111,7 +111,7 @@ public class TokenSender {
         String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
         TokenSenderLogger.debug("sender did ipfs hash" + senderDidIpfsHash);
 
-        boolean sanityCheck = sanityCheck(receiverPeerId, ipfs, port + 10);
+        boolean sanityCheck = sanityCheck("Receiver",receiverPeerId, ipfs, port + 10);
         if (!sanityCheck) {
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
@@ -428,7 +428,7 @@ public class TokenSender {
         for (int i = 0; i < quorumArray.length(); i++) {
             String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
                     quorumArray.getString(i));
-            boolean quorumSanityCheck = sanityCheck(quorumPeerID, ipfs, port + 11);
+            boolean quorumSanityCheck = sanityCheck("Quorum",quorumPeerID, ipfs, port + 11);
 
             if (!quorumSanityCheck) {
                 sanityFailedQuorum.put(quorumPeerID);

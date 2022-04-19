@@ -10,6 +10,12 @@ import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
 import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
+
+import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
+
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -18,18 +24,32 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.RoundingMode;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import javax.imageio.ImageIO;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.*;
+
 
 
 
@@ -1436,6 +1456,7 @@ public class Functions {
                 version = output;
             }
             conn.disconnect();
+            FunctionsLogger.debug("initHash version is "+version);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -1538,40 +1559,40 @@ public class Functions {
 
     public static String sanityMessage;
 
-    public static boolean sanityCheck(String peerid, IPFS ipfs, int port) throws IOException, JSONException {
-        FunctionsLogger.info("Entering Receiver SanityCheck");
+    public static boolean sanityCheck(String userType, String peerid, IPFS ipfs, int port) throws IOException, JSONException {
+        FunctionsLogger.info("Entering " + userType +" SanityCheck");
         boolean sanityCheckErrorFlag = true;
         if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
-            FunctionsLogger.debug("Receiver IPFS is working in " + peerid);
-            FunctionsLogger.debug("Receiver IPFS check true");
+            FunctionsLogger.debug(userType + " IPFS is working in " + peerid);
+            FunctionsLogger.debug(userType + " IPFS check true");
         } else {
             sanityCheckErrorFlag = false;
-            FunctionsLogger.debug("Receiver IPFS is not working in " + peerid);
-            FunctionsLogger.debug("Receiver IPFS check false");
-            sanityMessage = "Receiver IPFS is not working in " + peerid;
+            FunctionsLogger.debug(userType + " IPFS is not working in " + peerid);
+            FunctionsLogger.debug(userType + " IPFS check false");
+            sanityMessage = userType + " IPFS is not working in " + peerid;
         }
 
         if (sanityCheckErrorFlag) {
             if (bootstrapConnect(peerid, ipfs)) {
-                FunctionsLogger.debug("Bootstrap connected for Receiver " + peerid);
+                FunctionsLogger.debug("Bootstrap connected for "+userType +" : " + peerid);
                 FunctionsLogger.debug("Bootstrap check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Bootstrap connection unsuccessful for Receiver " + peerid);
+                FunctionsLogger.debug("Bootstrap connection unsuccessful for "+userType + " : " + peerid);
                 FunctionsLogger.debug("Bootstrap check false");
-                sanityMessage = "Bootstrap connection unsuccessful for Receiver " + peerid;
+                sanityMessage = "Bootstrap connection unsuccessful for "+userType +" : " + peerid;
             }
         }
 
         if (sanityCheckErrorFlag) {
             if (ping(peerid, port)) {
-                FunctionsLogger.debug("Rceiver is running the latest Jar " + peerid);
+                FunctionsLogger.debug(userType + " is running the latest Jar :" + peerid);
                 FunctionsLogger.debug("Latest Jar check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Receiver is not running the latest Jar " + peerid);
+                FunctionsLogger.debug(userType + " is not running the latest Jar :" + peerid);
                 FunctionsLogger.debug("Latest Jar check false");
-                sanityMessage = "Receiver is not running the latest Jar. PID: " + peerid;
+                sanityMessage = userType + " is not running the latest Jar. PID: " + peerid;
             }
         }
 
