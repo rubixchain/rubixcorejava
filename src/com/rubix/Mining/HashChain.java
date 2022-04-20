@@ -40,7 +40,7 @@ public class HashChain {
         for (int i = 0; i < DIDs.length; i++) {
             matchSubstrings[i] = DIDs[i].substring(DIDs[i].length() - MATCH_RULE, DIDs[i].length());
         }
-        matchSubstrings[-1] = finalHash.substring(finalHash.length() - MATCH_RULE, finalHash.length());
+        matchSubstrings[DIDs.length + 1] = finalHash.substring(finalHash.length() - MATCH_RULE, finalHash.length());
 
         // check if all the strings in the array are the same
         for (int i = 0; i < matchSubstrings.length - 1; i++) {
