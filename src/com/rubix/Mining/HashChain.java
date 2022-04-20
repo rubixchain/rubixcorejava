@@ -36,19 +36,13 @@ public class HashChain {
     private static Boolean matchParameter(String[] DIDs) {
         HashChainLogger.trace("Hash Chain " + iterCount + " > " + finalHash);
         int MATCH_RULE = 3;
-        String[] matchSubstrings = new String[DIDs.length + 1];
-        for (int i = 0; i < DIDs.length; i++) {
-            matchSubstrings[i] = DIDs[i].substring(DIDs[i].length() - MATCH_RULE, DIDs[i].length());
-        }
-        matchSubstrings[DIDs.length + 1] = finalHash.substring(finalHash.length() - MATCH_RULE, finalHash.length());
 
-        // check if all the strings in the array are the same
-        for (int i = 0; i < matchSubstrings.length - 1; i++) {
-            if (!matchSubstrings[i].equals(matchSubstrings[i + 1])) {
-                return false;
+        for (int i = 0; i < DIDs.length; i++) {
+            if (finalHash.substring(finalHash.length() - MATCH_RULE)
+                    .equals(DIDs[i].substring(DIDs[i].length() - MATCH_RULE))) {
+                return true;
             }
         }
-
         return true;
 
     }
