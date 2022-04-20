@@ -4,9 +4,9 @@ import com.rubix.Resources.Functions;
 
 public class HashChain {
 
-    String finalHash = "";
+    private static String finalHash = "";
 
-    public String newHashChain(String miningTID, String[] DIDs) {
+    public static String newHashChain(String miningTID, String[] DIDs) {
 
         String finalHash = miningTID;
         int iterCount = 0;
@@ -22,14 +22,14 @@ public class HashChain {
         return finalHash;
     }
 
-    public Boolean verifyHashChain(String tokenTID, String finalHash, String[] DIDs) {
+    public static Boolean verifyHashChain(String tokenTID, String finalHash, String[] DIDs) {
 
         String calculatedFinalHash = newHashChain(tokenTID, DIDs);
 
         return calculatedFinalHash == finalHash;
     }
 
-    private Boolean matchParameter(String[] DIDs) {
+    private static Boolean matchParameter(String[] DIDs) {
 
         int MATCH_RULE = 3;
         String[] matchSubstrings = new String[DIDs.length + 1];
