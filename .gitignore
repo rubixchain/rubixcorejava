@@ -5,3 +5,11 @@ tests/thunder-tests/thunderActivity.db
 tests/thunder-tests/thunderclient.db
 tests/thunder-tests/thunderCollection.db
 tests/thunder-tests/thunderEnvironment.db
+tests/thunder-tests/thunderActivity.json
+tests/thunder-tests/thunderclient.json
+tests/thunder-tests/thunderCollection.json
+tests/thunder-tests/thunderEnvironment.json
+tests/thunder-tests/backup/thunderActivity.db
+tests/thunder-tests/backup/thunderclient.db
+tests/thunder-tests/backup/thunderCollection.db
+tests/thunder-tests/backup/thunderEnvironment.db

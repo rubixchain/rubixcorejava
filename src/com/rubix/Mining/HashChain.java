@@ -2,14 +2,18 @@ package com.rubix.Mining;
 
 import com.rubix.Resources.Functions;
 
+import org.apache.log4j.Logger;
+
 public class HashChain {
 
+    public static Logger HashChainLogger = Logger.getLogger(HashChain.class);
+
     private static String finalHash = "";
+    private static int iterCount = 0;
 
     public static String newHashChain(String miningTID, String[] DIDs) {
 
-        String finalHash = miningTID;
-        int iterCount = 0;
+        finalHash = miningTID;
 
         do {
 
@@ -18,7 +22,7 @@ public class HashChain {
 
         } while (!matchParameter(DIDs));
 
-        System.out.println("Hash Chain Iteration Count: " + iterCount);
+        HashChainLogger.trace("Hash Chain Length for TID: " + miningTID + " is = " + iterCount);
         return finalHash;
     }
 
@@ -30,7 +34,7 @@ public class HashChain {
     }
 
     private static Boolean matchParameter(String[] DIDs) {
-
+        HashChainLogger.trace("Hash Chain " + iterCount + " > " + finalHash);
         int MATCH_RULE = 3;
         String[] matchSubstrings = new String[DIDs.length + 1];
         for (int i = 0; i < DIDs.length; i++) {
