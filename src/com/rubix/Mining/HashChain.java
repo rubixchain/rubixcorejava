@@ -35,7 +35,7 @@ public class HashChain {
 
     private static Boolean ruleNotMatch(String[] DIDs) {
         HashChainLogger.trace("Hash Chain " + iterCount + " > " + finalHash);
-        int MATCH_RULE = 3;
+        int MATCH_RULE = 1;
 
         for (int i = 0; i < DIDs.length; i++) {
             if (!(finalHash.substring(finalHash.length() - MATCH_RULE)
