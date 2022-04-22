@@ -38,13 +38,13 @@ public class HashChain {
         int MATCH_RULE = 1;
 
         for (int i = 0; i < DIDs.length; i++) {
-            if (!(finalHash.substring(finalHash.length() - MATCH_RULE)
-                    .equals(DIDs[i].substring(DIDs[i].length() - MATCH_RULE)))) {
-                return true;
+            if (finalHash.substring(finalHash.length() - MATCH_RULE)
+                    .equals(DIDs[i].substring(DIDs[i].length() - MATCH_RULE))) {
+                HashChainLogger.trace("Hash Chain " + iterCount + " > " + finalHash);
+                return false;
             }
         }
         return false;
-
     }
 
 }
