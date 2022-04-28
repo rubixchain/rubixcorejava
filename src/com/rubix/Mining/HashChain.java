@@ -15,14 +15,18 @@ public class HashChain {
 
         finalHash = miningTID;
 
-        do {
+        if (finalHash != null) {
 
-            iterCount++;
-            finalHash = Functions.calculateHash(finalHash, "SHA3-256");
+            do {
 
-        } while (ruleNotMatch(DIDs));
+                iterCount++;
+                finalHash = Functions.calculateHash(finalHash, "SHA3-256");
+                System.out.println("HashChain at " + iterCount + " is " + finalHash);
 
-        HashChainLogger.trace("Hash Chain Length for TID: " + miningTID + " is = " + iterCount);
+            } while (ruleNotMatch(DIDs));
+
+            HashChainLogger.debug("Hash Chain Length for TID: " + miningTID + " is = " + iterCount);
+        }
         return finalHash;
     }
 
@@ -34,7 +38,7 @@ public class HashChain {
     }
 
     private static Boolean ruleNotMatch(String[] DIDs) {
-        HashChainLogger.trace("Hash Chain " + iterCount + " > " + finalHash);
+        // HashChainLogger.debug("Hash Chain " + iterCount + " > " + finalHash);
         int MATCH_RULE = 1;
 
         for (int i = 0; i < DIDs.length; i++) {
