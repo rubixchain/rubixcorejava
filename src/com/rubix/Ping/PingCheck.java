@@ -27,7 +27,6 @@ public class PingCheck {
 
     private static int socketTimeOut = 120000;
     public static String currentVersion = initHash();
-
     public static JSONObject Ping(String peerID, int port) throws IOException, JSONException {
         repo(ipfs);
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
