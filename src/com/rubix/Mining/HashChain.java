@@ -15,7 +15,8 @@ public class HashChain {
 
         finalHash = miningTID;
 
-        if (finalHash != null) {
+        if (finalHash != null && DIDs.length > 0) {
+            System.out.println(miningTID + " " + DIDs);
 
             do {
 
@@ -39,7 +40,8 @@ public class HashChain {
 
     private static Boolean ruleNotMatch(String[] DIDs) {
         // HashChainLogger.debug("Hash Chain " + iterCount + " > " + finalHash);
-        int MATCH_RULE = 1;
+        int MATCH_RULE = DIDs.length;
+        System.out.println("MATCH_RULE = " + MATCH_RULE);
 
         for (int i = 0; i < DIDs.length; i++) {
             if (finalHash.substring(finalHash.length() - MATCH_RULE)
