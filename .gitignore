@@ -13,3 +13,8 @@ tests/thunder-tests/backup/thunderActivity.db
 tests/thunder-tests/backup/thunderclient.db
 tests/thunder-tests/backup/thunderCollection.db
 tests/thunder-tests/backup/thunderEnvironment.db
+/target/
+.classpath
+.project
+.settings/org.eclipse.jdt.core.prefs
+java-rubix-core.iml
