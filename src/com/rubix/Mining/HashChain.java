@@ -16,15 +16,14 @@ public class HashChain {
         finalHash = miningTID;
 
         if (finalHash != null && DIDs.length > 0) {
-            System.out.println(miningTID + " " + DIDs);
 
-            do {
+            while (ruleNotMatch(DIDs)) {
 
                 iterCount++;
                 finalHash = Functions.calculateHash(finalHash, "SHA3-256");
                 System.out.println("HashChain at " + iterCount + " is " + finalHash);
 
-            } while (ruleNotMatch(DIDs));
+            }
 
             HashChainLogger.debug("Hash Chain Length for TID: " + miningTID + " is = " + iterCount);
         }
@@ -40,12 +39,11 @@ public class HashChain {
 
     private static Boolean ruleNotMatch(String[] DIDs) {
         // HashChainLogger.debug("Hash Chain " + iterCount + " > " + finalHash);
-        int MATCH_RULE = DIDs.length;
-        System.out.println("MATCH_RULE = " + MATCH_RULE);
+        int matchRule = DIDs.length;
 
-        for (int i = 0; i < DIDs.length; i++) {
-            if (finalHash.substring(finalHash.length() - MATCH_RULE)
-                    .equals(DIDs[i].substring(DIDs[i].length() - MATCH_RULE))) {
+        for (int i = 0; i < matchRule; i++) {
+            if (finalHash.substring(finalHash.length() - matchRule)
+                    .equals(DIDs[i].substring(DIDs[i].length() - matchRule))) {
                 return false;
             }
         }

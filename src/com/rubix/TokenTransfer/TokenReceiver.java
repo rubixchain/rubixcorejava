@@ -60,7 +60,6 @@ import com.rubix.Ping.VerifyStakedToken;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
-import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -406,10 +405,10 @@ public class TokenReceiver {
 
             JSONArray invalidTokens = new JSONArray();
 
-            for (int count = 0; count < allTokensChains.length(); count++) {
+            for (int count = 0; count < wholeTokens.length(); count++) {
 
                 String tokens = null;
-                JSONArray tokenChain = new JSONArray(allTokensChains.get(count).toString());
+                JSONArray tokenChain = new JSONArray(wholeTokens.get(count).toString());
                 String TokenContent = get(wholeTokens.getString(count), ipfs);
                 String tokenLevel = TokenContent.substring(0, TokenContent.length() - 64);
                 String tokenNumberHash = TokenContent.substring(TokenContent.length() - 64);
