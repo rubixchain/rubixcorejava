@@ -60,6 +60,7 @@ import com.rubix.Ping.VerifyStakedToken;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
+import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
