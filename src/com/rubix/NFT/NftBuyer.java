@@ -1598,16 +1598,17 @@ public class NftBuyer {
 
                 // Serialization
                 JSONObject dataToSend = new JSONObject();
-                // dataToSend.put("transaction_type", "NFT");
+                dataToSend.put("transaction_type", "NFT");
                 dataToSend.put("transaction_id", tid);
                 dataToSend.put("sender_did", buyerDid);
                 dataToSend.put("receiver_did", sellerDid);
                 dataToSend.put("token_id", tokenList);
                 dataToSend.put("token_time", (int) totalTime);
                 dataToSend.put("amount", requestedAmount);
-                // dataToSend.put("nftToken", nftTokenIpfsHash);
-                // dataToSend.put("nftBuyer", buyerDid);
-                // dataToSend.put("nftSeller", sellerDid);
+                dataToSend.put("nftToken", nftTokenIpfsHash);
+                dataToSend.put("nftBuyer", buyerDid);
+                dataToSend.put("nftSeller", sellerDid);
+                dataToSend.put("nftCreatorInput", creatorInput);
                 String populate = dataToSend.toString();
 
                 JSONObject jsonObject = new JSONObject();
