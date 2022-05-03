@@ -86,7 +86,7 @@ public class NFTAPIHandler {
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
-        } 
+        }
         return sendMessage;
     }
 
@@ -99,10 +99,15 @@ public class NFTAPIHandler {
             int type = apiData.getInt("racType");
             switch (type) {
                 case 1:
-                    tokens = createNftToken(data);
+                    JSONObject temp1 = new JSONObject();
+                    JSONArray tempArray1 = new JSONArray();
+                    temp1.put("Status", "Failed");
+                    temp1.put("Message", "Type 1 depricated. Please use RAC Type 2 to mint NFT tokens");
+                    temp1.put("Tokens", tempArray1);
+                    tokens = temp1.toString();
                     break;
                 case 2:
-                    tokens = createRacToken(data);
+                    tokens = createNftToken(data);
                     break;
                 default:
                     JSONObject temp = new JSONObject();
@@ -164,11 +169,9 @@ public class NFTAPIHandler {
 
             JSONObject transactionObject = new JSONObject();
 
-            for(int i=0;i<transactionArray.length();i++)
-            {
-                if(transactionArray.getJSONObject(i).getString("txn").equals(txnId))
-                {
-                    transactionObject=transactionArray.getJSONObject(i);
+            for (int i = 0; i < transactionArray.length(); i++) {
+                if (transactionArray.getJSONObject(i).getString("txn").equals(txnId)) {
+                    transactionObject = transactionArray.getJSONObject(i);
                 }
             }
 
@@ -177,7 +180,6 @@ public class NFTAPIHandler {
                 if (nftTransactionObject.get("txn").equals(txnId)) {
                     nftTransactionObject.remove("essentialShare");
 
-                    
                     if (nftTransactionObject.has("quorumList")) {
                         nftTransactionObject.remove("quorumList");
                     }
@@ -263,7 +265,6 @@ public class NFTAPIHandler {
                          * transactionObject.put("amount", tokensArray.length());
                          * }
                          */
-                        
 
                         if (nftTransactionObject.has("quorumList")) {
                             nftTransactionObject.remove("quorumList");
@@ -280,7 +281,6 @@ public class NFTAPIHandler {
 
         return resultArray;
     }
-
 
     public static JSONObject sendNftP2p(String data) {
         pathSet();
@@ -340,23 +340,21 @@ public class NFTAPIHandler {
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
-        } 
+        }
         return sendMessage;
     }
 
-
-    public static String testsalevery(String reconObj,String saleContracthash, String pubkeyipfs)
-    {
-        PublicKey publicKey=getPubKeyFromStr(IPFSNetwork.get(pubkeyipfs, ipfs));
-        APILogger.debug("Public key "+ publicKey.toString());
+    public static String testsalevery(String reconObj, String saleContracthash, String pubkeyipfs) {
+        PublicKey publicKey = getPubKeyFromStr(IPFSNetwork.get(pubkeyipfs, ipfs));
+        APILogger.debug("Public key " + publicKey.toString());
         String saleContractContent = IPFSNetwork.get(saleContracthash, ipfs);
-        String result="fail";
+        String result = "fail";
         try {
             JSONObject saleConObj = new JSONObject(saleContractContent);
             String saleSignature = saleConObj.getString("sign");
-            boolean b =verifySignature(reconObj, publicKey, saleSignature);
-            if(b){
-                result="pass";
+            boolean b = verifySignature(reconObj, publicKey, saleSignature);
+            if (b) {
+                result = "pass";
             }
 
         } catch (JSONException e) {
