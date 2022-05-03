@@ -111,6 +111,23 @@ public class InitiatorProcedure {
             dataSend.put("qstDetails", qstDetails);
         }
 
+        if (operation.equals("NFT")) {
+            JSONObject nftdetails = new JSONObject();
+            nftdetails.put("sellerPubKeyIpfsHash", dataObject.getString("sellerPubKeyIpfsHash"));
+            nftdetails.put("saleContractIpfsHash", dataObject.getString("saleContractIpfsHash"));
+            nftdetails.put("nftTokenDetails", dataObject.getJSONObject("nftTokenDetails"));
+            nftdetails.put("rbtTokenDetails", dataObject.getJSONObject("rbtTokenDetails"));
+            // nftdetails.put("sellerPvtKeySign", dataObject.getString("sellerPvtKeySign"));
+            nftdetails.put("tokenAmount", dataObject.getDouble("tokenAmount"));
+            String authNftSenderByQuorumHash = calculateHash(dataObject.getJSONObject("nftTokenDetails").toString(),
+                    "SHA3-256");
+            nftdetails.put("nftHash", authNftSenderByQuorumHash);
+            nftdetails.put("nftBuyerDid", senderDidIpfs);
+
+            dataSend.put("nftDetails", nftdetails);
+
+        }
+
         Thread alphaThread = new Thread(() -> {
             try {
                 alphaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT, 0, "alpha", alphaList, alphaSize,
@@ -143,7 +160,19 @@ public class InitiatorProcedure {
         alphaThread.start();
         betaThread.start();
         gammaThread.start();
-        while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+
+        if (operation.equals("NFT")) {
+            while ((InitiatorConsensus.quorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7))))
+                    && (InitiatorConsensus.nftQuorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7))))) {
+            }
+            InitiatorProcedureLogger.debug(
+                    "ABG NFT Consensus completed with length for NFT :" + InitiatorConsensus.nftQuorumSignature.length()
+                            + " RBT " + InitiatorConsensus.quorumSignature.length());
+        } else {
+            while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+            }
+            InitiatorProcedureLogger
+                    .debug("ABG Consensus completed with length " + InitiatorConsensus.quorumSignature.length());
         }
         InitiatorProcedureLogger
                 .debug("ABG Consensus completed with length " + InitiatorConsensus.quorumSignature.length());
