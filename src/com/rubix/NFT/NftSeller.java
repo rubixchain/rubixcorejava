@@ -1419,13 +1419,9 @@ public class NftSeller {
                         }
                     }
 
-                    /*
-                     * JSONArray allTokens = new JSONArray();
-                     * for (int i = 0; i < wholeTokens.length(); i++)
-                     * allTokens.put(wholeTokens.getString(i));
-                     * for (int i = 0; i < partTokens.length(); i++)
-                     * allTokens.put(partTokens.getString(i));
-                     */
+                    //Delete nft token from NFTSeller once traansfered
+                    deleteFile(NFT_TOKENS_PATH+nftTokenIpfsHash);
+                    
                     JSONObject rbtTransactionRecord = new JSONObject();
                     rbtTransactionRecord.put("role", "Receiver");
                     rbtTransactionRecord.put("tokens", allTokens);
