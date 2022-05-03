@@ -80,7 +80,7 @@ public class NftBuyer {
             String nftTokenIpfsHash = detailsObject.getString("nftToken");
 
             sellerPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", sellerDid);
-            boolean sanityCheck = sanityCheck(sellerPeerID, ipfs, port + 10);
+            boolean sanityCheck = sanityCheck("Receiver",sellerPeerID, ipfs, port + 10);
             if (!sanityCheck) {
                 APIResponse.put("did", buyerDid);
                 APIResponse.put("tid", "null");
@@ -1001,7 +1001,7 @@ public class NftBuyer {
             Functions.deleteFile(Functions.LOGGER_PATH + "tempgamma");
             switch (type) {
                 case 1:
-                    quorumArray = Functions.getQuorum(betaHash, gammaHash, sellerDid, buyerDid, allTokens.length());
+                    quorumArray = Functions.getQuorum(buyerDid,sellerDid,allTokens.length());
                     break;
                 case 2:
                     quorumArray = new JSONArray(Functions.readFile(Functions.DATA_PATH + "quorumlist.json"));
@@ -1029,7 +1029,7 @@ public class NftBuyer {
             for (int i = 0; i < quorumArray.length(); i++) {
                 String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
                         quorumArray.getString(i));
-                boolean quorumSanityCheck = sanityCheck(quorumPeerID, ipfs, port + 11);
+                boolean quorumSanityCheck = sanityCheck("Quorum",quorumPeerID, ipfs, port + 11);
 
                 if (!quorumSanityCheck) {
                     sanityFailedQuorum.put(quorumPeerID);
