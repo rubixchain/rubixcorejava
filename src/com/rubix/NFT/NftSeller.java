@@ -374,6 +374,9 @@ public class NftSeller {
 
             if (nftTokenAuth != null && nftTokenAuth.startsWith("4")) {
                 switch (nftTokenAuth) {
+                    case "419":
+                        nftSellerLogger.info("NFT Token " + nftTokenIpfsHash + " is of RAC Type 1 which is depricated");
+                        APIResponse.put("message", "NFT Token " + nftTokenIpfsHash + " is of RAC Type 1 which is depricated");
                     case "420":
                         nftSellerLogger.info("NFT Token Authenticity check Failed");
                         APIResponse.put("message", "NFT Token " + nftTokenIpfsHash + "Authenticity check Failed.");

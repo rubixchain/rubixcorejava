@@ -400,6 +400,28 @@ public class NftBuyer {
             String creatorPubKeyStr = get(creatorPublicKeyIpfsHash, ipfs);
             PublicKey creatorPublicKey = getPubKeyFromStr(creatorPubKeyStr);
 
+            /*
+            Check if NFT Token is of RAC type =1
+            */
+            int racType=nftTokenObject.getInt("racType");
+            if(racType==1)
+            {
+                output.println("419");
+                APIResponse.put("did", sellerDid);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "NFT Token " + nftTokenIpfsHash + " is of RAC Type "+racType + " which is depricated");
+                nftBuyerLogger.info("NFT Token " + nftTokenIpfsHash + " is of RAC Type "+racType + " which is depricated");
+                //nftBuyerLogger.debug("NFT Buyer was not able to verify the creator Signature of the NFT Token " +nftTokenIpfsHash);;
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
+                output.close();
+                input.close();
+                buyerSocket.close();
+                 
+                buyerMutex = false;
+                return APIResponse;
+            }
+
             if (!verifySignature(verifyNftTokenString, creatorPublicKey, nftPvtSignature)) {
                 output.println("420");
                 APIResponse.put("did", sellerDid);
