@@ -533,6 +533,7 @@ public class QuorumConsensus implements Runnable {
                 String getRecData = null;
                 try {
                     getRecData = in.readLine();
+                    QuorumConsensusLogger.debug("Get Rec Data is "+getRecData);
                 } catch (SocketException e) {
                     QuorumConsensusLogger.debug("Sender Input Stream Null - Ping Check / Receiver Details");
                     socket.close();
@@ -546,6 +547,7 @@ public class QuorumConsensus implements Runnable {
                         out.println("pong response");
                     } else {
                     	if(getRecData.contains("data")) {
+                    		QuorumConsensusLogger.debug("inside getRecData contains Data");
                     		QuorumConsensusLogger.debug("Received Details from initiator: " + getRecData);
                             readSenderData = new JSONObject(getRecData);
                             senderPrivatePos = readSenderData.getString("sign");
@@ -573,7 +575,7 @@ public class QuorumConsensus implements Runnable {
                             detailsToVerify.put("hash", verifySenderHash);
                             detailsToVerify.put("signature", senderPrivatePos);
                             
-                            QuorumConsensusLogger.debug(detailsToVerify.toString());
+                            QuorumConsensusLogger.debug("Details to verify "+detailsToVerify.toString());
 
                             writeToFile(LOGGER_PATH + "tempverifysenderhash", verifySenderHash, false);
                             String verifySenderIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "tempverifysenderhash",
@@ -591,6 +593,7 @@ public class QuorumConsensus implements Runnable {
                                 String creditSignatures = null;
                                 try {
                                     creditSignatures = in.readLine();
+                                    QuorumConsensusLogger.debug("Credit signature is "+creditSignatures);
                                 } catch (SocketException e) {
                                     QuorumConsensusLogger.debug("Sender Input Stream Null - Credits");
                                     socket.close();
@@ -601,6 +604,7 @@ public class QuorumConsensus implements Runnable {
 
                                 if (!creditSignatures.equals("null")) { // commented as per test for multiple consensus
                                                                         // threads
+                                	QuorumConsensusLogger.debug("inside creditsignature not equal to null");
                                     FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
                                     shareWriter.write(creditSignatures);
                                     shareWriter.close();
@@ -642,6 +646,7 @@ public class QuorumConsensus implements Runnable {
 
                         
                     	}else {
+                    		QuorumConsensusLogger.debug("inside not getRecData contains Data");
                     		QuorumConsensusLogger.debug("Received Details from initiator: " + getRecData);
                             readSenderData = new JSONObject(getRecData);
                             senderPrivatePos = readSenderData.getString("sign");
@@ -693,8 +698,10 @@ public class QuorumConsensus implements Runnable {
                                 }
                                 QuorumConsensusLogger.debug("credit Signature " + creditSignatures);
 
-                                if (!creditSignatures.equals("null")) { // commented as per test for multiple consensus
+                                if (!creditSignatures.equals("null")) {
+                                	// commented as per test for multiple consensus
                                                                         // threads
+                                	QuorumConsensusLogger.debug("Credit Signature is not null");
                                     FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
                                     shareWriter.write(creditSignatures);
                                     shareWriter.close();
@@ -727,6 +734,7 @@ public class QuorumConsensus implements Runnable {
                                     String consenusIDhash = IPFSNetwork.add(LOGGER_PATH + "consenusIDhash", ipfs);
                                     deleteFile(LOGGER_PATH + "consenusIDhash");
                                     QuorumConsensusLogger.debug("added consensus ID " + consenusIDhash);
+                                    QuorumConsensusLogger.debug("end of function");
                                 }
 
                             } else {

@@ -1,6 +1,11 @@
 package com.rubix.Resources;
 
 import static com.rubix.Resources.APIHandler.addPublicData;
+import static com.rubix.Resources.Functions.DATA_PATH;
+import static com.rubix.Resources.Functions.DATUM_CHAIN_PATH;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.getPeerID;
+import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.IPFSNetwork.IPFSNetworkLogger;
 import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
@@ -30,6 +35,7 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.List;  
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -37,14 +43,15 @@ import java.util.Set;
 
 import javax.imageio.ImageIO;
 
-import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Ping.PingCheck;
-
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
 
 import io.ipfs.api.IPFS;
 import io.ipfs.multiaddr.MultiAddress;
@@ -74,6 +81,7 @@ public class Functions {
     public static JSONObject QUORUM_MEMBERS;
     public static JSONArray BOOTSTRAPS;
     public static String DATA__PATH ="";
+    public static String DATUM_CHAIN_PATH = "";
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
@@ -148,7 +156,8 @@ public class Functions {
             TOKENCHAIN_PATH = pathsArray.getJSONObject(0).getString("TOKENCHAIN_PATH");
             WALLET_DATA_PATH = pathsArray.getJSONObject(0).getString("WALLET_DATA_PATH");
             PAYMENTS_PATH = pathsArray.getJSONObject(0).getString("PAYMENTS_PATH");
-
+            DATUM_CHAIN_PATH = pathsArray.getJSONObject(0).getString("DATUM_CHAIN_PATH");
+            
             SEND_PORT = pathsArray.getJSONObject(1).getInt("SEND_PORT");
             RECEIVER_PORT = pathsArray.getJSONObject(1).getInt("RECEIVER_PORT");
             GOSSIP_RECEIVER = pathsArray.getJSONObject(1).getInt("GOSSIP_RECEIVER");
@@ -175,6 +184,7 @@ public class Functions {
             QUORUM_MEMBERS = pathsArray.getJSONObject(4);
 
             BOOTSTRAPS = pathsArray.getJSONArray(5);
+            
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -397,6 +407,7 @@ public class Functions {
         int[] finalpos = (int[]) P.get("posForSign");
         int[] p1Sign = getPrivatePosition(finalpos, privateIntegerArray1);
         String p1 = intArrayToStr(p1Sign);
+        FunctionsLogger.debug("sign from share is "+p1);
         return p1;
     }
 
@@ -485,12 +496,22 @@ public class Functions {
      */
 
     public static void updateJSON(String operation, String filePath, String data) {
+    	FunctionsLogger.debug("Mutex status is "+mutex);
+    	FunctionsLogger.debug("----------------------------------------------------------");
+    	FunctionsLogger.debug("incoming opertation is "+operation+" and data is : "+data);
+    	FunctionsLogger.debug("----------------------------------------------------------");
+    	FunctionsLogger.debug("Started to update "+filePath+" file");
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        
+    	FunctionsLogger.debug("Mutex status is "+mutex);
+
         try {
             while (mutex) {
             }
 
             mutex = true;
+        	FunctionsLogger.debug("Mutex status is "+mutex+" after while");
+
             File file = new File(filePath);
             if (!file.exists()) {
                 file.createNewFile();
@@ -515,9 +536,11 @@ public class Functions {
 
             if (operation.equals("add")) {
                 JSONArray newData = new JSONArray(data);
+                FunctionsLogger.debug("data to be added in if condifiton is "+ newData.toString());
                 for (int i = 0; i < newData.length(); i++)
                     contentArray.put(newData.getJSONObject(i));
                 writeToFile(filePath, contentArray.toString(), false);
+                FunctionsLogger.debug("Update completed in "+filePath);
             }
             mutex = false;
         } catch (JSONException e) {
@@ -846,14 +869,16 @@ public class Functions {
         File tokensFolder = new File(TOKENS_PATH);
         File tokenChainsFolder = new File(TOKENCHAIN_PATH);
         File walletDataFolder = new File(WALLET_DATA_PATH);
+        File commitDataFolder = new File(DATUM_CHAIN_PATH);
 
         if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists()
-                || !walletDataFolder.exists()) {
+                || !walletDataFolder.exists() || !commitDataFolder.exists()) {
             dataFolder.delete();
             loggerFolder.delete();
             tokenChainsFolder.delete();
             tokensFolder.delete();
             walletDataFolder.delete();
+            commitDataFolder.delete();
             JSONObject result = new JSONObject();
             result.put("message", "User not registered, create your Decentralised Identity!");
             result.put("info", "Inner Folders Missing");
@@ -1865,5 +1890,59 @@ public class Functions {
         return releasedPort;
 
     }
+    
+    public static JSONObject verifySpecificCommit(String blockHash) {
+        JSONObject APIResponse = new JSONObject();
+       // String quorumLiStrings[] = null;
+        String transcationID = null;
+        String senderDidIpfsHash  = null;
+        String status = null;
+        String blockHashFromChainString = null;
+        FunctionsLogger.debug("data is "+blockHash);
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        //JSONObject detailsObject = new JSONObject(blockHash);
+        //String blockHashValue = detailsObject.getString("blockHash");
+        //FunctionsLogger.debug(blockHashValue);
+    	String datumFolderPath = DATUM_CHAIN_PATH;
+      //  quorumLiStrings[] = getValues(datumFolderPath.concat("datumCommitChain.json"), "quorumList", "blockHash", blockHash).toArray();
+        transcationID = getValues(datumFolderPath.concat("datumCommitChain.json"), "txn", "blockHash", blockHash);
+        senderDidIpfsHash = getValues(datumFolderPath.concat("datumCommitChain.json"), "senderDID", "blockHash", blockHash);
+        blockHashFromChainString = getValues(datumFolderPath.concat("datumCommitChain.json"), "blockHash", "blockHash", blockHash);
+        
+        FunctionsLogger.debug("File path is :  "+datumFolderPath.concat("datumCommitChain.json"));
+    	File datumCommitChain = new File(datumFolderPath.concat("datumCommitChain.json"));
+    	
+       // FunctionsLogger.debug("quorumLiStrings is "+ quorumLiStrings +"\n transcationID is "+transcationID 
+        	//	+ " \n senderDidIpfsHash "+ senderDidIpfsHash + "\n blockHashFromChainString is "+blockHashFromChainString);
+        
+        APIResponse = new JSONObject();
+        
+        //FunctionsLogger.debug("detailsObject is "+ detailsObject.toString());
+       // APIResponse.put("txn", transcationID);
+       // APIResponse.put("Signed Quorums", quorumLiStrings);
+
+        
+        if(getValues(datumFolderPath.concat("datumCommitChain.json"), "blockHash", "blockHash", blockHash).equals(blockHash)) 
+        {
+        	FunctionsLogger.debug("BlockHash exists");
+     	   	APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", transcationID);
+            APIResponse.put("status", "True");
+           // APIResponse.put("Signed Quorums", quorumLiStrings);
+            APIResponse.put("message", "Block Hash verified");
+        }else {
+        	FunctionsLogger.debug("BlockHash doesnt exists");
+        	APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", transcationID);
+            APIResponse.put("status", "False");
+           // APIResponse.put("Signed Quorums", quorumLiStrings);
+            APIResponse.put("message", "Block Hash doesnt exist");
+        }
+    	//APIResponse = new JSONObject();
+
+    	
+    	return APIResponse;
+		
+	}
 
 }

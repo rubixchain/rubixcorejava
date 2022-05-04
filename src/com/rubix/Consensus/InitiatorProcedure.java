@@ -7,6 +7,7 @@ import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.minQuorum;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import com.rubix.Constants.ConsensusConstants;
 import com.rubix.SplitandStore.SeperateShares;
@@ -120,9 +121,9 @@ public class InitiatorProcedure {
         	String authSenderByQuorumHash = calculateHash(blockHash, "SHA3-256");
             String authQuorumHash = calculateHash(authSenderByQuorumHash.concat(blockHash), "SHA3-256");
 
-            InitiatorProcedureLogger.debug("Data Sender by Quorum Hash" +
+            InitiatorProcedureLogger.debug("Data Sender by Quorum Hash " +
                     authSenderByQuorumHash);
-            InitiatorProcedureLogger.debug("Data Quorum Auth Hash" + authQuorumHash);
+            InitiatorProcedureLogger.debug("Data Quorum Auth Hash " + authQuorumHash);
 
             try {
                 payload.put("sender", senderDidIpfs);
@@ -138,10 +139,10 @@ public class InitiatorProcedure {
 
             int[][] shares = Split.get135Shares();
             InitiatorProcedureLogger.debug("!================================!");
-            InitiatorProcedureLogger.debug("!"+shares+"!");
+            for (int[] row: shares)
+            InitiatorProcedureLogger.debug("! "+Arrays.toString(row) + " !");
             InitiatorProcedureLogger.debug("!                                !");
             InitiatorProcedureLogger.debug("!================================!");
-
             InitiatorProcedureLogger.debug("Payload Split Success");
             essential = SeperateShares.getShare(shares, payload.toString().length(), 0);
             String Q1Share = SeperateShares.getShare(shares, payload.toString().length(), 1);
