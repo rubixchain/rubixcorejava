@@ -1610,7 +1610,7 @@ public class NftBuyer {
                 dataToSend.put("nftSeller", sellerDid);
                 dataToSend.put("nftCreatorInput", creatorInput);
                 dataToSend.put("totalSupply", nftTokenObject.getLong("totalSupply"));
-                dataToSend.put("editionNumber", nftTokenObject.getInt("tokenCount"));
+                dataToSend.put("editionNumber", nftTokenObject.getLong("tokenCount"));
                 String populate = dataToSend.toString();
 
                 JSONObject jsonObject = new JSONObject();
