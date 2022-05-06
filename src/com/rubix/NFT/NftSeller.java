@@ -648,7 +648,7 @@ public class NftSeller {
             for (int count = 0; count < wholeTokenChains.length(); count++) {//changed upperlimit from alltokenchain.length to wholetokenchain.length
 
                 String tokens = null;
-                JSONArray tokenChain = new JSONArray(wholeTokenChains.get(count).toString());//changed from alltokenchain to wholetokenchain
+                JSONArray tokenChain = new JSONArray(wholeTokens.get(count).toString());//changed from alltokenchain to wholetokenchain
                 String TokenContent = IPFSNetwork.get(wholeTokens.getString(count), ipfs);
                 String tokenLevel = TokenContent.substring(0, TokenContent.length() - 64);
                 String tokenNumberHash = TokenContent.substring(TokenContent.length() - 64);
