@@ -409,7 +409,7 @@ public class TokenReceiver {
             for (int count = 0; count < wholeTokens.length(); count++) {
 
                 String tokens = null;
-                JSONArray tokenChain = new JSONArray(wholeTokens.get(count).toString());
+                JSONArray tokenChain = new JSONArray(wholeTokenChains.get(count).toString());
                 String TokenContent = get(wholeTokens.getString(count), ipfs);
                 String tokenLevel = TokenContent.substring(0, TokenContent.length() - 64);
                 String tokenNumberHash = TokenContent.substring(TokenContent.length() - 64);
