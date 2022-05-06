@@ -688,12 +688,6 @@ public class TokenSender {
                     APIResponse.put("message", "Token wholly spent already. Kindly re-initiate transaction");
                     break;
 
-                case "426":
-                    TokenSenderLogger.info("Contains tokens invalid for the level. Kindly check tokens in your wallet");
-                    APIResponse.put("message",
-                            "Contains tokens invalid for the level. Kindly check tokens in your wallet");
-                    break;
-
             }
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
 
