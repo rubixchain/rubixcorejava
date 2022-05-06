@@ -80,12 +80,12 @@ public class InitiatorConsensus {
     }
 
     /**
-     * This method increments the quorumResponse variable
+     * This method increments the nftQuorumResponse variable
      */
     private static synchronized boolean voteNftNCount(int i, int quorumSize) {
         boolean status;
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        synchronized (countLock) {
+        synchronized (nftCountLock) {
             if (nftQuorumResponse[i] < minQuorum(quorumSize)) {
                 nftQuorumResponse[i]++;
                 InitiatorConsensusLogger.debug("NFT quorum response added index " + i + "  is " + nftQuorumResponse[i]
