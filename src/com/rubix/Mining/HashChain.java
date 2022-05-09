@@ -30,23 +30,25 @@ public class HashChain {
         return finalHash;
     }
 
-    public static Boolean verifyHashChain(String tokenTID, String finalHash, String[] DIDs) {
+    public static Boolean verifyHashChain(String tokenTID, String challengeHash, String[] DIDs) {
 
         String calculatedFinalHash = newHashChain(tokenTID, DIDs);
 
-        return calculatedFinalHash == finalHash;
+        return calculatedFinalHash == challengeHash;
     }
 
     private static Boolean ruleNotMatch(String[] DIDs) {
-        // HashChainLogger.debug("Hash Chain " + iterCount + " > " + finalHash);
-        int matchRule = DIDs.length;
+        int matchRule = 5;
 
         for (int i = 0; i < matchRule; i++) {
             if (finalHash.substring(finalHash.length() - matchRule)
                     .equals(DIDs[i].substring(DIDs[i].length() - matchRule))) {
+                System.out.println("Rule " + i + " matched");
                 return false;
             }
         }
+
+        System.out.println("Rule not matched");
         return true;
     }
 
