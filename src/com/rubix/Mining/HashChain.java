@@ -11,7 +11,7 @@ public class HashChain {
     // write a function which takes a string as TID and string array as DIDs. DIDs
     // will hash itself continuously and return when the last 3 char of hash matches
     // last 3 char of TID
-    private static String newHashChain(String tID, String[] DIDs) {
+    public static String newHashChain(String tID, String[] DIDs) {
         String hashChain = "";
         int counter = 0;
         for (String DID : DIDs) {
