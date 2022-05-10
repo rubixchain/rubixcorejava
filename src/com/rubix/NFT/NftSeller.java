@@ -442,6 +442,46 @@ public class NftSeller {
 
             nftSellerLogger.info("Buyer verified NFT sale contract");
 
+            //NFT Seller waiting for Buyer Side confirmation of RBT Txn
+            String rbtTxnAuth,rbtTxnres;
+            try {
+                rbtTxnAuth = input.readLine();
+                rbtTxnres = input.readLine();
+            } catch (SocketException e) {
+                nftSellerLogger.warn("Buyer Stream Null - Buyer Details");
+                APIResponse.put("did", sellerDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Buyer Stream Null - Buyer Detail");
+
+                output.close();
+                input.close();
+                 
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+            if(rbtTxnAuth!=null && !rbtTxnAuth.equals("200"))
+            {
+                JSONObject rbtTxnresponse = new JSONObject(rbtTxnres);
+                nftSellerLogger.info(rbtTxnresponse.getString("message"));
+                APIResponse.put("message",rbtTxnresponse.getString("message") );
+                APIResponse.put("did", sellerDidIpfsHash);
+                APIResponse.put("tid", "");
+                APIResponse.put("status", "Failed");
+                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + buyerPeerID);
+                output.close();
+                input.close();
+                 
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+            
+
+
+            
+
             String consensusDetails;
 
             try {

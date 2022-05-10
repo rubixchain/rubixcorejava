@@ -412,7 +412,6 @@ public class NftBuyer {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "NFT Token " + nftTokenIpfsHash + " is of RAC Type "+racType + " which is depricated");
                 nftBuyerLogger.info("NFT Token " + nftTokenIpfsHash + " is of RAC Type "+racType + " which is depricated");
-                //nftBuyerLogger.debug("NFT Buyer was not able to verify the creator Signature of the NFT Token " +nftTokenIpfsHash);;
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                 output.close();
                 input.close();
@@ -642,13 +641,32 @@ public class NftBuyer {
 
             if(statusStr!=null && !statusStr.equals("Success"))
             {
-                
+                output.println("420");
+                output.println(rbtApiResstr);
+                APIResponse.put("did", sellerDid);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", rbtAPIresponse.getString("message"));
+                nftBuyerLogger.info(rbtAPIresponse.getString("message"));
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
+                output.close();
+                input.close();
+                buyerSocket.close();
+                 
+                buyerMutex = false;
+                return APIResponse;
             }
 
+            output.println("200");
 
-            
+            String rbtTxnId = rbtAPIresponse.getString("tid");
 
-            String tid = calculateHash(nftDetailsObject.toString() + tokenDetails.toString(), "SHA3-256");
+
+
+            /**
+             * selecting quorum for NFT Consensus
+             */
+            String tid = calculateHash(nftDetailsObject.toString() + rbtTxnId, "SHA3-256");
             nftBuyerLogger.debug("TID  " + tid);
 
             nftBuyerLogger.debug("connecting to quorum");
@@ -662,7 +680,7 @@ public class NftBuyer {
             Functions.deleteFile(Functions.LOGGER_PATH + "tempgamma");
             switch (type) {
                 case 1:
-                    quorumArray = Functions.getQuorum(buyerDid,sellerDid,allTokens.length());
+                    quorumArray = Functions.getQuorum(buyerDid,sellerDid,(int)requestedAmount);
                     break;
                 case 2:
                     quorumArray = new JSONArray(Functions.readFile(Functions.DATA_PATH + "quorumlist.json"));
