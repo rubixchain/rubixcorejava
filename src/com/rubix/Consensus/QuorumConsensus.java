@@ -538,7 +538,8 @@ public class QuorumConsensus implements Runnable {
                     }
                 }  else if (operation.equals("NFT")) {
                     String getRecData = null;
-                    try {
+                    String quorumHash = null, nftQuorumHash = null;
+                    /* try {
                         getRecData = in.readLine();
                     } catch (SocketException e) {
                         QuorumConsensusLogger.debug("Sender Input Stream Null - Ping Check / Receiver Details");
@@ -547,7 +548,7 @@ public class QuorumConsensus implements Runnable {
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     }
 
-                    String quorumHash = null, nftQuorumHash = null;
+                    
                     JSONObject detailsToVerify = new JSONObject();
                     if (getRecData != null) {
                         if (getRecData.contains("ping check")) {
@@ -582,14 +583,9 @@ public class QuorumConsensus implements Runnable {
                             detailsToVerify.put("hash", verifySenderHash);
                             detailsToVerify.put("signature", senderPrivatePos);
 
-                            /*
-                             * writeToFile(LOGGER_PATH + "tempverifysenderhash", verifySenderHash, false);
-                             * String verifySenderIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH +
-                             * "tempverifysenderhash", ipfs);
-                             * deleteFile(LOGGER_PATH + "tempverifysenderhash");
-                             */
+                            
                         }
-                    }
+                    } */
 
                     String nftDetails = null;
                     try {
@@ -700,7 +696,7 @@ public class QuorumConsensus implements Runnable {
                             out.println("NFT_Auth_Failed");
                         }
 
-                        if (Authenticate.verifySignature(detailsToVerify.toString())) {
+                        /* if (Authenticate.verifySignature(detailsToVerify.toString())) {
                             QuorumConsensusLogger.debug("Quorum Authenticated Sender");
 
                             QuorumConsensusLogger.debug("ConsensusID pass");
@@ -758,7 +754,7 @@ public class QuorumConsensus implements Runnable {
                         } else {
                             QuorumConsensusLogger.debug("RBT Sender signature Authentication Failure - Quorum");
                             out.println("RBT_Auth_Failed");
-                        }
+                        } */
 
                     }
 

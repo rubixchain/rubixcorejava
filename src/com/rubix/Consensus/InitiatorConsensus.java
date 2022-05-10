@@ -323,7 +323,7 @@ public class InitiatorConsensus {
                         } else if (operation.equals("NFT")) {
                             InitiatorConsensusLogger.debug("NFT Transaction");
                             JSONObject nftDetails = dataObject.getJSONObject("nftDetails");
-                            qOut[j].println(detailsToken);
+                            //qOut[j].println(detailsToken);
 
                             qOut[j].println(nftDetails);
 
@@ -413,7 +413,7 @@ public class InitiatorConsensus {
                                 }
                             }
                             InitiatorConsensusLogger.debug("NFT quorumSignatures length" + nftQuorumSignature.length());
-                            try {
+                            /* try {
                                 qResponse[j] = qIn[j].readLine();
                             } catch (SocketException e) {
                                 InitiatorConsensusLogger.warn("Quorum " + quorumID[j] + " is unable to Respond!");
@@ -475,12 +475,10 @@ public class InitiatorConsensus {
                                     }
                                 }
                             }
-                            InitiatorConsensusLogger.debug("quorumSignatures length" + quorumSignature.length());
+                            InitiatorConsensusLogger.debug("quorumSignatures length" + quorumSignature.length()); */
                             // InitiatorConsensusLogger.debug();\
 
-                            while ((quorumResponse[index] < minQuorum(quorumSize)
-                                    || quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7)))
-                                    && (nftQuorumResponse[index] < minQuorum(quorumSize)
+                            while ((nftQuorumResponse[index] < minQuorum(quorumSize)
                                             || nftQuorumSignature
                                                     .length() < (minQuorum(alphaSize) + 2 * minQuorum(7)))) {
                             }
