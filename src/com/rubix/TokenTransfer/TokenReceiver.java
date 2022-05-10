@@ -220,16 +220,16 @@ public class TokenReceiver {
             Double decimalPart = formatAmount(amount - intPart);
             JSONArray doubleSpentToken = new JSONArray();
             boolean tokenOwners = true;
-            ArrayList ownersArray = new ArrayList();
+            ArrayList pinOwnersArray = new ArrayList();
             ArrayList previousSender = new ArrayList();
             JSONArray ownersReceived = new JSONArray();
             for (int i = 0; i < wholeTokens.length(); ++i) {
                 try {
                     TokenReceiverLogger.debug("Checking owners for " + wholeTokens.getString(i) +
                             " Please wait...");
-                    ownersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
+                    pinOwnersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
 
-                    if (ownersArray.size() > 2) {
+                    if (pinOwnersArray.size() > 2) {
 
                         for (int j = 0; j < previousSendersArray.length(); j++) {
                             if (previousSendersArray.getJSONObject(j).getString("token")
@@ -242,8 +242,8 @@ public class TokenReceiver {
                         }
                         TokenReceiverLogger.debug("Previous Owners: " + previousSender);
 
-                        for (int j = 0; j < ownersArray.size(); j++) {
-                            if (!previousSender.contains(ownersArray.get(j).toString()))
+                        for (int j = 0; j < pinOwnersArray.size(); j++) {
+                            if (!previousSender.contains(pinOwnersArray.get(j).toString()))
                                 tokenOwners = false;
                         }
                     }
@@ -254,8 +254,8 @@ public class TokenReceiver {
             }
             if (!tokenOwners) {
                 JSONArray owners = new JSONArray();
-                for (int i = 0; i < ownersArray.size(); i++)
-                    owners.put(ownersArray.get(i).toString());
+                for (int i = 0; i < pinOwnersArray.size(); i++)
+                    owners.put(pinOwnersArray.get(i).toString());
                 TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
                 TokenReceiverLogger.debug("Owners: " + owners);
                 output.println("420");
