@@ -11,10 +11,10 @@ public class HashChain {
     // write a function which takes a string as TID and string array as DIDs. The
     // function should return the average iterations each DID took to rehash itself
     // to match the last 3 char of TID
-    public static String newHashChain(String TID, String[] DIDs) {
+    public static String newHashChain(String TID, String[] DIDs, int matchRule) {
         int[] averageIterations = new int[DIDs.length];
         for (int i = 0; i < DIDs.length; i++) {
-            averageIterations[i] = averageIterations(TID, DIDs[i]);
+            averageIterations[i] = averageIterations(TID, DIDs[i], matchRule);
         }
         // get the average of values in the array
         int sum = 0;
@@ -26,17 +26,17 @@ public class HashChain {
         return Integer.toString(average);
     }
 
-    private static int averageIterations(String TID, String DID) {
+    private static int averageIterations(String TID, String DID, matchRule) {
         int iterations = 0;
-        int matchRule = 5;
         String last3Chars = TID.substring(TID.length() - matchRule);
         String currentDID = DID;
         while (!currentDID.substring(currentDID.length() - matchRule).equals(last3Chars)) {
             currentDID = Functions.calculateHash(currentDID, "SHA3-256");
             iterations++;
 
-            System.out.println(currentDID + " " + iterations);
         }
+        System.out.println(currentDID + " " + iterations);
+
         return iterations;
     }
 
