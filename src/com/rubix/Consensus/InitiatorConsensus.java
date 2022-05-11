@@ -323,7 +323,6 @@ public class InitiatorConsensus {
                         } else if (operation.equals("NFT")) {
                             InitiatorConsensusLogger.debug("NFT Transaction");
                             JSONObject nftDetails = dataObject.getJSONObject("nftDetails");
-                            //qOut[j].println(detailsToken);
 
                             qOut[j].println(nftDetails);
 
@@ -413,70 +412,6 @@ public class InitiatorConsensus {
                                 }
                             }
                             InitiatorConsensusLogger.debug("NFT quorumSignatures length" + nftQuorumSignature.length());
-                            /* try {
-                                qResponse[j] = qIn[j].readLine();
-                            } catch (SocketException e) {
-                                InitiatorConsensusLogger.warn("Quorum " + quorumID[j] + " is unable to Respond!");
-                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                            }
-
-                            if (qResponse[j] != null) {
-                                if (qResponse[j].equals("Auth_Failed")) {
-                                    InitiatorConsensusLogger.debug("Sender Authentication Failure at " + quorumID[j]);
-                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                                } else {
-                                    InitiatorConsensusLogger
-                                            .debug("Signature Received from " + quorumID[j] + " " + qResponse[j]);
-                                    if (quorumResponse[index] > minQuorum(quorumSize)) {
-                                        qOut[j].println("null");
-                                        IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                                    } else {
-                                        String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
-                                                quorumID[j]);
-                                        JSONObject detailsToVerify = new JSONObject();
-                                        detailsToVerify.put("did", didHash);
-                                        detailsToVerify.put("hash", hash);
-                                        detailsToVerify.put("signature", qResponse[j]);
-                                        if (Authenticate.verifySignature(detailsToVerify.toString())) {
-                                            InitiatorConsensusLogger
-                                                    .debug(role + " node authenticated at index " + index);
-                                            boolean voteStatus = voteNCount(index, quorumSize);
-                                            if (quorumResponse[index] <= minQuorum(quorumSize) && voteStatus) {
-                                                InitiatorConsensusLogger
-                                                        .debug("waiting for  " + quorumSize + " +signs " + role);
-                                                while (quorumResponse[index] < minQuorum(quorumSize)) {
-                                                }
-                                                InitiatorConsensusLogger
-                                                        .debug("between Q1- to Q" + quorumSize + " for index " + index);
-                                                quorumSign(didHash, hash, qResponse[j], index, quorumSize, alphaSize);
-                                                quorumWithShares.add(quorumPeersObject.getString(j));
-                                                while (quorumSignature
-                                                        .length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
-                                                }
-                                                InitiatorConsensusLogger.debug("sending Qsign  of length "
-                                                        + quorumSignature.length() + "at index " + index);
-                                                qOut[j].println(finalQuorumSignsArray.toString());
-                                                IPFSNetwork
-                                                        .executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                                            } else {
-                                                InitiatorConsensusLogger.debug("sending null for slow quorum ");
-                                                qOut[j].println("null");
-                                                IPFSNetwork
-                                                        .executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                                            }
-                                            InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse
-                                                    + "Signature count : " + quorumSignature.length());
-                                        } else {
-                                            InitiatorConsensusLogger.debug("node failed authentication with index "
-                                                    + index + " with role " + role + " with did " + didHash
-                                                    + " and data to verify " + detailsToVerify);
-                                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                                        }
-                                    }
-                                }
-                            }
-                            InitiatorConsensusLogger.debug("quorumSignatures length" + quorumSignature.length()); */
-                            // InitiatorConsensusLogger.debug();\
 
                             while ((nftQuorumResponse[index] < minQuorum(quorumSize)
                                             || nftQuorumSignature
