@@ -537,56 +537,7 @@ public class QuorumConsensus implements Runnable {
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     }
                 }  else if (operation.equals("NFT")) {
-                    String getRecData = null;
                     String quorumHash = null, nftQuorumHash = null;
-                    /* try {
-                        getRecData = in.readLine();
-                    } catch (SocketException e) {
-                        QuorumConsensusLogger.debug("Sender Input Stream Null - Ping Check / Receiver Details");
-                        socket.close();
-                        serverSocket.close();
-                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-                    }
-
-                    
-                    JSONObject detailsToVerify = new JSONObject();
-                    if (getRecData != null) {
-                        if (getRecData.contains("ping check")) {
-                            QuorumConsensusLogger.debug("Ping check from sender: " + getRecData);
-                            out.println("pong response");
-                        } else {
-
-                            QuorumConsensusLogger.debug("Received Details from initiator: " + getRecData);
-                            readSenderData = new JSONObject(getRecData);
-                            senderPrivatePos = readSenderData.getString("sign");
-                            senderDidIpfsHash = readSenderData.getString("senderDID");
-                            transactionID = readSenderData.getString("Tid");
-                            verifySenderHash = readSenderData.getString("Hash");
-                            receiverDID = readSenderData.getString("RID");
-
-                            syncDataTable(senderDidIpfsHash, null);
-
-                            senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", senderDidIpfsHash);
-                            String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
-                                    senderDidIpfsHash);
-
-                            nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
-                            String nftSellerDID=receiverDID;
-                            quorumHash = calculateHash(verifySenderHash.concat(nftSellerDID), "SHA3-256");
-
-                            QuorumConsensusLogger.debug("details that quorum use to put RBT Signature");
-                            QuorumConsensusLogger.debug("1: " + verifySenderHash);
-                            QuorumConsensusLogger.debug("2: " + nftSellerDID);
-                            QuorumConsensusLogger.debug("Quorum hash: " + quorumHash);
-
-                            detailsToVerify.put("did", senderDidIpfsHash);
-                            detailsToVerify.put("hash", verifySenderHash);
-                            detailsToVerify.put("signature", senderPrivatePos);
-
-                            
-                        }
-                    } */
-
                     String nftDetails = null;
                     try {
                         nftDetails = in.readLine();
@@ -695,67 +646,6 @@ public class QuorumConsensus implements Runnable {
                             QuorumConsensusLogger.debug("NFT Sender signature Authentication Failure - Quorum");
                             out.println("NFT_Auth_Failed");
                         }
-
-                        /* if (Authenticate.verifySignature(detailsToVerify.toString())) {
-                            QuorumConsensusLogger.debug("Quorum Authenticated Sender");
-
-                            QuorumConsensusLogger.debug("ConsensusID pass");
-                            String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
-                                    quorumHash);
-                            out.println(QuorumSignature);
-
-                            String creditSignatures = null;
-                            try {
-                                creditSignatures = in.readLine();
-                            } catch (SocketException e) {
-                                QuorumConsensusLogger.debug("Sender Input Stream Null - Credits");
-                                socket.close();
-                                serverSocket.close();
-                                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-                            }
-                            QuorumConsensusLogger.debug("credit Signature " + creditSignatures);
-
-                            if (!creditSignatures.equals("null")) { // commented as per test for multiple consensus
-                                                                    // threads
-
-                                FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
-                                shareWriter.write(creditSignatures);
-                                shareWriter.close();
-                                File readCredit = new File(LOGGER_PATH + "mycredit.txt");
-                                String credit = add(readCredit.toString(), ipfs);
-
-                                File creditFile = new File(
-                                        WALLET_DATA_PATH.concat("/Credits/").concat(credit).concat(".json"));
-                                if (!creditFile.exists())
-                                    creditFile.createNewFile();
-                                writeToFile(creditFile.toString(), creditSignatures, false);
-
-                                QuorumConsensusLogger.debug("Credit object: " + credit);
-                                QuorumConsensusLogger.debug("Credit Hash: " + calculateHash(credit, "SHA3-256"));
-                                JSONObject storeDetailsQuorum = new JSONObject();
-                                storeDetailsQuorum.put("tid", transactionID);
-                                storeDetailsQuorum.put("consensusID", verifySenderHash);
-                                storeDetailsQuorum.put("sign", senderPrivatePos);
-                                storeDetailsQuorum.put("credits", credit);
-                                storeDetailsQuorum.put("creditHash", calculateHash(credit, "SHA3-256"));
-                                storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
-                                storeDetailsQuorum.put("Date", Functions.getCurrentUtcTime());
-                                storeDetailsQuorum.put("recdid", receiverDID);
-                                JSONArray data = new JSONArray();
-                                data.put(storeDetailsQuorum);
-                                QuorumConsensusLogger.debug("Quorum Share: " + credit);
-                                updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
-                                deleteFile(LOGGER_PATH + "mycredit.txt");
-                                writeToFile(LOGGER_PATH + "consenusIDhash", verifySenderHash, false);
-                                String consenusIDhash = IPFSNetwork.add(LOGGER_PATH + "consenusIDhash", ipfs);
-                                deleteFile(LOGGER_PATH + "consenusIDhash");
-                                QuorumConsensusLogger.debug("added consensus ID " + consenusIDhash);
-                            }
-                        } else {
-                            QuorumConsensusLogger.debug("RBT Sender signature Authentication Failure - Quorum");
-                            out.println("RBT_Auth_Failed");
-                        } */
-
                     }
 
                 }         
