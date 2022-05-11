@@ -70,7 +70,7 @@ public class NftBuyer {
         try {
             JSONObject detailsObject = new JSONObject(data);
 
-            String sellerPubKeyIpfsHash, saleContractIpfsHash,buyerPubKeyIpfsHash;
+            String sellerPubKeyIpfsHash, saleContractIpfsHash, buyerPubKeyIpfsHash;
 
             String buyerDid = detailsObject.getString("buyerDidIpfsHash");
             String sellerDid = detailsObject.getString("sellerDidIpfsHash");
@@ -80,14 +80,14 @@ public class NftBuyer {
             String nftTokenIpfsHash = detailsObject.getString("nftToken");
 
             sellerPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", sellerDid);
-            boolean sanityCheck = sanityCheck("Receiver",sellerPeerID, ipfs, port + 10);
+            boolean sanityCheck = sanityCheck("Receiver", sellerPeerID, ipfs, port + 10);
             if (!sanityCheck) {
                 APIResponse.put("did", buyerDid);
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", sanityMessage);
                 nftBuyerLogger.warn(sanityMessage);
-                 
+
                 return APIResponse;
             }
 
@@ -97,7 +97,7 @@ public class NftBuyer {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Sender busy. Try again later");
                 nftBuyerLogger.warn("Sender busy");
-                 
+
                 return APIResponse;
             }
 
@@ -129,7 +129,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 APIResponse.put("did", buyerDid);
                 APIResponse.put("tid", "");
@@ -145,7 +145,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 APIResponse.put("did", buyerDid);
                 APIResponse.put("tid", "");
@@ -168,7 +168,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 APIResponse.put("did", buyerDid);
                 APIResponse.put("tid", "");
@@ -177,7 +177,7 @@ public class NftBuyer {
                 return APIResponse;
             }
 
-            nftBuyerLogger.debug("nftTokenAuth received from Seller : "+nftTokenAuth);
+            nftBuyerLogger.debug("nftTokenAuth received from Seller : " + nftTokenAuth);
 
             if (nftTokenAuth != null && (!nftTokenAuth.equals("200"))) {
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
@@ -185,7 +185,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 APIResponse.put("did", buyerDid);
                 APIResponse.put("tid", "");
@@ -194,7 +194,7 @@ public class NftBuyer {
                 return APIResponse;
             }
 
-            nftBuyerLogger.debug("sending p2pflag to seller : "+ detailsObject.getInt("p2pFlag"));
+            nftBuyerLogger.debug("sending p2pflag to seller : " + detailsObject.getInt("p2pFlag"));
             output.println(detailsObject.getInt("p2pFlag"));
 
             if (detailsObject.has("p2pFlag") && detailsObject.getInt("p2pFlag") == 1) {
@@ -211,7 +211,7 @@ public class NftBuyer {
                     output.close();
                     input.close();
                     buyerSocket.close();
-                     
+
                     buyerMutex = false;
                     APIResponse.put("did", buyerDid);
                     APIResponse.put("tid", "");
@@ -240,7 +240,7 @@ public class NftBuyer {
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                     output.close();
                     input.close();
-                     
+
                     buyerMutex = false;
                     buyerSocket.close();
                     APIResponse.put("did", buyerDid);
@@ -259,7 +259,7 @@ public class NftBuyer {
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                     output.close();
                     input.close();
-                     
+
                     buyerMutex = false;
                     buyerSocket.close();
                     APIResponse.put("did", buyerDid);
@@ -284,7 +284,7 @@ public class NftBuyer {
                     output.close();
                     input.close();
                     buyerSocket.close();
-                     
+
                     buyerMutex = false;
                     APIResponse.put("did", buyerDid);
                     APIResponse.put("tid", "");
@@ -299,7 +299,7 @@ public class NftBuyer {
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                     output.close();
                     input.close();
-                     
+
                     buyerMutex = false;
                     buyerSocket.close();
                     APIResponse.put("did", buyerDid);
@@ -323,7 +323,7 @@ public class NftBuyer {
                     output.close();
                     input.close();
                     buyerSocket.close();
-                     
+
                     buyerMutex = false;
                     APIResponse.put("did", buyerDid);
                     APIResponse.put("tid", "");
@@ -331,7 +331,7 @@ public class NftBuyer {
                     APIResponse.put("message", "Seller " + sellerDid + " is unable to Respond!");
                     return APIResponse;
                 }
-                nftBuyerLogger.debug("Buyer recived Sellers public key details "+ sellerPubKeyIpfsHash);
+                nftBuyerLogger.debug("Buyer recived Sellers public key details " + sellerPubKeyIpfsHash);
             } else {
                 requestedAmount = detailsObject.getDouble("amount");
                 sellerPubKeyIpfsHash = detailsObject.getString("sellerPubKeyIpfsHash");
@@ -339,27 +339,24 @@ public class NftBuyer {
                 buyerPubKeyIpfsHash = detailsObject.getString("buyerPubKeyIpfsHash");
             }
 
-            PrivateKey pvtKey=null;
+            PrivateKey pvtKey = null;
             String keyPass = null;
-            if(detailsObject.getInt("p2pFlag")==0)
-            {
+            if (detailsObject.getInt("p2pFlag") == 0) {
                 if (detailsObject.has("buyerPvtKey") && detailsObject.getString("buyerPvtKey") != null) {
                     keyPass = detailsObject.getString("buyerPvtKeyPass");
                     pvtKey = getPvtKeyFromStr(detailsObject.getString("buyerPvtKey"), keyPass);
                     detailsObject.remove("buyerPvtKey");
-                }   
-            }
-            else{
+                }
+            } else {
                 nftBuyerLogger.info("Enter Private Key Password to Sign new Ownership of NFT");
-                
+
                 nftBuyerLogger.info("*******************************************************");
 
                 char[] privateKeyPass = PasswordField.getPassword(System.in, "Enter the privateKey password: ");
 
                 nftBuyerLogger.info("*******************************************************");
 
-
-                keyPass=String.valueOf(privateKeyPass);
+                keyPass = String.valueOf(privateKeyPass);
 
                 pvtKey = getPvtKey(keyPass);
 
@@ -374,7 +371,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 APIResponse.put("did", buyerDid);
                 APIResponse.put("tid", "");
@@ -396,27 +393,28 @@ public class NftBuyer {
             String creatorInput = nftTokenObject.getString("creatorInput");
             JSONObject creatorInputObj = new JSONObject(creatorInput);
             String creatorPublicKeyIpfsHash = creatorInputObj.getString("creatorPubKeyIpfsHash");
-            
+
             String creatorPubKeyStr = get(creatorPublicKeyIpfsHash, ipfs);
             PublicKey creatorPublicKey = getPubKeyFromStr(creatorPubKeyStr);
 
             /*
-            Check if NFT Token is of RAC type =1
-            */
-            int racType=nftTokenObject.getInt("racType");
-            if(racType==1)
-            {
+             * Check if NFT Token is of RAC type =1
+             */
+            int racType = nftTokenObject.getInt("racType");
+            if (racType == 1) {
                 output.println("419");
                 APIResponse.put("did", sellerDid);
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");
-                APIResponse.put("message", "NFT Token " + nftTokenIpfsHash + " is of RAC Type "+racType + " which is depricated");
-                nftBuyerLogger.info("NFT Token " + nftTokenIpfsHash + " is of RAC Type "+racType + " which is depricated");
+                APIResponse.put("message",
+                        "NFT Token " + nftTokenIpfsHash + " is of RAC Type " + racType + " which is depricated");
+                nftBuyerLogger
+                        .info("NFT Token " + nftTokenIpfsHash + " is of RAC Type " + racType + " which is depricated");
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 return APIResponse;
             }
@@ -428,17 +426,18 @@ public class NftBuyer {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "NFT Token " + nftTokenIpfsHash + " authenticity check Failed");
                 nftBuyerLogger.info("NFT Token " + nftTokenIpfsHash + " authenticity check did not pass");
-                nftBuyerLogger.debug("NFT Buyer was not able to verify the creator Signature of the NFT Token " +nftTokenIpfsHash);;
+                nftBuyerLogger.debug(
+                        "NFT Buyer was not able to verify the creator Signature of the NFT Token " + nftTokenIpfsHash);
+                ;
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 return APIResponse;
             }
             nftBuyerLogger.info("NFT Token " + nftTokenIpfsHash + " authenticity check pass");
-
 
             String nftConsensusID = nftDetailsObject.getString("nftConsensusID");
             nftBuyerLogger.debug("NFT Consesnsus auth send to seller");
@@ -453,15 +452,14 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 return APIResponse;
             }
             nftBuyerLogger.info("NFT Consensus ID unique " + nftConsensusID);
 
-
             /**
-             * NFT token owner ship check/auth 
+             * NFT token owner ship check/auth
              */
             String nftTokenChain = get(nftDetailsObject.getString("nftTokenChain"), ipfs);
 
@@ -498,7 +496,7 @@ public class NftBuyer {
                     output.close();
                     input.close();
                     buyerSocket.close();
-                     
+
                     buyerMutex = false;
                     return APIResponse;
                 }
@@ -506,7 +504,8 @@ public class NftBuyer {
             nftBuyerLogger.debug("NFT Ownership Check Passed");
 
             /**
-             * Checking the Expiry of nft token by getting checking the Exp filed from extracted token metadata
+             * Checking the Expiry of nft token by getting checking the Exp filed from
+             * extracted token metadata
              * 
              */
 
@@ -528,13 +527,14 @@ public class NftBuyer {
                     APIResponse.put("did", sellerDid);
                     APIResponse.put("tid", "null");
                     APIResponse.put("status", "Failed");
-                    APIResponse.put("message", "NFT "+nftTokenIpfsHash+" has expired. NFT can no longer be transferred.");
-                    nftBuyerLogger.info("NFT "+nftTokenIpfsHash+" has expired. NFT can no longer be transferred.");
+                    APIResponse.put("message",
+                            "NFT " + nftTokenIpfsHash + " has expired. NFT can no longer be transferred.");
+                    nftBuyerLogger.info("NFT " + nftTokenIpfsHash + " has expired. NFT can no longer be transferred.");
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                     output.close();
                     input.close();
                     buyerSocket.close();
-                     
+
                     buyerMutex = false;
                     return APIResponse;
 
@@ -542,15 +542,13 @@ public class NftBuyer {
                 nftBuyerLogger.info("NFT validity check passed");
             }
 
-
             output.println("200");
 
-
             String saleContractContent = get(saleContractIpfsHash, ipfs);
-            nftBuyerLogger.debug("saleContract contetn : "+ saleContractContent);
+            nftBuyerLogger.debug("saleContract contetn : " + saleContractContent);
             JSONObject saleConObj = new JSONObject(saleContractContent);
             JSONObject reConObj = new JSONObject();
-            reConObj.put("sellerDID",sellerDid);
+            reConObj.put("sellerDID", sellerDid);
             reConObj.put("nftToken", nftDetailsObject.getString("nftToken"));
             reConObj.put("rbtAmount", requestedAmount);
 
@@ -558,7 +556,7 @@ public class NftBuyer {
                     get(sellerPubKeyIpfsHash, ipfs));
             String saleSignature = saleConObj.getString("sign");
 
-            nftBuyerLogger.debug("reconobj for sale contract verification "+reConObj.toString());
+            nftBuyerLogger.debug("reconobj for sale contract verification " + reConObj.toString());
 
             if (!verifySignature(reConObj.toString(), sellerPubKey, saleSignature)) {
                 output.println("420");
@@ -571,7 +569,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 return APIResponse;
             }
@@ -592,7 +590,7 @@ public class NftBuyer {
             rbtCon.setRequestProperty("Accept", "application/json");
             rbtCon.setRequestProperty("Content-Type", "application/json");
             rbtCon.setRequestProperty("Authorization", "null");
-            
+
             // Serialization
             JSONObject rbtApiPayload = new JSONObject();
             rbtApiPayload.put("receiver", sellerDid);
@@ -617,30 +615,29 @@ public class NftBuyer {
             nftBuyerLogger.debug("Post Data : " + postRbtJsonData);
             nftBuyerLogger.debug("Response Code : " + rbtApiResponseCode);
 
-            if(rbtApiResponseCode!=200)
-            {
+            if (rbtApiResponseCode != 200) {
                 throw new RuntimeException("Failed : HTTP error code : "
-                + rbtCon.getResponseCode());
+                        + rbtCon.getResponseCode());
             }
 
-            BufferedReader rbtResInp =new BufferedReader(new InputStreamReader(rbtCon.getInputStream()));
+            BufferedReader rbtResInp = new BufferedReader(new InputStreamReader(rbtCon.getInputStream()));
 
             String rbtApiOut;
             StringBuffer rbtApiResstr = new StringBuffer();
 
             while ((rbtApiOut = rbtResInp.readLine()) != null) {
-                rbtApiResstr.append(output);
+                rbtApiResstr.append(rbtApiOut);
             }
             rbtResInp.close();
 
-            nftBuyerLogger.info("Response of RBT transfer API to nft Seller "+sellerDid +" is : "+rbtApiResstr.toString());
+            nftBuyerLogger.info(
+                    "Response of RBT transfer API to nft Seller " + sellerDid + " is : " + rbtApiResstr.toString());
 
-            //converting API response back to JSON Object
+            // converting API response back to JSON Object
             JSONObject rbtAPIresponse = new JSONObject(rbtApiResstr);
-            String statusStr= rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("status");
+            String statusStr = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("status");
 
-            if(statusStr!=null && !statusStr.equals("Success"))
-            {
+            if (statusStr != null && !statusStr.equals("Success")) {
                 output.println("420");
                 output.println(rbtApiResstr);
                 APIResponse.put("did", sellerDid);
@@ -652,7 +649,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 return APIResponse;
             }
@@ -660,8 +657,6 @@ public class NftBuyer {
             output.println("200");
 
             String rbtTxnId = rbtAPIresponse.getString("tid");
-
-
 
             /**
              * selecting quorum for NFT Consensus
@@ -680,7 +675,7 @@ public class NftBuyer {
             Functions.deleteFile(Functions.LOGGER_PATH + "tempgamma");
             switch (type) {
                 case 1:
-                    quorumArray = Functions.getQuorum(buyerDid,sellerDid,(int)requestedAmount);
+                    quorumArray = Functions.getQuorum(buyerDid, sellerDid, (int) requestedAmount);
                     break;
                 case 2:
                     quorumArray = new JSONArray(Functions.readFile(Functions.DATA_PATH + "quorumlist.json"));
@@ -698,7 +693,7 @@ public class NftBuyer {
                     output.close();
                     input.close();
                     buyerSocket.close();
-                     
+
                     buyerMutex = false;
                     return APIResponse;
             }
@@ -708,7 +703,7 @@ public class NftBuyer {
             for (int i = 0; i < quorumArray.length(); i++) {
                 String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
                         quorumArray.getString(i));
-                boolean quorumSanityCheck = sanityCheck("Quorum",quorumPeerID, ipfs, port + 11);
+                boolean quorumSanityCheck = sanityCheck("Quorum", quorumPeerID, ipfs, port + 11);
 
                 if (!quorumSanityCheck) {
                     sanityFailedQuorum.put(quorumPeerID);
@@ -728,8 +723,8 @@ public class NftBuyer {
                 String message = "Quorum: ".concat(sanityFailedQuorum.toString()).concat(" ");
                 APIResponse.put("message", message.concat(sanityMessage));
                 nftBuyerLogger.warn("Quorum: ".concat(message.concat(sanityMessage)));
-                buyerMutex=false;
-                 
+                buyerMutex = false;
+
                 return APIResponse;
             }
 
@@ -763,20 +758,20 @@ public class NftBuyer {
                 APIResponse.put("message", "Quorum Members not available");
                 nftBuyerLogger.warn("Quorum Members not available");
                 buyerMutex = false;
-                 
+
                 return APIResponse;
             }
 
             // prepare dataObject to be used to set up and calling consensus
             JSONObject consensusDataObject = new JSONObject();
 
-            consensusDataObject.put("message", doubleSpendString);
+            consensusDataObject.put("message", "");
             consensusDataObject.put("tid", tid);
-            consensusDataObject.put("receiverDidIpfs", sellerDid);
-            consensusDataObject.put("senderDidIpfs", buyerDid);
+            consensusDataObject.put("receiverDidIpfs", "");
+            consensusDataObject.put("senderDidIpfs", "");
             consensusDataObject.put("nftTokenDetails", nftDetailsObject);
-            consensusDataObject.put("token", wholeTokens.toString());
-            consensusDataObject.put("rbtTokenDetails", tokenDetails);
+            consensusDataObject.put("token", "");
+            // consensusDataObject.put("rbtTokenDetails", "");
             consensusDataObject.put("pvt", DATA_PATH + buyerDid + "/PrivateShare.png"); // add buyer pvt share
             consensusDataObject.put("sellerPubKeyIpfsHash", sellerPubKeyIpfsHash); // add seller pub key
             consensusDataObject.put("saleContractIpfsHash", saleContractIpfsHash); // contract created for sale of nft
@@ -803,17 +798,22 @@ public class NftBuyer {
             nftBuyerLogger.debug("quorum signature length for RBT : " + InitiatorConsensus.quorumSignature.length()
                     + " Response count " + InitiatorConsensus.quorumResponse);
 
+            /**
+             * signature to verify buyer by seller
+             */
+            String verifyBuyerbySeller = calculateHash(tid + nftTokenDetails + buyerDid, "SHA3-256");
+            String buyerBySellerSign = getSignFromShares(DATA_PATH + buyerDid + "/PrivateShare.png",
+                    verifyBuyerbySeller);
             JSONObject consensusDetails = new JSONObject();
             consensusDetails.put("tid", tid);
             consensusDetails.put("comment", comment);
-            consensusDetails.put("sign", rbtSenderSign);
+            consensusDetails.put("sign", buyerBySellerSign);
+            consensusDetails.put("rbtAmount", requestedAmount);
             if (InitiatorConsensus.quorumSignature
                     .length() > ((Functions.minQuorum(alphaSize) + 2 * Functions.minQuorum(7)))
                     && InitiatorConsensus.nftQuorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7)))) {
                 nftBuyerLogger.debug("Consensus Failed");
                 consensusDetails.put("status", "Consensus Failed");
-                // consensusDetails.put("quorumsign",
-                // NftInitiatorConsensus.quorumSignature.toString());
                 output.println(consensusDetails);
                 APIResponse.put("message", " Consensus Failed");
                 APIResponse.put("did", buyerDid);
@@ -824,14 +824,13 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 return APIResponse;
             }
             nftBuyerLogger.debug("Consensus Reached");
 
             consensusDetails.put("status", "Consensus Reached");
-            consensusDetails.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
             consensusDetails.put(("nftQuorumSign"), InitiatorConsensus.nftQuorumSignature.toString());
             nftBuyerLogger.debug("sent consensus details to seller");
             output.println(consensusDetails);
@@ -845,7 +844,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 updateQuorum(quorumArray, null, false, type);
                 APIResponse.put("did", buyerDid);
@@ -861,19 +860,68 @@ public class NftBuyer {
             totalTime = endTime - startTime;
             if (signatureAuth != null && (!signatureAuth.equals("200"))) {
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
-                nftBuyerLogger.info("Authentication Failed");
+                nftBuyerLogger.info("Sender / Quorum not verified");
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 updateQuorum(quorumArray, null, false, type);
                 APIResponse.put("did", buyerDid);
                 APIResponse.put("tid", tid);
                 APIResponse.put("status", "Failed");
-                APIResponse.put("message", "Sender not authenticated");
+                APIResponse.put("message", "Sender / Quorum not verified");
                 return APIResponse;
 
+            }
+
+            nftBuyerLogger.debug("Sending RBT Txn ID to Seller to confirm ");
+            output.println(rbtTxnId);
+
+            String rbtTxnAuth;
+            try {
+                rbtTxnAuth = input.readLine();
+            } catch (SocketException e) {
+                nftBuyerLogger.warn("Receiver " + sellerDid + " is unable to Respond! - Signature Auth");
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
+                output.close();
+                input.close();
+                buyerSocket.close();
+
+                buyerMutex = false;
+                updateQuorum(quorumArray, null, false, type);
+                APIResponse.put("did", buyerDid);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Receiver " + sellerDid + "is unable to respond! - Signature Auth");
+
+                return APIResponse;
+            }
+
+            if (rbtTxnAuth != null && rbtTxnAuth.startsWith("4")) {
+
+                switch (nftTokenAuth) {
+                    case "420":
+                        nftBuyerLogger.info("Seller Did not get correct RBT Txn details");
+                        APIResponse.put("message", "Seller Did not get correct RBT Txn details");
+                        break;
+                    case "421":
+                        nftBuyerLogger.info("Mismatch between RBT Txn details amount and Request NFT amount");
+                        APIResponse.put("message", "Mismatch between RBT Txn details amount and Request NFT amount");
+                        break;
+                }
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
+
+                output.close();
+                input.close();
+                buyerSocket.close();
+
+                buyerMutex = false;
+                updateQuorum(quorumArray, null, false, type);
+                APIResponse.put("did", buyerDid);
+                APIResponse.put("tid", tid);
+                APIResponse.put("status", "Failed");
+                return APIResponse;
             }
 
             nftBuyerLogger.debug("Waiting for NFT Seller to Unpin NFT");
@@ -888,7 +936,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 updateQuorum(quorumArray, null, false, type);
                 APIResponse.put("did", buyerDid);
@@ -905,7 +953,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 updateQuorum(quorumArray, null, false, type);
                 APIResponse.put("did", buyerDid);
@@ -915,55 +963,6 @@ public class NftBuyer {
                 return APIResponse;
             }
 
-            nftBuyerLogger.debug("Buyer starts to Unpin RBT ");
-
-            for (int i = 0; i < wholeTokens.length(); i++)
-                unpin(String.valueOf(wholeTokens.get(i)), ipfs);
-            // repo(ipfs);
-
-            nftBuyerLogger.debug("RBT-UnPinned");
-            output.println("RBT-UnPinned");
-
-            nftBuyerLogger.debug("Waiting for Seller RBT pin Confirmation");
-            String confirmation;
-            try {
-                confirmation = input.readLine();
-            } catch (SocketException e) {
-                nftBuyerLogger.warn("Receiver " + sellerDid + " is unable to Respond! - Pinning Auth");
-                executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
-                output.close();
-                input.close();
-                buyerSocket.close();
-                 
-                buyerMutex = false;
-                updateQuorum(quorumArray, null, false, type);
-                APIResponse.put("did", buyerDid);
-                APIResponse.put("tid", "null");
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", "Receiver " + sellerDid + "is unable to respond! - Pinning Auth");
-
-                return APIResponse;
-            }
-
-            nftBuyerLogger.debug("Seller RBT pin Confirmation " + confirmation);
-            if (confirmation != null && (!confirmation.equals("Successfully Pinned"))) {
-                nftBuyerLogger.warn("Multiple Owners for the token");
-                executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
-                nftBuyerLogger.info("Tokens with multiple pins");
-                output.close();
-                input.close();
-                buyerSocket.close();
-                 
-                buyerMutex = false;
-                updateQuorum(quorumArray, null, false, type);
-                APIResponse.put("did", buyerDid);
-                APIResponse.put("tid", tid);
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", "Tokens with multiple pins");
-                return APIResponse;
-
-            }
-
             FileWriter fileWriter;
             fileWriter = new FileWriter(NFT_TOKENS_PATH + nftTokenIpfsHash);
             fileWriter.write(get(nftTokenIpfsHash, ipfs));
@@ -971,10 +970,6 @@ public class NftBuyer {
             add(NFT_TOKENS_PATH + nftTokenIpfsHash, ipfs);
             pin(nftTokenIpfsHash, ipfs);
 
-            nftBuyerLogger.debug("3");
-            nftBuyerLogger.debug("Whole tokens: " + wholeTokens);
-            nftBuyerLogger.debug("Part tokens: " + partTokens);
-            output.println(InitiatorProcedure.essential);
             String respAuth;
             try {
                 respAuth = input.readLine();
@@ -984,7 +979,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 updateQuorum(quorumArray, null, false, type);
                 APIResponse.put("did", buyerDid);
@@ -1001,7 +996,7 @@ public class NftBuyer {
                 output.close();
                 input.close();
                 buyerSocket.close();
-                 
+
                 buyerMutex = false;
                 updateQuorum(quorumArray, null, false, type);
                 APIResponse.put("did", buyerDid);
@@ -1014,13 +1009,6 @@ public class NftBuyer {
             }
 
             nftBuyerLogger.debug("Operation over");
-            Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
-            JSONArray signedQuorumList = new JSONArray();
-            while (keys.hasNext())
-                signedQuorumList.put(keys.next());
-
-            nftBuyerLogger.debug(
-                    "\n*******************RBT Signed Quorum List**************** \n" + signedQuorumList.toString());
 
             Iterator<String> nftKeys = InitiatorConsensus.nftQuorumSignature.keys();
             JSONArray nftSignedQuorumList = new JSONArray();
@@ -1034,46 +1022,12 @@ public class NftBuyer {
             APIResponse.put("status", "Success");
             APIResponse.put("did", buyerDid);
             APIResponse.put("message", "Tokens transferred successfully!");
-            APIResponse.put("quorumlist", signedQuorumList);
+            APIResponse.put("quorumlist", nftSignedQuorumList);
             APIResponse.put("receiver", sellerDid);
             APIResponse.put("totaltime", totalTime);
 
-            updateQuorum(quorumArray, signedQuorumList, true, type);
-
             // updating quorum credit for signing nft txn
             updateQuorum(quorumArray, nftSignedQuorumList, true, type);
-
-            /*
-             * JSONArray allTokens = new JSONArray();
-             * for (int i = 0; i < wholeTokens.length(); i++)
-             * allTokens.put(wholeTokens.getString(i));
-             * for (int i = 0; i < partTokens.length(); i++)
-             * allTokens.put(partTokens.getString(i));
-             */
-
-            nftBuyerLogger.debug("4");
-            nftBuyerLogger.debug("All tokens: " + allTokens);
-            nftBuyerLogger.debug("Whole tokens: " + wholeTokens);
-            nftBuyerLogger.debug("Part tokens: " + partTokens);
-
-            JSONObject rbtTransactionRecord = new JSONObject();
-            rbtTransactionRecord.put("role", "Sender");
-            rbtTransactionRecord.put("tokens", allTokens);
-            rbtTransactionRecord.put("txn", tid);
-            rbtTransactionRecord.put("quorumList", signedQuorumList);
-            rbtTransactionRecord.put("senderDID", buyerDid);
-            rbtTransactionRecord.put("receiverDID", sellerDid);
-            rbtTransactionRecord.put("Date", getCurrentUtcTime());
-            rbtTransactionRecord.put("totalTime", totalTime);
-            rbtTransactionRecord.put("comment", comment);
-            rbtTransactionRecord.put("essentialShare", InitiatorProcedure.essential);
-            requestedAmount = formatAmount(requestedAmount);
-            rbtTransactionRecord.put("amount-spent", requestedAmount);
-
-            JSONArray transactionHistoryEntry = new JSONArray();
-            transactionHistoryEntry.put(rbtTransactionRecord);
-
-            updateJSON("add", WALLET_DATA_PATH + "TransactionHistory.json", transactionHistoryEntry.toString());
 
             JSONObject nftTransactionRecord = new JSONObject();
             nftTransactionRecord.put("role", "Buyer");
@@ -1085,9 +1039,9 @@ public class NftBuyer {
             nftTransactionRecord.put("Date", getCurrentUtcTime());
             nftTransactionRecord.put("totalTime", totalTime);
             nftTransactionRecord.put("comment", comment);
-            nftTransactionRecord.put("essentialShare", InitiatorProcedure.essential);
+            // nftTransactionRecord.put("essentialShare", InitiatorProcedure.essential);
             requestedAmount = formatAmount(requestedAmount);
-            // nftTransactionRecord.put("amount-spent", requestedAmount);
+            nftTransactionRecord.put("amount-spent", requestedAmount);
 
             JSONArray nftTransactionHistoryEntry = new JSONArray();
             nftTransactionHistoryEntry.put(nftTransactionRecord);
@@ -1096,12 +1050,10 @@ public class NftBuyer {
             // adding ownership for NFTToken
             nftBuyerLogger.debug("Adding new Owner details to nft tokenchain");
 
-            
             String nftString = nftTokenIpfsHash.concat(buyerDid);
             String nftFirstHash = calculateHash(nftString, "SHA3-256");
             String nftHashString = nftFirstHash.concat(buyerPubKeyIpfsHash);
             String nftSignString = calculateHash(nftHashString, "SHA3-256");
-
 
             String nftOwnerIdentity = pvtKeySign(nftSignString, pvtKey);
 
@@ -1121,149 +1073,12 @@ public class NftBuyer {
             newRecord.put("nftOwner", nftOwnerIdentity);
             newRecord.put("amount", requestedAmount);
             newRecord.put("role", "Buyer");
-            // newRecord.put("buyerPubKeyIpfsHash",detailsObject.getString("buyerPubKeyIpfsHash"));
             currentNftTokenChain.put(newRecord);
             Functions.writeToFile(NFT_TOKENCHAIN_PATH + nftTokenIpfsHash + ".json", currentNftTokenChain.toString(),
                     Boolean.valueOf(false));
 
-            for (int i = 0; i < wholeTokens.length(); i++)
-                Files.deleteIfExists(Paths.get(tokenPath + wholeTokens.get(i)));
-
-            for (int i = 0; i < wholeTokens.length(); i++) {
-                Functions.updateJSON("remove", PAYMENTS_PATH.concat("BNK00.json"), wholeTokens.getString(i));
-            }
-
-            if (newPart) {
-                nftBuyerLogger.debug("Updating files for new parts");
-                JSONObject newPartTokenObject = new JSONObject();
-                newPartTokenObject.put("tokenHash", partTokens.getString(0));
-                JSONArray newPartArray = new JSONArray();
-                newPartArray.put(newPartTokenObject);
-                writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), newPartArray.toString(), false);
-
-                String bankNew = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-                JSONArray bankNewArray = new JSONArray(bankNew);
-                bankNewArray.remove(0);
-                writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankNewArray.toString(), false);
-
-                String newTokenChain = readFile(TOKENCHAIN_PATH + partTokens.getString(0) + ".json");
-                JSONArray chainArray = new JSONArray(newTokenChain);
-
-                JSONObject newLastObject = new JSONObject();
-                if (chainArray.length() == 0) {
-                    newLastObject.put("previousHash", "");
-
-                } else {
-                    JSONObject secondLastObject = chainArray.getJSONObject(chainArray.length() - 1);
-                    secondLastObject.put("nextHash", calculateHash(tid, "SHA3-256"));
-                    newLastObject.put("previousHash", calculateHash(
-                            chainArray.getJSONObject(chainArray.length() - 1).getString("tid"), "SHA3-256"));
-                }
-
-                Double amount = formatAmount(decimalAmount);
-
-                newLastObject.put("senderSign", rbtSenderSign);
-                newLastObject.put("sender", buyerDid);
-                newLastObject.put("receiver", sellerDid);
-                newLastObject.put("comment", comment);
-                newLastObject.put("tid", tid);
-                newLastObject.put("nextHash", "");
-                newLastObject.put("role", "Sender");
-                newLastObject.put("amount", amount);
-                chainArray.put(newLastObject);
-                writeToFile(TOKENCHAIN_PATH + partTokens.getString(0) + ".json", chainArray.toString(), false);
-
-                File tokenFile = new File(TOKENS_PATH.concat(partTokens.getString(0)));
-                tokenFile.renameTo(new File(PART_TOKEN_PATH.concat(partTokens.getString(0))));
-                File chainFile = new File(TOKENCHAIN_PATH.concat(partTokens.getString(0)).concat(".json"));
-                chainFile.renameTo(new File(PART_TOKEN_CHAIN_PATH.concat(partTokens.getString(0)).concat(".json")));
-
-                File shiftedFile = new File(PAYMENTS_PATH.concat("ShiftedTokens.json"));
-                if (!shiftedFile.exists()) {
-                    shiftedFile.createNewFile();
-                    JSONArray shiftedTokensArray = new JSONArray();
-                    shiftedTokensArray.put(partTokens.getString(0));
-                    writeToFile(PAYMENTS_PATH.concat("ShiftedTokens.json"), shiftedTokensArray.toString(), false);
-                } else {
-                    String shiftedContent = readFile(PAYMENTS_PATH.concat("ShiftedTokens.json"));
-                    JSONArray shiftedArray = new JSONArray(shiftedContent);
-                    shiftedArray.put(partTokens.getString(0));
-                    writeToFile(PAYMENTS_PATH.concat("ShiftedTokens.json"), shiftedArray.toString(), false);
-                }
-            } else {
-                nftBuyerLogger.debug("Updating files for old parts");
-                for (int i = 0; i < partTokens.length(); i++) {
-                    String newTokenChain = readFile(
-                            TOKENCHAIN_PATH.concat("PARTS/") + partTokens.getString(i) + ".json");
-                    JSONArray chainArray = new JSONArray(newTokenChain);
-
-                    JSONObject newLastObject = new JSONObject();
-                    if (chainArray.length() == 0) {
-                        newLastObject.put("previousHash", "");
-
-                    } else {
-                        JSONObject secondLastObject = chainArray.getJSONObject(chainArray.length() - 1);
-                        secondLastObject.put("nextHash", calculateHash(tid, "SHA3-256"));
-                        newLastObject.put("previousHash", calculateHash(
-                                chainArray.getJSONObject(chainArray.length() - 1).getString("tid"), "SHA3-256"));
-                    }
-
-                    nftBuyerLogger.debug(
-                            "Amount from ledger: " + formatAmount(amountLedger.getDouble(partTokens.getString(i))));
-                    Double amount = formatAmount(amountLedger.getDouble(partTokens.getString(i)));
-
-                    newLastObject.put("senderSign", rbtSenderSign);
-                    newLastObject.put("sender", buyerDid);
-                    newLastObject.put("receiver", sellerDid);
-                    newLastObject.put("comment", comment);
-                    newLastObject.put("tid", tid);
-                    newLastObject.put("nextHash", "");
-                    newLastObject.put("role", "Sender");
-                    newLastObject.put("amount", amount);
-                    chainArray.put(newLastObject);
-                    writeToFile(TOKENCHAIN_PATH.concat("PARTS/").concat(partTokens.getString(i)).concat(".json"),
-                            chainArray.toString(), false);
-
-                    nftBuyerLogger.debug("Checking Parts Token Balance ...");
-                    Double availableParts = partTokenBalance(partTokens.getString(i));
-                    nftBuyerLogger.debug("Available: " + availableParts);
-                    if (availableParts >= 1.000 || availableParts <= 0.000) {
-                        nftBuyerLogger.debug("Wholly Spent, Removing token from parts");
-                        String partFileContent2 = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
-                        JSONArray partContentArray2 = new JSONArray(partFileContent2);
-                        for (j = 0; j < partContentArray2.length(); j++) {
-                            if (partContentArray2.getJSONObject(j).getString("tokenHash")
-                                    .equals(partTokens.getString(i)))
-                                partContentArray2.remove(j);
-                            writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partContentArray2.toString(), false);
-                        }
-                        deleteFile(PART_TOKEN_PATH.concat(partTokens.getString(i)));
-                    }
-                }
-                if (oldNew) {
-                    String token = partTokens.getString(partTokens.length() - 1);
-                    String bnk = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-                    JSONArray bnkArray = new JSONArray(bnk);
-                    for (int i = 0; i < bnkArray.length(); i++) {
-                        if (bnkArray.getJSONObject(i).getString("tokenHash").equals(token))
-                            bnkArray.remove(i);
-                    }
-                    writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bnkArray.toString(), false);
-
-                    JSONArray pArray = new JSONArray();
-                    JSONObject pObject = new JSONObject();
-                    pObject.put("tokenHash", token);
-                    pArray.put(pObject);
-                    writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), pArray.toString(), false);
-
-                }
-            }
             // Populating data to explorer
             if (!EXPLORER_IP.contains("127.0.0.1")) {
-
-                List<String> tokenList = new ArrayList<>();
-                for (int i = 0; i < allTokens.length(); i++)
-                    tokenList.add(allTokens.getString(i));
                 String url = EXPLORER_IP + "/CreateOrUpdateRubixTransaction";
                 URL obj = new URL(url);
                 HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
@@ -1281,7 +1096,7 @@ public class NftBuyer {
                 dataToSend.put("transaction_id", tid);
                 dataToSend.put("sender_did", buyerDid);
                 dataToSend.put("receiver_did", sellerDid);
-                dataToSend.put("token_id", tokenList);
+                // dataToSend.put("token_id", tokenList);
                 dataToSend.put("token_time", (int) totalTime);
                 dataToSend.put("amount", requestedAmount);
                 dataToSend.put("nftToken", nftTokenIpfsHash);
@@ -1349,7 +1164,7 @@ public class NftBuyer {
         executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
         try {
             buyerSocket.close();
-             
+
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
