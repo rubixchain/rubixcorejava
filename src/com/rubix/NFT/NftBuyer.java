@@ -17,6 +17,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
@@ -582,7 +583,7 @@ public class NftBuyer {
              */
 
             URL rbtTransferApi = new URL("http://localhost:1898/initiateTransaction");
-            HttpsURLConnection rbtCon = (HttpsURLConnection) rbtTransferApi.openConnection();
+            HttpURLConnection rbtCon = (HttpURLConnection) rbtTransferApi.openConnection();
 
             // Setting basic post request
             rbtCon.setRequestMethod("POST");

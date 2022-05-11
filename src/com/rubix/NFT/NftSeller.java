@@ -17,6 +17,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.net.HttpURLConnection;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -31,7 +32,6 @@ import java.util.Iterator;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
-import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -618,7 +618,7 @@ public class NftSeller {
                  * NFT SEller Checks RBT Transaction to see if RBT is transfered seuccessfully
                  */
                 URL rbtTransferApi = new URL("http://localhost:1898/getTxnDetail");
-                HttpsURLConnection rbtCon = (HttpsURLConnection) rbtTransferApi.openConnection();
+                HttpURLConnection rbtCon = (HttpURLConnection) rbtTransferApi.openConnection();
 
                 // Setting basic post request
                 rbtCon.setRequestMethod("POST");
