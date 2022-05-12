@@ -598,7 +598,7 @@ public class NftBuyer {
             rbtApiPayload.put("receiver", sellerDid);
             rbtApiPayload.put("tokenCount", requestedAmount);
             rbtApiPayload.put("comment", comment);
-            rbtApiPayload.put("type", 1);
+            rbtApiPayload.put("type", 2);
 
             // Send post request
             rbtCon.setDoOutput(true);
