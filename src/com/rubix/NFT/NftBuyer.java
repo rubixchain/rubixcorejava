@@ -582,6 +582,7 @@ public class NftBuyer {
              * Section to initiate RBT transfer of the requested amount for NFT sale
              */
 
+            nftBuyerLogger.info("Starting RBT Token transfer for NFT");
             URL rbtTransferApi = new URL("http://localhost:1898/initiateTransaction");
             HttpURLConnection rbtCon = (HttpURLConnection) rbtTransferApi.openConnection();
 
@@ -607,7 +608,7 @@ public class NftBuyer {
             // Send post request
             rbtCon.setDoOutput(true);
             DataOutputStream wrRbtAPI = new DataOutputStream(rbtCon.getOutputStream());
-            wrRbtAPI.writeBytes(postRbtJsonData);
+            wrRbtAPI.writeBytes(rbtApiPayload.toString());
             wrRbtAPI.flush();
             wrRbtAPI.close();
 
@@ -635,7 +636,7 @@ public class NftBuyer {
                     "Response of RBT transfer API to nft Seller " + sellerDid + " is : " + rbtApiResstr.toString());
 
             // converting API response back to JSON Object
-            JSONObject rbtAPIresponse = new JSONObject(rbtApiResstr);
+            JSONObject rbtAPIresponse = new JSONObject(rbtApiResstr.toString());
             String statusStr = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("status");
 
             if (statusStr != null && !statusStr.equals("Success")) {
