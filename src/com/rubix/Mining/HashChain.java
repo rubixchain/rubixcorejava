@@ -5,25 +5,49 @@ import com.rubix.Resources.Functions;
 import org.apache.log4j.Logger;
 
 public class HashChain {
+	static String hashChain = "";
 
     public static Logger HashChainLogger = Logger.getLogger(HashChain.class);
 
     public static String newHashChain(String tID, String[] DIDs, int rule) {
-        String hashChain = "";
+       long totalTime = 0;
+       long currentTime = 0;
+       int ctr = 0;
+       java.util.Date date = new java.util.Date();    
+       while(totalTime<3600000 || rule > tID.length()) {
+           
+    	   currentTime = hashChainCounter(tID, DIDs,rule+ctr);
+    	   totalTime = totalTime + currentTime;
+    	   //System.out.println("Counter is "+ctr+" Current time used is "+ totalTime);
+    	   ctr++;
+    	   currentTime = 0;
+    	   
 
-        for (String DID : DIDs) {
-
+       }
+       return hashChain;
+       
+    }
+    
+    
+    public static long hashChainCounter(String tID, String[] DIDs, int rule) {
+        //String hashChain = "";
+    	long start = 0;
+        long end = 0;
+    	start = System.currentTimeMillis();
+    	for (String DID : DIDs) {
             int counter = 0;
             String hash = DID;
             while (!hash.endsWith(tID.substring(tID.length() - rule))) {
                 counter++;
                 hash = Functions.calculateHash(hash, "SHA3-256");
                 hashChain = hash;
-
             }
-            System.out.println(hash + " " + counter);
+           
+           // System.out.println(hash + " " + counter + " rule is "+ rule);
         }
-        return hashChain;
+    	end = System.currentTimeMillis();
+       // System.out.println("Current time "+(end - start));
+    	return (end - start);
     }
 
     // using the TID and DIDs,
