@@ -116,7 +116,7 @@ public class InitiatorProcedure {
             nftdetails.put("sellerPubKeyIpfsHash", dataObject.getString("sellerPubKeyIpfsHash"));
             nftdetails.put("saleContractIpfsHash", dataObject.getString("saleContractIpfsHash"));
             nftdetails.put("nftTokenDetails", dataObject.getJSONObject("nftTokenDetails"));
-            nftdetails.put("rbtTokenDetails", dataObject.getJSONObject("rbtTokenDetails"));
+            //nftdetails.put("rbtTokenDetails", dataObject.getJSONObject("rbtTokenDetails"));
             // nftdetails.put("sellerPvtKeySign", dataObject.getString("sellerPvtKeySign"));
             nftdetails.put("tokenAmount", dataObject.getDouble("tokenAmount"));
             String authNftSenderByQuorumHash = calculateHash(dataObject.getJSONObject("nftTokenDetails").toString(),
