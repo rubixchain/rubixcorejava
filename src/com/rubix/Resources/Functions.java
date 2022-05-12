@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -496,21 +497,17 @@ public class Functions {
      */
 
     public static void updateJSON(String operation, String filePath, String data) {
-    	FunctionsLogger.debug("Mutex status is "+mutex);
-    	FunctionsLogger.debug("----------------------------------------------------------");
-    	FunctionsLogger.debug("incoming opertation is "+operation+" and data is : "+data);
-    	FunctionsLogger.debug("----------------------------------------------------------");
-    	FunctionsLogger.debug("Started to update "+filePath+" file");
+    	
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         
-    	FunctionsLogger.debug("Mutex status is "+mutex);
+    //	FunctionsLogger.debug("Mutex status is "+mutex);
 
         try {
             while (mutex) {
             }
 
             mutex = true;
-        	FunctionsLogger.debug("Mutex status is "+mutex+" after while");
+        //	FunctionsLogger.debug("Mutex status is "+mutex+" after while");
 
             File file = new File(filePath);
             if (!file.exists()) {
@@ -536,11 +533,11 @@ public class Functions {
 
             if (operation.equals("add")) {
                 JSONArray newData = new JSONArray(data);
-                FunctionsLogger.debug("data to be added in if condifiton is "+ newData.toString());
+             //   FunctionsLogger.debug("data to be added in if condifiton is "+ newData.toString());
                 for (int i = 0; i < newData.length(); i++)
                     contentArray.put(newData.getJSONObject(i));
                 writeToFile(filePath, contentArray.toString(), false);
-                FunctionsLogger.debug("Update completed in "+filePath);
+             //   FunctionsLogger.debug("Update completed in "+filePath);
             }
             mutex = false;
         } catch (JSONException e) {
@@ -1456,13 +1453,31 @@ public class Functions {
         return balance;
     }
 
-    public static String initHash() throws IOException {
-        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        initPath = initPath.split("\\.jar")[0];
-        initPath = initPath.split("file:", 2)[1];
-        initPath = initPath + ".jar";
-        String hash = calculateFileHash(initPath, "SHA3-256");
-        return hash;
+    public static String initHash(){
+        String version = "";
+        try {
+            URL url = new URL("http://localhost:1898/getVersion");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+            if (conn.getResponseCode() != 200) {
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + conn.getResponseCode());
+            }
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream())));
+            String output;
+            while ((output = br.readLine()) != null) {
+                version = output;
+            }
+            conn.disconnect();
+            FunctionsLogger.debug("initHash version is "+version);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return version;
     }
 
     public static Double partTokenBalance(String tokenHash) throws JSONException {
@@ -1546,40 +1561,40 @@ public class Functions {
 
     public static String sanityMessage;
 
-    public static boolean sanityCheck(String peerid, IPFS ipfs, int port) throws IOException, JSONException {
-        FunctionsLogger.info("Entering Receiver SanityCheck");
+    public static boolean sanityCheck(String userType, String peerid, IPFS ipfs, int port) throws IOException, JSONException {
+        FunctionsLogger.info("Entering " + userType +" SanityCheck");
         boolean sanityCheckErrorFlag = true;
         if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
-            FunctionsLogger.debug("Receiver IPFS is working in " + peerid);
-            FunctionsLogger.debug("Receiver IPFS check true");
+            FunctionsLogger.debug(userType + " IPFS is working in " + peerid);
+            FunctionsLogger.debug(userType + " IPFS check true");
         } else {
             sanityCheckErrorFlag = false;
-            FunctionsLogger.debug("Receiver IPFS is not working in " + peerid);
-            FunctionsLogger.debug("Receiver IPFS check false");
-            sanityMessage = "Receiver IPFS is not working in " + peerid;
+            FunctionsLogger.debug(userType + " IPFS is not working in " + peerid);
+            FunctionsLogger.debug(userType + " IPFS check false");
+            sanityMessage = userType + " IPFS is not working in " + peerid;
         }
 
         if (sanityCheckErrorFlag) {
             if (bootstrapConnect(peerid, ipfs)) {
-                FunctionsLogger.debug("Bootstrap connected for Receiver " + peerid);
+                FunctionsLogger.debug("Bootstrap connected for "+userType +" : " + peerid);
                 FunctionsLogger.debug("Bootstrap check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Bootstrap connection unsuccessful for Receiver " + peerid);
+                FunctionsLogger.debug("Bootstrap connection unsuccessful for "+userType + " : " + peerid);
                 FunctionsLogger.debug("Bootstrap check false");
-                sanityMessage = "Bootstrap connection unsuccessful for Receiver " + peerid;
+                sanityMessage = "Bootstrap connection unsuccessful for "+userType +" : " + peerid;
             }
         }
 
         if (sanityCheckErrorFlag) {
             if (ping(peerid, port)) {
-                FunctionsLogger.debug("Rceiver is running the latest Jar " + peerid);
+                FunctionsLogger.debug(userType + " is running the latest Jar :" + peerid);
                 FunctionsLogger.debug("Latest Jar check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Receiver is not running the latest Jar " + peerid);
+                FunctionsLogger.debug(userType + " is not running the latest Jar :" + peerid);
                 FunctionsLogger.debug("Latest Jar check false");
-                sanityMessage = "Receiver is not running the latest Jar. PID: " + peerid;
+                sanityMessage = userType + " is not running the latest Jar. PID: " + peerid;
             }
         }
 

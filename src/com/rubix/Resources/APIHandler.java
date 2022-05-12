@@ -51,13 +51,13 @@ public class APIHandler {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         
-        APILogger.debug("data is "+ data);
+     //   APILogger.debug("data is "+ data);
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
         JSONArray tokens;
         JSONObject dataObject = new JSONObject(data);
         
-        APILogger.debug("dataObject is "+ dataObject.toString());
+   //     APILogger.debug("dataObject is "+ dataObject.toString());
        // String recDID = dataObject.getString("receiverDidIpfsHash");
         String blockHash;
         String recDID;
@@ -67,14 +67,14 @@ public class APIHandler {
         JSONArray dataTable = new JSONArray(dataTableData);
         JSONObject sendMessage = new JSONObject();
 
-        APILogger.debug("dataObject is "+ dataObject.toString());
+    //    APILogger.debug("dataObject is "+ dataObject.toString());
        if(dataObject.has("receiverDidIpfsHash")) {
-           APILogger.debug("Trans type is "+ PRIMARY);
+    //       APILogger.debug("Trans type is "+ PRIMARY);
 
     	   dataObject.put(TRANS_TYPE, PRIMARY);
     	   recDID = dataObject.getString("receiverDidIpfsHash");
            tokens = dataObject.getJSONArray("tokens");
-           APILogger.debug("Trans type is "+ dataObject.toString());
+     //      APILogger.debug("Trans type is "+ dataObject.toString());
 
            if (tokens.length() < 1) {
                sendMessage.put("did", senDID);
@@ -102,7 +102,7 @@ public class APIHandler {
                networkInfo();
        }
        if (dataObject.has("blockHash")) {
-           APILogger.debug("Trans type is "+ DATA);
+    //       APILogger.debug("Trans type is "+ DATA);
 
            dataObject.put(TRANS_TYPE, DATA);
            
@@ -117,11 +117,11 @@ public class APIHandler {
        }
       
        dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-       APILogger.debug("dataObeject is "+dataObject.toString());
+   //    APILogger.debug("dataObeject is "+dataObject.toString());
        sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
        
 
-       APILogger.debug("send Message is "+sendMessage);
+   //    APILogger.debug("send Message is "+sendMessage);
        return sendMessage;
    }
         

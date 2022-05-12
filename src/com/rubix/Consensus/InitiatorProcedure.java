@@ -121,9 +121,9 @@ public class InitiatorProcedure {
         	String authSenderByQuorumHash = calculateHash(blockHash, "SHA3-256");
             String authQuorumHash = calculateHash(authSenderByQuorumHash.concat(blockHash), "SHA3-256");
 
-            InitiatorProcedureLogger.debug("Data Sender by Quorum Hash " +
-                    authSenderByQuorumHash);
-            InitiatorProcedureLogger.debug("Data Quorum Auth Hash " + authQuorumHash);
+         //   InitiatorProcedureLogger.debug("Data Sender by Quorum Hash " +
+         //          authSenderByQuorumHash);
+         //   InitiatorProcedureLogger.debug("Data Quorum Auth Hash " + authQuorumHash);
 
             try {
                 payload.put("sender", senderDidIpfs);
@@ -138,12 +138,7 @@ public class InitiatorProcedure {
             Split.split(payload.toString());
 
             int[][] shares = Split.get135Shares();
-            InitiatorProcedureLogger.debug("!================================!");
-            for (int[] row: shares)
-            InitiatorProcedureLogger.debug("! "+Arrays.toString(row) + " !");
-            InitiatorProcedureLogger.debug("!                                !");
-            InitiatorProcedureLogger.debug("!================================!");
-            InitiatorProcedureLogger.debug("Payload Split Success");
+           
             essential = SeperateShares.getShare(shares, payload.toString().length(), 0);
             String Q1Share = SeperateShares.getShare(shares, payload.toString().length(), 1);
             String Q2Share = SeperateShares.getShare(shares, payload.toString().length(), 2);
@@ -164,8 +159,8 @@ public class InitiatorProcedure {
                 data2.put("Share2", Q2Share);
                 data2.put("Share3", Q3Share);
                 data2.put("Share4", Q4Share);
-                InitiatorProcedureLogger.debug("data1 is "+data1.toString());
-                InitiatorProcedureLogger.debug("data2 is "+data2.toString());
+             //   InitiatorProcedureLogger.debug("data1 is "+data1.toString());
+             //   InitiatorProcedureLogger.debug("data2 is "+data2.toString());
 
             } catch (JSONException | IOException e) {
                 InitiatorProcedureLogger.error("JSON Exception occurred", e);
@@ -175,20 +170,20 @@ public class InitiatorProcedure {
             JSONArray detailsForQuorum = new JSONArray();
             detailsForQuorum.put(data1);
             detailsForQuorum.put(data2);
-            InitiatorProcedureLogger.info(detailsForQuorum.toString());
-            InitiatorProcedureLogger.debug("Invoking Consensus");
+       //     InitiatorProcedureLogger.info(detailsForQuorum.toString());
+       //     InitiatorProcedureLogger.debug("Invoking Consensus");
 
             dataSend.put("hash", authQuorumHash);
             dataSend.put("details", detailsForQuorum);
-            InitiatorProcedureLogger.debug("data sending to init cons is "+ dataSend.toString());
+        //    InitiatorProcedureLogger.debug("data sending to init cons is "+ dataSend.toString());
 
         }
 
         
         Thread alphaThread = new Thread(() -> {
             try {
-            	InitiatorProcedureLogger.debug("sending data to alphaThread dataSend JSON: "+dataSend.toString()+ "alpha is "+ alphaList + "alpha size is "+ alphaSize
-                      +" Operation is "+ operation);
+            //	InitiatorProcedureLogger.debug("sending data to alphaThread dataSend JSON: "+dataSend.toString()+ "alpha is "+ alphaList + "alpha size is "+ alphaSize
+            //          +" Operation is "+ operation);
                 alphaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT, 0, "alpha", alphaList, alphaSize,
                         alphaSize, operation);
             } catch (JSONException e) {
@@ -198,8 +193,8 @@ public class InitiatorProcedure {
 
         Thread betaThread = new Thread(() -> {
             try {
-            	InitiatorProcedureLogger.debug("sending data to betaThread dataSend JSON: "+dataSend.toString()+ "beta is "+ betaList + "beta size is "+ alphaSize
-                        +" Operation is "+ operation);
+            //	InitiatorProcedureLogger.debug("sending data to betaThread dataSend JSON: "+dataSend.toString()+ "beta is "+ betaList + "beta size is "+ alphaSize
+            //            +" Operation is "+ operation);
                 betaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 100, 1, "beta", betaList,
                         alphaSize, 7, operation);
             } catch (JSONException e) {
@@ -209,8 +204,8 @@ public class InitiatorProcedure {
 
         Thread gammaThread = new Thread(() -> {
             try {
-            	InitiatorProcedureLogger.debug("sending data to gammaThread dataSend JSON: "+dataSend.toString()+ "gamma is "+ gammaList + "alpha size is "+ alphaSize
-                        +" Operation is "+ operation);
+            //	InitiatorProcedureLogger.debug("sending data to gammaThread dataSend JSON: "+dataSend.toString()+ "gamma is "+ gammaList + "alpha size is "+ alphaSize
+            //            +" Operation is "+ operation);
                 gammaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 107, 2, "gamma", gammaList,
                         alphaSize, 7, operation);
             } catch (JSONException e) {
