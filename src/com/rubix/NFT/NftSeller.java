@@ -631,21 +631,16 @@ public class NftSeller {
                 JSONObject rbtApiPayload = new JSONObject();
                 rbtApiPayload.put("transactionID", rbtTxnId);
 
-                String rbtApiPopulate = rbtApiPayload.toString();
-                JSONObject tempRbtObject = new JSONObject();
-                tempRbtObject.put("inputString", rbtApiPopulate);
-                String postRbtJsonData = tempRbtObject.toString();
-
                 // Send post request
                 rbtCon.setDoOutput(true);
                 DataOutputStream wrRbtAPI = new DataOutputStream(rbtCon.getOutputStream());
-                wrRbtAPI.writeBytes(postRbtJsonData);
+                wrRbtAPI.writeBytes(rbtApiPayload.toString());
                 wrRbtAPI.flush();
                 wrRbtAPI.close();
 
                 int rbtApiResponseCode = rbtCon.getResponseCode();
                 nftSellerLogger.debug("Sending 'POST' request to URL : " + "http://localhost:1898/getTxnDetail");
-                nftSellerLogger.debug("Post Data : " + postRbtJsonData);
+                nftSellerLogger.debug("Post Data : " + rbtApiPayload);
                 nftSellerLogger.debug("Response Code : " + rbtApiResponseCode);
 
                 if (rbtApiResponseCode != 200) {

@@ -600,11 +600,6 @@ public class NftBuyer {
             rbtApiPayload.put("comment", comment);
             rbtApiPayload.put("type", 1);
 
-            String rbtApiPopulate = rbtApiPayload.toString();
-            JSONObject tempRbtObject = new JSONObject();
-            tempRbtObject.put("inputString", rbtApiPopulate);
-            String postRbtJsonData = tempRbtObject.toString();
-
             // Send post request
             rbtCon.setDoOutput(true);
             DataOutputStream wrRbtAPI = new DataOutputStream(rbtCon.getOutputStream());
@@ -614,7 +609,7 @@ public class NftBuyer {
 
             int rbtApiResponseCode = rbtCon.getResponseCode();
             nftBuyerLogger.debug("Sending 'POST' request to URL : " + "http://localhost:1898/initiateTransaction");
-            nftBuyerLogger.debug("Post Data : " + postRbtJsonData);
+            nftBuyerLogger.debug("Post Data : " + rbtApiPayload);
             nftBuyerLogger.debug("Response Code : " + rbtApiResponseCode);
 
             if (rbtApiResponseCode != 200) {
@@ -645,8 +640,8 @@ public class NftBuyer {
                 APIResponse.put("did", sellerDid);
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");
-                APIResponse.put("message", rbtAPIresponse.getString("message"));
-                nftBuyerLogger.info(rbtAPIresponse.getString("message"));
+                APIResponse.put("message", rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
+                nftBuyerLogger.info(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                 output.close();
                 input.close();
@@ -658,7 +653,7 @@ public class NftBuyer {
 
             output.println("200");
 
-            String rbtTxnId = rbtAPIresponse.getString("tid");
+            String rbtTxnId = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("tid");
 
             /**
              * selecting quorum for NFT Consensus
