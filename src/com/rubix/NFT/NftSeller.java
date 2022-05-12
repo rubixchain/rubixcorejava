@@ -477,6 +477,9 @@ public class NftSeller {
                 return APIResponse.toString();
             }
 
+            nftSellerLogger.debug("RBT txn for NFT Auth code "+rbtTxnAuth);
+            nftSellerLogger.debug("message "+ rbtTxnres);
+
             String consensusDetails;
 
             try {

@@ -652,6 +652,7 @@ public class NftBuyer {
             }
 
             output.println("200");
+            output.println(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
 
             String rbtTxnId = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("tid");
 
