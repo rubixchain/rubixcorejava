@@ -642,7 +642,7 @@ public class NftSeller {
                 wrRbtAPI.close();
 
                 int rbtApiResponseCode = rbtCon.getResponseCode();
-                nftSellerLogger.debug("Sending 'POST' request to URL : " + "http://localhost:1898/getTxnDetail");
+                nftSellerLogger.debug("Sending 'POST' request to URL : " + "http://localhost:1898/getTxnDetails");
                 nftSellerLogger.debug("Post Data : " + rbtApiPayload);
                 nftSellerLogger.debug("Response Code : " + rbtApiResponseCode);
 
@@ -687,7 +687,7 @@ public class NftSeller {
 
                 JSONObject rbtTxnDataResObj = rbtTxnDataRes.getJSONObject(0);
 
-                double rbtReceived = rbtTxnDataResObj.getDouble("amount-spent");
+                double rbtReceived = rbtTxnDataResObj.getDouble("amount-received");
 
                 if (SenderDetails.getDouble("rbtAmount") != rbtReceived) {
                     output.println("421");
