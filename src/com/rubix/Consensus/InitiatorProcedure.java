@@ -119,10 +119,12 @@ public class InitiatorProcedure {
             //nftdetails.put("rbtTokenDetails", dataObject.getJSONObject("rbtTokenDetails"));
             // nftdetails.put("sellerPvtKeySign", dataObject.getString("sellerPvtKeySign"));
             nftdetails.put("tokenAmount", dataObject.getDouble("tokenAmount"));
+            InitiatorProcedureLogger.debug("NFT Token Detials "+dataObject.getJSONObject("nftTokenDetails").toString());
             String authNftSenderByQuorumHash = calculateHash(dataObject.getJSONObject("nftTokenDetails").toString(),
                     "SHA3-256");
+            InitiatorProcedureLogger.debug("authNftSenderByQuorumHash "+authNftSenderByQuorumHash);
             nftdetails.put("nftHash", authNftSenderByQuorumHash);
-            nftdetails.put("nftBuyerDid", senderDidIpfs);
+            nftdetails.put("nftBuyerDid", receiverDidIpfs);
 
             dataSend.put("nftDetails", nftdetails);
 
@@ -162,8 +164,7 @@ public class InitiatorProcedure {
         gammaThread.start();
 
         if (operation.equals("NFT")) {
-            while ((InitiatorConsensus.quorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7))))
-                    && (InitiatorConsensus.nftQuorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7))))) {
+            while ((InitiatorConsensus.nftQuorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7))))) {
             }
             InitiatorProcedureLogger.debug(
                     "ABG NFT Consensus completed with length for NFT :" + InitiatorConsensus.nftQuorumSignature.length()

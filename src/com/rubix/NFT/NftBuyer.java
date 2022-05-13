@@ -765,8 +765,8 @@ public class NftBuyer {
 
             consensusDataObject.put("message", "");
             consensusDataObject.put("tid", tid);
-            consensusDataObject.put("receiverDidIpfs", "");
-            consensusDataObject.put("senderDidIpfs", "");
+            consensusDataObject.put("receiverDidIpfs",buyerDid);
+            consensusDataObject.put("senderDidIpfs",sellerDid);
             consensusDataObject.put("nftTokenDetails", nftDetailsObject);
             consensusDataObject.put("token", "");
             // consensusDataObject.put("rbtTokenDetails", "");
@@ -827,6 +827,8 @@ public class NftBuyer {
                 return APIResponse;
             }
             nftBuyerLogger.debug("Consensus Reached");
+
+            nftBuyerLogger.debug("NFT quorum details "+InitiatorConsensus.nftQuorumSignature);
 
             consensusDetails.put("status", "Consensus Reached");
             consensusDetails.put(("nftQuorumSign"), InitiatorConsensus.nftQuorumSignature.toString());
