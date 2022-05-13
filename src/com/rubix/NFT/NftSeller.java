@@ -620,7 +620,7 @@ public class NftSeller {
                 /**
                  * NFT SEller Checks RBT Transaction to see if RBT is transfered seuccessfully
                  */
-                URL rbtTransferApi = new URL("http://localhost:1898/getTxnDetail");
+                URL rbtTransferApi = new URL("http://localhost:1898/getTxnDetails");
                 HttpURLConnection rbtCon = (HttpURLConnection) rbtTransferApi.openConnection();
 
                 // Setting basic post request
