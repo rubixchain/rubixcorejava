@@ -579,87 +579,10 @@ public class NftBuyer {
             output.println("200");
 
             /**
-             * Section to initiate RBT transfer of the requested amount for NFT sale
+             * Consesnusus For NFT
              */
 
-            nftBuyerLogger.info("Starting RBT Token transfer for NFT");
-            URL rbtTransferApi = new URL("http://localhost:1898/initiateTransaction");
-            HttpURLConnection rbtCon = (HttpURLConnection) rbtTransferApi.openConnection();
-
-            // Setting basic post request
-            rbtCon.setRequestMethod("POST");
-            rbtCon.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-            rbtCon.setRequestProperty("Accept", "application/json");
-            rbtCon.setRequestProperty("Content-Type", "application/json");
-            rbtCon.setRequestProperty("Authorization", "null");
-
-            // Serialization
-            JSONObject rbtApiPayload = new JSONObject();
-            rbtApiPayload.put("receiver", sellerDid);
-            rbtApiPayload.put("tokenCount", requestedAmount);
-            rbtApiPayload.put("comment", comment);
-            rbtApiPayload.put("type", 2);
-
-            // Send post request
-            rbtCon.setDoOutput(true);
-            DataOutputStream wrRbtAPI = new DataOutputStream(rbtCon.getOutputStream());
-            wrRbtAPI.writeBytes(rbtApiPayload.toString());
-            wrRbtAPI.flush();
-            wrRbtAPI.close();
-
-            int rbtApiResponseCode = rbtCon.getResponseCode();
-            nftBuyerLogger.debug("Sending 'POST' request to URL : " + "http://localhost:1898/initiateTransaction");
-            nftBuyerLogger.debug("Post Data : " + rbtApiPayload);
-            nftBuyerLogger.debug("Response Code : " + rbtApiResponseCode);
-
-            if (rbtApiResponseCode != 200) {
-                throw new RuntimeException("Failed : HTTP error code : "
-                        + rbtCon.getResponseCode());
-            }
-
-            BufferedReader rbtResInp = new BufferedReader(new InputStreamReader(rbtCon.getInputStream()));
-
-            String rbtApiOut;
-            StringBuffer rbtApiResstr = new StringBuffer();
-
-            while ((rbtApiOut = rbtResInp.readLine()) != null) {
-                rbtApiResstr.append(rbtApiOut);
-            }
-            rbtResInp.close();
-
-            nftBuyerLogger.info(
-                    "Response of RBT transfer API to nft Seller " + sellerDid + " is : " + rbtApiResstr.toString());
-
-            // converting API response back to JSON Object
-            JSONObject rbtAPIresponse = new JSONObject(rbtApiResstr.toString());
-            String statusStr = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("status");
-
-            if (statusStr != null && !statusStr.equals("Success")) {
-                output.println("420");
-                output.println(rbtApiResstr);
-                APIResponse.put("did", sellerDid);
-                APIResponse.put("tid", "null");
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
-                nftBuyerLogger.info(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
-                executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
-                output.close();
-                input.close();
-                buyerSocket.close();
-
-                buyerMutex = false;
-                return APIResponse;
-            }
-
-            output.println("200");
-            output.println(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
-
-            String rbtTxnId = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("tid");
-
-            /**
-             * selecting quorum for NFT Consensus
-             */
-            String tid = calculateHash(nftDetailsObject.toString() + rbtTxnId, "SHA3-256");
+            String tid = calculateHash(nftDetailsObject.toString(), "SHA3-256");
             nftBuyerLogger.debug("TID  " + tid);
 
             nftBuyerLogger.debug("connecting to quorum");
@@ -874,6 +797,87 @@ public class NftBuyer {
                 return APIResponse;
 
             }
+
+            nftBuyerLogger.debug("NFT Seller veified Quorum Signature. Proceeding to intiate RBT transfer");
+            /**
+             * Section to initiate RBT transfer of the requested amount for NFT sale
+             */
+
+            nftBuyerLogger.info("Starting RBT Token transfer for NFT");
+            URL rbtTransferApi = new URL("http://localhost:1898/initiateTransaction");
+            HttpURLConnection rbtCon = (HttpURLConnection) rbtTransferApi.openConnection();
+
+            // Setting basic post request
+            rbtCon.setRequestMethod("POST");
+            rbtCon.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+            rbtCon.setRequestProperty("Accept", "application/json");
+            rbtCon.setRequestProperty("Content-Type", "application/json");
+            rbtCon.setRequestProperty("Authorization", "null");
+
+            // Serialization
+            JSONObject rbtApiPayload = new JSONObject();
+            rbtApiPayload.put("receiver", sellerDid);
+            rbtApiPayload.put("tokenCount", requestedAmount);
+            rbtApiPayload.put("comment", comment);
+            rbtApiPayload.put("type", 2);
+
+            // Send post request
+            rbtCon.setDoOutput(true);
+            DataOutputStream wrRbtAPI = new DataOutputStream(rbtCon.getOutputStream());
+            wrRbtAPI.writeBytes(rbtApiPayload.toString());
+            wrRbtAPI.flush();
+            wrRbtAPI.close();
+
+            int rbtApiResponseCode = rbtCon.getResponseCode();
+            nftBuyerLogger.debug("Sending 'POST' request to URL : " + "http://localhost:1898/initiateTransaction");
+            nftBuyerLogger.debug("Post Data : " + rbtApiPayload);
+            nftBuyerLogger.debug("Response Code : " + rbtApiResponseCode);
+
+            if (rbtApiResponseCode != 200) {
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + rbtCon.getResponseCode());
+            }
+
+            BufferedReader rbtResInp = new BufferedReader(new InputStreamReader(rbtCon.getInputStream()));
+
+            String rbtApiOut;
+            StringBuffer rbtApiResstr = new StringBuffer();
+
+            while ((rbtApiOut = rbtResInp.readLine()) != null) {
+                rbtApiResstr.append(rbtApiOut);
+            }
+            rbtResInp.close();
+
+            nftBuyerLogger.info(
+                    "Response of RBT transfer API to nft Seller " + sellerDid + " is : " + rbtApiResstr.toString());
+
+            // converting API response back to JSON Object
+            JSONObject rbtAPIresponse = new JSONObject(rbtApiResstr.toString());
+            String statusStr = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("status");
+
+            if (statusStr != null && !statusStr.equals("Success")) {
+                output.println("420");
+                output.println(rbtApiResstr);
+                APIResponse.put("did", sellerDid);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
+                nftBuyerLogger.info(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
+                output.close();
+                input.close();
+                buyerSocket.close();
+
+                buyerMutex = false;
+                return APIResponse;
+            }
+
+            output.println("200");
+            output.println(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
+
+            String rbtTxnId = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("tid");
+
+           
 
             nftBuyerLogger.debug("Sending RBT Txn ID to Seller to confirm ");
             output.println(rbtTxnId);

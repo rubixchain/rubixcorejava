@@ -443,43 +443,9 @@ public class NftSeller {
             nftSellerLogger.info("Buyer verified NFT sale contract");
 
             // NFT Seller waiting for Buyer Side confirmation of RBT Txn
-            String rbtTxnAuth, rbtTxnres;
-            try {
-                rbtTxnAuth = input.readLine();
-                rbtTxnres = input.readLine();
-            } catch (SocketException e) {
-                nftSellerLogger.warn("Buyer Stream Null - Buyer Details");
-                APIResponse.put("did", sellerDidIpfsHash);
-                APIResponse.put("tid", "null");
-                APIResponse.put("status", "Failed");
-                APIResponse.put("message", "Buyer Stream Null - Buyer Detail");
-
-                output.close();
-                input.close();
-
-                sk.close();
-                ss.close();
-                return APIResponse.toString();
-            }
-            if (rbtTxnAuth != null && !rbtTxnAuth.equals("200")) {
-                JSONObject rbtTxnresponse = new JSONObject(rbtTxnres);
-                nftSellerLogger.info(rbtTxnresponse.getString("message"));
-                APIResponse.put("message", rbtTxnresponse.getString("message"));
-                APIResponse.put("did", sellerDidIpfsHash);
-                APIResponse.put("tid", "");
-                APIResponse.put("status", "Failed");
-                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + buyerPeerID);
-                output.close();
-                input.close();
-
-                sk.close();
-                ss.close();
-                return APIResponse.toString();
-            }
-
-            nftSellerLogger.debug("RBT txn for NFT Auth code "+rbtTxnAuth);
-            nftSellerLogger.debug("message "+ rbtTxnres);
-
+            /* String rbtTxnAuth, rbtTxnres;
+            
+ */
             String consensusDetails;
 
             try {
@@ -597,7 +563,45 @@ public class NftSeller {
                 nftSellerLogger.debug("Sender and Quorum Verified");
                 output.println("200");
 
-                String rbtTxnId;
+                nftSellerLogger.debug("Seller Waiting for Buyer to transfer RBT");
+                String rbtTxnId,rbtTxnAuth, rbtTxnRes;
+                try {
+                    rbtTxnAuth = input.readLine();
+                    rbtTxnRes = input.readLine();
+                } catch (SocketException e) {
+                    nftSellerLogger.warn("Buyer Stream Null - Buyer Details");
+                    APIResponse.put("did", sellerDidIpfsHash);
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Buyer Stream Null - Buyer Detail");
+    
+                    output.close();
+                    input.close();
+    
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
+                }
+                if (rbtTxnAuth != null && !rbtTxnAuth.equals("200")) {
+                    JSONObject rbtTxnresponse = new JSONObject(rbtTxnRes);
+                    nftSellerLogger.info(rbtTxnresponse.getString("message"));
+                    APIResponse.put("message", rbtTxnresponse.getString("message"));
+                    APIResponse.put("did", sellerDidIpfsHash);
+                    APIResponse.put("tid", "");
+                    APIResponse.put("status", "Failed");
+                    IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + buyerPeerID);
+                    output.close();
+                    input.close();
+    
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
+                }
+    
+                nftSellerLogger.debug("RBT txn for NFT Auth code "+rbtTxnAuth);
+                nftSellerLogger.debug("message "+ rbtTxnRes);
+
+                
                 try {
                     rbtTxnId = input.readLine();
                 } catch (SocketException e) {
@@ -616,6 +620,8 @@ public class NftSeller {
                 }
 
                 nftSellerLogger.debug("Received RBT Txn ID " + rbtTxnId);
+
+                nftSellerLogger.debug("Seller Verifying RBT txn from Buyer for NFT");
 
                 /**
                  * NFT SEller Checks RBT Transaction to see if RBT is transfered seuccessfully
@@ -681,6 +687,7 @@ public class NftSeller {
                     return APIResponse.toString();
 
                 }
+                nftSellerLogger.debug("RBT Txn Status from Buyer to Seller is : "+ status);
 
                 JSONObject rbtTxnData = rbtTxnDetObj.getJSONObject("data");
                 JSONArray rbtTxnDataRes = rbtTxnData.getJSONArray("response");
@@ -706,14 +713,17 @@ public class NftSeller {
 
                 }
 
+                nftSellerLogger.debug("Buyer Sent "+SenderDetails.getDouble("rbtAmount")+"RBT");
                 output.println("200");
 
+
+                nftSellerLogger.debug("Seller preparing to unpin NFT");
                 IPFSNetwork.unpin(nftTokenIpfsHash, ipfs);
                 // IPFSNetwork.repo(ipfs);
+                nftSellerLogger.debug("Seller unpinned NFT");
+
 
                 output.println("NFT-UnPinned");
-
-                nftSellerLogger.debug("NFT-UnPinned");
 
                 /*
                  * String essentialShare;
