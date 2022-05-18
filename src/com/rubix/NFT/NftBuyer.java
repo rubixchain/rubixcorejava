@@ -1016,15 +1016,6 @@ public class NftBuyer {
             nftBuyerLogger.debug(
                     "\n*******************NFT Signed Quorum List**************** \n" + nftSignedQuorumList.toString());
 
-            APIResponse.put("tid", tid);
-            APIResponse.put("rbtTid", rbtTxnId);
-            APIResponse.put("status", "Success");
-            APIResponse.put("did", buyerDid);
-            APIResponse.put("message", "Tokens transferred successfully!");
-            APIResponse.put("quorumlist", nftSignedQuorumList);
-            APIResponse.put("receiver", sellerDid);
-            APIResponse.put("totaltime", totalTime);
-
             // updating quorum credit for signing nft txn
             updateQuorum(quorumArray, nftSignedQuorumList, true, type);
 
@@ -1137,25 +1128,15 @@ public class NftBuyer {
 
                 nftBuyerLogger.debug(response.toString());
             }
-
-            /*
-             * nftBuyerLogger.info("Transaction Successful");
-             * executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
-             * output.close();
-             * input.close();
-             * buyerSocket.close();
-             * //senderMutex = false;
-             * return APIResponse;
-             */
             nftBuyerLogger.info("Transaction ID: " + tid + " NFT Transaction Successful");
-            output.println("Send Response");
-            /* APIResponse.put("did", buyerDid);
             APIResponse.put("tid", tid);
             APIResponse.put("rbtTid", rbtTxnId);
             APIResponse.put("status", "Success");
-            APIResponse.put("nfttoken", nftTokenIpfsHash);
-            APIResponse.put("comment", comment);
-            APIResponse.put("message", "NFT Transaction Successful"); */
+            APIResponse.put("did", buyerDid);
+            APIResponse.put("message", "Tokens transferred successfully!");
+            APIResponse.put("quorumlist", nftSignedQuorumList);
+            APIResponse.put("receiver", sellerDid);
+            APIResponse.put("totaltime", totalTime);
         } catch (JSONException e) {
             nftBuyerLogger.error("JSONEXception at reading data", e);
         } catch (IOException e) {
