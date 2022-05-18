@@ -1,17 +1,14 @@
 package com.rubix.NFT;
 
-import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
 import com.rubix.PasswordMasking.PasswordField;
 import com.rubix.Resources.Functions;
 import static com.rubix.Resources.IPFSNetwork.*;
 import io.ipfs.api.IPFS;
-import java.awt.image.BufferedImage;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
-import java.io.File;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -21,17 +18,13 @@ import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.List;
 
-import javax.imageio.ImageIO;
 import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.log4j.Logger;
@@ -582,6 +575,7 @@ public class NftBuyer {
              * Consesnusus For NFT
              */
 
+            nftBuyerLogger.debug("NFT Buyer selecting Quorum for Consensus");
             String tid = calculateHash(nftDetailsObject.toString(), "SHA3-256");
             nftBuyerLogger.debug("TID  " + tid);
 
@@ -751,7 +745,7 @@ public class NftBuyer {
             }
             nftBuyerLogger.debug("Consensus Reached");
 
-            nftBuyerLogger.debug("NFT quorum details "+InitiatorConsensus.nftQuorumSignature);
+            //nftBuyerLogger.debug("NFT quorum details "+InitiatorConsensus.nftQuorumSignature);
 
             consensusDetails.put("status", "Consensus Reached");
             consensusDetails.put(("nftQuorumSign"), InitiatorConsensus.nftQuorumSignature.toString());
@@ -1023,6 +1017,7 @@ public class NftBuyer {
                     "\n*******************NFT Signed Quorum List**************** \n" + nftSignedQuorumList.toString());
 
             APIResponse.put("tid", tid);
+            APIResponse.put("rbtTid", rbtTxnId);
             APIResponse.put("status", "Success");
             APIResponse.put("did", buyerDid);
             APIResponse.put("message", "Tokens transferred successfully!");
@@ -1037,6 +1032,7 @@ public class NftBuyer {
             nftTransactionRecord.put("role", "Buyer");
             nftTransactionRecord.put("nftToken", nftTokenIpfsHash);
             nftTransactionRecord.put("txn", tid);
+            nftTransactionRecord.put("rbtTxn", rbtTxnId);
             nftTransactionRecord.put("quorumList", nftSignedQuorumList);
             nftTransactionRecord.put("senderDID", sellerDid);
             nftTransactionRecord.put("receiverDID", buyerDid);
@@ -1072,6 +1068,7 @@ public class NftBuyer {
             newRecord.put("sellerSign", saleContractObject.getString("sign"));
             newRecord.put("comment", comment);
             newRecord.put("tid", tid);
+            newRecord.put("rbtTid", rbtTxnId);
             newRecord.put("sellerPubKeyIpfsHash", sellerPubKeyIpfsHash);
             newRecord.put("buyerPubKeyIpfsHash", buyerPubKeyIpfsHash);
             newRecord.put("nftOwner", nftOwnerIdentity);
@@ -1100,7 +1097,6 @@ public class NftBuyer {
                 dataToSend.put("transaction_id", tid);
                 dataToSend.put("sender_did", buyerDid);
                 dataToSend.put("receiver_did", sellerDid);
-                // dataToSend.put("token_id", tokenList);
                 dataToSend.put("token_time", (int) totalTime);
                 dataToSend.put("amount", requestedAmount);
                 dataToSend.put("nftToken", nftTokenIpfsHash);
@@ -1109,6 +1105,8 @@ public class NftBuyer {
                 dataToSend.put("nftCreatorInput", creatorInput);
                 dataToSend.put("totalSupply", nftTokenObject.getLong("totalSupply"));
                 dataToSend.put("editionNumber", nftTokenObject.getLong("tokenCount"));
+                //dataToSend.put("rbt_transaction_id", rbtTxnId);
+                //dataToSend.put("user_id", userHash);
                 String populate = dataToSend.toString();
 
                 JSONObject jsonObject = new JSONObject();
@@ -1151,12 +1149,13 @@ public class NftBuyer {
              */
             nftBuyerLogger.info("Transaction ID: " + tid + " NFT Transaction Successful");
             output.println("Send Response");
-            APIResponse.put("did", buyerDid);
+            /* APIResponse.put("did", buyerDid);
             APIResponse.put("tid", tid);
+            APIResponse.put("rbtTid", rbtTxnId);
             APIResponse.put("status", "Success");
             APIResponse.put("nfttoken", nftTokenIpfsHash);
             APIResponse.put("comment", comment);
-            APIResponse.put("message", "NFT Transaction Successful");
+            APIResponse.put("message", "NFT Transaction Successful"); */
         } catch (JSONException e) {
             nftBuyerLogger.error("JSONEXception at reading data", e);
         } catch (IOException e) {

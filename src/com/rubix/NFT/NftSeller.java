@@ -5,16 +5,12 @@ import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
-import io.ipfs.api.IPFS.Repo;
 
-import static com.rubix.Constants.MiningConstants.*;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.HttpURLConnection;
@@ -22,14 +18,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Random;
 
 import javax.imageio.ImageIO;
 
@@ -40,9 +30,7 @@ import org.json.JSONObject;
 
 import static com.rubix.NFTResources.EnableNft.*;
 import static com.rubix.Resources.Functions.*;
-import com.rubix.NFTResources.NFTFunctions;
 import com.rubix.PasswordMasking.PasswordField;
-import com.rubix.Ping.VerifyStakedToken;
 
 import static com.rubix.NFTResources.NFTFunctions.*;
 
@@ -54,8 +42,7 @@ public class NftSeller {
     private static final IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + Functions.IPFS_PORT);
 
     // token limit for each level
-    private static final int[] tokenLimit = { 0, 5000000, 2425000, 2303750, 2188563, 2079134, 1975178, 1876419, 1782598,
-            1693468, 1608795, 1528355, 1451937, 1379340 };
+
 
     // public static JSONObject APIResponse = new JSONObject();
     public static String receive() {
@@ -65,8 +52,7 @@ public class NftSeller {
         ServerSocket ss = null;
         Socket sk = null;
         String buyerPeerID = null;
-        String PART_TOKEN_CHAIN_PATH = TOKENCHAIN_PATH.concat("PARTS/");
-        String PART_TOKEN_PATH = TOKENS_PATH.concat("PARTS/");
+
 
         BufferedReader sysInput = new BufferedReader(new InputStreamReader(System.in));
 
@@ -472,7 +458,6 @@ public class NftSeller {
             String tid = SenderDetails.getString("tid");
             String comment = SenderDetails.getString("comment");
             String Status = SenderDetails.getString("status");
-            // String QuorumDetails = SenderDetails.getString("quorumsign");
             String nftQuorumDetails = SenderDetails.getString("nftQuorumSign");
 
             JSONObject nftQuorumSig = new JSONObject(nftQuorumDetails);
@@ -488,19 +473,6 @@ public class NftSeller {
                 nftSellerLogger.debug("Consensus Status got from nftBuyer " + Status);
                 if (Status.equals("Consensus Reached")) {
                     quorumSignatures = new JSONObject(nftQuorumDetails);
-
-                    /*
-                     * String selectQuorumHash = calculateHash(senderToken, "SHA3-256");
-                     * String verifyQuorumHash =
-                     * calculateHash(selectQuorumHash.concat(sellerDidIpfsHash), "SHA3-256");
-                     */
-
-                    /*
-                     * nftSellerLogger.debug("details that Seller use to put RBT Signature");
-                     * nftSellerLogger.debug("1: " + selectQuorumHash);
-                     * nftSellerLogger.debug("2: " + sellerDidIpfsHash);
-                     * nftSellerLogger.debug("Quorum hash: " + verifyQuorumHash);
-                     */
 
                     String nftHash = calculateHash(nftTokenDetails.toString(), "SHA3-256");
                     String verifyQuorumHash = calculateHash(nftHash.concat(buyerDidIpfsHash), "SHA3-256");
@@ -754,6 +726,7 @@ public class NftSeller {
                 nftTransactionRecord.put("role", "Seller");
                 nftTransactionRecord.put("tokens", nftTokenIpfsHash);
                 nftTransactionRecord.put("txn", tid);
+                nftTransactionRecord.put("rbtTxn", rbtTxnId);
                 nftTransactionRecord.put("quorumList", nftQuorumSig.keys());
                 nftTransactionRecord.put("senderDID", sellerDidIpfsHash);
                 nftTransactionRecord.put("receiverDID", buyerDidIpfsHash);
@@ -772,6 +745,7 @@ public class NftSeller {
                 output.println("Send Response");
                 APIResponse.put("did", sellerDidIpfsHash);
                 APIResponse.put("tid", tid);
+                APIResponse.put("rbtTid", rbtTxnId);
                 APIResponse.put("status", "Success");
                 APIResponse.put("comment", comment);
                 APIResponse.put("message", "NFT Transaction Successful");
