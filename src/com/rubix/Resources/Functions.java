@@ -9,12 +9,6 @@ import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
-import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Ping.PingCheck;
-
-import io.ipfs.api.IPFS;
-import io.ipfs.multiaddr.MultiAddress;
-
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -44,18 +38,17 @@ import java.util.Set;
 
 import javax.imageio.ImageIO;
 
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.*;
 
-
-
-
-
-
-
+import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
 
 public class Functions {
 
@@ -997,6 +990,7 @@ public class Functions {
             dataToSendQuorumUpdate.put("signedquorum", signedQuorumList);
             dataToSendQuorumUpdate.put("status", status);
             String populateQuorumUpdate = dataToSendQuorumUpdate.toString();
+            FunctionsLogger.debug("Sending 'POST' request to URL : " + urlQuorumUpdate);
 
             conQuorumUpdate.setDoOutput(true);
             DataOutputStream wrQuorumUpdate = new DataOutputStream(conQuorumUpdate.getOutputStream());
@@ -1005,7 +999,6 @@ public class Functions {
             wrQuorumUpdate.close();
 
             int responseCodeQuorumUpdate = conQuorumUpdate.getResponseCode();
-            FunctionsLogger.debug("Sending 'POST' request to URL : " + urlQuorumUpdate);
             FunctionsLogger.debug("Post Data : " + populateQuorumUpdate);
             FunctionsLogger.debug("Response Code : " + responseCodeQuorumUpdate);
 
@@ -1438,7 +1431,7 @@ public class Functions {
         return balance;
     }
 
-    public static String initHash(){
+    public static String initHash() {
         String version = "";
         try {
             URL url = new URL("http://localhost:1898/getVersion");
@@ -1456,7 +1449,7 @@ public class Functions {
                 version = output;
             }
             conn.disconnect();
-            FunctionsLogger.debug("initHash version is "+version);
+            FunctionsLogger.debug("initHash version is " + version);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -1464,19 +1457,21 @@ public class Functions {
         }
         return version;
     }
-    
-    
 
-    /*public static String initHash() throws IOException {
-        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        initPath = initPath.split("\\.jar")[0];
-        initPath = initPath.split("file:", 2)[1];
-        String jarName[] = initPath.split("\\/");
-        initPath = jarName[jarName.length-1];
-        initPath = initPath + ".jar";
-        String hash = calculateFileHash(initPath, "SHA3-256");
-        return hash;
-    }*/
+    /*
+     * public static String initHash() throws IOException {
+     * String initPath =
+     * Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath()
+     * ;
+     * initPath = initPath.split("\\.jar")[0];
+     * initPath = initPath.split("file:", 2)[1];
+     * String jarName[] = initPath.split("\\/");
+     * initPath = jarName[jarName.length-1];
+     * initPath = initPath + ".jar";
+     * String hash = calculateFileHash(initPath, "SHA3-256");
+     * return hash;
+     * }
+     */
 
     public static Double partTokenBalance(String tokenHash) throws JSONException {
         pathSet();
@@ -1559,8 +1554,9 @@ public class Functions {
 
     public static String sanityMessage;
 
-    public static boolean sanityCheck(String userType, String peerid, IPFS ipfs, int port) throws IOException, JSONException {
-        FunctionsLogger.info("Entering " + userType +" SanityCheck");
+    public static boolean sanityCheck(String userType, String peerid, IPFS ipfs, int port)
+            throws IOException, JSONException {
+        FunctionsLogger.info("Entering " + userType + " SanityCheck");
         boolean sanityCheckErrorFlag = true;
         if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
             FunctionsLogger.debug(userType + " IPFS is working in " + peerid);
@@ -1574,13 +1570,13 @@ public class Functions {
 
         if (sanityCheckErrorFlag) {
             if (bootstrapConnect(peerid, ipfs)) {
-                FunctionsLogger.debug("Bootstrap connected for "+userType +" : " + peerid);
+                FunctionsLogger.debug("Bootstrap connected for " + userType + " : " + peerid);
                 FunctionsLogger.debug("Bootstrap check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Bootstrap connection unsuccessful for "+userType + " : " + peerid);
+                FunctionsLogger.debug("Bootstrap connection unsuccessful for " + userType + " : " + peerid);
                 FunctionsLogger.debug("Bootstrap check false");
-                sanityMessage = "Bootstrap connection unsuccessful for "+userType +" : " + peerid;
+                sanityMessage = "Bootstrap connection unsuccessful for " + userType + " : " + peerid;
             }
         }
 
