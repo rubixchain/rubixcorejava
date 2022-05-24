@@ -1017,8 +1017,10 @@ public class NftBuyer {
                     "\n*******************NFT Signed Quorum List**************** \n" + nftSignedQuorumList.toString());
 
             // updating quorum credit for signing nft txn
+            nftBuyerLogger.info("updateing quorum credits to server");
             updateQuorum(quorumArray, nftSignedQuorumList, true, type);
 
+            nftBuyerLogger.info("Entering NFT transaction in to nftTransactionHistory.json file");
             JSONObject nftTransactionRecord = new JSONObject();
             nftTransactionRecord.put("role", "Buyer");
             nftTransactionRecord.put("nftToken", nftTokenIpfsHash);
@@ -1047,6 +1049,7 @@ public class NftBuyer {
             String nftSignString = calculateHash(nftHashString, "SHA3-256");
 
             String nftOwnerIdentity = pvtKeySign(nftSignString, pvtKey);
+            nftBuyerLogger.info("NFT new Owner Identitiy : "+nftOwnerIdentity);
 
             // update recived nfttokenchain
             saleContractContent = get(saleContractIpfsHash, ipfs);
@@ -1065,10 +1068,13 @@ public class NftBuyer {
             newRecord.put("nftOwner", nftOwnerIdentity);
             newRecord.put("amount", requestedAmount);
             newRecord.put("role", "Buyer");
+
+            nftBuyerLogger.info("Adding new block to NFT Token Chain file");
             currentNftTokenChain.put(newRecord);
             Functions.writeToFile(NFT_TOKENCHAIN_PATH + nftTokenIpfsHash + ".json", currentNftTokenChain.toString(),
                     Boolean.valueOf(false));
 
+            nftBuyerLogger.info("Sending NFT Transaction details to explorer");
             // Populating data to explorer
             if (!EXPLORER_IP.contains("127.0.0.1")) {
                 String url = EXPLORER_IP + "/CreateOrUpdateRubixTransaction";
