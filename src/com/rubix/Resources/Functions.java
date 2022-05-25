@@ -37,6 +37,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import javax.imageio.ImageIO;
+import javax.json.JsonArray;
 
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Ping.PingCheck;
@@ -1846,6 +1847,62 @@ public class Functions {
             FunctionsLogger.error("Exception occured at portStatusWindows", e);
         }
         return releasedPort;
+
+    }
+
+    public static void ownerIdentity(JSONArray tokens, String receiverDidIpfsHash)  {
+        Functions.pathSet();
+         
+        try {
+            for (int i = 0; i < tokens.length(); i++) {
+            
+                String tokenHash = tokens.getString(i);
+                String hashString = tokenHash.concat(receiverDidIpfsHash);
+                String hashForPositions = calculateHash(hashString, "SHA3-256");
+                BufferedImage pvt = ImageIO.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
+                String firstPrivate = PropImage.img2bin(pvt);
+                int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+                String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+                String positions = "";
+                for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                    positions += privateBinary.charAt(j);
+                }
+                String ownerIdentity = hashForPositions.concat(positions);
+                String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+                File chainFile = new File(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                if (chainFile.exists()) {
+                    String tokenChainFile = readFile(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                    JSONArray tokenChainArray = new JSONArray(tokenChainFile);
+                    JSONObject tokenChainObject = tokenChainArray.getJSONObject(tokenChainArray.length() - 1);
+                    tokenChainObject.put("owner", ownerIdentityHash);
+                    tokenChainArray.remove(tokenChainArray.length() - 1);
+                    tokenChainArray.put(tokenChainObject);
+                    writeToFile(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"), tokenChainArray.toString(), false);
+                    
+                } else {
+                    File partChainFile = new File(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
+                    if (partChainFile.exists()) {
+                        String tokenChainFile = readFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
+                        JSONArray tokenChainArray = new JSONArray(tokenChainFile);
+                        JSONObject tokenChainObject = tokenChainArray.getJSONObject(tokenChainArray.length() - 1);
+                        tokenChainObject.put("owner", ownerIdentityHash);
+                        tokenChainArray.remove(tokenChainArray.length() - 1);
+                        tokenChainArray.put(tokenChainObject);
+                        writeToFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"), tokenChainArray.toString(), false);
+                    
+                    } else {
+                        FunctionsLogger.info("Token chain file not found for token " + tokenHash);
+                    }
+
+                } 
+             
+    
+            }
+        } catch (Exception e) {
+            FunctionsLogger.error("Exception occured at ownerIdentity", e);
+        }
+        
+        
 
     }
 
