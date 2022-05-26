@@ -66,7 +66,7 @@ public class NftSeller {
                     sellerPeerID);
             IPFSNetwork.listen(sellerPeerID + "NFT", SELLER_PORT);
             ss = new ServerSocket(SELLER_PORT);
-            nftSellerLogger.debug("Listening on " + SELLER_PORT + "with app name " + sellerPeerID + "NFT");
+            nftSellerLogger.debug("NFT Seller Listening on " + SELLER_PORT + "with app name " + sellerPeerID + "NFT");
             sk = ss.accept();
             BufferedReader input = new BufferedReader(new InputStreamReader(sk.getInputStream()));
             PrintStream output = new PrintStream(sk.getOutputStream());
