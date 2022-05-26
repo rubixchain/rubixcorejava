@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import com.rubix.Datum.DataCommitter;
 import com.rubix.Mining.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
 
@@ -118,7 +119,12 @@ public class APIHandler {
       
        dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
    //    APILogger.debug("dataObeject is "+dataObject.toString());
-       sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+       if (dataObject.has("blockHash")) {
+    	   sendMessage = DataCommitter.Commit(dataObject.toString(), ipfs, SEND_PORT);
+       }else {
+           sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+
+       }
        
 
    //    APILogger.debug("send Message is "+sendMessage);

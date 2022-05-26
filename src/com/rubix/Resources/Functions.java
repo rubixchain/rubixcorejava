@@ -1566,22 +1566,16 @@ public class Functions {
         boolean sanityCheckErrorFlag = true;
         if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
             FunctionsLogger.debug(userType + " IPFS is working in " + peerid);
-            FunctionsLogger.debug(userType + " IPFS check true");
         } else {
             sanityCheckErrorFlag = false;
-            FunctionsLogger.debug(userType + " IPFS is not working in " + peerid);
-            FunctionsLogger.debug(userType + " IPFS check false");
             sanityMessage = userType + " IPFS is not working in " + peerid;
         }
 
         if (sanityCheckErrorFlag) {
             if (bootstrapConnect(peerid, ipfs)) {
                 FunctionsLogger.debug("Bootstrap connected for "+userType +" : " + peerid);
-                FunctionsLogger.debug("Bootstrap check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Bootstrap connection unsuccessful for "+userType + " : " + peerid);
-                FunctionsLogger.debug("Bootstrap check false");
                 sanityMessage = "Bootstrap connection unsuccessful for "+userType +" : " + peerid;
             }
         }
@@ -1589,11 +1583,8 @@ public class Functions {
         if (sanityCheckErrorFlag) {
             if (ping(peerid, port)) {
                 FunctionsLogger.debug(userType + " is running the latest Jar :" + peerid);
-                FunctionsLogger.debug("Latest Jar check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug(userType + " is not running the latest Jar :" + peerid);
-                FunctionsLogger.debug("Latest Jar check false");
                 sanityMessage = userType + " is not running the latest Jar. PID: " + peerid;
             }
         }
@@ -1601,11 +1592,8 @@ public class Functions {
         if (sanityCheckErrorFlag) {
             if (portCheckAndKill(port)) {
                 FunctionsLogger.debug("Ports are available for transcations in " + peerid);
-                FunctionsLogger.debug("Ports check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Ports are not available for " + peerid);
-                FunctionsLogger.debug("Ports check false");
                 sanityMessage = "Ports are not available for " + peerid;
             }
         }
@@ -1618,22 +1606,16 @@ public class Functions {
         boolean sanityCheckErrorFlag = true;
         if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
             FunctionsLogger.debug("Receiver IPFS is working in " + peerid);
-            FunctionsLogger.debug("Receiver IPFS check true");
         } else {
             sanityCheckErrorFlag = false;
-            FunctionsLogger.debug("Receiver IPFS is not working in " + peerid);
-            FunctionsLogger.debug("Receiver IPFS check false");
             sanityMessage = "Receiver IPFS is not working in " + peerid;
         }
 
         if (sanityCheckErrorFlag) {
             if (bootstrapConnect(peerid, ipfs)) {
                 FunctionsLogger.debug("Bootstrap connected for Receiver " + peerid);
-                FunctionsLogger.debug("Bootstrap check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Bootstrap connection unsuccessful for Receiver " + peerid);
-                FunctionsLogger.debug("Bootstrap check false");
                 sanityMessage = "Bootstrap connection unsuccessful for Receiver " + peerid;
             }
         }
@@ -1641,11 +1623,8 @@ public class Functions {
         if (sanityCheckErrorFlag) {
             if (ping(peerid, port)) {
                 FunctionsLogger.debug("Rceiver is running the latest Jar " + peerid);
-                FunctionsLogger.debug("Latest Jar check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Receiver is not running the latest Jar " + peerid);
-                FunctionsLogger.debug("Latest Jar check false");
                 sanityMessage = "Receiver is not running the latest Jar. PID: " + peerid;
             }
         }
@@ -1653,11 +1632,8 @@ public class Functions {
         if (sanityCheckErrorFlag) {
             if (portCheckAndKill(port)) {
                 FunctionsLogger.debug("Ports are available for transcations in " + peerid);
-                FunctionsLogger.debug("Ports check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Ports are not available for " + peerid);
-                FunctionsLogger.debug("Ports check false");
                 sanityMessage = "Ports are not available for " + peerid;
             }
         }
@@ -1670,7 +1646,6 @@ public class Functions {
         boolean swarmConnectedStatus = false;
         try {
             MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
-            FunctionsLogger.info("MultiAdrress concated " + multiAddress + "|||");
             boolean output = swarmConnectP2P(peerid, ipfs);
 
             if (output) {
@@ -1743,12 +1718,10 @@ public class Functions {
     // }
 
     public static boolean bootstrapConnect(String peerid, IPFS ipfs) {
-        FunctionsLogger.info("bootstrapConnect- entering function");
         String bootNode;
         boolean bootstrapConnected = false;
 
         MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
-        FunctionsLogger.info("bootstrapConnect- multiaddress is " + multiAddress.toString());
 
         String output = swarmConnectProcess(multiAddress);
         try {
@@ -1827,29 +1800,20 @@ public class Functions {
             long currentPid = ProcessHandle.current().pid();
             BufferedReader br = new BufferedReader(
                     new InputStreamReader(processId.getInputStream()));
-            FunctionsLogger.info("releasePorts- process " + br.readLine() + " is occupied in " + port);
             processId = Runtime.getRuntime().exec("pgrep ipfs");
             BufferedReader ipfsPidBr = new BufferedReader(new InputStreamReader(processId.getInputStream()));
 
             processStr = br.readLine();
-            FunctionsLogger.info("releasePorts- Process string is " + processStr);
             if (processStr != null) {
-                FunctionsLogger.info("releasePorts- Processstr is not null");
                 if (String.valueOf(currentPid) != processStr && ipfsPidBr.readLine() != processStr) {
-                    FunctionsLogger.info("releasePorts- jar is running on " + currentPid + " and IPFS is occupied in "
-                            + ipfsPidBr.readLine());
-                    FunctionsLogger.debug("Port " + port + " is in using, killing PID " + processStr);
+                    
                     processId = Runtime.getRuntime().exec("kill -9 " + processStr);
-                    FunctionsLogger.info("releasePorts- killing " + processStr);
 
                 }
             }
             releasedPort = true;
-            FunctionsLogger.info("releasePorts- status is " + releasedPort);
             processId.waitFor();
-            FunctionsLogger.info("releasePorts- Waitng for process");
             processId.destroy();
-            FunctionsLogger.info("releasePorts- destorying process after waiting");
         } catch (Exception e) {
             FunctionsLogger.error("Exception Occured at releasePort", e);
             e.printStackTrace();
@@ -1858,7 +1822,6 @@ public class Functions {
     }
 
     public static boolean portStatusWindows(int port) {
-        FunctionsLogger.info("Starting portStatusWindows");
         boolean releasedPort = false;
         String portProcessStr;
         Process p;
@@ -1875,10 +1838,8 @@ public class Functions {
                 pidTree.add(temp);
             }
 
-            FunctionsLogger.info("PIDs occupied by Rubix.jar are " + pidTree);
 
             Set<Integer> pidSet = new LinkedHashSet<Integer>(pidTree);
-            FunctionsLogger.info("Pid occupied by port 1898 is pidSet" + pidSet);
             Process getPortPid = rt.exec("cmd /c netstat -ano | findstr " + port);
             BufferedReader getPortPidBr = new BufferedReader(new InputStreamReader(getPortPid.getInputStream()));
             String getPortPidLine;
@@ -1889,10 +1850,8 @@ public class Functions {
             }
 
             Set<Integer> pidToKill = new LinkedHashSet<Integer>(portPidTree);
-            FunctionsLogger.info("Pid used by port " + port + "is " + pidToKill);
             pidToKill.removeAll(pidSet);
             pidToKill.remove(0);
-            FunctionsLogger.info("Pid using port " + port + " but not in 1898" + pidToKill);
             if (pidToKill.size() > 0) {
                 System.out.println("Port " + port + " is occupied by PIDs" + pidToKill);
             } else {
@@ -1959,5 +1918,7 @@ public class Functions {
     	return APIResponse;
 		
 	}
+    
+    
 
 }

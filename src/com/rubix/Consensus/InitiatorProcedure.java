@@ -50,11 +50,11 @@ public class InitiatorProcedure {
         JSONArray alphaList = dataObject.getJSONArray("alphaList");
         JSONArray betaList = dataObject.getJSONArray("betaList");
         JSONArray gammaList = dataObject.getJSONArray("gammaList");
+        String token = dataObject.getString("token");
         InitiatorProcedureLogger.debug("Trans type is "+dataObject.getString(ConsensusConstants.TRANS_TYPE));
         
         if(dataObject.getString(ConsensusConstants.TRANS_TYPE).equals(ConsensusConstants.PRIMARY)) {
             String receiverDidIpfs = dataObject.getString("receiverDidIpfs");
-            String token = dataObject.getString("token");
             String hash = dataObject.getString("hash");
             String message = dataObject.getString("message");
         	String authSenderByQuorumHash = calculateHash(message, "SHA3-256");

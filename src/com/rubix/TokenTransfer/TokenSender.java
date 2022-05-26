@@ -585,6 +585,8 @@ public class TokenSender {
 	            tokenDetails.put("part-tokens", partTokens);
 	            tokenDetails.put("part-tokenChains", partTokenChainArrays);
 	            tokenDetails.put("sender", senderDidIpfsHash);
+	            
+	            
 	            String doubleSpendString = tokenDetails.toString();
 	
 	            String doubleSpend = calculateHash(doubleSpendString, "SHA3-256");
@@ -713,8 +715,9 @@ public class TokenSender {
 	            TokenSenderLogger.debug("Consensus Reached");
 	            senderDetails2Receiver.put("status", "Consensus Reached");
 	            senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
-	
-	            output.println(senderDetails2Receiver);
+	            
+	            output.println(senderDidIpfsHash);
+	            TokenSenderLogger.debug("Message after \"status\", \"Consensus Reached\"  -- senderDidIpfsHash: "+senderDidIpfsHash);
 	            TokenSenderLogger.debug("Quorum Signatures length " + InitiatorConsensus.quorumSignature.length());
 	
 	            String signatureAuth;
@@ -1144,7 +1147,22 @@ public class TokenSender {
 	            	TokenSenderLogger.debug("tokenChainType is "+tokenChainName.getClass().getName());
 
 	            	updateJSON("add", DAT_TOKEN_FILE_PATH, "["+bankArray.get(0).toString()+"]");
-	            }
+	            }else {
+	            	TokenSenderLogger.debug("Token in data commit is "+ datArray.toString());
+	            	TokenSenderLogger.debug("bankArray.toString() "+ bankArray.toString());
+	            	TokenSenderLogger.debug("datArray.get(0).toString() "+ datArray.get(0).toString());
+	            	TokenSenderLogger.debug("datArray.get(0).toString().contains(bankArray.toString()) is "+ datArray.get(0).toString().contains(bankArray.toString()));
+
+	            	for(int i=0;i<datArray.length();i++) {
+	            		if(!bankArray.toString().contains(datArray.getJSONObject(i).getString("tokenHash"))) {
+	            			TokenSenderLogger.debug("Data token is "+datArray.get(0).toString()+" is no more available, updating DAT01");
+	            			TokenSenderLogger.debug("Removing  "+"["+datArray.get(0).toString()+"]");
+		            		updateJSON("remove", DAT_TOKEN_FILE_PATH, "["+datArray.get(0).toString()+"]");
+	            			TokenSenderLogger.debug("Adding  "+"["+bankArray.get(0).toString()+"]");
+		            		updateJSON("add", DAT_TOKEN_FILE_PATH, "["+bankArray.get(0).toString()+"]");
+		            	
+	            		}
+	            	}     }
 	            
 	            int wholeAmount = datArray.length();
 	            
@@ -1232,8 +1250,7 @@ public class TokenSender {
 	                  
 	    	            
 	            JSONArray allTokens = new JSONArray();
-	            for (int i = 0; i < wholeTokensForData.length(); i++)
-	                allTokens.put(wholeTokensForData.getString(i));
+	            allTokens.put(wholeTokensForData.getString(0));	                
 	            TokenSenderLogger.debug("WholeToken for data is "+wholeTokensForData.toString());
 	            TokenSenderLogger.debug("allTokens for data is "+allTokens.toString());
 
@@ -1269,26 +1286,6 @@ public class TokenSender {
 	                
 	                positionsArray.put(positions);
 	                
-	                TokenSenderLogger.debug("WholeTokensForData.get(i) is "+wholeTokenForDataChainHash.get(i).toString());
-                    JSONArray arrToken = new JSONArray();
-                    JSONObject objectToken = new JSONObject();
-                    objectToken.put("tokenHash", wholeTokensForData.getString(i));
-                    arrToken.put(objectToken);
-                    
-                    
-                    arr1.put(objectToken);
-                    arr1.put("tokens: " + tokens);
-                    arr1.put("hashString: " + hashString);
-                    arr1.put("hashForPositions: " + hashForPositions);
-                    arr1.put("p1: " + positions);
-                    arr1.put("ownerIdentity: " + ownerIdentity);
-                    arr1.put("ownerIdentityHash: " + ownerIdentityHash);
-
-	
-	                
-	                
-	                
-                    writeToFile(DATUM_CHAIN_PATH + wholeTokensForData.getString(i) + ".json", arr1.toString(), false);
 
 	                
 	            }
@@ -1384,11 +1381,13 @@ public class TokenSender {
 	            }
 	            startTime = System.currentTimeMillis();
 	
+	            TokenSenderLogger.debug("Alpha node list is "+alphaQuorum.toString());
 	            
 	            alphaPeersList = QuorumCheck(alphaQuorum, alphaSize);
 	            betaPeersList = QuorumCheck(betaQuorum, 7);
 	            gammaPeersList = QuorumCheck(gammaQuorum, 7);
-	
+	            TokenSenderLogger.debug("Alpha peer list list is "+alphaPeersList);
+
 	            endTime = System.currentTimeMillis();
 	            totalTime = endTime - startTime;
 	            eventLogger.debug("Quorum Check " + totalTime);
@@ -1412,6 +1411,9 @@ public class TokenSender {
 	            //tokenDetails.put("part-tokens", partTokens);
 	            //tokenDetails.put("part-tokenChains", partTokenChainArrays);
 	            tokenDetails.put("sender", senderDidIpfsHash);
+	            
+	            TokenSenderLogger.debug("tokenDetails is "+tokenDetails.toString());
+
 	            TokenSenderLogger.debug("tokenDetails "+tokenDetails.toString());
 	            String doubleSpendString = tokenDetails.toString();
 	
@@ -1427,7 +1429,7 @@ public class TokenSender {
 	            dataObject.put("blockHash", blockHash);
 	            dataObject.put("pvt", pvt);
 	            dataObject.put("senderDidIpfs", senderDidIpfsHash);
-	            dataObject.put("token", wholeTokensForData.toString());
+	            dataObject.put("token", wholeTokensForData.get(0).toString());
 	            dataObject.put("alphaList", alphaPeersList);
 	            dataObject.put("betaList", betaPeersList);
 	            dataObject.put("gammaList", gammaPeersList);
@@ -1509,24 +1511,48 @@ public class TokenSender {
 	            TokenSenderLogger.debug("dataBlockRecord being added to json files");
 	            updateJSON("add",datumFolderPath.concat("datumCommitHistory.json") , dataBlockEntry.toString());
 	            updateJSON("add", WALLET_DATA_PATH.concat("TransactionHistory.json"), dataBlockEntry.toString());
+                //writeToFile(DATUM_CHAIN_PATH + wholeTokensForData.getString(0) + ".json", "[test data]", false);
+
 	            
 	            // Token receiver part starts here
 	            
-	            JSONObject tokenObject = new JSONObject(tokenDetails);
-	            JSONObject TokenDetails = tokenObject.getJSONObject("tokenDetails");
-	            JSONArray wholeTokens = TokenDetails.getJSONArray("whole-tokens");
-	            JSONArray wholeTokenChains = TokenDetails.getJSONArray("whole-tokenChains");
-	            JSONArray previousSendersArray = tokenObject.getJSONArray("previousSender");
+	          //  JSONObject tokenObject = new JSONObject(tokenDetails);
+	          //  JSONArray wholeTokens = tokenObject.getJSONArray("whole-tokens");
+	          //  JSONArray wholeTokenChains = tokenObject.getJSONArray("whole-tokenChains");
+	          //  JSONArray previousSendersArray = tokenObject.getJSONArray("previousSender");
 	           // Double amount = tokenObject.getDouble("amount");
 	            
+                String hashString = tokens.concat(senderDidIpfsHash);
+                String hashForPositions = calculateHash(hashString, "SHA3-256");
+                BufferedImage prvt = ImageIO
+                        .read(new File(DATA_PATH.concat(senderDidIpfsHash).concat("/PrivateShare.png")));
+                String firstPrivate = PropImage.img2bin(prvt);
+                int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+                String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+                String positions = "";
+                for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                    positions += privateBinary.charAt(j);
+                }
+
+                String ownerIdentity = hashForPositions.concat(positions);
+                String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
 	            
 	           
+	         JSONObject commitChainObject = new JSONObject();
+	         commitChainObject.put("sender", senderDidIpfsHash);
+	         commitChainObject.put("senderSign", senderSign);
+	         commitChainObject.put("comment", comment);
+	         commitChainObject.put("tid", tid);
+	         commitChainObject.put("blockHash", blockHash);
+	         commitChainObject.put("owner", ownerIdentityHash);
+	         commitChainObject.put("group", "[]");
 	         
-	            
-	            
-	            
-	            
-	            //JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
+             writeToFile(DATUM_CHAIN_PATH + wholeTokensForData.getString(0) + ".json", commitChainObject.toString(), true);
+             writeToFile(TOKENCHAIN_PATH + wholeTokensForData.getString(0) + ".json", commitChainObject.toString(), true);
+             add(TOKENS_PATH + wholeTokensForData.getString(0), ipfs);
+             pin(wholeTokensForData.getString(0), ipfs);
+             TokenSenderLogger.debug("IPFS Add & Pin completed");
+             //JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
 	            
 	            
 	
