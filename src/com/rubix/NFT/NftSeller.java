@@ -697,6 +697,44 @@ public class NftSeller {
 
                 output.println("NFT-UnPinned");
 
+                String pinAuth;
+
+                try {
+                    pinAuth = input.readLine();
+                } catch (SocketException e) {
+                    nftSellerLogger.warn("Buyer Stream Null - Buyer Details");
+                    APIResponse.put("did", sellerDidIpfsHash);
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Buyer Stream Null - Buyer Detail");
+    
+                    output.close();
+                    input.close();
+    
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
+                }
+
+                nftSellerLogger.debug("Received NFT pin Auth from seller "+pinAuth);
+                if(pinAuth!=null && !pinAuth.equals("NFT-Pinned"))
+                {
+                    //output.println("421");
+                    APIResponse.put("message",
+                            "NFT not pinned by Buyer");
+                    APIResponse.put("did", sellerDidIpfsHash);
+                    APIResponse.put("tid", "");
+                    APIResponse.put("status", "Failed");
+                    IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + buyerPeerID);
+                    output.close();
+                    input.close();
+
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
+
+                }
+
                 /*
                  * String essentialShare;
                  * try {
@@ -722,6 +760,7 @@ public class NftSeller {
                 // Delete nft token from NFTSeller once traansfered
                 deleteFile(NFT_TOKENS_PATH + nftTokenIpfsHash);
 
+                nftSellerLogger.debug("Entering NFT transaction in to nftTransactionHistory.json");
                 JSONObject nftTransactionRecord = new JSONObject();
                 nftTransactionRecord.put("role", "Seller");
                 nftTransactionRecord.put("tokens", nftTokenIpfsHash);
