@@ -961,12 +961,46 @@ public class NftBuyer {
                 return APIResponse;
             }
 
+            nftBuyerLogger.debug("Buyer "+ buyerDid+ " Pinning the NFT Token");
             FileWriter fileWriter;
             fileWriter = new FileWriter(NFT_TOKENS_PATH + nftTokenIpfsHash);
             fileWriter.write(get(nftTokenIpfsHash, ipfs));
             fileWriter.close();
             add(NFT_TOKENS_PATH + nftTokenIpfsHash, ipfs);
             pin(nftTokenIpfsHash, ipfs);
+
+            nftBuyerLogger.debug("Checking if Buyer pinned NFT TOken");
+            boolean pincheck = dhtFindProvs(nftTokenIpfsHash, buyerDid, ipfs);
+
+            if(!pincheck)
+            {
+                output.println("421");
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
+                nftBuyerLogger.info("Buyer pinning NFT Failed");
+                output.close();
+                input.close();
+                buyerSocket.close();
+
+                buyerMutex = false;
+                updateQuorum(quorumArray, null, false, type);
+                APIResponse.put("did", buyerDid);
+                APIResponse.put("tid", tid);
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Buyer pinning NFT Failed");
+                return APIResponse;
+
+            }
+            output.print("NFT-Pinned");
+
+            ArrayList array = new ArrayList();
+            try {
+                array = dhtOwnerCheck(nftTokenIpfsHash);
+            } catch (InterruptedException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+
+            nftBuyerLogger.debug("nodes pins on nft token "+nftTokenIpfsHash+" is "+array);
 
             String respAuth;
             try {
@@ -1006,7 +1040,7 @@ public class NftBuyer {
 
             }
 
-            nftBuyerLogger.debug("Operation over");
+            nftBuyerLogger.debug("Consensus Operation over");
 
             Iterator<String> nftKeys = InitiatorConsensus.nftQuorumSignature.keys();
             JSONArray nftSignedQuorumList = new JSONArray();
@@ -1139,7 +1173,7 @@ public class NftBuyer {
             APIResponse.put("rbtTid", rbtTxnId);
             APIResponse.put("status", "Success");
             APIResponse.put("did", buyerDid);
-            APIResponse.put("message", "Tokens transferred successfully!");
+            APIResponse.put("message", "NFT Token transferred successfully!");
             APIResponse.put("quorumlist", nftSignedQuorumList);
             APIResponse.put("receiver", sellerDid);
             APIResponse.put("totaltime", totalTime);
