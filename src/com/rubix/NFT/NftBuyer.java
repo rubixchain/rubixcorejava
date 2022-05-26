@@ -970,7 +970,23 @@ public class NftBuyer {
             pin(nftTokenIpfsHash, ipfs);
 
             nftBuyerLogger.debug("Checking if Buyer pinned NFT TOken");
-            boolean pincheck = dhtFindProvs(nftTokenIpfsHash, buyerDid, ipfs);
+            boolean pincheck = false;
+
+            ArrayList array = new ArrayList<String>();
+            try {
+                array = dhtOwnerCheck(nftTokenIpfsHash);
+            } catch (InterruptedException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+
+            nftBuyerLogger.debug("nodes pins on nft token "+nftTokenIpfsHash+" is "+array);
+
+            if(array.contains(buyerPeerId))
+            {
+                pincheck=true;
+            }
+
 
             if(!pincheck)
             {
@@ -990,18 +1006,9 @@ public class NftBuyer {
                 return APIResponse;
 
             }
-            output.print("NFT-Pinned");
+            output.println("NFT-Pinned");
 
-            ArrayList array = new ArrayList();
-            try {
-                array = dhtOwnerCheck(nftTokenIpfsHash);
-            } catch (InterruptedException e1) {
-                // TODO Auto-generated catch block
-                e1.printStackTrace();
-            }
-
-            nftBuyerLogger.debug("nodes pins on nft token "+nftTokenIpfsHash+" is "+array);
-
+            
             String respAuth;
             try {
                 respAuth = input.readLine();
