@@ -1,6 +1,11 @@
 package com.rubix.Resources;
 
 import static com.rubix.Resources.APIHandler.addPublicData;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.calculateHash;
+import static com.rubix.Resources.Functions.deleteFile;
+import static com.rubix.Resources.Functions.formatAmount;
+import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.IPFSNetworkLogger;
 import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
@@ -1904,6 +1909,76 @@ public class Functions {
         
         
 
+    }
+    
+    public static int multiplePinCheck(String senderDidIpfsHash,JSONObject tokenObject, IPFS ipfs) throws JSONException, InterruptedException {
+    	int statusCode = 200;
+    	FunctionsLogger.debug("Input tokenObject is "+tokenObject.toString());
+        JSONObject TokenDetails = tokenObject.getJSONObject("tokenDetails");
+        JSONArray wholeTokens = TokenDetails.getJSONArray("whole-tokens");
+        JSONArray wholeTokenChains = TokenDetails.getJSONArray("whole-tokenChains");
+
+        JSONArray partTokens = TokenDetails.getJSONArray("part-tokens");
+        JSONObject partTokenChains = TokenDetails.getJSONObject("part-tokenChains");
+        JSONArray partTokenChainsHash = TokenDetails.getJSONArray("hashSender");
+
+        JSONArray previousSendersArray = tokenObject.getJSONArray("previousSender");
+        JSONArray positionsArray = tokenObject.getJSONArray("positions");
+
+        Double amount = tokenObject.getDouble("amount");
+        JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
+        FunctionsLogger.debug("Amount Ledger: " + amountLedger);
+        int intPart = wholeTokens.length();
+        // ? multiple pin check starts
+        Double decimalPart = formatAmount(amount - intPart);
+        JSONArray doubleSpentToken = new JSONArray();
+        boolean tokenOwners = true;
+        ArrayList pinOwnersArray = new ArrayList();
+        ArrayList previousSender = new ArrayList();
+        JSONArray ownersReceived = new JSONArray();
+    	
+        ArrayList ownersArray = new ArrayList();
+        for (int i = 0; i < wholeTokens.length(); ++i) {
+            try {
+            	FunctionsLogger.debug("Checking owners for " + wholeTokens.getString(i) +
+                        " Please wait...");
+                pinOwnersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
+
+                if (pinOwnersArray.size() > 2) {
+
+                    for (int j = 0; j < previousSendersArray.length(); j++) {
+                        if (previousSendersArray.getJSONObject(j).getString("token")
+                                .equals(wholeTokens.getString(i)))
+                            ownersReceived = previousSendersArray.getJSONObject(j).getJSONArray("sender");
+                    }
+
+                    for (int j = 0; j < ownersReceived.length(); j++) {
+                        previousSender.add(ownersReceived.getString(j));
+                    }
+                    FunctionsLogger.debug("Previous Owners: " + previousSender);
+
+                    for (int j = 0; j < pinOwnersArray.size(); j++) {
+                        if (!previousSender.contains(pinOwnersArray.get(j).toString()))
+                            tokenOwners = false;
+                    }
+                }
+            } catch (IOException e) {
+
+            	FunctionsLogger.debug("Ipfs dht find did not execute");
+            }
+        }
+        if (!tokenOwners) {
+            JSONArray owners = new JSONArray();
+            for (int i = 0; i < pinOwnersArray.size(); i++)
+                owners.put(pinOwnersArray.get(i).toString());
+            FunctionsLogger.debug("Multiple Owners for " + doubleSpentToken);
+            FunctionsLogger.debug("Owners: " + owners);
+            statusCode = 420;
+            
+            return statusCode;
+        }
+      
+    	return statusCode;
     }
 
 }

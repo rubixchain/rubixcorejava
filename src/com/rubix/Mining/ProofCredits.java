@@ -67,6 +67,7 @@ public class ProofCredits {
     private static ArrayList betaPeersList;
     private static ArrayList gammaPeersList;
     private static int alphaSize = 0;
+    public static String hashChainProof = new String();
 
     public static JSONObject create(String data, IPFS ipfs) throws IOException, JSONException {
 
@@ -224,6 +225,26 @@ public class ProofCredits {
                 // writeToFile(LOGGER_PATH + "tempgamma", tid.concat(DID), false);
                 // String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
                 // deleteFile(LOGGER_PATH + "tempgamma");
+                
+                
+                
+                ProofCreditsLogger.debug("DID is "+DID);
+                ProofCreditsLogger.debug("Quorums list is "+quorumArray.toString());
+                if(quorumArray.toString().contains(DID)) {
+                	JSONArray updatedQuourmList =  new JSONArray();
+                	ProofCreditsLogger.debug("Miner DID "+ DID + "is found in quourmArray");
+                	for(int i=0;i<quorumArray.length();i++) {
+                		if(!quorumArray.get(i).toString().contains(DID)) {
+                			updatedQuourmList.put(quorumArray.get(i));
+                		}
+                	}
+                	ProofCreditsLogger.debug("Old quorum list is "+quorumArray.toString());
+                	ProofCreditsLogger.debug("Updated quourm list is "+updatedQuourmList.toString());
+                	quorumArray = updatedQuourmList;
+                }
+                
+                ProofCreditsLogger.debug("Final quorums list is "+quorumArray.toString());
+
 
                 QuorumSwarmConnect(quorumArray, ipfs);
 
@@ -460,12 +481,19 @@ public class ProofCredits {
                     while ((StakeConsensus.STAKE_SUCCESS < 3 && StakeConsensus.STAKE_FAILED < 3)) {
 
                     }
-
+                    ProofCreditsLogger.debug("Stake consensus stake details is "+ StakeConsensus.stakeDetails.toString());
                     if (StakeConsensus.STAKE_SUCCESS == 3 && StakeConsensus.stakeDetails.length() > 0) {
                         tokenChainGenesisObject.put(MiningConstants.MINE_ID, StakeConsensus.stakeDetails);
                         tokenChainArray.put(tokenChainGenesisObject);
 
                         ProofCreditsLogger.debug("Stake Details for new mined token: " + StakeConsensus.stakeDetails);
+                        ProofCreditsLogger.debug("Staked quorums are "+ StakeConsensus.stakedDIDs);
+                        ProofCreditsLogger.debug("-----------------------------------------------");
+                        ProofCreditsLogger.debug("Staked quorums are :");
+                        for (String ele : StakeConsensus.stakedDIDs) {
+                        	ProofCreditsLogger.debug(ele+"   ");
+                        }
+                        ProofCreditsLogger.debug("-----------------------------------------------");
                         writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
                         ProofCreditsLogger.warn(" TOKENHASH " + tokenHash);
                         ProofCreditsLogger.warn(" TOKENS " + token.getString(i));
@@ -475,6 +503,8 @@ public class ProofCredits {
                         temp.put("tokenHash", tokenHash);
                         JSONArray tempArray = new JSONArray();
                         tempArray.put(temp);
+                        hashChainProof = HashChain.hashChainCounter(tid, StakeConsensus.stakedDIDs, 6);
+                        ProofCreditsLogger.debug("HashChainProof is "+hashChainProof+" transcation id is "+ tid);
                         updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
                     } else {
                         updateQuorum(quorumArray, null, false, type);
@@ -685,3 +715,5 @@ public class ProofCredits {
         return APIResponse;
     }
 }
+
+//stakedDIDs

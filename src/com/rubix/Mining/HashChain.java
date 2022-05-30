@@ -2,6 +2,9 @@ package com.rubix.Mining;
 
 import com.rubix.Resources.Functions;
 
+import java.util.ArrayList;
+import java.util.Random;
+
 import org.apache.log4j.Logger;
 
 public class HashChain {
@@ -14,9 +17,9 @@ public class HashChain {
        long currentTime = 0;
        int ctr = 0;
        java.util.Date date = new java.util.Date();    
-       while(totalTime<3600000 || rule > tID.length()) {
+       while(totalTime<3600000 ||  rule > tID.length()) {
            
-    	   currentTime = hashChainCounter(tID, DIDs,rule+ctr);
+    	  // currentTime = hashChainCounter(tID, DIDs,rule+ctr);
     	   totalTime = totalTime + currentTime;
     	   //System.out.println("Counter is "+ctr+" Current time used is "+ totalTime);
     	   ctr++;
@@ -29,12 +32,15 @@ public class HashChain {
     }
     
     
-    public static long hashChainCounter(String tID, String[] DIDs, int rule) {
+    public static String hashChainCounter(String tID, ArrayList<String>  DIDs, int rule) {
         //String hashChain = "";
     	long start = 0;
         long end = 0;
     	start = System.currentTimeMillis();
-    	for (String DID : DIDs) {
+    	Random rand = new Random();
+    	String DID = DIDs.get(rand.nextInt(3)) ;
+    			//DIDs[rand.nextInt(3)];
+    	//for (String DID : DIDs) {
             int counter = 0;
             String hash = DID;
             while (!hash.endsWith(tID.substring(tID.length() - rule))) {
@@ -44,10 +50,10 @@ public class HashChain {
             }
            
            // System.out.println(hash + " " + counter + " rule is "+ rule);
-        }
+      //  }
     	end = System.currentTimeMillis();
        // System.out.println("Current time "+(end - start));
-    	return (end - start);
+    	return hashChain;
     }
 
     // using the TID and DIDs,

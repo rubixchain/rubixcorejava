@@ -19,13 +19,13 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 
-import com.rubix.AuthenticateNode.Authenticate;
-import com.rubix.Resources.IPFSNetwork;
-
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.Resources.IPFSNetwork;
 
 import io.ipfs.api.IPFS;
 
@@ -36,6 +36,7 @@ public class StakeConsensus {
     public static volatile int STAKE_SUCCESS = 0;
     public static volatile int STAKE_FAILED = 0;
     public static volatile JSONArray stakeDetails = new JSONArray();
+    public static volatile ArrayList<String> stakedDIDs = new ArrayList<String>();
     // MINE_ID
     // QST_HEIGHT
     // STAKED_QUORUM_DID
@@ -57,7 +58,7 @@ public class StakeConsensus {
         String[] quorumPID = new String[signedAphaQuorumArray.length()];
 
         StakeConsensusLogger.debug("Initiating Staking with " + signedAphaQuorumArray.length() + " Alpha Quorums: "
-                + signedAphaQuorumArray);
+                + signedAphaQuorumArray.toString());
 
         try {
 
@@ -97,7 +98,8 @@ public class StakeConsensus {
                                     "peerid",
                                     quorumPID[j]);
 
-                            StakeConsensusLogger.debug("Mined Token Details sent for validation...DID: " + stakerDID);
+                            StakeConsensusLogger.debug("Mined Token Details sent for validation...Staker DID is : " + stakerDID);
+                            
 
                             try {
                                 qResponse[j] = qIn[j].readLine();
@@ -194,6 +196,7 @@ public class StakeConsensus {
                                                         // ! add mine signs to tokenchain
                                                         StakeConsensusLogger.debug("Adding mine signatures");
                                                         JSONObject mineSigns = new JSONObject(qResponse[j]);
+                                                        StakeConsensusLogger.debug("mineSign is "+mineSigns.toString());
 
                                                         if (mineSigns.length() > 0) {
 
@@ -239,6 +242,7 @@ public class StakeConsensus {
                                                                 // qOut[j].println("200");
                                                                 StakeConsensusLogger.debug(
                                                                         "Staking completed for Peer: " + quorumPID[j]);
+                                                                stakedDIDs.add(STAKED_QUORUM_DID);
                                                                 stakeDetails.put(mineSigns);
                                                                 STAKE_SUCCESS++;
                                                             }else {
