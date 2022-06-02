@@ -36,7 +36,9 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -1980,5 +1982,147 @@ public class Functions {
       
     	return statusCode;
     }
+    
+    public static boolean generateMultiLoopWithHashMap(String path) throws InterruptedException {
+        FunctionsLogger.debug("path is " + path);
+        FunctionsLogger.debug("path with file" + path+"/DH00.json");
+        File dataHashPath = new File(path);
+        if (!dataHashPath.exists())
+        	dataHashPath.mkdir();
+        boolean status = false;
+        FunctionsLogger.debug("Main thread started at" + java.time.LocalTime.now());
+
+        long tStart = System.currentTimeMillis();
+        Thread generateHashMapThread1 = new Thread(() -> {
+        	FunctionsLogger.debug("T1 started at" + java.time.LocalTime.now());
+            HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
+            JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
+
+            File tokenHashTable = new File(path+"/DH00.json");
+            long start = System.currentTimeMillis();
+            for (int i = 1; i <= 1250000; i++) {
+                tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
+            }
+            tokenHashTableJSON = new JSONObject(tokenHashMap);
+            writeToFile(tokenHashTable.toString(), tokenHashTableJSON.toString(), false);
+            FunctionsLogger.debug("T1 ended at" + java.time.LocalTime.now());
+
+            tokenHashMap.clear();
+            long end = System.currentTimeMillis();
+            FunctionsLogger.debug("Write to file done in t1 : " +
+                    (end - start) + "ms");
+        });
+        Thread generateHashMapThread2 = new Thread(() -> {
+            System.out.println("T2 started at" + java.time.LocalTime.now());
+
+            HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
+            JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
+            long start = System.currentTimeMillis();
+            File tokenHashTable = new File(path+"/DH01.json");
+
+            for (int i = 1250001; i < 2500000; i++) {
+                tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
+            }
+            tokenHashTableJSON = new JSONObject(tokenHashMap);
+            writeToFile(tokenHashTable.toString(), tokenHashTableJSON.toString(), false);
+            FunctionsLogger.debug("T2 ended at" + java.time.LocalTime.now());
+
+            tokenHashMap.clear();
+            long end = System.currentTimeMillis();
+            FunctionsLogger.debug("Write to file done in t2 : " +
+                    (end - start) + "ms");
+        });
+
+        Thread generateHashMapThread3 = new Thread(() -> {
+            System.out.println("T3 started at" + java.time.LocalTime.now());
+
+            HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
+            JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
+            long start = System.currentTimeMillis();
+            File tokenHashTable = new File(path+"/DH02.json");
+            for (int i = 2500001; i <= 3750000; i++) {
+                tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
+            }
+            tokenHashTableJSON = new JSONObject(tokenHashMap);
+            writeToFile(tokenHashTable.toString(), tokenHashTableJSON.toString(), false);
+            FunctionsLogger.debug("T3 ended at" + java.time.LocalTime.now());
+
+            tokenHashMap.clear();
+
+            long tEnd = System.currentTimeMillis();
+            System.out.println("Write to file done in t3 : " +
+                    (tEnd - start) + "ms");
+        });
+
+        Thread generateHashMapThread4 = new Thread(() -> {
+            System.out.println("T4 started at" + java.time.LocalTime.now());
+
+            HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
+            JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
+            long start = System.currentTimeMillis();
+            File tokenHashTable = new File(path+"/DH03.json");
+            for (int i = 3750001; i <= 5000000; i++) {
+                tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
+            }
+            tokenHashTableJSON = new JSONObject(tokenHashMap);
+            writeToFile(tokenHashTable.toString(), tokenHashTableJSON.toString(), false);
+            FunctionsLogger.debug("T4 ended at" + java.time.LocalTime.now());
+
+            tokenHashMap.clear();
+            long end = System.currentTimeMillis();
+            FunctionsLogger.debug("Write to file done in t4 : " +
+                    (end - start) + "ms");
+        });
+
+        generateHashMapThread1.start();
+        generateHashMapThread2.start();
+        generateHashMapThread3.start();
+        generateHashMapThread4.start();
+        
+        
+
+        FunctionsLogger.debug("Main ended at" + java.time.LocalTime.now());
+
+        long end = System.currentTimeMillis();
+        FunctionsLogger.debug("Main thread" +
+                (end - tStart) + "ms");
+        
+        generateHashMapThread1.join();
+        generateHashMapThread2.join();
+        generateHashMapThread3.join();
+        generateHashMapThread4.join();
+
+        File filepath = new File(path);
+        if ((filepath.length() == 4)) {
+        	FunctionsLogger.debug("DataHashTable size is"+filepath.length());
+            status = true;
+        }else{
+            status = false;
+        }
+
+        return status;
+    }
+    
+    public static int readTokenHashTable(String path,String tokenContent) throws JSONException {
+        File filePath = new File(path);
+        FunctionsLogger.debug("File path to add is "+path);
+        File[] tokenHashTable = filePath.listFiles();
+        Arrays.sort(tokenHashTable);
+        int tokenNumber = -1;
+
+        for (File tokenHashTableFile : tokenHashTable) {
+        	FunctionsLogger.debug(tokenHashTableFile.getName());
+            JSONObject tokenHashTableJSON = new JSONObject(readFile(tokenHashTableFile.toString()));
+            if (tokenHashTableJSON.has(tokenContent)) {
+                tokenNumber = tokenHashTableJSON.getInt(tokenContent);
+                return tokenNumber;
+            }
+
+        }
+        return tokenNumber;
+
+    }
+    
+    
 
 }

@@ -380,7 +380,6 @@ public class TokenReceiver {
 			JSONArray invalidTokens = new JSONArray();
 
 			for (int count = 0; count < wholeTokens.length(); count++) {
-
 				String tokens = null;
 				TokenReceiverLogger.debug("wholeTokens  is " + wholeTokens.get(count).toString());
 				JSONArray tokenChain = new JSONArray("[" + wholeTokens.get(count).toString() + "]");
@@ -400,23 +399,34 @@ public class TokenReceiver {
 				int tokenLimitForLevel = tokenLimit[tokenLevelInt];
 				int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
 				int minumumStakeHeight = tokenLevelValue * 4;
-				int tokenNumber = 1204401;
+				int tokenNumber = -1;
 
 				// check TokenHashTable exists
-				File tokenHashTable = new File(WALLET_DATA_PATH.concat("TokenHashTable").concat(".json"));
+				File tokenHashTable = new File(DATA_PATH.concat("DataHash"));
 				if (!tokenHashTable.exists()) {
-					tokenHashTable.createNewFile();
-					JSONObject tokenHashTableJSON = new JSONObject();
-					for (int i = 1; i <= 5000000; i++) {
-						tokenHashTableJSON.put(calculateHash(String.valueOf(i), "SHA-256"), i);
+					if(generateMultiLoopWithHashMap(tokenHashTable.toString())) {
+						TokenReceiverLogger.debug("Initating check");
 					}
-					writeToFile(tokenHashTable.toString(), tokenHashTableJSON.toString(), false);
 				}
-				String tokenHashTableData = readFile(tokenHashTable.toString());
-				JSONObject tokenHashTableJSON = new JSONObject(tokenHashTableData);
-				if (tokenHashTableJSON.has(tokenNumberHash)) {
-					tokenNumber = tokenHashTableJSON.getInt(tokenNumberHash);
-					TokenReceiverLogger.debug("Token Number: " + tokenNumber);
+				tokenNumber = Functions.readTokenHashTable(tokenHashTable.toString(),tokenNumberHash);
+					if(tokenNumber == -1) {
+	
+						TokenReceiverLogger.debug("Invalid Content Found in Token : " + tokenNumberHash);
+						String errorMessage = "Invalid Content Found in Token";
+						output.println("426");
+						APIResponse.put("did", senderDidIpfsHash);
+						APIResponse.put("tid", "null");
+						APIResponse.put("status", "Failed");
+						APIResponse.put("message", errorMessage);
+						TokenReceiverLogger.debug(errorMessage);
+						executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+						output.close();
+						input.close();
+						sk.close();
+						ss.close();
+						return APIResponse.toString();
+					
+					}
 					if (tokenNumber > tokenLimitForLevel) {
 						String errorMessage = "Token Number is greater than Token Limit for the Level";
 						output.println("426");
@@ -432,27 +442,12 @@ public class TokenReceiver {
 						ss.close();
 						return APIResponse.toString();
 					}
-				} else {
-					TokenReceiverLogger.debug("Invalid Content Found in Token : " + tokenNumberHash);
-					String errorMessage = "Invalid Content Found in Token";
-					output.println("426");
-					APIResponse.put("did", senderDidIpfsHash);
-					APIResponse.put("tid", "null");
-					APIResponse.put("status", "Failed");
-					APIResponse.put("message", errorMessage);
-					TokenReceiverLogger.debug(errorMessage);
-					executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-					output.close();
-					input.close();
-					sk.close();
-					ss.close();
-					return APIResponse.toString();
-				}
+				 
 
 				// ! check quorum signs for previous transaction for the tokenchain to verify
 				// ! the ownership of sender for the token
 
-				if ((tokenNumber >= 1204400) && (tokenLevelInt >= 4)) {
+				if((tokenNumber >= 1204400) && (tokenLevelInt >= 4)) {
 
 					JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
 					TokenReceiverLogger.debug("Last Object = " + lastObject);

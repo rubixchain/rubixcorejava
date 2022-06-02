@@ -444,9 +444,11 @@ public class TokenSender {
         if(Functions.multiplePinCheck(senderDidIpfsHash, tokenObject, ipfs) == 420) {
         	APIResponse.put("message", "Multiple Owners Found. Kindly re-initiate transaction");
         	return APIResponse;
+        }else {
+        	TokenSenderLogger.debug("No Multiple Pins found, initating transcation");
         }
         
-        JSONArray quorumArray = new JSONArray();
+        JSONArray quorumArrayList = new JSONArray();
         switch (type) {
             case 1: {
                 writeToFile(LOGGER_PATH + "tempbeta", tid.concat(senderDidIpfsHash), false);
@@ -457,17 +459,17 @@ public class TokenSender {
                 String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
                 deleteFile(LOGGER_PATH + "tempgamma");
 
-                quorumArray = getQuorum(senderDidIpfsHash, receiverDidIpfsHash,
+                quorumArrayList = getQuorum(senderDidIpfsHash, receiverDidIpfsHash,
                         allTokens.length());
                 break;
             }
 
             case 2: {
-                quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+            	quorumArrayList = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
                 break;
             }
             case 3: {
-                quorumArray = detailsObject.getJSONArray("quorum");
+            	quorumArrayList = detailsObject.getJSONArray("quorum");
                 break;
             }
             default: {
@@ -479,23 +481,20 @@ public class TokenSender {
             }
         }
         
-        TokenSenderLogger.debug("senderDidIpfsHash is "+senderDidIpfsHash+" receiverDidIpfsHash is "+ receiverDidIpfsHash);
-        TokenSenderLogger.debug("Quorums list is "+quorumArray.toString());
-        if(quorumArray.toString().contains(senderDidIpfsHash)||quorumArray.toString().contains(receiverDidIpfsHash)) {
-        	JSONArray updatedQuourmList =  new JSONArray();
-            TokenSenderLogger.debug("senderDidIpfsHash is "+senderDidIpfsHash+" receiverDidIpfsHash is "+ receiverDidIpfsHash + " is found in quorumlist");
-        	for(int i=0;i<quorumArray.length();i++) {
-        		if(!(quorumArray.get(i).toString().contains(senderDidIpfsHash))||!(quorumArray.get(i).toString().contains(receiverDidIpfsHash))) {
-        			updatedQuourmList.put(quorumArray.get(i));
-        		}
-        	}
-        	TokenSenderLogger.debug("Old quorum list is "+quorumArray.toString());
-        	TokenSenderLogger.debug("Updated quourm list is "+updatedQuourmList.toString());
-        	quorumArray = updatedQuourmList;
+        JSONArray quorumArray = new JSONArray();
+        List<String> quorumList = new ArrayList<String>();
+        for (int i = 0; i < quorumArrayList.length(); i++) {
+            if (!(quorumArrayList.get(i).equals(senderDidIpfsHash)) && !(quorumArrayList.get(i).equals(receiverDidIpfsHash))) {
+            	quorumList.add(quorumArrayList.get(i).toString());
+            }
         }
-        TokenSenderLogger.debug("Final quorums list is "+quorumArray.toString());
-
-
+        for (int i = 0; i < quorumList.size(); i++) {
+        	quorumArray.put(quorumList.get(i));
+        }
+        
+        
+        TokenSenderLogger.debug("Updated quorumlist is "+quorumArray.toString());
+        
         int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
         JSONArray sanityFailedQuorum = new JSONArray();
         for (int i = 0; i < quorumArray.length(); i++) {
