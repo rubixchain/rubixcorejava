@@ -895,6 +895,11 @@ public class TokenSender {
         }
 
         TokenSenderLogger.debug("Operation over");
+        
+        for (int i = 0; i < wholeTokens.length(); i++)
+            unpin(String.valueOf(wholeTokens.get(i)), ipfs);
+        repo(ipfs);	
+        
         Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
         JSONArray signedQuorumList = new JSONArray();
         while (keys.hasNext())

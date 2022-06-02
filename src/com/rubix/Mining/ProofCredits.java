@@ -14,9 +14,12 @@ import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
 import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.deleteFile;
 import static com.rubix.Resources.Functions.getQuorum;
+import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.Functions.minQuorum;
 import static com.rubix.Resources.Functions.mineUpdate;
 import static com.rubix.Resources.Functions.readFile;
+import static com.rubix.Resources.Functions.sanityCheck;
+import static com.rubix.Resources.Functions.sanityMessage;
 import static com.rubix.Resources.Functions.strToIntArray;
 import static com.rubix.Resources.Functions.updateJSON;
 import static com.rubix.Resources.Functions.updateQuorum;
@@ -245,7 +248,36 @@ public class ProofCredits {
                 
                 ProofCreditsLogger.debug("Final quorums list is "+quorumArray.toString());
 
+                // Sanity Check - Start                 
+                int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
+                JSONArray sanityFailedQuorum = new JSONArray();
+                for (int i = 0; i < quorumArray.length(); i++) {
+                    String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
+                            quorumArray.getString(i));
+                    boolean quorumSanityCheck = sanityCheck("Quorum", quorumPeerID, ipfs, SEND_PORT + 11);
 
+                    if (!quorumSanityCheck) {
+                        sanityFailedQuorum.put(quorumPeerID);
+                        if (i <= 6)
+                            alphaCheck++;
+                        if (i >= 7 && i <= 13)
+                            betaCheck++;
+                        if (i >= 14 && i <= 20)
+                            gammaCheck++;
+                    }
+                }
+
+                if (alphaCheck > 2 || betaCheck > 2 || gammaCheck > 2) {
+                    APIResponse.put("did", DID);
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    String message = "Quorum: ".concat(sanityFailedQuorum.toString()).concat(" ");
+                    APIResponse.put("message", message.concat(sanityMessage));
+                    ProofCreditsLogger.warn("Quorum: ".concat(message.concat(sanityMessage)));
+                    return APIResponse;
+                }
+                //Sanity Check - Ends
+                
                 QuorumSwarmConnect(quorumArray, ipfs);
 
                 alphaSize = quorumArray.length() - 14;

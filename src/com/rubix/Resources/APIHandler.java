@@ -785,5 +785,53 @@ public class APIHandler {
         resultArray.put(jsonObject);
         return resultArray;
     }
+    
+    /**
+     * This method is to get the no. of staked tokens
+     * 
+     * @param 
+     * @return no. of staked token 
+     * @throws JSONException handles JSON Exceptions
+     * @files 
+     */    
+    public static int stakedTokencount() throws JSONException {
+        String stakedtokens = Functions.WALLET_DATA_PATH.concat("Stake/");
+        int count =0;
+        File stkedtokensfile = new File(stakedtokens);
+          File[] filesList = stkedtokensfile.listFiles();
+          if (stkedtokensfile.exists()) {
+              for ( File file : filesList) {
+            	  String sFile = file.getName();
+                  String k =  stakedtokens+sFile;
+                  String contactsFile = Functions.readFile(k);
+                
+                  JSONObject js = new JSONObject(contactsFile);
+                 
+                  JSONObject stakedata = js.getJSONObject("stakeData");
+                  String staked_mineid = stakedata.getString("stakedToken");
+                  count++;
+              }
+          }
+          return count;
+     }
+    
+    /**
+     * This method is to get the withdrawal balance
+     * 
+     * @param 
+     * @return withdrawal balance 
+     * @throws JSONException handles JSON Exceptions
+     * @files 
+     */    
+    public static Double getAvailableBalance() throws JSONException, IOException
+    {
+    	int stakedtokens=APIHandler.stakedTokencount();
+    	Double balance=Functions.getBalance();
+      
+    	Double availablebalance = balance - stakedtokens;
+      
+    	return availablebalance;
+      
+    }
 
 }
