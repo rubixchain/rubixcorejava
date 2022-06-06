@@ -340,6 +340,23 @@ public class NftBuyer {
                     keyPass = detailsObject.getString("buyerPvtKeyPass");
                     pvtKey = getPvtKeyFromStr(detailsObject.getString("buyerPvtKey"), keyPass);
                     detailsObject.remove("buyerPvtKey");
+
+                    if (pvtKey == null || pvtKey.equals("")) {
+                        output.println("421");
+                        nftBuyerLogger.warn("Buyer entered wrong private key password");
+                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
+                        output.close();
+                        input.close();
+                        buyerSocket.close();
+
+                        buyerMutex = false;
+                        APIResponse.put("did", buyerDid);
+                        APIResponse.put("tid", "");
+                        APIResponse.put("status", "Failed");
+                        APIResponse.put("message", "Buyer entered wrong private key password");
+                        return APIResponse;
+
+                    }
                 }
             } else {
                 nftBuyerLogger.info("Enter Private Key Password to Sign new Ownership of NFT");
@@ -353,6 +370,22 @@ public class NftBuyer {
                 keyPass = String.valueOf(privateKeyPass);
 
                 pvtKey = getPvtKey(keyPass);
+                if (pvtKey == null || pvtKey.equals("")) {
+                    output.println("421");
+                    nftBuyerLogger.warn("Buyer entered wrong private key password");
+                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
+                    output.close();
+                    input.close();
+                    buyerSocket.close();
+
+                    buyerMutex = false;
+                    APIResponse.put("did", buyerDid);
+                    APIResponse.put("tid", "");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Buyer entered wrong private key password");
+                    return APIResponse;
+
+                }
 
             }
 
@@ -682,8 +715,8 @@ public class NftBuyer {
 
             consensusDataObject.put("message", "");
             consensusDataObject.put("tid", tid);
-            consensusDataObject.put("receiverDidIpfs",buyerDid);
-            consensusDataObject.put("senderDidIpfs",sellerDid);
+            consensusDataObject.put("receiverDidIpfs", buyerDid);
+            consensusDataObject.put("senderDidIpfs", sellerDid);
             consensusDataObject.put("nftTokenDetails", nftDetailsObject);
             consensusDataObject.put("token", "");
             // consensusDataObject.put("rbtTokenDetails", "");
@@ -745,7 +778,8 @@ public class NftBuyer {
             }
             nftBuyerLogger.debug("Consensus Reached");
 
-            //nftBuyerLogger.debug("NFT quorum details "+InitiatorConsensus.nftQuorumSignature);
+            // nftBuyerLogger.debug("NFT quorum details
+            // "+InitiatorConsensus.nftQuorumSignature);
 
             consensusDetails.put("status", "Consensus Reached");
             consensusDetails.put(("nftQuorumSign"), InitiatorConsensus.nftQuorumSignature.toString());
@@ -855,8 +889,10 @@ public class NftBuyer {
                 APIResponse.put("did", sellerDid);
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");
-                APIResponse.put("message", rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
-                nftBuyerLogger.info(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
+                APIResponse.put("message",
+                        rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
+                nftBuyerLogger
+                        .info(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                 output.close();
                 input.close();
@@ -870,8 +906,6 @@ public class NftBuyer {
             output.println(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
 
             String rbtTxnId = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("tid");
-
-           
 
             nftBuyerLogger.debug("Sending RBT Txn ID to Seller to confirm ");
             output.println(rbtTxnId);
@@ -961,7 +995,7 @@ public class NftBuyer {
                 return APIResponse;
             }
 
-            nftBuyerLogger.debug("Buyer "+ buyerDid+ " Pinning the NFT Token");
+            nftBuyerLogger.debug("Buyer " + buyerDid + " Pinning the NFT Token");
             FileWriter fileWriter;
             fileWriter = new FileWriter(NFT_TOKENS_PATH + nftTokenIpfsHash);
             fileWriter.write(get(nftTokenIpfsHash, ipfs));
@@ -980,16 +1014,13 @@ public class NftBuyer {
                 e1.printStackTrace();
             }
 
-            nftBuyerLogger.debug("nodes pins on nft token "+nftTokenIpfsHash+" is "+array);
+            nftBuyerLogger.debug("nodes pins on nft token " + nftTokenIpfsHash + " is " + array);
 
-            if(array.contains(buyerPeerId))
-            {
-                pincheck=true;
+            if (array.contains(buyerPeerId)) {
+                pincheck = true;
             }
 
-
-            if(!pincheck)
-            {
+            if (!pincheck) {
                 output.println("421");
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                 nftBuyerLogger.info("Buyer pinning NFT Failed");
@@ -1008,7 +1039,6 @@ public class NftBuyer {
             }
             output.println("NFT-Pinned");
 
-            
             String respAuth;
             try {
                 respAuth = input.readLine();
@@ -1090,7 +1120,7 @@ public class NftBuyer {
             String nftSignString = calculateHash(nftHashString, "SHA3-256");
 
             String nftOwnerIdentity = pvtKeySign(nftSignString, pvtKey);
-            nftBuyerLogger.info("NFT new Owner Identitiy : "+nftOwnerIdentity);
+            nftBuyerLogger.info("NFT new Owner Identitiy : " + nftOwnerIdentity);
 
             // update recived nfttokenchain
             saleContractContent = get(saleContractIpfsHash, ipfs);
