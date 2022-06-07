@@ -574,10 +574,14 @@ public class NftBuyer {
             String saleContractContent = get(saleContractIpfsHash, ipfs);
             nftBuyerLogger.debug("saleContract contetn : " + saleContractContent);
             JSONObject saleConObj = new JSONObject(saleContractContent);
-            JSONObject reConObj = new JSONObject();
+            JSONObject reConObj = new JSONObject(saleContractContent);
+            reConObj.remove("sign");
+
+
+            /* JSONObject reConObj = new JSONObject();
             reConObj.put("sellerDID", sellerDid);
             reConObj.put("nftToken", nftDetailsObject.getString("nftToken"));
-            reConObj.put("rbtAmount", requestedAmount);
+            reConObj.put("rbtAmount", requestedAmount); */
 
             PublicKey sellerPubKey = getPubKeyFromStr(
                     get(sellerPubKeyIpfsHash, ipfs));
