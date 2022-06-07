@@ -574,6 +574,7 @@ public class NftBuyer {
             String saleContractContent = get(saleContractIpfsHash, ipfs);
             nftBuyerLogger.debug("saleContract contetn : " + saleContractContent);
             JSONObject saleConObj = new JSONObject(saleContractContent);
+            //created temp json object to fetch original data used to make sale comtact sign
             JSONObject reConObj = new JSONObject(saleContractContent);
             reConObj.remove("sign");
 
