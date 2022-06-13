@@ -807,7 +807,7 @@ public class TokenSender {
         TokenSenderLogger.info("signatureAuth : " + signatureAuth);
         endTime = System.currentTimeMillis();
         totalTime = endTime - startTime;
-        if (signatureAuth != null && (!signatureAuth.equals("200"))) {
+        if (signatureAuth == null) {
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             TokenSenderLogger.info("Authentication Failed");
             output.close();
@@ -822,9 +822,25 @@ public class TokenSender {
             return APIResponse;
 
         }
+        else if (signatureAuth != null && (!signatureAuth.equals("200"))) {
+            executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+            TokenSenderLogger.info("Authentication Failed");
+            output.close();
+            input.close();
+            senderSocket.close();
+            senderMutex = false;
+            updateQuorum(quorumArray, null, false, type);
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", tid);
+            APIResponse.put("status", "Failed");
+            APIResponse.put("message", "Sender not authenticated");
+            return APIResponse;
 
-        TokenSenderLogger.debug("Unpinned Tokens");
-        output.println("Unpinned");
+        }else {
+        	TokenSenderLogger.debug("Unpinned Tokens");
+            output.println("Unpinned");
+        }
+        
         String confirmation;
         try {
             confirmation = input.readLine();
