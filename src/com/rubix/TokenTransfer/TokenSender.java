@@ -448,7 +448,7 @@ public class TokenSender {
         	TokenSenderLogger.debug("No Multiple Pins found, initating transcation");
         }
         
-        JSONArray quorumArrayList = new JSONArray();
+        JSONArray quorumArray = new JSONArray();
         switch (type) {
             case 1: {
                 writeToFile(LOGGER_PATH + "tempbeta", tid.concat(senderDidIpfsHash), false);
@@ -459,17 +459,17 @@ public class TokenSender {
                 String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
                 deleteFile(LOGGER_PATH + "tempgamma");
 
-                quorumArrayList = getQuorum(senderDidIpfsHash, receiverDidIpfsHash,
+                quorumArray = getQuorum(senderDidIpfsHash, receiverDidIpfsHash,
                         allTokens.length());
                 break;
             }
 
             case 2: {
-            	quorumArrayList = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+            	quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
                 break;
             }
             case 3: {
-            	quorumArrayList = detailsObject.getJSONArray("quorum");
+            	quorumArray = detailsObject.getJSONArray("quorum");
                 break;
             }
             default: {
@@ -481,17 +481,27 @@ public class TokenSender {
             }
         }
         
-        JSONArray quorumArray = new JSONArray();
-        List<String> quorumList = new ArrayList<String>();
-        for (int i = 0; i < quorumArrayList.length(); i++) {
-            if (!(quorumArrayList.get(i).equals(senderDidIpfsHash)) && !(quorumArrayList.get(i).equals(receiverDidIpfsHash))) {
-            	quorumList.add(quorumArrayList.get(i).toString());
+        String errMessage = null;
+        for (int i = 0; i < quorumArray.length(); i++) {
+        	
+        	if(quorumArray.get(i).equals(senderDidIpfsHash)) {
+        		TokenSenderLogger.error("SenderDID "+senderDidIpfsHash+" cannot be a Quorum");
+        		errMessage = "SenderDID "+senderDidIpfsHash;
+        	}
+        	if(quorumArray.get(i).equals(receiverDidIpfsHash)) {
+        		TokenSenderLogger.error("ReceiverDID "+receiverDidIpfsHash+" cannot be a Quorum");
+        		if(errMessage != null) {
+        			errMessage = errMessage+" and ";
+        		}
+        		errMessage = "ReceiverDID "+receiverDidIpfsHash;
             }
+        	 if(errMessage != null) {
+        		 APIResponse.put("status", "Failed");
+            	 APIResponse.put("message", errMessage+" cannot be a Quorum ");
+            	 return APIResponse;
+        	 }
+        	
         }
-        for (int i = 0; i < quorumList.size(); i++) {
-        	quorumArray.put(quorumList.get(i));
-        }
-        
         
         TokenSenderLogger.debug("Updated quorumlist is "+quorumArray.toString());
         
@@ -812,10 +822,6 @@ public class TokenSender {
             return APIResponse;
 
         }
-
-        for (int i = 0; i < wholeTokens.length(); i++)
-            unpin(String.valueOf(wholeTokens.get(i)), ipfs);
-        repo(ipfs);
 
         TokenSenderLogger.debug("Unpinned Tokens");
         output.println("Unpinned");

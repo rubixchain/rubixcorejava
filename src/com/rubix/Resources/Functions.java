@@ -23,10 +23,13 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -41,7 +44,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.*;
+import java.util.stream.*;
 
 import javax.imageio.ImageIO;
 import javax.json.JsonArray;
@@ -49,8 +58,7 @@ import javax.json.JsonArray;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Ping.PingCheck;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+import org.apache.log4j.*;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -2103,6 +2111,7 @@ public class Functions {
         return status;
     }
     
+    
     public static int readTokenHashTable(String path,String tokenContent) throws JSONException {
         File filePath = new File(path);
         FunctionsLogger.debug("File path to add is "+path);
@@ -2122,6 +2131,87 @@ public class Functions {
         return tokenNumber;
 
     }
+    
+    public static boolean checkTokenHash(String inputStr) throws InterruptedException {
+        
+        boolean status = false;
+        FunctionsLogger.debug("Main thread started at" + java.time.LocalTime.now());
+        long tStart = System.currentTimeMillis();
+        
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+		
+        Runnable generateHashMapThread1 = new Runnable() {
+			@Override
+			public void run() {
+				FunctionsLogger.debug("T1 started at" + java.time.LocalTime.now());
+				
+             	PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+                try {
+             		 long start = System.currentTimeMillis();
+             		 MessageDigest digest = MessageDigest.getInstance("SHA-256");
+             		 
+             		 for(int i=1;i<=5000000;i++) {
+             			String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
+             			if(inputStr.equals(tokenHashStr)) {
+             				status = true;
+             			}
+             		 }
+             		 FunctionsLogger.debug("T1 ended at" + java.time.LocalTime.now());
+                    
+                     long end = System.currentTimeMillis();
+                     FunctionsLogger.debug("Write to file done in t1 : " + (end - start) + "ms");
+             	}catch (NoSuchAlgorithmException e) {
+                    FunctionsLogger.error("Invalid Cryptographic Algorithm", e);
+                    e.printStackTrace();
+                }catch (Exception e) {
+     				e.printStackTrace();
+     			}
+			}
+		};
+	
+		executor.execute(generateHashMapThread1);
+	
+		executor.shutdown();
+		
+		while (!executor.isTerminated()) {
+				
+		}
+		
+		FunctionsLogger.debug("Finished all threads");
+		FunctionsLogger.debug("Main ended at" + java.time.LocalTime.now());
+
+        long end = System.currentTimeMillis();
+        FunctionsLogger.debug("Main thread" +
+                (end - tStart) + "ms");
+        
+      
+        if(status) {
+        	FunctionsLogger.debug("Valid TokenHash");
+        }else {
+        	FunctionsLogger.debug("Invalid TokenHash");
+        }
+
+        return status;
+    }
+    
+
+    /**
+     * This method calculates different types of hashes as mentioned in the passed
+     * parameters for the mentioned message
+     *
+     * @param message   Input string to be hashed
+     * @param 
+     * @return (String) hash
+     */
+
+    private static String calculateSHA256Hash(MessageDigest digest, String message) {
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+        byte[] c = new byte[messageBytes.length];
+        System.arraycopy(messageBytes, 0, c, 0, messageBytes.length);
+        final byte[] hashBytes = digest.digest(messageBytes);
+        return bytesToHex(hashBytes);
+    }
+
     
     
 
