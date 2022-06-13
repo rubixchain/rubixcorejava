@@ -2143,6 +2143,7 @@ public class Functions {
      			String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
      			if(inputStr.equals(tokenHashStr)) {
      				tokenLevel = i;
+     				break;
      			}
      		 }
      		
