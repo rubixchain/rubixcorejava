@@ -66,8 +66,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 
-
-
+import java.security.PrivateKey;
+import static com.rubix.NFTResources.NFTFunctions.getPvtKey;
+import static com.rubix.NFTResources.NFTFunctions.pvtKeySign;
+import static com.rubix.NFTResources.NFTFunctions.getPublicKeyIpfsHash;
 
 public class TokenSender {
     private static final Logger TokenSenderLogger = Logger.getLogger(TokenSender.class);
@@ -103,6 +105,21 @@ public class TokenSender {
         double requestedAmount = detailsObject.getDouble("amount");
         int type = detailsObject.getInt("type");
         String comment = detailsObject.getString("comment");
+
+        String keyPass = detailsObject.getString("pvtKeyPass");
+        PrivateKey pvtKey = null;
+        pvtKey = getPvtKey(keyPass);
+
+        //If user enters wrong pvt key password
+        if(pvtKey==null){
+            APIResponse.put("message", "Incorrect password entered for Private Key, cannot proceed with the transaction");
+            TokenSenderLogger.warn("Incorrect Private Key password entered");
+            return APIResponse;        
+        }
+
+        detailsObject.remove("pvtKeyPass");
+
+
         APIResponse = new JSONObject();
 
         int intPart = (int) requestedAmount, wholeAmount;
@@ -569,9 +586,13 @@ public class TokenSender {
 
         }
 
-        String senderSign = getSignFromShares(pvt, authSenderByRecHash);
+        String senderPvtSharePart = getSignFromShares(pvt, authSenderByRecHash);
+        String senderSignWithPvtKey = pvtKeySign(senderPvtSharePart, pvtKey);
+        //String senderPubKeyIpfsHash = getPublicKeyIpfsHash();
         JSONObject senderDetails2Receiver = new JSONObject();
-        senderDetails2Receiver.put("sign", senderSign);
+        senderDetails2Receiver.put("PvtShareParts", senderPvtSharePart);
+        //senderDetails2Receiver.put("senderPubKeyIpfsHash", senderPubKeyIpfsHash);
+        senderDetails2Receiver.put("signatureWithPvtKey", senderSignWithPvtKey);
         senderDetails2Receiver.put("tid", tid);
         senderDetails2Receiver.put("comment", comment);
         JSONObject partTokenChainArrays = new JSONObject();
@@ -591,7 +612,7 @@ public class TokenSender {
 
             Double amount = formatAmount(amountLedger.getDouble(partTokens.getString(i)));
 
-            newLastObject.put("senderSign", senderSign);
+            newLastObject.put("senderSign", senderSignWithPvtKey);
             newLastObject.put("sender", senderDidIpfsHash);
             newLastObject.put("receiver", receiverDidIpfsHash);
             newLastObject.put("comment", comment);
@@ -930,7 +951,7 @@ public class TokenSender {
 
             Double amount = formatAmount(decimalAmount);
 
-            newLastObject.put("senderSign", senderSign);
+            newLastObject.put("senderSign", senderSignWithPvtKey);
             newLastObject.put("sender", senderDidIpfsHash);
             newLastObject.put("receiver", receiverDidIpfsHash);
             newLastObject.put("comment", comment);
@@ -979,7 +1000,7 @@ public class TokenSender {
                         .debug("Amount from ledger: " + formatAmount(amountLedger.getDouble(partTokens.getString(i))));
                 Double amount = formatAmount(amountLedger.getDouble(partTokens.getString(i)));
 
-                newLastObject.put("senderSign", senderSign);
+                newLastObject.put("senderSign", senderSignWithPvtKey);
                 newLastObject.put("sender", senderDidIpfsHash);
                 newLastObject.put("receiver", receiverDidIpfsHash);
                 newLastObject.put("comment", comment);

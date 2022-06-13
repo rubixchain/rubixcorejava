@@ -60,6 +60,12 @@ import com.rubix.Ping.VerifyStakedToken;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
+import static com.rubix.NFTResources.NFTFunctions.verifySignature;
+//import static com.rubix.NFTResources.NFTFunctions.getPubKeyStr;
+import static com.rubix.NFTResources.NFTFunctions.getPubKeyFromStr;
+
+import static com.rubix.Resources.APIHandler.getPubKeyIpfsHash_DIDserver;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
@@ -767,11 +773,13 @@ public class TokenReceiver {
 
             }
             JSONObject SenderDetails = new JSONObject(senderDetails);
-            String senderSignature = SenderDetails.getString("sign");
+            String senderPvtShareParts = SenderDetails.getString("PvtShareParts");
+            //String senderPublicKeyIpfsHash = SenderDetails.getString("senderPubKeyIpfsHash");
+            String senderSignatureWithPvtKey = SenderDetails.getString("signatureWithPvtKey");
             String tid = SenderDetails.getString("tid");
             String comment = SenderDetails.getString("comment");
             String Status = SenderDetails.getString("status");
-            String QuorumDetails = SenderDetails.getString("quorumsign");
+            String QuorumDetails = SenderDetails.getString("quorumsign");            
 
             BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
             SenWalletBin = PropImage.img2bin(senderWidImage);
@@ -825,9 +833,18 @@ public class TokenReceiver {
                 JSONObject detailsForVerify = new JSONObject();
                 detailsForVerify.put("did", senderDidIpfsHash);
                 detailsForVerify.put("hash", hash);
-                detailsForVerify.put("signature", senderSignature);
+                detailsForVerify.put("signature", senderPvtShareParts);
 
-                boolean yesSender = Authenticate.verifySignature(detailsForVerify.toString());
+                boolean yesSender = false;
+
+                String senderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(senderDidIpfsHash);
+                String senderPubKeyStr= IPFSNetwork.get(senderPublicKeyIpfsHash, ipfs);
+
+                if(verifySignature(senderPvtShareParts,getPubKeyFromStr(senderPubKeyStr),senderSignatureWithPvtKey)==true){
+                    yesSender = Authenticate.verifySignature(detailsForVerify.toString());
+                }
+                
+
                 TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + " Sender Auth : " + yesSender);
                 if (!(yesSender && yesQuorum)) {
                     output.println("420");
@@ -950,7 +967,7 @@ public class TokenReceiver {
                             arrToken.put(objectToken);
                             JSONArray arr1 = new JSONArray(wholeTokenChainContent.get(i));
                             JSONObject obj2 = new JSONObject();
-                            obj2.put("senderSign", senderSignature);
+                            obj2.put("senderSign", senderPvtShareParts);
                             obj2.put("sender", senderDidIpfsHash);
                             obj2.put("group", groupTokens);
                             obj2.put("comment", comment);
@@ -999,7 +1016,7 @@ public class TokenReceiver {
                             TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
 
                             JSONObject newPartObject = new JSONObject();
-                            newPartObject.put("senderSign", senderSignature);
+                            newPartObject.put("senderSign", senderPvtShareParts);
                             newPartObject.put("sender", senderDidIpfsHash);
                             newPartObject.put("receiver", receiverDidIpfsHash);
                             newPartObject.put("comment", comment);

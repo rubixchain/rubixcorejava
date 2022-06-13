@@ -33,6 +33,9 @@ import static com.rubix.Resources.APIHandler.*;
 import static com.rubix.Resources.Functions.*;
 import com.rubix.Resources.IPFSNetwork;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 public class NFTFunctions {
 
     public static Logger NftFunctionsLogger = Logger.getLogger(NFTFunctions.class);
@@ -472,6 +475,47 @@ public class NFTFunctions {
         }
         return result;
     }
+
+
+
+    public static int addPubKeyData_DIDserver() throws JSONException{
+        pathSet();
+        String pubKeyIpfsHash = (readFile(DATA_PATH+"PublicKeyIpfsHash"));
+        String myPeerID = getPeerID(DATA_PATH + "DID.json");
+        String didIpfsHash = getValues(DATA_PATH + "DID.json", "didHash", "peerid", myPeerID);
+
+        JSONArray record = new JSONArray();
+        JSONObject obj = new JSONObject();
+        int responseCodeSYNC=0;
+
+        obj.put("didHash", didIpfsHash);
+        obj.put("pubKeyIpfsHash", pubKeyIpfsHash);
+        record.put(obj);
+
+        try{
+            URL syncobj = new URL(SYNC_IP + "/addPubKeyData");
+            HttpURLConnection synccon = (HttpURLConnection)syncobj.openConnection();
+            synccon.setRequestMethod("POST");
+            synccon.setRequestProperty("User-Agent", "signer");
+            synccon.setRequestProperty("Content-Type", "application/json");
+            synccon.setDoOutput(true);
+            DataOutputStream syncWR = new DataOutputStream(synccon.getOutputStream());
+
+            syncWR.writeBytes(record.toString());
+            syncWR.flush();
+            syncWR.close();
+            responseCodeSYNC = synccon.getResponseCode();
+            
+
+        }catch (IOException e) {
+            NftFunctionsLogger.error("IO Exception Occurred ", e);
+            e.printStackTrace();
+        }
+        
+        return responseCodeSYNC;
+    }
+
+
 
     public static String getPubKeyIpfsHash()
     {
