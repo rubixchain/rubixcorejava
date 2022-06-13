@@ -2132,66 +2132,27 @@ public class Functions {
 
     }
     
-    public static boolean checkTokenHash(String inputStr) throws InterruptedException {
+    public static int checkTokenHash(String inputStr) throws InterruptedException {
         
-        boolean status = false;
-        FunctionsLogger.debug("Main thread started at" + java.time.LocalTime.now());
-        long tStart = System.currentTimeMillis();
-        
-        ExecutorService executor = Executors.newFixedThreadPool(10);
-		
-        Runnable generateHashMapThread1 = new Runnable() {
-			@Override
-			public void run() {
-				FunctionsLogger.debug("T1 started at" + java.time.LocalTime.now());
-				
-             	PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-                try {
-             		 long start = System.currentTimeMillis();
-             		 MessageDigest digest = MessageDigest.getInstance("SHA-256");
-             		 
-             		 for(int i=1;i<=5000000;i++) {
-             			String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
-             			if(inputStr.equals(tokenHashStr)) {
-             				status = true;
-             			}
-             		 }
-             		 FunctionsLogger.debug("T1 ended at" + java.time.LocalTime.now());
-                    
-                     long end = System.currentTimeMillis();
-                     FunctionsLogger.debug("Write to file done in t1 : " + (end - start) + "ms");
-             	}catch (NoSuchAlgorithmException e) {
-                    FunctionsLogger.error("Invalid Cryptographic Algorithm", e);
-                    e.printStackTrace();
-                }catch (Exception e) {
-     				e.printStackTrace();
+        int tokenLevel = 0;
+        try {
+     		 long start = System.currentTimeMillis();
+     		 MessageDigest digest = MessageDigest.getInstance("SHA-256");
+     		 
+     		 for(int i=1;i<=5000000;i++) {
+     			String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
+     			if(inputStr.equals(tokenHashStr)) {
+     				tokenLevel = i;
      			}
-			}
-		};
-	
-		executor.execute(generateHashMapThread1);
-	
-		executor.shutdown();
-		
-		while (!executor.isTerminated()) {
-				
+     		 }
+     		
+     	}catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }catch (Exception e) {
+			e.printStackTrace();
 		}
-		
-		FunctionsLogger.debug("Finished all threads");
-		FunctionsLogger.debug("Main ended at" + java.time.LocalTime.now());
-
-        long end = System.currentTimeMillis();
-        FunctionsLogger.debug("Main thread" +
-                (end - tStart) + "ms");
-        
       
-        if(status) {
-        	FunctionsLogger.debug("Valid TokenHash");
-        }else {
-        	FunctionsLogger.debug("Invalid TokenHash");
-        }
-
-        return status;
+        return tokenLevel;
     }
     
 
