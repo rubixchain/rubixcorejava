@@ -113,6 +113,7 @@ public class InitiatorProcedure {
 
         if (operation.equals("NFT")) {
             JSONObject nftdetails = new JSONObject();
+            nftdetails.put("tid", dataObject.getString("tid"));
             nftdetails.put("sellerPubKeyIpfsHash", dataObject.getString("sellerPubKeyIpfsHash"));
             nftdetails.put("saleContractIpfsHash", dataObject.getString("saleContractIpfsHash"));
             nftdetails.put("nftTokenDetails", dataObject.getJSONObject("nftTokenDetails"));
@@ -122,9 +123,25 @@ public class InitiatorProcedure {
             InitiatorProcedureLogger.debug("NFT Token Detials "+dataObject.getJSONObject("nftTokenDetails").toString());
             String authNftSenderByQuorumHash = calculateHash(dataObject.getJSONObject("nftTokenDetails").toString(),
                     "SHA3-256");
+
+            //creating authNftQuorumHash
+            String authNftQuorumHash = calculateHash(authNftSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
+            String nftSenderQsign=null;
+            try {
+                nftSenderQsign=getSignFromShares(pvt, authNftSenderByQuorumHash);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            
             InitiatorProcedureLogger.debug("authNftSenderByQuorumHash "+authNftSenderByQuorumHash);
             nftdetails.put("nftHash", authNftSenderByQuorumHash);
+            
+            nftdetails.put("nftQhash", authNftQuorumHash);
+            
             nftdetails.put("nftBuyerDid", receiverDidIpfs);
+            //pvt share signture quorum going to veify 
+            nftdetails.put("nftSign", nftSenderQsign);
 
             dataSend.put("nftDetails", nftdetails);
 
