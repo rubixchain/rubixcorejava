@@ -747,9 +747,9 @@ public class TokenSender {
                     break;
 
                 case "426":
-                    TokenSenderLogger.info("Contains tokens invalid for the level. Kindly check tokens in your wallet");
+                    TokenSenderLogger.info("Contains Invalid Tokens. Kindly check tokens in your wallet");
                     APIResponse.put("message",
-                            "Contains tokens invalid for the level. Kindly check tokens in your wallet");
+                            "Contains Invalid Tokens. Kindly check tokens in your wallet");
                     break;
 
             }

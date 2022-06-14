@@ -408,42 +408,41 @@ public class TokenReceiver {
 						TokenReceiverLogger.debug("Initating check");
 					}
 				}
-				tokenNumber = Functions.readTokenHashTable(tokenHashTable.toString(),tokenNumberHash);
-					if(tokenNumber == -1) {
-	
-						TokenReceiverLogger.debug("Invalid Content Found in Token : " + tokenNumberHash);
-						String errorMessage = "Invalid Content Found in Token";
-						output.println("426");
-						APIResponse.put("did", senderDidIpfsHash);
-						APIResponse.put("tid", "null");
-						APIResponse.put("status", "Failed");
-						APIResponse.put("message", errorMessage);
-						TokenReceiverLogger.debug(errorMessage);
-						executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-						output.close();
-						input.close();
-						sk.close();
-						ss.close();
-						return APIResponse.toString();
-					
-					}
-					if (tokenNumber > tokenLimitForLevel) {
-						String errorMessage = "Token Number is greater than Token Limit for the Level";
-						output.println("426");
-						APIResponse.put("did", senderDidIpfsHash);
-						APIResponse.put("tid", "null");
-						APIResponse.put("status", "Failed");
-						APIResponse.put("message", errorMessage);
-						TokenReceiverLogger.debug(errorMessage);
-						executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-						output.close();
-						input.close();
-						sk.close();
-						ss.close();
-						return APIResponse.toString();
-					}
-				 
+				
+				/** Token Authenticity Check - starts */
+				HashMap<String,Integer> tokenMaxLimitMap= new HashMap<>();
+			    boolean tokenHashStatus = false;
 
+			    for(int i=0;i<wholeTokens.length();i++) {
+			    	String TokenContent = get(wholeTokens.getString(i), ipfs);
+			    	String tokenLevel = TokenContent.substring(0, TokenContent.length() - 64);
+			    	String tokenNumberHash = TokenContent.substring(TokenContent.length() - 64);
+			    	int tokenLevelInt = Integer.parseInt(tokenLevel);
+			    	int tokenLimitForLevel = tokenLimit[tokenLevelInt];
+			    	tokenMaxLimitMap.put(tokenNumberHash,tokenLimitForLevel);
+			    	tokenDetailMap.put(tokenNumberHash, -1);
+			     	tokenChain = new JSONArray("[" + wholeTokens.get(i).toString() + "]");
+			    }
+			    
+			    tokenHashStatus = Functions.checkTokenHash(tokenMaxLimitMap);
+			    
+			    if(tokenHashStatus == false) {
+			    	   TokenReceiverLogger.debug("Invalid Token!");
+				       String errorMessage = "Invalid Token!";
+				       output.println("426");
+				       APIResponse.put("did", senderDidIpfsHash);
+				       APIResponse.put("tid", "null");
+				       APIResponse.put("status", "Failed");
+				       APIResponse.put("message", errorMessage);
+				       TokenReceiverLogger.debug(errorMessage);
+				       executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+				       output.close();
+				       input.close();
+				       sk.close();
+				       ss.close();
+				       return APIResponse.toString();
+			    }
+			    /** Token Authenticity Check - Ends */
 				// ! check quorum signs for previous transaction for the tokenchain to verify
 				// ! the ownership of sender for the token
 
@@ -886,24 +885,19 @@ public class TokenReceiver {
 				if (pinDetails.equals("Unpinned")) {
 					int count = 0;
 					for (int i = 0; i < intPart; i++) {
-						FileWriter fileWriter;
-						fileWriter = new FileWriter(TOKENS_PATH + wholeTokens.getString(i));
-						fileWriter.write(wholeTokenContent.get(i));
-						fileWriter.close();
-						add(TOKENS_PATH + wholeTokens.getString(i), ipfs);
-						pin(wholeTokens.getString(i), ipfs);
-						count++;
-
+						writeToFile(TOKENS_PATH + wholeTokens.getString(i), wholeTokenContent.get(i), false);
+                        add(TOKENS_PATH + wholeTokens.getString(i), ipfs);
+                        pin(wholeTokens.getString(i), ipfs);
+                        count++;
+						
 					}
 
 					for (int i = 0; i < partTokens.length(); i++) {
 						File tokenFile = new File(PART_TOKEN_PATH + partTokens.getString(i));
 						if (!tokenFile.exists())
 							tokenFile.createNewFile();
-						FileWriter fileWriter;
-						fileWriter = new FileWriter(PART_TOKEN_PATH + partTokens.getString(i));
-						fileWriter.write(partTokenContent.getString(i));
-						fileWriter.close();
+						
+						writeToFile(PART_TOKEN_PATH + partTokens.getString(i), partTokenContent.getString(i), false);
 						String tokenHash = add(PART_TOKEN_PATH + partTokens.getString(i), ipfs);
 						pin(tokenHash, ipfs);
 
@@ -1160,9 +1154,7 @@ public class TokenReceiver {
 			ss.close();
 			return APIResponse.toString();
 
-		} catch (
-
-		Exception e) {
+		} catch (Exception e) {
 			executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
 			TokenReceiverLogger.error("Exception Occurred", e);
 			return APIResponse.toString();

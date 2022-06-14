@@ -40,6 +40,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -2132,28 +2133,44 @@ public class Functions {
 
     }
     
-    public static int checkTokenHash(String inputStr) throws InterruptedException {
-        
-        int tokenLevel = 0;
-        try {
-     		 long start = System.currentTimeMillis();
-     		 MessageDigest digest = MessageDigest.getInstance("SHA-256");
-     		 
-     		 for(int i=1;i<=5000000;i++) {
-     			String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
-     			if(inputStr.equals(tokenHashStr)) {
-     				tokenLevel = i;
-     				break;
-     			}
-     		 }
-     		
-     	}catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }catch (Exception e) {
-			e.printStackTrace();
-		}
-      
-        return tokenLevel;
+    public static boolean checkTokenHash(HashMap<String,Integer> tokenDetailMap) throws InterruptedException {
+    	  HashMap<String,Integer> tokenHashWithNumber = new HashMap<>();
+    	  
+	        boolean status = true;
+	        try {
+			        long start = System.currentTimeMillis();
+			        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			        int tokenLimit = Collections.max(tokenDetailMap.values());
+			        for(int i=1;i<= tokenLimit;i++) {
+			            String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
+			            for(String tokenHash : tokenDetailMap.keySet()) {
+				             if(tokenHash.equals(tokenHashStr)) {
+				                 
+				                 if(i > tokenDetailMap.get(tokenHash)) {
+				                	 FunctionsLogger.debug("Invalid TokenHash"+tokenHash);
+				                	 status = false;
+				                	 break;
+				                 }
+				                 tokenHashWithNumber.put(tokenHash, i);
+				                 FunctionsLogger.debug("TokenHash is "+ tokenHash + " and token number is "+i);
+				            }else {
+				            	FunctionsLogger.debug("Invalid TokenHash"+tokenHash);
+				            	status = false;
+				            	break;
+				            }
+			            
+			            }
+			        }
+			        
+			        FunctionsLogger.debug("final tokenHashMap is "+tokenHashWithNumber.toString());
+	        
+	       
+		      }catch (NoSuchAlgorithmException e) {
+		            e.printStackTrace();
+		      }catch (Exception e) {
+		    	  e.printStackTrace();
+		      }
+    	return status;
     }
     
 
