@@ -556,34 +556,53 @@ public class QuorumConsensus implements Runnable {
 
                         String saleSignature = saleContractObject.getString("sign");
 
-                        JSONObject data1 = new JSONObject();
+                        /* JSONObject data1 = new JSONObject();
                         data1.put("sellerDID",
                                 nftDetailsObject.getJSONObject("nftTokenDetails").getString("sellerDid"));
                         data1.put("nftToken", nftDetailsObject.getJSONObject("nftTokenDetails").getString("nftToken"));
-                        data1.put("rbtAmount", nftDetailsObject.getDouble("tokenAmount"));
+                        data1.put("rbtAmount", nftDetailsObject.getDouble("tokenAmount")); */
+
+                        //creating new temp jsonobject to use verify sale contract
+                        JSONObject saleDataObj = new JSONObject(saleContractContent);
+                        saleDataObj.remove("sign");
 
                         PublicKey pubKey = getPubKeyFromStr(
                                 get(nftDetailsObject.getString("sellerPubKeyIpfsHash"), ipfs));
 
-                        QuorumConsensusLogger.debug("Recreated String to verify nft Signture " + data1.toString());
+                        QuorumConsensusLogger.debug("Recreated String to verify nft Signture " + saleDataObj.toString());
                         QuorumConsensusLogger
                                 .debug("Contents of SaleContract fetched from ipfs " + saleContractObject.toString());
                         QuorumConsensusLogger.debug("Signature contained inside the saleContract" + saleSignature);
                         QuorumConsensusLogger.debug(
                                 "seller Public Key ipfs hash" + nftDetailsObject.getString("sellerPubKeyIpfsHash"));
 
-                        if (verifySignature(data1.toString(), pubKey, saleSignature)) {
+
+                        String verifyNftSenderHash = nftDetailsObject.getString("nftHash");
+                        // data to verify nftbuyer
+                        JSONObject detailsToVerify = new JSONObject();
+                        detailsToVerify.put("did", nftDetailsObject.getString("nftBuyerDid"));
+                        detailsToVerify.put("hash", verifyNftSenderHash);
+                        detailsToVerify.put("signature", nftDetailsObject.getString("nftSign"));
+
+
+                        if(Authenticate.verifySignature(detailsToVerify.toString()))
+                        {
+                            QuorumConsensusLogger.debug("Quorum Authenticated NFT Buyer");
+                            out.println("Buyer_verified");
+                        }
+
+                        /* if (verifySignature(saleDataObj.toString(), pubKey, saleSignature)) {
                             QuorumConsensusLogger.debug("Quorom Authenticated NFT sale contract");
                             out.println("Contract_verified");
 
-                        } else {
-                            QuorumConsensusLogger.debug("NFT Sale Authentication Failure - Quorum");
-                            out.println("NFT_Sale_Auth_Failed");
+                        } */ else {
+                            QuorumConsensusLogger.debug("NFT Buyer Authentication Failure - Quorum");
+                            out.println("Buyer_Not_Verified");
                         }
 
-                        String verifyNftSenderHash = nftDetailsObject.getString("nftHash");
+                        
 
-                        if (verifySignature(data1.toString(), pubKey, saleSignature)) {
+                        if (verifySignature(saleDataObj.toString(), pubKey, saleSignature)) {
                             QuorumConsensusLogger.debug("Quorom Authenticated Sender NFT Signature");
 
                             nftQuorumHash = calculateHash(
@@ -621,9 +640,11 @@ public class QuorumConsensus implements Runnable {
                                 QuorumConsensusLogger.debug("Credit object: " + credit);
                                 QuorumConsensusLogger.debug("Credit Hash: " + calculateHash(credit, "SHA3-256"));
                                 JSONObject storeDetailsQuorum = new JSONObject();
-                                storeDetailsQuorum.put("tid", transactionID);
-                                storeDetailsQuorum.put("consensusID", verifySenderHash);
-                                storeDetailsQuorum.put("sign", senderPrivatePos);
+                                storeDetailsQuorum.put("tid", nftDetailsObject.getString("tid"));
+                                //modified consensus id got for nftTxn
+                                storeDetailsQuorum.put("consensusID", nftDetailsObject.getString("nftHash"));
+                                //modified sign got for nftSign that quorum verfies for nft txn
+                                storeDetailsQuorum.put("sign", nftDetailsObject.getString("nftSign"));
                                 storeDetailsQuorum.put("credits", credit);
                                 storeDetailsQuorum.put("creditHash", calculateHash(credit, "SHA3-256"));
                                 storeDetailsQuorum.put("senderdid",
@@ -643,8 +664,8 @@ public class QuorumConsensus implements Runnable {
                             }
 
                         } else {
-                            QuorumConsensusLogger.debug("NFT Sender signature Authentication Failure - Quorum");
-                            out.println("NFT_Auth_Failed");
+                            QuorumConsensusLogger.debug("NFT Sale Contract and Sender signature Authentication Failure - Quorum");
+                            out.println("NFT_Sig_Auth_Failed");
                         }
                     }
 

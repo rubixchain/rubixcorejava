@@ -334,12 +334,12 @@ public class InitiatorConsensus {
                             }
 
                             if (qResponse[j] != null) {
-                                if (qResponse[j].equals("NFT_Sale_Auth_Failed")) {
-                                    InitiatorConsensusLogger.debug("NFT Sale Authentication Failure at " + quorumID[j]);
+                                if (qResponse[j].equals("Buyer_Not_Verified")) {
+                                    InitiatorConsensusLogger.debug("NFT Buyer Authentication Failure at " + quorumID[j]);
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                 } else {
                                     InitiatorConsensusLogger
-                                            .debug("Quorum Verified NFT Sale " + quorumID[j] + " " + qResponse[j]);
+                                            .debug("Quorum Verified NFT Buyer " + quorumID[j] + " " + qResponse[j]);
                                 }
                             }
 
@@ -351,12 +351,13 @@ public class InitiatorConsensus {
                             }
 
                             if (qResponse[j] != null) {
-                                if (qResponse[j].equals("NFT_Auth_Failed")) {
+                                if (qResponse[j].equals("NFT_Sig_Auth_Failed")) {
                                     InitiatorConsensusLogger.debug("NFT Sign Authentication Failure at " + quorumID[j]);
+                                    InitiatorConsensusLogger.debug("NFT Sale and Sender signature verification failed");
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                 } else {
                                     InitiatorConsensusLogger
-                                            .debug("Quorum Verified NFT " + quorumID[j] + " " + qResponse[j]);
+                                            .debug("Quorum Verified NFT Sale and Sender" + quorumID[j] + " " + qResponse[j]);
                                     if (nftQuorumResponse[index] > minQuorum(quorumSize)) {
                                         qOut[j].println("null");
                                         // IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
