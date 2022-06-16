@@ -411,7 +411,7 @@ public class TokenReceiver {
 				
 				/** Token Authenticity Check - starts */
 				HashMap<String,Integer> tokenMaxLimitMap= new HashMap<>();
-			    boolean tokenHashStatus = false;
+			    boolean tokenHashStatus = true;
 
 			    for(int i=0;i<wholeTokens.length();i++) {
 			    	String TokenContent = get(wholeTokens.getString(i), ipfs);
@@ -422,9 +422,9 @@ public class TokenReceiver {
 			    	tokenMaxLimitMap.put(tokenNumberHash,tokenLimitForLevel);
 			    	tokenDetailMap.put(tokenNumberHash, -1);
 			     	tokenChain = new JSONArray("[" + wholeTokens.get(i).toString() + "]");
+			     	
+			     	tokenHashStatus = Functions.checkTokenHash(tokenMaxLimitMap);
 			    }
-			    
-			    tokenHashStatus = Functions.checkTokenHash(tokenMaxLimitMap);
 			    
 			    if(tokenHashStatus == false) {
 			    	   TokenReceiverLogger.debug("Invalid Token!");
@@ -885,8 +885,18 @@ public class TokenReceiver {
 				if (pinDetails.equals("Unpinned")) {
 					int count = 0;
 					for (int i = 0; i < intPart; i++) {
-						writeToFile(TOKENS_PATH + wholeTokens.getString(i), wholeTokenContent.get(i), false);
-                        add(TOKENS_PATH + wholeTokens.getString(i), ipfs);
+						
+						File tokenFile = new File(TOKENS_PATH.concat(wholeTokens.getString(i)));
+                        TokenReceiverLogger.debug(wholeTokens.getString(i)+" file is exist : "+ tokenFile.exists());
+                        TokenReceiverLogger.debug(tokenFile.exists());
+                        if (!tokenFile.exists())
+                        	tokenFile.createNewFile();	
+                        	
+                        FileWriter fw = new FileWriter(tokenFile);
+                        fw.write(wholeTokenContent.get(i));
+                        fw.flush();
+                        fw.close();
+						add(TOKENS_PATH + wholeTokens.getString(i), ipfs);
                         pin(wholeTokens.getString(i), ipfs);
                         count++;
 						
@@ -969,7 +979,21 @@ public class TokenReceiver {
 							obj2.put("tid", tid);
 							obj2.put("owner", ownerIdentityHash);
 							arr1.put(obj2);
-							writeToFile(TOKENCHAIN_PATH + wholeTokens.getString(i) + ".json", arr1.toString(), false);
+							
+							File tokenFile = new File(TOKENS_PATH.concat(wholeTokens.getString(i)));
+                            TokenReceiverLogger.debug(wholeTokens.getString(i)+" file is exist : "+ tokenFile.exists());
+                            TokenReceiverLogger.debug(tokenFile.exists());
+                            if (!tokenFile.exists())
+                            	tokenFile.createNewFile();	
+                            	
+	                        FileWriter fw = new FileWriter(tokenFile);
+                            fw.write(wholeTokenContent.get(i));
+                            fw.flush();
+                            fw.close();
+                          
+                            writeToFile(TOKENCHAIN_PATH + wholeTokens.getString(i) + ".json", arr1.toString(), false);
+                            TokenReceiverLogger.debug(wholeTokens.getString(i)+" file is exist : "+ tokenFile.exists());
+
 						}
 
 						for (int i = 0; i < partTokens.length(); i++) {
