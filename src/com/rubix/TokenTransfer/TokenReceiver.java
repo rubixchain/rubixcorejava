@@ -13,7 +13,12 @@ import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Random;
 
@@ -378,6 +383,58 @@ public class TokenReceiver {
 				allTokensChains.put(partTokenChainContent.get(i));
 
 			JSONArray invalidTokens = new JSONArray();
+			
+			
+			/** Token Authenticity Check - starts */
+			HashMap<String,Integer> tokenMaxLimitMap= new HashMap<>();
+		    HashMap<String,Integer> tokenDetailMap = new HashMap<>();
+
+		    for(int i=0;i<wholeTokens.length();i++) {
+		        String TokenContent = get(wholeTokens.getString(i), ipfs);
+		        String tokenLevel = TokenContent.substring(0, TokenContent.length() - 64);
+		        String tokenNumberHash = TokenContent.substring(TokenContent.length() - 64);
+		        int tokenLevelInt = Integer.parseInt(tokenLevel);
+		        int tokenLimitForLevel = tokenLimit[tokenLevelInt];
+		        tokenMaxLimitMap.put(tokenNumberHash,tokenLimitForLevel);
+		        tokenDetailMap.put(tokenNumberHash, -1);
+		    }
+		    tokenDetailMap = Functions.checkTokenHash(tokenDetailMap,(int) Collections.max(tokenMaxLimitMap.values()));
+		    
+		    for(String tokenContent : tokenMaxLimitMap.keySet()) {
+		     
+		     if(tokenDetailMap.get(tokenContent)>tokenMaxLimitMap.get(tokenContent)) {
+		      if(tokenDetailMap.get(tokenContent).equals(null)) {
+		       TokenReceiverLogger.debug("Invalid Content Found in Token");
+		       String errorMessage = "Invalid Content Found in Token";
+		       output.println("426");
+		       APIResponse.put("did", senderDidIpfsHash);
+		       APIResponse.put("tid", "null");
+		       APIResponse.put("status", "Failed");
+		       APIResponse.put("message", errorMessage);
+		       TokenReceiverLogger.debug(errorMessage);
+		       executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+		       output.close();
+		       input.close();
+		       sk.close();
+		       ss.close();
+		       return APIResponse.toString();
+		      }
+		      output.println("426");
+		      APIResponse.put("did", senderDidIpfsHash);
+		      APIResponse.put("tid", "null");
+		      APIResponse.put("status", "Failed");
+		      String errorMessage1 = "Token Number is greater than Token Limit for the Level";
+		      APIResponse.put("message", errorMessage1);
+		      TokenReceiverLogger.debug(errorMessage1);
+		      executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+		      output.close();
+		      input.close();
+		      sk.close();
+		      ss.close();
+		      return APIResponse.toString();
+		     }
+		    }
+		    /** Token Authenticity Check - Ends */
 
 			for (int count = 0; count < wholeTokens.length(); count++) {
 				String tokens = null;
@@ -409,42 +466,7 @@ public class TokenReceiver {
 					}
 				}
 				
-				/** Token Authenticity Check - starts */
-				HashMap<String,Integer> tokenMaxLimitMap= new HashMap<>();
-			    boolean tokenHashStatus = true;
-
-			    for(int i=0;i<wholeTokens.length();i++) {
-			    	String TokenContent = get(wholeTokens.getString(i), ipfs);
-			    	String tokenLevel = TokenContent.substring(0, TokenContent.length() - 64);
-			    	String tokenNumberHash = TokenContent.substring(TokenContent.length() - 64);
-			    	int tokenLevelInt = Integer.parseInt(tokenLevel);
-			    	int tokenLimitForLevel = tokenLimit[tokenLevelInt];
-			    	tokenMaxLimitMap.put(tokenNumberHash,tokenLimitForLevel);
-			    	tokenDetailMap.put(tokenNumberHash, -1);
-			     	tokenChain = new JSONArray("[" + wholeTokens.get(i).toString() + "]");
-			    }
-			    
-			    if(wholeTokens.length() > 0) {
-			    	 tokenHashStatus = Functions.checkTokenHash(tokenMaxLimitMap);
-			    }
-			    
-			    if(tokenHashStatus == false) {
-			    	   TokenReceiverLogger.debug("Invalid Token!");
-				       String errorMessage = "Invalid Token!";
-				       output.println("426");
-				       APIResponse.put("did", senderDidIpfsHash);
-				       APIResponse.put("tid", "null");
-				       APIResponse.put("status", "Failed");
-				       APIResponse.put("message", errorMessage);
-				       TokenReceiverLogger.debug(errorMessage);
-				       executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-				       output.close();
-				       input.close();
-				       sk.close();
-				       ss.close();
-				       return APIResponse.toString();
-			    }
-			    /** Token Authenticity Check - Ends */
+				
 				// ! check quorum signs for previous transaction for the tokenchain to verify
 				// ! the ownership of sender for the token
 
@@ -888,18 +910,10 @@ public class TokenReceiver {
 					int count = 0;
 					for (int i = 0; i < intPart; i++) {
 						
-						File tokenFile = new File(TOKENS_PATH.concat(wholeTokens.getString(i)));
-                        TokenReceiverLogger.debug(wholeTokens.getString(i)+" file is exist : "+ tokenFile.exists());
-                        TokenReceiverLogger.debug(tokenFile.exists());
-                        if (!tokenFile.exists())
-                        	tokenFile.createNewFile();	
-                        	
-                        FileWriter fw = new FileWriter(tokenFile);
-                        fw.write(wholeTokenContent.get(i));
-                        fw.flush();
-                        fw.close();
-						add(TOKENS_PATH + wholeTokens.getString(i), ipfs);
-                        pin(wholeTokens.getString(i), ipfs);
+						Path path = Paths.get(TOKENS_PATH + wholeTokens.get(i));
+						Files.write(path, wholeTokenContent.get(i).getBytes());
+						add(TOKENS_PATH + wholeTokens.get(i), ipfs);
+                        pin(wholeTokens.get(i).toString(), ipfs);
                         count++;
 						
 					}
@@ -982,19 +996,11 @@ public class TokenReceiver {
 							obj2.put("owner", ownerIdentityHash);
 							arr1.put(obj2);
 							
-							File tokenFile = new File(TOKENS_PATH.concat(wholeTokens.getString(i)));
-                            TokenReceiverLogger.debug(wholeTokens.getString(i)+" file is exist : "+ tokenFile.exists());
-                            TokenReceiverLogger.debug(tokenFile.exists());
-                            if (!tokenFile.exists())
-                            	tokenFile.createNewFile();	
-                            	
-	                        FileWriter fw = new FileWriter(tokenFile);
-                            fw.write(wholeTokenContent.get(i));
-                            fw.flush();
-                            fw.close();
+							Path path = Paths.get(TOKENS_PATH + wholeTokens.get(i));
+							Files.write(path, wholeTokenContent.get(i).getBytes());
                           
                             writeToFile(TOKENCHAIN_PATH + wholeTokens.getString(i) + ".json", arr1.toString(), false);
-                            TokenReceiverLogger.debug(wholeTokens.getString(i)+" file is exist : "+ tokenFile.exists());
+                            TokenReceiverLogger.debug(path+" file is exist : "+ Files.exists(path));
 
 						}
 

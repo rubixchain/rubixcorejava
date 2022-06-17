@@ -2133,44 +2133,38 @@ public class Functions {
 
     }
     
-    public static boolean checkTokenHash(HashMap<String,Integer> tokenDetailMap) throws InterruptedException {
+    public static HashMap<String, Integer> checkTokenHash(HashMap<String,Integer> tokenDetailMap, int tokenLimit) throws InterruptedException {
     	  HashMap<String,Integer> tokenHashWithNumber = new HashMap<>();
     	  
-	        boolean status = true;
-	        try {
-			        long start = System.currentTimeMillis();
-			        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			        int tokenLimit = Collections.max(tokenDetailMap.values());
-			        for(int i=1;i<= tokenLimit;i++) {
-			            String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
-			            for(String tokenHash : tokenDetailMap.keySet()) {
-				             if(tokenHash.equals(tokenHashStr)) {
-				                 
-				                 if(i > tokenDetailMap.get(tokenHash)) {
-				                	 FunctionsLogger.debug("Invalid TokenHash"+tokenHash);
-				                	 status = false;
-				                	 break;
-				                 }
-				                 tokenHashWithNumber.put(tokenHash, i);
-				                 FunctionsLogger.debug("TokenHash is "+ tokenHash + " and token number is "+i);
-				            }else {
-				            	FunctionsLogger.debug("Invalid TokenHash"+tokenHash);
-				            	status = false;
-				            	break;
-				            }
-			            
-			            }
-			        }
-			        
-			        FunctionsLogger.debug("final tokenHashMap is "+tokenHashWithNumber.toString());
-	        
-	       
-		      }catch (NoSuchAlgorithmException e) {
-		            e.printStackTrace();
-		      }catch (Exception e) {
-		    	  e.printStackTrace();
-		      }
-    	return status;
+    	        int tokenNumber = -1;
+    	        try {
+    	        long start = System.currentTimeMillis();
+    	        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    	        
+    	        int flag = -1;
+    	        for(int i=1;i<=tokenLimit;i++) {
+    	            String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
+    	            for(String tokenHash : tokenDetailMap.keySet()) {
+    	             if(tokenHash.equals(tokenHashStr)) {
+    	                 tokenNumber = i;
+    	                 flag++;
+    	                 tokenHashWithNumber.put(tokenHash, i);
+    	                 FunctionsLogger.debug("TokenHash is "+ tokenHash + " and token number is "+i);
+    	            }
+    	            
+    	            }
+    	        }
+    	        
+    	        FunctionsLogger.debug("final tokenHashMap is "+tokenHashWithNumber.toString());
+    	        
+    	       
+    	      }catch (NoSuchAlgorithmException e) {
+    	            e.printStackTrace();
+    	        }catch (Exception e) {
+    	   e.printStackTrace();
+    	  }
+    	      
+        return tokenHashWithNumber;
     }
     
 
