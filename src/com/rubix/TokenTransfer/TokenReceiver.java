@@ -422,8 +422,10 @@ public class TokenReceiver {
 			    	tokenMaxLimitMap.put(tokenNumberHash,tokenLimitForLevel);
 			    	tokenDetailMap.put(tokenNumberHash, -1);
 			     	tokenChain = new JSONArray("[" + wholeTokens.get(i).toString() + "]");
-			     	
-			     	tokenHashStatus = Functions.checkTokenHash(tokenMaxLimitMap);
+			    }
+			    
+			    if(wholeTokens.length() > 0) {
+			    	 tokenHashStatus = Functions.checkTokenHash(tokenMaxLimitMap);
 			    }
 			    
 			    if(tokenHashStatus == false) {
