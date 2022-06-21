@@ -910,8 +910,8 @@ public class TokenReceiver {
 					int count = 0;
 					for (int i = 0; i < intPart; i++) {
 						
-						Path path = Paths.get(TOKENS_PATH + wholeTokens.get(i));
-						Files.write(path, wholeTokenContent.get(i).getBytes());
+						Path tokensPath = Paths.get(TOKENS_PATH + wholeTokens.get(i));
+						Files.write(tokensPath, wholeTokenContent.get(i).getBytes());
 						add(TOKENS_PATH + wholeTokens.get(i), ipfs);
                         pin(wholeTokens.get(i).toString(), ipfs);
                         count++;
@@ -996,11 +996,8 @@ public class TokenReceiver {
 							obj2.put("owner", ownerIdentityHash);
 							arr1.put(obj2);
 							
-							Path path = Paths.get(TOKENS_PATH + wholeTokens.get(i));
-							Files.write(path, wholeTokenContent.get(i).getBytes());
-                          
-                            writeToFile(TOKENCHAIN_PATH + wholeTokens.getString(i) + ".json", arr1.toString(), false);
-                            TokenReceiverLogger.debug(path+" file is exist : "+ Files.exists(path));
+							writeToFile(TOKENCHAIN_PATH + wholeTokens.getString(i) + ".json", arr1.toString(), false);
+							
 
 						}
 
@@ -1108,7 +1105,8 @@ public class TokenReceiver {
 							tokenObject1.put("tokenHash", wholeTokens.getString(i));
 							bankArray.put(tokenObject1);
 							Functions.writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
-
+							Path tokensPath = Paths.get(TOKENS_PATH + wholeTokens.get(i));
+							Files.write(tokensPath, wholeTokenContent.get(i).getBytes());
 						}
 
 						String partsFile = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
