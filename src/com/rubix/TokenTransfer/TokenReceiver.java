@@ -276,29 +276,94 @@ public class TokenReceiver {
 			int ipfsGetFlag = 0;
 			ArrayList<String> wholeTokenContent = new ArrayList<>();
 			ArrayList<String> wholeTokenChainContent = new ArrayList<>();
-			for (int i = 0; i < intPart; i++) {
-				String TokenChainContent = get(wholeTokenChains.getString(i), ipfs);
-				wholeTokenChainContent.add(TokenChainContent);
-				String TokenContent = get(wholeTokens.getString(i), ipfs);
-				wholeTokenContent.add(TokenContent);
-				ipfsGetFlag++;
-			}
-			repo(ipfs);
+			
+			/** Token Authenticity Check - starts */
+			HashMap<String,Integer> tokenMaxLimitMap= new HashMap<>();
+		    HashMap<String,Integer> tokenDetailMap = new HashMap<>();
 
-			if (!(ipfsGetFlag == intPart)) {
-				output.println("422");
-				APIResponse.put("did", senderDidIpfsHash);
-				APIResponse.put("tid", "null");
-				APIResponse.put("status", "Failed");
-				APIResponse.put("message", "Tokens not verified");
-				TokenReceiverLogger.info("Tokens not verified");
-				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-				output.close();
-				input.close();
-				sk.close();
-				ss.close();
-				return APIResponse.toString();
-			}
+		    for(int i=0;i<wholeTokens.length();i++) {
+		    	
+		    	String tokenChainContent = get(wholeTokenChains.getString(i), ipfs);
+				wholeTokenChainContent.add(tokenChainContent);
+				String tokenContent = get(wholeTokens.getString(i), ipfs).trim();
+				wholeTokenContent.add(tokenContent);
+				ipfsGetFlag++;
+		        String tokenLevel = tokenContent.substring(0, tokenContent.length() - 64);
+		        String tokenNumberHash = tokenContent.substring(tokenContent.length() - 64);
+
+		        int tokenLevelInt = Integer.parseInt(tokenLevel);
+		        int tokenLimitForLevel = tokenLimit[tokenLevelInt];
+		        tokenMaxLimitMap.put(tokenNumberHash,tokenLimitForLevel);
+		        tokenDetailMap.put(tokenNumberHash, -1);
+		    }
+		    repo(ipfs);
+		    
+		    if(wholeTokens.length() > 0) {
+		    	
+		    	if (!(ipfsGetFlag == intPart)) {
+					output.println("422");
+					APIResponse.put("did", senderDidIpfsHash);
+					APIResponse.put("tid", "null");
+					APIResponse.put("status", "Failed");
+					APIResponse.put("message", "Tokens not verified");
+					TokenReceiverLogger.info("Tokens not verified");
+					IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+					output.close();
+					input.close();
+					sk.close();
+					ss.close();
+					return APIResponse.toString();
+				}
+			    
+		    	int tokenMaxValue = Collections.max(tokenMaxLimitMap.values());
+			    TokenReceiverLogger.debug("Token Max Value : "+tokenMaxValue);
+			    tokenDetailMap = Functions.checkTokenHash(tokenDetailMap,tokenMaxValue );
+			    
+			    
+			    if(tokenDetailMap.isEmpty()) {
+				       TokenReceiverLogger.debug("Invalid Content Found in Token");
+				       String errorMessage = "Invalid Content Found in Token";
+				       output.println("426");
+				       APIResponse.put("did", senderDidIpfsHash);
+				       APIResponse.put("tid", "null");
+				       APIResponse.put("status", "Failed");
+				       APIResponse.put("message", errorMessage);
+				       TokenReceiverLogger.debug(errorMessage);
+				       executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+				       output.close();
+				       input.close();
+				       sk.close();
+				       ss.close();
+				       return APIResponse.toString();
+				}else {
+					for(String tokenContent : tokenDetailMap.keySet()) {
+					     TokenReceiverLogger.debug(tokenContent);
+					     TokenReceiverLogger.debug(tokenDetailMap.get(tokenContent));
+					     TokenReceiverLogger.debug(tokenMaxLimitMap.get(tokenContent));
+
+				    	 
+					     if(tokenDetailMap.get(tokenContent) != null && tokenDetailMap.get(tokenContent) > tokenMaxLimitMap.get(tokenContent)) {
+					     
+						      output.println("426");
+						      APIResponse.put("did", senderDidIpfsHash);
+						      APIResponse.put("tid", "null");
+						      APIResponse.put("status", "Failed");
+						      String errorMessage1 = "Token Number is greater than Token Limit for the Level";
+						      APIResponse.put("message", errorMessage1);
+						      TokenReceiverLogger.debug(errorMessage1);
+						      executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+						      output.close();
+						      input.close();
+						      sk.close();
+						      ss.close();
+						      return APIResponse.toString();
+					     }
+					}
+				}
+			    
+			    
+		    }
+		    /** Token Authenticity Check - Ends */
 
 			JSONArray partTokenChainContent = new JSONArray();
 			JSONArray partTokenContent = new JSONArray();
@@ -306,7 +371,7 @@ public class TokenReceiver {
 			for (int i = 0; i < partTokenChains.length(); i++) {
 
 				partTokenChainContent.put(partTokenChains.getJSONArray(partTokens.getString(i)));
-				String TokenContent = get(partTokens.getString(i), ipfs);
+				String TokenContent = get(partTokens.getString(i), ipfs).trim();
 				partTokenContent.put(TokenContent);
 			}
 
@@ -385,61 +450,10 @@ public class TokenReceiver {
 			JSONArray invalidTokens = new JSONArray();
 			
 			
-			/** Token Authenticity Check - starts */
-			HashMap<String,Integer> tokenMaxLimitMap= new HashMap<>();
-		    HashMap<String,Integer> tokenDetailMap = new HashMap<>();
-
-		    for(int i=0;i<wholeTokens.length();i++) {
-		        String TokenContent = get(wholeTokens.getString(i), ipfs);
-		        String tokenLevel = TokenContent.substring(0, TokenContent.length() - 64);
-		        String tokenNumberHash = TokenContent.substring(TokenContent.length() - 64);
-		        int tokenLevelInt = Integer.parseInt(tokenLevel);
-		        int tokenLimitForLevel = tokenLimit[tokenLevelInt];
-		        tokenMaxLimitMap.put(tokenNumberHash,tokenLimitForLevel);
-		        tokenDetailMap.put(tokenNumberHash, -1);
-		    }
-		    tokenDetailMap = Functions.checkTokenHash(tokenDetailMap,(int) Collections.max(tokenMaxLimitMap.values()));
-		    
-		    for(String tokenContent : tokenMaxLimitMap.keySet()) {
-		    	 if(tokenDetailMap.get(tokenContent).equals(null)) {
-				       TokenReceiverLogger.debug("Invalid Content Found in Token");
-				       String errorMessage = "Invalid Content Found in Token";
-				       output.println("426");
-				       APIResponse.put("did", senderDidIpfsHash);
-				       APIResponse.put("tid", "null");
-				       APIResponse.put("status", "Failed");
-				       APIResponse.put("message", errorMessage);
-				       TokenReceiverLogger.debug(errorMessage);
-				       executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-				       output.close();
-				       input.close();
-				       sk.close();
-				       ss.close();
-				       return APIResponse.toString();
-				  }
-			     if(tokenDetailMap.get(tokenContent)>tokenMaxLimitMap.get(tokenContent)) {
-			     
-				      output.println("426");
-				      APIResponse.put("did", senderDidIpfsHash);
-				      APIResponse.put("tid", "null");
-				      APIResponse.put("status", "Failed");
-				      String errorMessage1 = "Token Number is greater than Token Limit for the Level";
-				      APIResponse.put("message", errorMessage1);
-				      TokenReceiverLogger.debug(errorMessage1);
-				      executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-				      output.close();
-				      input.close();
-				      sk.close();
-				      ss.close();
-				      return APIResponse.toString();
-			     }
-			}
-		    /** Token Authenticity Check - Ends */
-
 			for (int count = 0; count < wholeTokens.length(); count++) {
 				String tokens = null;
 				JSONArray tokenChain = new JSONArray("[" + wholeTokens.get(count).toString() + "]");
-				String tokenContent = get(wholeTokens.getString(count), ipfs);
+				String tokenContent = get(wholeTokens.getString(count), ipfs).trim();
 				String tokenLevel = tokenContent.substring(0, tokenContent.length() - 64);
 				String tokenNumberHash = tokenContent.substring(tokenContent.length() - 64);
 
