@@ -29,6 +29,7 @@ import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 
 import static com.rubix.NFTResources.EnableNft.*;
+import static com.rubix.NFTResources.NFTConstant.*;
 import static com.rubix.Resources.APIHandler.*;
 import static com.rubix.Resources.Functions.*;
 import com.rubix.Resources.IPFSNetwork;
@@ -664,5 +665,147 @@ public class NFTFunctions {
         }
 
         return result;
+    }
+
+    /**
+     * This method is used to determine the type of Private Key by reading key stored in Rubix/DATA path
+     *
+     * @param null
+     * @return Private Key Algorithm
+     */
+    public static String privateKeyAlgorithm()
+    {
+        String readPvtKeyData = readFile(DATA_PATH+"privatekey.pem");
+
+        if(readPvtKeyData.contains("-----BEGIN EC PRIVATE KEY-----"))
+        {
+            return EC_ALG;
+        }
+        else if(readPvtKeyData.contains("-----BEGIN RSA PRIVATE KEY-----"))
+        {
+            return RSA_ALG;
+        }
+        else
+        {
+            return DEF_ALG_RES;
+        }
+    }
+
+    /**
+     * This method is used to determine the type of Private Key by reading key stored in user supplied path
+     *
+     * @param path
+     * @return Private Key Algorithm
+     */
+    public static String privateKeyAlgorithm(String path)
+    {
+        String readPvtKeyData = readFile(path+"/privatekey.pem");
+        if(readPvtKeyData.contains("-----BEGIN EC PRIVATE KEY-----"))
+        {
+            return EC_ALG;
+        }
+        else if(readPvtKeyData.contains("-----BEGIN RSA PRIVATE KEY-----"))
+        {
+            return RSA_ALG;
+        }
+        else
+        {
+            return DEF_ALG_RES;
+        }
+    }
+
+    /**
+     * This method is used to determine the type of Private Key by checking the private key supplied as string
+     *
+     * @param pvtKeyStr
+     * @return Private Key Algorithm
+     */
+    public static String privateKeyAlgStr(String pvtKeyStr) {
+        if(pvtKeyStr.contains("-----BEGIN EC PRIVATE KEY-----"))
+        {
+            return EC_ALG;
+        }
+        else if(pvtKeyStr.contains("-----BEGIN RSA PRIVATE KEY-----"))
+        {
+            return RSA_ALG;
+        }
+        else
+        {
+            return DEF_ALG_RES;
+        }
+    }
+
+
+    /**
+     * This method is used to determine the type of Public Key by reading key stored in Rubix/DATA path
+     *
+     * @param null
+     * @return Public Key Algorithm
+     */
+    public static String publicKeyAlgorithm()
+    {
+        String readPubKeyData = readFile(DATA_PATH+"publickey.pub");
+        boolean res = readPubKeyData.contains("-----BEGIN EC PUBLIC KEY-----");
+
+        if(readPubKeyData.contains("-----BEGIN EC PUBLIC KEY-----"))
+        {
+            return EC_ALG;
+        }
+        else if(readPubKeyData.contains("-----BEGIN RSA PUBLIC KEY-----"))
+        {
+            return RSA_ALG;
+        }
+        else
+        {
+            return DEF_ALG_RES;
+        }
+    }
+
+
+    /**
+     * This method is used to determine the type of Public Key by reading key stored in user supplied path
+     *
+     * @param path
+     * @return Public Key Algorithm
+     */
+    public static String publicKeyAlgorithm(String path)
+    {
+        String readPubKeyData = readFile(path+"/publickey.pub");
+        
+        if(readPubKeyData.contains("-----BEGIN EC PUBLIC KEY-----"))
+        {
+            return EC_ALG;
+        }
+        else if(readPubKeyData.contains("-----BEGIN RSA PUBLIC KEY-----"))
+        {
+            return RSA_ALG;
+        }
+        else
+        {
+            return DEF_ALG_RES;
+        }
+    }
+
+     /**
+     * This method is used to determine the type of Public Key by checking the Public key supplied as string
+     *
+     * @param pubKeyStr
+     * @return Public Key Algorithm
+     */
+    public static String publicKeyAlgStr(String pubKeyStr) {
+        boolean res = pubKeyStr.contains("-----BEGIN EC PUBLIC KEY-----");
+
+        if(pubKeyStr.contains("-----BEGIN EC PUBLIC KEY-----"))
+        {
+            return EC_ALG;
+        }
+        else if(pubKeyStr.contains("-----BEGIN RSA PUBLIC KEY-----"))
+        {
+            return RSA_ALG;
+        }
+        else
+        {
+            return DEF_ALG_RES;
+        }
     }
 }
