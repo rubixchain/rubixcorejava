@@ -109,6 +109,11 @@ public class NFTAPIHandler {
                 case 2:
                     tokens = createNftToken(data);
                     break;
+
+                /*switch case for minting L2 tokens tupe 3 */
+                case 3:
+                    tokens = createRacToken(data);
+                    break;
                 default:
                     JSONObject temp = new JSONObject();
                     JSONArray tempArray = new JSONArray();
