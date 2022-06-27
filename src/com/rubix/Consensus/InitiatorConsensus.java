@@ -43,7 +43,7 @@ public class InitiatorConsensus {
     public static ArrayList<String> quorumWithShares = new ArrayList<>();
     public static volatile int[] quorumResponse = { 0, 0, 0 };
     public static volatile JSONArray finalQuorumSignsArray = new JSONArray();
-    private static int socketTimeOut = 120000;
+    private static int socketTimeOut = 0;
 
     /**
      * This method increments the quorumResponse variable
@@ -203,6 +203,11 @@ public class InitiatorConsensus {
                                                     if (quorumResponse[index] <= minQuorum(quorumSize) && voteStatus) {
                                                         InitiatorConsensusLogger.debug(
                                                                 "waiting for  " + quorumSize + " +signs " + role);
+                                                        if (role.equals("alpha")) {
+                                                            InitiatorConsensusLogger
+                                                                    .debug("Picking Quorum for Staking " + quorumID[j]);
+                                                            signedAphaQuorumArray.put(quorumID[j]);
+                                                        }
                                                         while (quorumResponse[index] < minQuorum(quorumSize)) {
                                                         }
                                                         InitiatorConsensusLogger.debug("between Q1- to Q" + quorumSize

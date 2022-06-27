@@ -60,7 +60,7 @@ public class PingCheck {
         forward(appName, port, peerID);
         PingSenderLogger.debug("Forwarded to " + appName + " on " + port);
         Socket senderSocket = new Socket("127.0.0.1", port);
-        senderSocket.setSoTimeout(socketTimeOut);
+        senderSocket.setSoTimeout(0);
         BufferedReader input = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
         PrintStream output = new PrintStream(senderSocket.getOutputStream());
 

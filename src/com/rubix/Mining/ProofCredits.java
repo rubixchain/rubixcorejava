@@ -375,6 +375,7 @@ public class ProofCredits {
                         APIResponse.put("status", "Failed");
                         APIResponse.put("message", "Consensus failed");
                         ProofCreditsLogger.debug("consensus failed");
+                        return APIResponse;
                     } else {
                         ProofCreditsLogger.debug("token mined " + token);
 
