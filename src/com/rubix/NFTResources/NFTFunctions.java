@@ -213,7 +213,7 @@ public class NFTFunctions {
      * @param passowrd private key password
      * @return private key
      */
-    public static RSAPrivateKey getPvtKey(String password) {
+    public static PrivateKey getPvtKey(String password) {
         pathSet();
 
         String keyFile = DATA_PATH + "privatekey.pem";
@@ -236,7 +236,7 @@ public class NFTFunctions {
         } catch (Exception e) {
             System.out.println(e.toString());
         }
-        return (RSAPrivateKey) key;
+        return key;
 
     }
 
@@ -249,7 +249,7 @@ public class NFTFunctions {
      * @return private key
      */
 
-    public static RSAPrivateKey getPvtKeyFromStr(String pvtKeyStr, String password) {
+    public static PrivateKey getPvtKeyFromStr(String pvtKeyStr, String password) {
         PEMParser pemParser;
         PrivateKey key = null;
         Security.addProvider(new BouncyCastleProvider());
@@ -271,7 +271,7 @@ public class NFTFunctions {
         } catch (Exception e) {
             // TODO: handle exception
         }
-        return  (RSAPrivateKey) key;
+        return key;
     }
 
     /**
@@ -336,7 +336,7 @@ public class NFTFunctions {
             e.printStackTrace();
         }
         // System.out.println("\n"+key.toString());
-        return (RSAPublicKey) key;
+        return key;
     }
 
     /**
@@ -365,7 +365,7 @@ public class NFTFunctions {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return (RSAPublicKey) key;
+        return key;
     }
 
     /**
