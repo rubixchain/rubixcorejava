@@ -28,7 +28,6 @@ public class NFTAPIHandler {
 
     private static final Logger APILogger = Logger.getLogger(NFTAPIHandler.class);
     public static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
-    private static final Logger eventLogger = Logger.getLogger("eventLogger");
 
     public static JSONObject sendNft(String data) {
         pathSet();
@@ -284,16 +283,10 @@ public class NFTAPIHandler {
         return resultArray;
     }
 
-    public static JSONObject sendNftP2p(String data) {
+   /*  public static JSONObject sendNftP2p(String data) {
         pathSet();
         nftPathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        // networkInfo();
-        /*
-         * String sellerPeerID = getPeerID(DATA_PATH + "DID.json");
-         * String sellerDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid",
-         * sellerPeerID);
-         */
         JSONObject sendMessage = new JSONObject();
         try {
             JSONObject dataObject = new JSONObject(data);
@@ -344,9 +337,9 @@ public class NFTAPIHandler {
             e.printStackTrace();
         }
         return sendMessage;
-    }
+    } */
 
-    public static String testsalevery(String reconObj, String saleContracthash, String pubkeyipfs) {
+    /* public static String testsalevery(String reconObj, String saleContracthash, String pubkeyipfs) {
         PublicKey publicKey = getPubKeyFromStr(IPFSNetwork.get(pubkeyipfs, ipfs));
         APILogger.debug("Public key " + publicKey.toString());
         String saleContractContent = IPFSNetwork.get(saleContracthash, ipfs);
@@ -364,7 +357,7 @@ public class NFTAPIHandler {
             e.printStackTrace();
         }
         return result;
-    }
+    } */
 
     public static String generateCryptoKeys(String password, String keyType, int returnKey) {
         String result = null;
