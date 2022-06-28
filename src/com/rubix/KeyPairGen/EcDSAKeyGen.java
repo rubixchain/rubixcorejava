@@ -32,7 +32,7 @@ public class EcDSAKeyGen {
         
         
         EcDSAKeyGenLogger.debug("Generating ECDSA private key public key pair");
-        KeyPair keyPair = generateRSAKeyPair();
+        KeyPair keyPair = generateCryptoKeyPair();
         PrivateKey priv = keyPair.getPrivate();
         PublicKey pub = keyPair.getPublic();
 
@@ -64,7 +64,7 @@ public class EcDSAKeyGen {
         JSONObject resultObject = new JSONObject();
         Security.addProvider(new BouncyCastleProvider());
         EcDSAKeyGenLogger.debug("Generating ECDSA private key public key pair");
-        KeyPair keyPair = generateRSAKeyPair();
+        KeyPair keyPair = generateCryptoKeyPair();
         PrivateKey priv = keyPair.getPrivate();
         PublicKey pub = keyPair.getPublic();
         pvtKeyEncrypt(priv, password, "tempPrivatekey.pem");
@@ -100,7 +100,7 @@ public class EcDSAKeyGen {
         return resultObject.toString();
     }
 
-    private static KeyPair generateRSAKeyPair() {
+    private static KeyPair generateCryptoKeyPair() {
 
         KeyPairGenerator generator;
         KeyPair keyPair = null;
