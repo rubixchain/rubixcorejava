@@ -72,6 +72,7 @@ public class ProofCredits {
     private static int alphaSize = 0;
     public static String hashChainProof = new String();
 
+
     public static JSONObject create(String data, IPFS ipfs) throws IOException, JSONException {
 
         StakeConsensus.STAKE_SUCCESS = 0;
@@ -95,6 +96,10 @@ public class ProofCredits {
         JSONArray alphaQuorum = new JSONArray();
         JSONArray betaQuorum = new JSONArray();
         JSONArray gammaQuorum = new JSONArray();
+        JSONArray qstArray = new JSONArray();
+        
+        boolean Status = false;
+
 
         int creditsRequired = 50000, level;
         long starttime = System.currentTimeMillis();
@@ -312,11 +317,12 @@ public class ProofCredits {
                 }
 
                 JSONArray signedQuorumList = new JSONArray();
-                if (!oldCreditsFlag) {
+                boolean creditRemoveStatus = false;
+				if (!oldCreditsFlag) {
                     ProofCreditsLogger.debug("New Credits");
                     // Send QST for verification
                     String qstContent = readFile(WALLET_DATA_PATH.concat("QuorumSignedTransactions.json"));
-                    JSONArray qstArray = new JSONArray(qstContent);
+                    qstArray = new JSONArray(qstContent);
 
                     int count = 0;
                     JSONArray creditSignsArray = new JSONArray();
@@ -389,9 +395,7 @@ public class ProofCredits {
                             }
                         }
 
-                        for (int i = 0; i < creditUsed; i++)
-                            deleteFile(WALLET_DATA_PATH.concat("/Credits/")
-                                    .concat(qstArray.getJSONObject(i).getString("credits")).concat(".json"));
+                        creditRemoveStatus = true;
 
                     }
                 } else {
@@ -621,6 +625,12 @@ public class ProofCredits {
                 transactionRecord.put("Date", currentTime);
                 transactionRecord.put("totalTime", totalTime);
                 transactionRecord.put("comment", "minedtxn");
+                
+                if(creditRemoveStatus == true) {
+                	for (int i = 0; i < creditUsed; i++)
+                        deleteFile(WALLET_DATA_PATH.concat("/Credits/")
+                                .concat(qstArray.getJSONObject(i).getString("credits")).concat(".json"));
+                }
 
                 JSONArray transactionHistoryEntry = new JSONArray();
                 transactionHistoryEntry.put(transactionRecord);

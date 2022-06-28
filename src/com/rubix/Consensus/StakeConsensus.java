@@ -97,7 +97,7 @@ public class StakeConsensus {
                             String stakerDID = getValues(DATA_PATH + "DataTable.json", "didHash",
                                     "peerid",
                                     quorumPID[j]);
-
+                            StakeConsensusLogger.debug("stakerDID is " + stakerDID);
                             StakeConsensusLogger.debug("Mined Token Details sent for validation...Staker DID is : " + stakerDID);
                             
 
@@ -242,7 +242,7 @@ public class StakeConsensus {
                                                                 // qOut[j].println("200");
                                                                 StakeConsensusLogger.debug(
                                                                         "Staking completed for Peer: " + quorumPID[j]);
-                                                                stakedDIDs.add(STAKED_QUORUM_DID);
+                                                                stakedDIDs.add(quorumDID);
                                                                 stakeDetails.put(mineSigns);
                                                                 STAKE_SUCCESS++;
                                                             }else {
