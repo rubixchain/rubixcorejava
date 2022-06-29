@@ -566,8 +566,10 @@ public class QuorumConsensus implements Runnable {
                         JSONObject saleDataObj = new JSONObject(saleContractContent);
                         saleDataObj.remove("sign");
 
-                        PublicKey pubKey = getPubKeyFromStr(
-                                get(nftDetailsObject.getString("sellerPubKeyIpfsHash"), ipfs));
+                        
+                        String pubKeyStr =get(nftDetailsObject.getString("sellerPubKeyIpfsHash"), ipfs);
+                        String pubKeyAlgorithm = publicKeyAlgStr(pubKeyStr);
+                        PublicKey pubKey = getPubKeyFromStr(pubKeyStr,pubKeyAlgorithm);
 
                         QuorumConsensusLogger.debug("Recreated String to verify nft Signture " + saleDataObj.toString());
                         QuorumConsensusLogger
@@ -602,7 +604,7 @@ public class QuorumConsensus implements Runnable {
 
                         
 
-                        if (verifySignature(saleDataObj.toString(), pubKey, saleSignature)) {
+                        if (verifySignature(saleDataObj.toString(), pubKey, saleSignature,pubKeyAlgorithm)) {
                             QuorumConsensusLogger.debug("Quorom Authenticated Sender NFT Signature");
 
                             nftQuorumHash = calculateHash(
