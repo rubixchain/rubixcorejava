@@ -335,9 +335,11 @@ public class NftBuyer {
 
             PrivateKey pvtKey = null;
             String keyPass = null;
+            String buyerPvtKeyAlg=null;
             if (detailsObject.getInt("p2pFlag") == 0) {
                 if (detailsObject.has("buyerPvtKey") && detailsObject.getString("buyerPvtKey") != null) {
                     keyPass = detailsObject.getString("buyerPvtKeyPass");
+                    buyerPvtKeyAlg=privateKeyAlgStr(detailsObject.getString("buyerPvtKey"));
                     pvtKey = getPvtKeyFromStr(detailsObject.getString("buyerPvtKey"), keyPass);
                     detailsObject.remove("buyerPvtKey");
 
@@ -369,6 +371,7 @@ public class NftBuyer {
 
                 keyPass = String.valueOf(privateKeyPass);
 
+                buyerPvtKeyAlg=privateKeyAlgorithm();
                 pvtKey = getPvtKey(keyPass);
                 if (pvtKey == null || pvtKey.equals("")) {
                     output.println("421");
@@ -422,7 +425,10 @@ public class NftBuyer {
             String creatorPublicKeyIpfsHash = creatorInputObj.getString("creatorPubKeyIpfsHash");
 
             String creatorPubKeyStr = get(creatorPublicKeyIpfsHash, ipfs);
-            PublicKey creatorPublicKey = getPubKeyFromStr(creatorPubKeyStr);
+            //get the algorithm of the public key
+            String creatorPubKeyAlg = publicKeyAlgStr(creatorPubKeyStr);
+            nftBuyerLogger.debug("creator pubkey algorithm "+creatorPubKeyAlg);
+            PublicKey creatorPublicKey = getPubKeyFromStr(creatorPubKeyStr,creatorPubKeyAlg);
 
             /*
              * Check if NFT Token is of RAC type =1
@@ -446,7 +452,7 @@ public class NftBuyer {
                 return APIResponse;
             }
 
-            if (!verifySignature(verifyNftTokenString, creatorPublicKey, nftPvtSignature)) {
+            if (!verifySignature(verifyNftTokenString, creatorPublicKey, nftPvtSignature,creatorPubKeyAlg)) {
                 output.println("420");
                 APIResponse.put("did", sellerDid);
                 APIResponse.put("tid", "null");
@@ -489,7 +495,8 @@ public class NftBuyer {
              * NFT token owner ship check/auth
              */
             String nftTokenChain = get(nftDetailsObject.getString("nftTokenChain"), ipfs);
-
+            String sellerPubKeyStr=get(sellerPubKeyIpfsHash, ipfs);
+            String sellerPubKeyAlg=publicKeyAlgStr(sellerPubKeyStr);
             if (nftTokenChain != null && nftTokenChain.length() != 0) {
                 JSONArray nftTokenChainCont = new JSONArray(nftTokenChain);
                 JSONObject nftlastObject = nftTokenChainCont.getJSONObject(nftTokenChainCont.length() - 1);
@@ -503,9 +510,11 @@ public class NftBuyer {
                     String nftHashString = firstHash.concat(sellerPubKeyIpfsHash);
                     String ownerRecalculated = calculateHash(nftHashString, "SHA3-256");
 
-                    PublicKey sellerPubKey = getPubKeyFromStr(get(sellerPubKeyIpfsHash, ipfs));
+                    //modified ownership verification get seller pubkey algotithm
+                    
+                    PublicKey sellerPubKey = getPubKeyFromStr(sellerPubKeyStr,sellerPubKeyAlg);
 
-                    if (!verifySignature(ownerRecalculated, sellerPubKey, owner)) {
+                    if (!verifySignature(ownerRecalculated, sellerPubKey, owner,sellerPubKeyAlg)) {
                         nftOwnerCheck = false;
                     }
                 }
@@ -584,13 +593,13 @@ public class NftBuyer {
             reConObj.put("nftToken", nftDetailsObject.getString("nftToken"));
             reConObj.put("rbtAmount", requestedAmount); */
 
-            PublicKey sellerPubKey = getPubKeyFromStr(
-                    get(sellerPubKeyIpfsHash, ipfs));
+
+            PublicKey sellerPubKey = getPubKeyFromStr(sellerPubKeyStr,sellerPubKeyAlg);
             String saleSignature = saleConObj.getString("sign");
 
             nftBuyerLogger.debug("reconobj for sale contract verification " + reConObj.toString());
 
-            if (!verifySignature(reConObj.toString(), sellerPubKey, saleSignature)) {
+            if (!verifySignature(reConObj.toString(), sellerPubKey, saleSignature,sellerPubKeyAlg)) {
                 output.println("420");
                 APIResponse.put("did", sellerDid);
                 APIResponse.put("tid", "null");
@@ -1124,7 +1133,7 @@ public class NftBuyer {
             String nftHashString = nftFirstHash.concat(buyerPubKeyIpfsHash);
             String nftSignString = calculateHash(nftHashString, "SHA3-256");
 
-            String nftOwnerIdentity = pvtKeySign(nftSignString, pvtKey);
+            String nftOwnerIdentity = pvtKeySign(nftSignString, pvtKey,buyerPvtKeyAlg);
             nftBuyerLogger.info("NFT new Owner Identitiy : " + nftOwnerIdentity);
 
             // update recived nfttokenchain
