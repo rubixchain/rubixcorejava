@@ -470,7 +470,7 @@ public class TokenReceiver {
 				// ! check quorum signs for previous transaction for the tokenchain to verify
 				// ! the ownership of sender for the token
 
-				if ((tokenDetailMap.get(tokenNumberHash) >= 1204400) && (tokenLevelInt >= 4)) {
+				//if ((tokenDetailMap.get(tokenNumberHash) >= 1204400) && (tokenLevelInt >= 4)) {
 
 					JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
 					TokenReceiverLogger.debug("Last Object = " + lastObject);
@@ -563,7 +563,8 @@ public class TokenReceiver {
 								stakedTokenSignTC[2] = threeOfThreeStake.getString(MiningConstants.STAKED_TOKEN_SIGN);
 								stakerDIDTC[2] = threeOfThreeStake.getString(MiningConstants.STAKED_QUORUM_DID);
 								mineIDTC[2] = threeOfThreeStake.getString(MiningConstants.MINE_ID);
-								mineIDSignTC[2] = threeOfThreeStake.getString(MiningConstants.MINE_ID);
+								mineIDSignTC[2] = threeOfThreeStake.getString(MiningConstants.MINE_ID_SIGN);
+								TokenReceiverLogger.debug("mineIDTC length is "+mineIDTC.length);
 
 								for (int stakeCount = 0; stakeCount < mineIDTC.length; stakeCount++) {
 
@@ -589,17 +590,21 @@ public class TokenReceiver {
 									if (stakerDIDTC[stakeCount].equals(stakerDIDMineData)
 											&& stakedTokenTC[stakeCount].equals(stakedTokenMineData)
 											&& stakedTokenSignTC[stakeCount].equals(stakedTokenSignMineData)) {
+										
+										TokenReceiverLogger.debug("array n non array data are same");
 
 										JSONObject detailsToVerify = new JSONObject();
 										detailsToVerify.put("did", stakerDIDTC[stakeCount]);
 										detailsToVerify.put("hash", mineIDTC[stakeCount]);
 										detailsToVerify.put("signature", mineIDSignTC[stakeCount]);
+										TokenReceiverLogger.debug("detailsToVerify - "+detailsToVerify.toString());
 										
 										if (Authenticate.verifySignature(detailsToVerify.toString())) {
 
 											boolean minedTokenStatus = true;
 											ArrayList<String> ownersArray = IPFSNetwork
 													.dhtOwnerCheck(stakedTokenTC[stakeCount]);
+											TokenReceiverLogger.debug("dht owner are "+ownersArray.toString()+" size is "+ownersArray.size());
 											for (int i = 0; i < ownersArray.size(); i++) {
 												if (ownersArray.get(i).equals(stakerDIDTC[stakeCount])) {
 													minedTokenStatus = false;
@@ -722,7 +727,7 @@ public class TokenReceiver {
 
 					}
 				}
-			}
+			//}
 
 			if (!ownerCheck) {
 				TokenReceiverLogger.debug("Ownership Check Failed");
