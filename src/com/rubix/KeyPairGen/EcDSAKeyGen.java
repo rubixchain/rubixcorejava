@@ -5,8 +5,6 @@ import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.*;
 import java.io.*;
 import java.security.*;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -43,10 +41,6 @@ public class EcDSAKeyGen {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
-        EcDSAKeyGenLogger.info("********************EcDSA PRivate Key****************\n" +priv);
-        EcDSAKeyGenLogger.info("######################################");
-        EcDSAKeyGenLogger.info("********************EcDSA Public Key****************\n" +pub);
 
         writePemFile(pub, "EC PUBLIC KEY", DATA_PATH+"publickey.pub");
 
