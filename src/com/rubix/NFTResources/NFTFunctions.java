@@ -390,11 +390,11 @@ public class NFTFunctions {
      * @param pvtKeySign the Signture
      * @return boolean true if signtaure match else false
      */
-    public static boolean verifySignature(String orgData, PublicKey pubKey, String pvtKeySign) {
+    public static boolean verifySignature(String orgData, PublicKey pubKey, String pvtKeySign,String keyAlg) {
         boolean result = false;
         byte[] pvtSign = pvtKeySign.getBytes();
         try {
-            Signature s = Signature.getInstance("SHA3-256withRSA");
+            Signature s = Signature.getInstance("SHA3-256with".concat(keyAlg));
             s.initVerify(pubKey);
             s.update(orgData.getBytes());
 
