@@ -51,6 +51,7 @@ public class NFTFunctions {
         JSONArray resultTokenArray = new JSONArray();
         JSONObject resultObject = new JSONObject();
         PrivateKey pvtKey;
+        String pvtKeyAlg,pubKeyAlg;//variables for saving pvt,pub key algorithms
         try {
             JSONObject apiData = new JSONObject(data);
             String keyPass = apiData.getString("pvtKeyPass");
@@ -59,10 +60,16 @@ public class NFTFunctions {
             apiData.remove("creatorPubKeyIpfsHash");
 
             if (apiData.has("pvtKeyStr") && apiData.getString("pvtKeyStr") != null) {
+
+                //getting type of privateKeyAlgotithm
+                pvtKeyAlg=privateKeyAlgStr(apiData.getString("pvtKeyStr"));
+                NftFunctionsLogger.debug("private key algorithm "+pvtKeyAlg);
                 pvtKey = getPvtKeyFromStr(apiData.getString("pvtKeyStr"), keyPass);
-                
                 apiData.remove("pvtKeyStr");
             } else {
+                //getting type of privateKeyAlgotithm
+                pvtKeyAlg=privateKeyAlgorithm();
+                NftFunctionsLogger.debug("private key algorithm "+pvtKeyAlg);
                 pvtKey = getPvtKey(keyPass);
             }
 
@@ -79,7 +86,9 @@ public class NFTFunctions {
             for (long i = 1; i <= totalSupply; i++) {
                 apiData.put("tokenCount", i);
                 NftFunctionsLogger.debug("tokendata for adding signature at index "+i+ apiData.toString());
-                String pvtKeySign = pvtKeySign(apiData.toString(), pvtKey);
+
+                //pvtKeySign function where we supply type of key used
+                String pvtKeySign = pvtKeySign(apiData.toString(), pvtKey,pvtKeyAlg);
                 apiData.put("pvtKeySign", pvtKeySign);
                 NftFunctionsLogger.debug("tokendata after adding signature at index "+i+ apiData.toString());
                 writeToFile(LOGGER_PATH + "TempNftFile", apiData.toString(), false);
@@ -95,7 +104,7 @@ public class NFTFunctions {
                 String secondHashString = firstHash.concat(creatorPubKeyIpfsHash);
                 String secondHash =calculateHash(secondHashString, "SHA3-256");
 
-                String nftOwner = pvtKeySign(secondHash,pvtKey);
+                String nftOwner = pvtKeySign(secondHash,pvtKey,pvtKeyAlg);
                 /**
                  * Adding genesys block for NFT 
                  */
@@ -148,7 +157,7 @@ public class NFTFunctions {
      *                                                                      String
      * @return JSONArray of RAC tokens
      */
-    public static String createRacToken(String data) {
+    /* public static String createRacToken(String data) {
         pathSet();
         nftPathSet();
         JSONArray resultTokenArray = new JSONArray();
@@ -205,7 +214,7 @@ public class NFTFunctions {
             e.printStackTrace();
         }
         return resultObject.toString();
-    }
+    } */
 
     /**
      * This method is used to get decoded private key from .pem file
@@ -279,13 +288,14 @@ public class NFTFunctions {
      *
      * @param key  private key
      * @param data String to be signed
+     * @param keySignAlg algorithm of key used
      * @return Signature as string
      */
-    public static String pvtKeySign(String data, PrivateKey key) {
+    public static String pvtKeySign(String data, PrivateKey key,String keySignAlg) {
         // String result=null;
         byte[] signed = null;
         try {
-            Signature signature = Signature.getInstance("SHA3-256withRSA");
+            Signature signature = Signature.getInstance("SHA3-256with".concat(keySignAlg));
             signature.initSign(key);
             byte[] raw = data.getBytes("UTF-8");
             signature.update(raw);
@@ -317,13 +327,15 @@ public class NFTFunctions {
     public static PublicKey getPublicKey() {
         pathSet();
         String keyFile = DATA_PATH + "publickey.pub";
+        //gettting algorithm of public key stored in node
+        String keyAlg = publicKeyAlgorithm();
         // String password="foobar";
         PublicKey key = null;
         File publicKeyFile = new File(keyFile);
         Security.addProvider(new BouncyCastleProvider());
 
         try {
-            KeyFactory factory = KeyFactory.getInstance("RSA");
+            KeyFactory factory = KeyFactory.getInstance(keyAlg);
 
             FileReader keyReader = new FileReader(publicKeyFile);
             PemReader pemReader = new PemReader(keyReader);
@@ -344,17 +356,18 @@ public class NFTFunctions {
      * passed as string.
      *
      * @param Pubkeystr String Public key
+     * @param keyAlg Algorithm of key 
      * @return public key
      * 
      */
-    public static PublicKey getPubKeyFromStr(String Pubkeystr) {
+    public static PublicKey getPubKeyFromStr(String Pubkeystr,String keyAlg) {
         PublicKey key = null;
         Security.addProvider(new BouncyCastleProvider());
 
         Pubkeystr = Pubkeystr.replaceAll("\\\\n", "\n");
 
         try {
-            KeyFactory factory = KeyFactory.getInstance("RSA");
+            KeyFactory factory = KeyFactory.getInstance(keyAlg);
 
             PemReader pemReader = new PemReader(new StringReader(Pubkeystr));
 
@@ -491,16 +504,23 @@ public class NFTFunctions {
         JSONObject contractDataObject= new JSONObject();
         JSONObject temp= new JSONObject();
         JSONObject resultObj= new JSONObject();
+        
+        String pvtKeyAlg=null,pubKeyAlg,keyAlg;
         try {
             PrivateKey key;
             JSONObject dataObject= new JSONObject(data);
             if(dataObject.has("sellerPvtKey") && dataObject.getString("sellerPvtKey")!=null)
             {
-                NftFunctionsLogger.debug("getting pvt key passed as string"/* +dataObject.getString("sellerPvtKey") */);
+                //get the algorithm of private key
+                pvtKeyAlg=privateKeyAlgStr(dataObject.getString("sellerPvtKey"));
+                NftFunctionsLogger.debug("pvt key algorithm"+pvtKeyAlg);
                 key=getPvtKeyFromStr(dataObject.getString("sellerPvtKey"), dataObject.getString("sellerPvtKeyPass"));
                 dataObject.remove("sellerPvtKey");
             }
             else{
+                //get the algorithm of private key
+                pvtKeyAlg=privateKeyAlgorithm();
+                NftFunctionsLogger.debug("pvt key algorithm"+pvtKeyAlg);
                 NftFunctionsLogger.debug("getting pvt key stored in node");
                 key=getPvtKey(dataObject.getString("sellerPvtKeyPass"));
             }
@@ -523,7 +543,9 @@ public class NFTFunctions {
             temp.put("nftToken", dataObject.getString("nftToken"));
             temp.put("rbtAmount", dataObject.getDouble("rbtAmount"));
             //NftFunctionsLogger.debug(key);
-            contractSign=pvtKeySign(dataObject.toString(), key);
+
+            //pvtKeySign using keyalg
+            contractSign=pvtKeySign(dataObject.toString(), key,pvtKeyAlg);
 
             contractDataObject.put("sign", contractSign);
 
