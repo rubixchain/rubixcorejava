@@ -648,11 +648,14 @@ public class DataCommitter {
 	         commitChainObject.put("owner", ownerIdentityHash);
 	         commitChainObject.put("group", "[]");
 	         
+	         JSONArray commitChainEntry = new JSONArray();
+	         commitChainEntry.put(commitChainObject);
 	         
-	         
-             writeToFile(DATUM_CHAIN_PATH + wholeTokensListForData.getString(0) + ".json", commitChainObject.toString(), true);
-             writeToFile(TOKENCHAIN_PATH + wholeTokensListForData.getString(0) + ".json", commitChainObject.toString(), true);
-             add(TOKENS_PATH + wholeTokensListForData.getString(0), ipfs);
+             //writeToFile(DATUM_CHAIN_PATH + wholeTokensListForData.getString(0) + ".json", commitChainObject.toString(), true);
+             //writeToFile(TOKENCHAIN_PATH + wholeTokensListForData.getString(0) + ".json", commitChainObject.toString(), true);
+			  updateJSON("add",DATUM_CHAIN_PATH + wholeTokensListForData.getString(0) + ".json", commitChainEntry.toString());
+			  updateJSON("add",TOKENCHAIN_PATH + wholeTokensListForData.getString(0) + ".json", commitChainEntry.toString());
+			  add(TOKENS_PATH + wholeTokensListForData.getString(0), ipfs);
              pin(wholeTokensListForData.getString(0), ipfs);
              DataCommitterLogger.debug("IPFS Add & Pin completed");
              //JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
