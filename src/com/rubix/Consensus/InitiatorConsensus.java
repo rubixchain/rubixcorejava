@@ -137,7 +137,8 @@ public class InitiatorConsensus {
 
             for (int j = 0; j < quorumPeersObject.length(); j++)
                 quorumID[j] = quorumPeersObject.getString(j);
-
+            
+        	InitiatorConsensusLogger.debug("quorumPeersObject is "+quorumPeersObject.toString());
             Thread[] quorumThreads = new Thread[quorumPeersObject.length()];
             for (int i = 0; i < quorumPeersObject.length(); i++) {
                 int j = i;
@@ -263,7 +264,7 @@ public class InitiatorConsensus {
                         }
 
                         qOut[j].println(detailsToken);
-                  //      InitiatorConsensusLogger.debug("Token details from Init Conse is "+detailsToken.toString());
+                        InitiatorConsensusLogger.debug("Token details from Init Conse is "+detailsToken.toString());
 
 
                         try {
@@ -279,8 +280,8 @@ public class InitiatorConsensus {
                                 InitiatorConsensusLogger.debug("Sender Authentication Failure at " + quorumID[j]);
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                             } else {
-                            //    InitiatorConsensusLogger
-                            //           .debug("Signature Received from j "+ j + " with " + quorumID[j] + " is " + qResponse[j]);
+                               InitiatorConsensusLogger
+                                      .debug("Signature Received from j "+ j + " with " + quorumID[j] + " is " + qResponse[j]);
                                 if (quorumResponse[index] > minQuorum(quorumSize)) {
                                 //	InitiatorConsensusLogger.debug("Inside quorumResponse[index] > minQuorum(quorumSize) with quorumResponse index "+ index + " quorumResponse[index] - " +quorumResponse[index] + "minQuorum(quorumSize)" + minQuorum(quorumSize));
                                     qOut[j].println("null");

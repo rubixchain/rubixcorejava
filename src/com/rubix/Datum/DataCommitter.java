@@ -77,13 +77,13 @@ public class DataCommitter {
         JSONObject APIResponse = new JSONObject();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         JSONObject detailsObject = new JSONObject(data);
-        DataCommitterLogger.debug("data is "+data);
+        //DataCommitterLogger.debug("data is "+data);
         String pvt = detailsObject.getString("pvt");
         int type = detailsObject.getInt("type");
         String comment = detailsObject.getString("comment");
         APIResponse = new JSONObject();
         
-        DataCommitterLogger.debug("detailsObject is "+ detailsObject.toString());
+        //DataCommitterLogger.debug("detailsObject is "+ detailsObject.toString());
         
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         DataCommitterLogger.debug("sender peer id" + senderPeerID);
@@ -99,18 +99,16 @@ public class DataCommitter {
             return APIResponse;
         }
         
-        if(!detailsObject.has(TRANS_TYPE)) {
-        	APIResponse.put("ERROR", "TRANS_TYPE not found");
-            APIResponse.put("did", senderDidIpfsHash);
-            APIResponse.put("tid", "null");
-            APIResponse.put("status", "Failed");
-            APIResponse.put("message", "TRANS_TYPE not found");
-            return APIResponse;
-        }
+		/*
+		 * if(!detailsObject.has(TRANS_TYPE)) { APIResponse.put("ERROR",
+		 * "TRANS_TYPE not found"); APIResponse.put("did", senderDidIpfsHash);
+		 * APIResponse.put("tid", "null"); APIResponse.put("status", "Failed");
+		 * APIResponse.put("message", "TRANS_TYPE not found"); return APIResponse; }
+		 */
         
         senderMutex = true;
         DataCommitterLogger.debug("sender mutex is "+senderMutex);
-        DataCommitterLogger.debug("Transscation type is "+ detailsObject.getString(TRANS_TYPE));        
+        //DataCommitterLogger.debug("Transscation type is "+ detailsObject.getString(TRANS_TYPE));        
         
         /*
          * 
@@ -118,10 +116,7 @@ public class DataCommitter {
          * 
          * 
          */
-	        DataCommitterLogger.debug("skipping normal trnx");
-	         if (detailsObject.getString(TRANS_TYPE).equals(DATA)) {
-	        	
-	        	
+        		DataCommitterLogger.debug("skipping normal trnx");	        	
 	        	String datumFolderPath = DATUM_CHAIN_PATH;
 	        	File datumFolder = new File(datumFolderPath);
 	        	File datumCommitHistory = new File(datumFolderPath.concat("datumCommitHistory.json"));
@@ -146,7 +141,7 @@ public class DataCommitter {
 	        	}
 	        	
 	        	String blockHash = detailsObject.getString("blockHash");
-	        	DataCommitterLogger.debug("blockhash is "+ blockHash);
+	        //	DataCommitterLogger.debug("blockhash is "+ blockHash);
 	            String authSenderByRecHash = calculateHash(blockHash + senderDidIpfsHash + comment,
 	                    "SHA3-256");
 	        //    TokenSenderLogger.debug("iauthSenderByRecHash is "+authSenderByRecHash);
@@ -237,9 +232,9 @@ public class DataCommitter {
 		            Set<String> bankTokenSet = new LinkedHashSet<String>(bankToken);
 		            JSONArray jsonArr = new JSONArray(dataTokenSet.toString());
 		            datArray = jsonArr;
-		            DataCommitterLogger.debug("datArray  is "+ datArray.toString());
-		            DataCommitterLogger.debug("jsonArr is "+ jsonArr.toString());
-		            DataCommitterLogger.debug("datArray size after cleanup is "+ datArray.length());
+		       //     DataCommitterLogger.debug("datArray  is "+ datArray.toString());
+		       //     DataCommitterLogger.debug("jsonArr is "+ jsonArr.toString());
+		       //     DataCommitterLogger.debug("datArray size after cleanup is "+ datArray.length());
 	            	writeToFile(dataTokenFile, datArray.toString(), false);	
 	            	
 	            		
@@ -247,6 +242,9 @@ public class DataCommitter {
 	            
 	            int wholeAmount = datArray.length();
 	            DataCommitterLogger.debug("Whole amount is "+wholeAmount);
+	            
+	            DataCommitterLogger.debug(getValues(datumFolderPath.concat("datumCommitHistory.json"), "blockHash", "blockHash", blockHash));
+	            
 	            
 	           if(getValues(datumFolderPath.concat("datumCommitHistory.json"), "blockHash", "blockHash", blockHash).equals(blockHash)) 
 	           {
@@ -305,14 +303,14 @@ public class DataCommitter {
 	                DataCommitterLogger.debug("Whole token chain hash "+wholeTokenForDataChainHash);
 	
 	                String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokensListForData.get(i) + ".json");
-	                DataCommitterLogger.debug("tokenChainFile content is "+ tokenChainFileContent);
+	              //  DataCommitterLogger.debug("tokenChainFile content is "+ tokenChainFileContent);
 	                JSONArray tokenChainFileArray = new JSONArray(tokenChainFileContent);
-	                DataCommitterLogger.debug("tokenChainFileArray is "+tokenChainFileArray.toString());
+	              //  DataCommitterLogger.debug("tokenChainFileArray is "+tokenChainFileArray.toString());
 	                JSONArray previousSenderArray = new JSONArray();
 	                JSONObject lastObject = tokenChainFileArray.getJSONObject(tokenChainFileArray.length() - 1);
-	                DataCommitterLogger.debug("LastObject "+lastObject.toString());
+	             //   DataCommitterLogger.debug("LastObject "+lastObject.toString());
 	             //   TokenSenderLogger.debug("Last object is "+lastObject.toString());
-	                DataCommitterLogger.debug("tokenChainFileArray "+tokenChainFileArray.toString());
+	             //   DataCommitterLogger.debug("tokenChainFileArray "+tokenChainFileArray.toString());
 
 	                if (tokenChainFileArray.length() > 0) {
 	                    // JSONObject lastObject =
@@ -353,7 +351,7 @@ public class DataCommitter {
 	            DataCommitterLogger.debug("WholeToken for data is "+wholeTokensListForData.toString());
 	            DataCommitterLogger.debug("dataCommitToken for data is "+dataCommitToken.toString());
 
-	            DataCommitterLogger.debug("Whole token length is "+ wholeTokensListForData.length()+" and Whole token content is "+wholeTokensListForData.toString());
+	       //     DataCommitterLogger.debug("Whole token length is "+ wholeTokensListForData.length()+" and Whole token content is "+wholeTokensListForData.toString());
 	            
 	            
 	            JSONArray positionsArray = new JSONArray();
@@ -437,6 +435,7 @@ public class DataCommitter {
 	                }
 	            }
 	            
+	            /*
 	            DataCommitterLogger.debug("Quorum list "+quorumArray.toString());
 	            int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
 	            JSONArray sanityFailedQuorum = new JSONArray();
@@ -467,7 +466,7 @@ public class DataCommitter {
 	                APIResponse.put("message", message.concat(sanityMessage));
 	                DataCommitterLogger.warn("Quorum: ".concat(message.concat(sanityMessage)));
 	                return APIResponse;
-	            }
+	            }*/
 	
 	            long startTime, endTime, totalTime;
 	
@@ -528,7 +527,7 @@ public class DataCommitter {
 	            
 	            JSONObject dataObject = new JSONObject();
 	            dataObject.put("tid", tid);
-	            dataObject.put(TRANS_TYPE, detailsObject.getString(TRANS_TYPE));
+	           // dataObject.put(TRANS_TYPE, detailsObject.getString(TRANS_TYPE));
 	            dataObject.put("blockHash", blockHash);
 	            dataObject.put("pvt", pvt);
 	            dataObject.put("senderDidIpfs", senderDidIpfsHash);
@@ -539,8 +538,8 @@ public class DataCommitter {
 	            
 	            DataCommitterLogger.debug("dataobject for Data (Double Spend Hash) " + dataObject.toString());
 	            
-	       //     TokenSenderLogger.debug("Starting consensusSetUp");
-	            InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize, ConsensusConstants.DATA);
+	            DataCommitterLogger.debug("Starting consensusSetUp");
+	            DatainitiatorProcedure.dataConsensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize);
 	       //     TokenSenderLogger.debug("length on sender " + InitiatorConsensus.quorumSignature.length() + "response count "
 	       //            + InitiatorConsensus.quorumResponse);
 	            if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
@@ -649,6 +648,8 @@ public class DataCommitter {
 	         commitChainObject.put("owner", ownerIdentityHash);
 	         commitChainObject.put("group", "[]");
 	         
+	         
+	         
              writeToFile(DATUM_CHAIN_PATH + wholeTokensListForData.getString(0) + ".json", commitChainObject.toString(), true);
              writeToFile(TOKENCHAIN_PATH + wholeTokensListForData.getString(0) + ".json", commitChainObject.toString(), true);
              add(TOKENS_PATH + wholeTokensListForData.getString(0), ipfs);
@@ -665,7 +666,7 @@ public class DataCommitter {
 	            //input.close();
 	            //senderSocket.close();
 	
-	        }
+	        
 
         
         senderMutex = false;
