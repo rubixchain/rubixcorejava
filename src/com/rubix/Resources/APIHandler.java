@@ -1,20 +1,8 @@
 package com.rubix.Resources;
 
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.IPFS_PORT;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.SEND_PORT;
-import static com.rubix.Resources.Functions.SYNC_IP;
-import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
-import static com.rubix.Resources.Functions.getOsName;
-import static com.rubix.Resources.Functions.getPeerID;
-import static com.rubix.Resources.Functions.getValues;
-import static com.rubix.Resources.Functions.nodeData;
-import static com.rubix.Resources.Functions.readFile;
-import static com.rubix.Resources.Functions.writeToFile;
-import static com.rubix.Resources.IPFSNetwork.add;
-import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
-import static com.rubix.Resources.IPFSNetwork.pin;
+import static com.rubix.Resources.Functions.*;
+import static com.rubix.Resources.IPFSNetwork.*;
+import static com.rubix.Constants.ConsensusConstants.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -32,6 +20,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import com.rubix.Datum.DataCommitter;
 import com.rubix.Mining.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
 
@@ -62,40 +51,86 @@ public class APIHandler {
     public static JSONObject send(String data) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-
+        
+     //   APILogger.debug("data is "+ data);
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
-
+        JSONArray tokens;
         JSONObject dataObject = new JSONObject(data);
-        String recDID = dataObject.getString("receiverDidIpfsHash");
+        
+   //     APILogger.debug("dataObject is "+ dataObject.toString());
+       // String recDID = dataObject.getString("receiverDidIpfsHash");
+        String blockHash;
+        String recDID;
 
         String dataTableData = readFile(DATA_PATH + "DataTable.json");
         boolean isObjectValid = false;
         JSONArray dataTable = new JSONArray(dataTableData);
-        for (int i = 0; i < dataTable.length(); i++) {
-            JSONObject dataTableObject = dataTable.getJSONObject(i);
-            if (dataTableObject.getString("didHash").equals(recDID)) {
-                isObjectValid = true;
-            }
-        }
-        if (!isObjectValid)
-            networkInfo();
-
         JSONObject sendMessage = new JSONObject();
-        if (recDID.length() != 46) {
-            sendMessage.put("did", senDID);
-            sendMessage.put("tid", "null");
-            sendMessage.put("status", "Failed");
-            sendMessage.put("message", "Invalid Receiver Did Entered");
-            return sendMessage;
-        }
 
-        dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-        sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+    //    APILogger.debug("dataObject is "+ dataObject.toString());
+       if(dataObject.has("receiverDidIpfsHash")) {
+    //       APILogger.debug("Trans type is "+ PRIMARY);
 
-        APILogger.info(sendMessage);
-        return sendMessage;
-    }
+    	   dataObject.put(TRANS_TYPE, PRIMARY);
+    	   recDID = dataObject.getString("receiverDidIpfsHash");
+           tokens = dataObject.getJSONArray("tokens");
+     //      APILogger.debug("Trans type is "+ dataObject.toString());
+
+           if (tokens.length() < 1) {
+               sendMessage.put("did", senDID);
+               sendMessage.put("tid", "null");
+               sendMessage.put("status", "Failed");
+               sendMessage.put("message", "Invalid amount");
+               return sendMessage;
+           }
+
+           if (recDID.length() != 46) {
+               sendMessage.put("did", senDID);
+               sendMessage.put("tid", "null");
+               sendMessage.put("status", "Failed");
+               sendMessage.put("message", "Invalid Receiver Did Entered");
+               return sendMessage;
+           }
+
+           for (int i = 0; i < dataTable.length(); i++) {
+               JSONObject dataTableObject = dataTable.getJSONObject(i);
+               if (dataTableObject.getString("didHash").equals(recDID)) {
+                   isObjectValid = true;
+               }
+           }
+           if (!isObjectValid)
+               networkInfo();
+       }
+       if (dataObject.has("blockHash")) {
+    //       APILogger.debug("Trans type is "+ DATA);
+
+           dataObject.put(TRANS_TYPE, DATA);
+           
+           blockHash = dataObject.getString("blockHash");
+           if (blockHash.length() != 46) {
+               sendMessage.put("did", senDID);
+               sendMessage.put("tid", "null");
+               sendMessage.put("status", "Failed");
+               sendMessage.put("message", "Invalid Block Hash Entered");
+               return sendMessage;
+           }
+       }
+      
+       dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+   //    APILogger.debug("dataObeject is "+dataObject.toString());
+       if (dataObject.has("blockHash")) {
+    	   sendMessage = DataCommitter.Commit(dataObject.toString(), ipfs, SEND_PORT);
+       }else {
+           sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+
+       }
+       
+
+   //    APILogger.debug("send Message is "+sendMessage);
+       return sendMessage;
+   }
+        
 
     /**
      * An API call to mine tokens
@@ -126,6 +161,8 @@ public class APIHandler {
 
         JSONObject sendMessage = new JSONObject();
         JSONObject detailsObject = new JSONObject();
+        
+        
         detailsObject.put("receiverDidIpfsHash", senDID);
         detailsObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
         detailsObject.put("type", type);

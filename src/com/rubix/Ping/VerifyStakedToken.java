@@ -27,8 +27,7 @@ public class VerifyStakedToken {
     private static final Logger PingSenderLogger = Logger.getLogger(VerifyStakedToken.class);
     public static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
 
-    public static boolean Contact(String pid, int port, String tokenHash, String tokenContent)
-            throws IOException, JSONException {
+    public static boolean Contact(String pid, int port, String token) throws IOException, JSONException {
         repo(ipfs);
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
@@ -43,7 +42,7 @@ public class VerifyStakedToken {
         PrintStream output = new PrintStream(senderSocket.getOutputStream());
 
         output.println("Get-TokenChain-Height");
-        output.println(tokenHash);
+        output.println(token);
         String heightResponse;
         try {
             heightResponse = input.readLine();
@@ -81,7 +80,7 @@ public class VerifyStakedToken {
             height = Integer.parseInt(heightResponse);
         }
 
-        String tokenLevel = tokenContent.substring(0, 3);
+        String tokenLevel = token.substring(0, 3);
         int tokenLevelInt = Integer.parseInt(tokenLevel);
         int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
         int requiredMinedTokenHeight = tokenLevelValue * 4;

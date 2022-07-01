@@ -13,5 +13,4 @@ public class MiningConstants {
     public static final String MINED_RBT_SIGN = "minedTokenSignature";
     public static final String MINE_ID_SIGN = "mineIDSignature";
     public static final String QST_HEIGHT = "QSTHeight";
-    public static final String QUORUM_SIGN_CONTENT = "quorumSignContent";
 }

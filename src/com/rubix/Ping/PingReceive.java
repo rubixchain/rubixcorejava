@@ -1,33 +1,22 @@
 package com.rubix.Ping;
 
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.IPFS_PORT;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.TOKENCHAIN_PATH;
-import static com.rubix.Resources.Functions.getPeerID;
-import static com.rubix.Resources.Functions.initHash;
-import static com.rubix.Resources.Functions.pathSet;
-import static com.rubix.Resources.Functions.readFile;
+import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.repo;
 
-import io.ipfs.api.IPFS;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-
+import io.ipfs.api.IPFS;
 
 public class PingReceive {
     public static Logger PingReceiverLogger = Logger.getLogger(PingReceive.class);

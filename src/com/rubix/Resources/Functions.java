@@ -1,6 +1,11 @@
 package com.rubix.Resources;
 
 import static com.rubix.Resources.APIHandler.addPublicData;
+import static com.rubix.Resources.Functions.DATA_PATH;
+import static com.rubix.Resources.Functions.DATUM_CHAIN_PATH;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.getPeerID;
+import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.IPFSNetwork.IPFSNetworkLogger;
 import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
@@ -8,12 +13,6 @@ import static com.rubix.Resources.IPFSNetwork.forwardCheck;
 import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
-
-import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Ping.PingCheck;
-
-import io.ipfs.api.IPFS;
-import io.ipfs.multiaddr.MultiAddress;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -37,6 +36,7 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.List;  
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -47,15 +47,15 @@ import javax.imageio.ImageIO;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.*;
 
+import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
 
-
-
-
-
-
+import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
 
 public class Functions {
 
@@ -81,6 +81,8 @@ public class Functions {
     public static boolean CONSENSUS_STATUS;
     public static JSONObject QUORUM_MEMBERS;
     public static JSONArray BOOTSTRAPS;
+    public static String DATA__PATH ="";
+    public static String DATUM_CHAIN_PATH = "";
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
@@ -155,7 +157,8 @@ public class Functions {
             TOKENCHAIN_PATH = pathsArray.getJSONObject(0).getString("TOKENCHAIN_PATH");
             WALLET_DATA_PATH = pathsArray.getJSONObject(0).getString("WALLET_DATA_PATH");
             PAYMENTS_PATH = pathsArray.getJSONObject(0).getString("PAYMENTS_PATH");
-
+            DATUM_CHAIN_PATH = pathsArray.getJSONObject(0).getString("DATUM_CHAIN_PATH");
+            
             SEND_PORT = pathsArray.getJSONObject(1).getInt("SEND_PORT");
             RECEIVER_PORT = pathsArray.getJSONObject(1).getInt("RECEIVER_PORT");
             GOSSIP_RECEIVER = pathsArray.getJSONObject(1).getInt("GOSSIP_RECEIVER");
@@ -182,6 +185,7 @@ public class Functions {
             QUORUM_MEMBERS = pathsArray.getJSONObject(4);
 
             BOOTSTRAPS = pathsArray.getJSONArray(5);
+            
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -404,6 +408,7 @@ public class Functions {
         int[] finalpos = (int[]) P.get("posForSign");
         int[] p1Sign = getPrivatePosition(finalpos, privateIntegerArray1);
         String p1 = intArrayToStr(p1Sign);
+        FunctionsLogger.debug("sign from share is "+p1);
         return p1;
     }
 
@@ -492,12 +497,18 @@ public class Functions {
      */
 
     public static void updateJSON(String operation, String filePath, String data) {
+    	
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        
+    //	FunctionsLogger.debug("Mutex status is "+mutex);
+
         try {
             while (mutex) {
             }
 
             mutex = true;
+        //	FunctionsLogger.debug("Mutex status is "+mutex+" after while");
+
             File file = new File(filePath);
             if (!file.exists()) {
                 file.createNewFile();
@@ -522,9 +533,11 @@ public class Functions {
 
             if (operation.equals("add")) {
                 JSONArray newData = new JSONArray(data);
+             //   FunctionsLogger.debug("data to be added in if condifiton is "+ newData.toString());
                 for (int i = 0; i < newData.length(); i++)
                     contentArray.put(newData.getJSONObject(i));
                 writeToFile(filePath, contentArray.toString(), false);
+             //   FunctionsLogger.debug("Update completed in "+filePath);
             }
             mutex = false;
         } catch (JSONException e) {
@@ -853,14 +866,16 @@ public class Functions {
         File tokensFolder = new File(TOKENS_PATH);
         File tokenChainsFolder = new File(TOKENCHAIN_PATH);
         File walletDataFolder = new File(WALLET_DATA_PATH);
+        File commitDataFolder = new File(DATUM_CHAIN_PATH);
 
         if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists()
-                || !walletDataFolder.exists()) {
+                || !walletDataFolder.exists() || !commitDataFolder.exists()) {
             dataFolder.delete();
             loggerFolder.delete();
             tokenChainsFolder.delete();
             tokensFolder.delete();
             walletDataFolder.delete();
+            commitDataFolder.delete();
             JSONObject result = new JSONObject();
             result.put("message", "User not registered, create your Decentralised Identity!");
             result.put("info", "Inner Folders Missing");
@@ -1464,19 +1479,6 @@ public class Functions {
         }
         return version;
     }
-    
-    
-
-    /*public static String initHash() throws IOException {
-        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        initPath = initPath.split("\\.jar")[0];
-        initPath = initPath.split("file:", 2)[1];
-        String jarName[] = initPath.split("\\/");
-        initPath = jarName[jarName.length-1];
-        initPath = initPath + ".jar";
-        String hash = calculateFileHash(initPath, "SHA3-256");
-        return hash;
-    }*/
 
     public static Double partTokenBalance(String tokenHash) throws JSONException {
         pathSet();
@@ -1564,22 +1566,16 @@ public class Functions {
         boolean sanityCheckErrorFlag = true;
         if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
             FunctionsLogger.debug(userType + " IPFS is working in " + peerid);
-            FunctionsLogger.debug(userType + " IPFS check true");
         } else {
             sanityCheckErrorFlag = false;
-            FunctionsLogger.debug(userType + " IPFS is not working in " + peerid);
-            FunctionsLogger.debug(userType + " IPFS check false");
             sanityMessage = userType + " IPFS is not working in " + peerid;
         }
 
         if (sanityCheckErrorFlag) {
             if (bootstrapConnect(peerid, ipfs)) {
                 FunctionsLogger.debug("Bootstrap connected for "+userType +" : " + peerid);
-                FunctionsLogger.debug("Bootstrap check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Bootstrap connection unsuccessful for "+userType + " : " + peerid);
-                FunctionsLogger.debug("Bootstrap check false");
                 sanityMessage = "Bootstrap connection unsuccessful for "+userType +" : " + peerid;
             }
         }
@@ -1587,11 +1583,8 @@ public class Functions {
         if (sanityCheckErrorFlag) {
             if (ping(peerid, port)) {
                 FunctionsLogger.debug(userType + " is running the latest Jar :" + peerid);
-                FunctionsLogger.debug("Latest Jar check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug(userType + " is not running the latest Jar :" + peerid);
-                FunctionsLogger.debug("Latest Jar check false");
                 sanityMessage = userType + " is not running the latest Jar. PID: " + peerid;
             }
         }
@@ -1599,11 +1592,48 @@ public class Functions {
         if (sanityCheckErrorFlag) {
             if (portCheckAndKill(port)) {
                 FunctionsLogger.debug("Ports are available for transcations in " + peerid);
-                FunctionsLogger.debug("Ports check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Ports are not available for " + peerid);
-                FunctionsLogger.debug("Ports check false");
+                sanityMessage = "Ports are not available for " + peerid;
+            }
+        }
+
+        return sanityCheckErrorFlag;
+    }
+    
+    public static boolean sanityCheckForData(String peerid, IPFS ipfs, int port) throws IOException, JSONException {
+        FunctionsLogger.info("Entering Receiver SanityCheck");
+        boolean sanityCheckErrorFlag = true;
+        if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
+            FunctionsLogger.debug("Receiver IPFS is working in " + peerid);
+        } else {
+            sanityCheckErrorFlag = false;
+            sanityMessage = "Receiver IPFS is not working in " + peerid;
+        }
+
+        if (sanityCheckErrorFlag) {
+            if (bootstrapConnect(peerid, ipfs)) {
+                FunctionsLogger.debug("Bootstrap connected for Receiver " + peerid);
+            } else {
+                sanityCheckErrorFlag = false;
+                sanityMessage = "Bootstrap connection unsuccessful for Receiver " + peerid;
+            }
+        }
+
+        if (sanityCheckErrorFlag) {
+            if (ping(peerid, port)) {
+                FunctionsLogger.debug("Rceiver is running the latest Jar " + peerid);
+            } else {
+                sanityCheckErrorFlag = false;
+                sanityMessage = "Receiver is not running the latest Jar. PID: " + peerid;
+            }
+        }
+
+        if (sanityCheckErrorFlag) {
+            if (portCheckAndKill(port)) {
+                FunctionsLogger.debug("Ports are available for transcations in " + peerid);
+            } else {
+                sanityCheckErrorFlag = false;
                 sanityMessage = "Ports are not available for " + peerid;
             }
         }
@@ -1616,7 +1646,6 @@ public class Functions {
         boolean swarmConnectedStatus = false;
         try {
             MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
-            FunctionsLogger.info("MultiAdrress concated " + multiAddress + "|||");
             boolean output = swarmConnectP2P(peerid, ipfs);
 
             if (output) {
@@ -1636,7 +1665,6 @@ public class Functions {
 
     public static boolean ping(String peerid, int port) throws IOException, JSONException {
         JSONObject pingCheck = PingCheck.Ping(peerid, port);
-        FunctionsLogger.info("Ping Check Response " + pingCheck);
         if (pingCheck.getString("status").contains("Failed")) {
             return false;
         } else
@@ -1690,12 +1718,10 @@ public class Functions {
     // }
 
     public static boolean bootstrapConnect(String peerid, IPFS ipfs) {
-        FunctionsLogger.info("bootstrapConnect- entering function");
         String bootNode;
         boolean bootstrapConnected = false;
 
         MultiAddress multiAddress = new MultiAddress("/ipfs/" + peerid);
-        FunctionsLogger.info("bootstrapConnect- multiaddress is " + multiAddress.toString());
 
         String output = swarmConnectProcess(multiAddress);
         try {
@@ -1774,29 +1800,20 @@ public class Functions {
             long currentPid = ProcessHandle.current().pid();
             BufferedReader br = new BufferedReader(
                     new InputStreamReader(processId.getInputStream()));
-            FunctionsLogger.info("releasePorts- process " + br.readLine() + " is occupied in " + port);
             processId = Runtime.getRuntime().exec("pgrep ipfs");
             BufferedReader ipfsPidBr = new BufferedReader(new InputStreamReader(processId.getInputStream()));
 
             processStr = br.readLine();
-            FunctionsLogger.info("releasePorts- Process string is " + processStr);
             if (processStr != null) {
-                FunctionsLogger.info("releasePorts- Processstr is not null");
                 if (String.valueOf(currentPid) != processStr && ipfsPidBr.readLine() != processStr) {
-                    FunctionsLogger.info("releasePorts- jar is running on " + currentPid + " and IPFS is occupied in "
-                            + ipfsPidBr.readLine());
-                    FunctionsLogger.debug("Port " + port + " is in using, killing PID " + processStr);
+                    
                     processId = Runtime.getRuntime().exec("kill -9 " + processStr);
-                    FunctionsLogger.info("releasePorts- killing " + processStr);
 
                 }
             }
             releasedPort = true;
-            FunctionsLogger.info("releasePorts- status is " + releasedPort);
             processId.waitFor();
-            FunctionsLogger.info("releasePorts- Waitng for process");
             processId.destroy();
-            FunctionsLogger.info("releasePorts- destorying process after waiting");
         } catch (Exception e) {
             FunctionsLogger.error("Exception Occured at releasePort", e);
             e.printStackTrace();
@@ -1805,7 +1822,6 @@ public class Functions {
     }
 
     public static boolean portStatusWindows(int port) {
-        FunctionsLogger.info("Starting portStatusWindows");
         boolean releasedPort = false;
         String portProcessStr;
         Process p;
@@ -1822,10 +1838,8 @@ public class Functions {
                 pidTree.add(temp);
             }
 
-            FunctionsLogger.info("PIDs occupied by Rubix.jar are " + pidTree);
 
             Set<Integer> pidSet = new LinkedHashSet<Integer>(pidTree);
-            FunctionsLogger.info("Pid occupied by port 1898 is pidSet" + pidSet);
             Process getPortPid = rt.exec("cmd /c netstat -ano | findstr " + port);
             BufferedReader getPortPidBr = new BufferedReader(new InputStreamReader(getPortPid.getInputStream()));
             String getPortPidLine;
@@ -1836,10 +1850,8 @@ public class Functions {
             }
 
             Set<Integer> pidToKill = new LinkedHashSet<Integer>(portPidTree);
-            FunctionsLogger.info("Pid used by port " + port + "is " + pidToKill);
             pidToKill.removeAll(pidSet);
             pidToKill.remove(0);
-            FunctionsLogger.info("Pid using port " + port + " but not in 1898" + pidToKill);
             if (pidToKill.size() > 0) {
                 System.out.println("Port " + port + " is occupied by PIDs" + pidToKill);
             } else {
@@ -1852,5 +1864,61 @@ public class Functions {
         return releasedPort;
 
     }
+    
+    public static JSONObject verifySpecificCommit(String blockHash) {
+        JSONObject APIResponse = new JSONObject();
+       // String quorumLiStrings[] = null;
+        String transcationID = null;
+        String senderDidIpfsHash  = null;
+        String status = null;
+        String blockHashFromChainString = null;
+        FunctionsLogger.debug("data is "+blockHash);
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        //JSONObject detailsObject = new JSONObject(blockHash);
+        //String blockHashValue = detailsObject.getString("blockHash");
+        //FunctionsLogger.debug(blockHashValue);
+    	String datumFolderPath = DATUM_CHAIN_PATH;
+      //  quorumLiStrings[] = getValues(datumFolderPath.concat("datumCommitChain.json"), "quorumList", "blockHash", blockHash).toArray();
+        transcationID = getValues(datumFolderPath.concat("datumCommitChain.json"), "txn", "blockHash", blockHash);
+        senderDidIpfsHash = getValues(datumFolderPath.concat("datumCommitChain.json"), "senderDID", "blockHash", blockHash);
+        blockHashFromChainString = getValues(datumFolderPath.concat("datumCommitChain.json"), "blockHash", "blockHash", blockHash);
+        
+        FunctionsLogger.debug("File path is :  "+datumFolderPath.concat("datumCommitChain.json"));
+    	File datumCommitChain = new File(datumFolderPath.concat("datumCommitChain.json"));
+    	
+       // FunctionsLogger.debug("quorumLiStrings is "+ quorumLiStrings +"\n transcationID is "+transcationID 
+        	//	+ " \n senderDidIpfsHash "+ senderDidIpfsHash + "\n blockHashFromChainString is "+blockHashFromChainString);
+        
+        APIResponse = new JSONObject();
+        
+        //FunctionsLogger.debug("detailsObject is "+ detailsObject.toString());
+       // APIResponse.put("txn", transcationID);
+       // APIResponse.put("Signed Quorums", quorumLiStrings);
+
+        
+        if(getValues(datumFolderPath.concat("datumCommitChain.json"), "blockHash", "blockHash", blockHash).equals(blockHash)) 
+        {
+        	FunctionsLogger.debug("BlockHash exists");
+     	   	APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", transcationID);
+            APIResponse.put("status", "True");
+           // APIResponse.put("Signed Quorums", quorumLiStrings);
+            APIResponse.put("message", "Block Hash verified");
+        }else {
+        	FunctionsLogger.debug("BlockHash doesnt exists");
+        	APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", transcationID);
+            APIResponse.put("status", "False");
+           // APIResponse.put("Signed Quorums", quorumLiStrings);
+            APIResponse.put("message", "Block Hash doesnt exist");
+        }
+    	//APIResponse = new JSONObject();
+
+    	
+    	return APIResponse;
+		
+	}
+    
+    
 
 }
