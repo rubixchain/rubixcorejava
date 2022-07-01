@@ -14,6 +14,12 @@ import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
+
+import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
+
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -1479,6 +1485,19 @@ public class Functions {
         }
         return version;
     }
+    
+    
+
+    /*public static String initHash() throws IOException {
+        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        initPath = initPath.split("\\.jar")[0];
+        initPath = initPath.split("file:", 2)[1];
+        String jarName[] = initPath.split("\\/");
+        initPath = jarName[jarName.length-1];
+        initPath = initPath + ".jar";
+        String hash = calculateFileHash(initPath, "SHA3-256");
+        return hash;
+    }*/
 
     public static Double partTokenBalance(String tokenHash) throws JSONException {
         pathSet();
@@ -1566,16 +1585,22 @@ public class Functions {
         boolean sanityCheckErrorFlag = true;
         if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
             FunctionsLogger.debug(userType + " IPFS is working in " + peerid);
+            FunctionsLogger.debug(userType + " IPFS check true");
         } else {
             sanityCheckErrorFlag = false;
+            FunctionsLogger.debug(userType + " IPFS is not working in " + peerid);
+            FunctionsLogger.debug(userType + " IPFS check false");
             sanityMessage = userType + " IPFS is not working in " + peerid;
         }
 
         if (sanityCheckErrorFlag) {
             if (bootstrapConnect(peerid, ipfs)) {
                 FunctionsLogger.debug("Bootstrap connected for "+userType +" : " + peerid);
+                FunctionsLogger.debug("Bootstrap check true");
             } else {
                 sanityCheckErrorFlag = false;
+                FunctionsLogger.debug("Bootstrap connection unsuccessful for "+userType + " : " + peerid);
+                FunctionsLogger.debug("Bootstrap check false");
                 sanityMessage = "Bootstrap connection unsuccessful for "+userType +" : " + peerid;
             }
         }
@@ -1583,8 +1608,11 @@ public class Functions {
         if (sanityCheckErrorFlag) {
             if (ping(peerid, port)) {
                 FunctionsLogger.debug(userType + " is running the latest Jar :" + peerid);
+                FunctionsLogger.debug("Latest Jar check true");
             } else {
                 sanityCheckErrorFlag = false;
+                FunctionsLogger.debug(userType + " is not running the latest Jar :" + peerid);
+                FunctionsLogger.debug("Latest Jar check false");
                 sanityMessage = userType + " is not running the latest Jar. PID: " + peerid;
             }
         }
@@ -1592,6 +1620,7 @@ public class Functions {
         if (sanityCheckErrorFlag) {
             if (portCheckAndKill(port)) {
                 FunctionsLogger.debug("Ports are available for transcations in " + peerid);
+                FunctionsLogger.debug("Ports check true");
             } else {
                 sanityCheckErrorFlag = false;
                 sanityMessage = "Ports are not available for " + peerid;
@@ -1889,14 +1918,18 @@ public class Functions {
        // FunctionsLogger.debug("quorumLiStrings is "+ quorumLiStrings +"\n transcationID is "+transcationID 
         	//	+ " \n senderDidIpfsHash "+ senderDidIpfsHash + "\n blockHashFromChainString is "+blockHashFromChainString);
         
-        APIResponse = new JSONObject();
+        //APIResponse = new JSONObject();
         
         //FunctionsLogger.debug("detailsObject is "+ detailsObject.toString());
        // APIResponse.put("txn", transcationID);
        // APIResponse.put("Signed Quorums", quorumLiStrings);
 
-        
-        if(getValues(datumFolderPath.concat("datumCommitChain.json"), "blockHash", "blockHash", blockHash).equals(blockHash)) 
+        /*
+         * updated by Kiran on 01/07/2022
+         * JSON Exception handling
+         */
+        try {
+            if(getValues(datumFolderPath.concat("datumCommitChain.json"), "blockHash", "blockHash", blockHash).equals(blockHash)) 
         {
         	FunctionsLogger.debug("BlockHash exists");
      	   	APIResponse.put("did", senderDidIpfsHash);
@@ -1912,6 +1945,10 @@ public class Functions {
            // APIResponse.put("Signed Quorums", quorumLiStrings);
             APIResponse.put("message", "Block Hash doesnt exist");
         }
+        } catch (JSONException e) {
+            //TODO: handle exception
+        }
+        
     	//APIResponse = new JSONObject();
 
     	
