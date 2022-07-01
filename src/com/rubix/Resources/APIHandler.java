@@ -60,7 +60,6 @@ public class APIHandler {
         
    //     APILogger.debug("dataObject is "+ dataObject.toString());
        // String recDID = dataObject.getString("receiverDidIpfsHash");
-        String blockHash;
         String recDID;
 
         String dataTableData = readFile(DATA_PATH + "DataTable.json");
@@ -69,10 +68,10 @@ public class APIHandler {
         JSONObject sendMessage = new JSONObject();
 
     //    APILogger.debug("dataObject is "+ dataObject.toString());
-       if(dataObject.has("receiverDidIpfsHash")) {
+     
     //       APILogger.debug("Trans type is "+ PRIMARY);
 
-    	   dataObject.put(TRANS_TYPE, PRIMARY);
+    	 //  dataObject.put(TRANS_TYPE, PRIMARY);
     	   recDID = dataObject.getString("receiverDidIpfsHash");
            tokens = dataObject.getJSONArray("tokens");
      //      APILogger.debug("Trans type is "+ dataObject.toString());
@@ -101,11 +100,55 @@ public class APIHandler {
            }
            if (!isObjectValid)
                networkInfo();
-       }
-       if (dataObject.has("blockHash")) {
+       
+
+      
+       dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+   //    APILogger.debug("dataObeject is "+dataObject.toString());
+      
+           sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+
+       
+       
+
+   //    APILogger.debug("send Message is "+sendMessage);
+       return sendMessage;
+   }
+        
+    
+    /**
+     * An API call to commit data into blockchain
+     * @param data Data specific to token transfer
+     * @return Message from the sender with transaction details
+     * @throws JSONException            handles JSON Exceptions
+     * @throws NoSuchAlgorithmException handles Invalid Algorithms Exceptions
+     * @throws IOException              handles IO Exceptions
+     */
+    
+    public static JSONObject commit(String data) throws Exception {
+        Functions.pathSet();
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        
+     //   APILogger.debug("data is "+ data);
+        String senderPeerID = getPeerID(DATA_PATH + "DID.json");
+        String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+        JSONArray tokens;
+        JSONObject dataObject = new JSONObject(data);
+        
+   //     APILogger.debug("dataObject is "+ dataObject.toString());
+       // String recDID = dataObject.getString("receiverDidIpfsHash");
+        String blockHash;
+        String recDID;
+
+        String dataTableData = readFile(DATA_PATH + "DataTable.json");
+        boolean isObjectValid = false;
+        JSONArray dataTable = new JSONArray(dataTableData);
+        JSONObject sendMessage = new JSONObject();
+
+    
     //       APILogger.debug("Trans type is "+ DATA);
 
-           dataObject.put(TRANS_TYPE, DATA);
+         //  dataObject.put(TRANS_TYPE, DATA);
            
            blockHash = dataObject.getString("blockHash");
            if (blockHash.length() != 46) {
@@ -115,22 +158,14 @@ public class APIHandler {
                sendMessage.put("message", "Invalid Block Hash Entered");
                return sendMessage;
            }
-       }
+       
       
        dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
    //    APILogger.debug("dataObeject is "+dataObject.toString());
-       if (dataObject.has("blockHash")) {
     	   sendMessage = DataCommitter.Commit(dataObject.toString(), ipfs, SEND_PORT);
-       }else {
-           sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
-
-       }
-       
-
    //    APILogger.debug("send Message is "+sendMessage);
        return sendMessage;
    }
-        
 
     /**
      * An API call to mine tokens
