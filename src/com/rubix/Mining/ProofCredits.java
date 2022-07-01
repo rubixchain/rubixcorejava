@@ -71,6 +71,7 @@ public class ProofCredits {
     private static ArrayList gammaPeersList;
     private static int alphaSize = 0;
     public static String hashChainProof = new String();
+    private static int hashChainRule = 7;
 
 
     public static JSONObject create(String data, IPFS ipfs) throws IOException, JSONException {
@@ -540,7 +541,7 @@ public class ProofCredits {
                         temp.put("tokenHash", tokenHash);
                         JSONArray tempArray = new JSONArray();
                         tempArray.put(temp);
-                        hashChainProof = HashChain.hashChainCounter(tid, StakeConsensus.stakedDIDs, 6);
+                        hashChainProof = HashChain.hashChainCounter(tid, StakeConsensus.stakedDIDs, hashChainRule);
                         ProofCreditsLogger.debug("HashChainProof is "+hashChainProof+" transcation id is "+ tid);
                         updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
                     } else {
