@@ -18,3 +18,4 @@ tests/thunder-tests/backup/thunderEnvironment.db
 .project
 .settings/org.eclipse.jdt.core.prefs
 java-rubix-core.iml
+pom.xml
