@@ -42,6 +42,7 @@ import java.util.Set;
 
 import javax.imageio.ImageIO;
 
+import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
