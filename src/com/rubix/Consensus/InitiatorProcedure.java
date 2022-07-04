@@ -111,6 +111,42 @@ public class InitiatorProcedure {
             dataSend.put("qstDetails", qstDetails);
         }
 
+        if (operation.equals("NFT")) {
+            JSONObject nftdetails = new JSONObject();
+            nftdetails.put("tid", dataObject.getString("tid"));
+            nftdetails.put("sellerPubKeyIpfsHash", dataObject.getString("sellerPubKeyIpfsHash"));
+            nftdetails.put("saleContractIpfsHash", dataObject.getString("saleContractIpfsHash"));
+            nftdetails.put("nftTokenDetails", dataObject.getJSONObject("nftTokenDetails"));
+            //nftdetails.put("rbtTokenDetails", dataObject.getJSONObject("rbtTokenDetails"));
+            // nftdetails.put("sellerPvtKeySign", dataObject.getString("sellerPvtKeySign"));
+            nftdetails.put("tokenAmount", dataObject.getDouble("tokenAmount"));
+            InitiatorProcedureLogger.debug("NFT Token Detials "+dataObject.getJSONObject("nftTokenDetails").toString());
+            String authNftSenderByQuorumHash = calculateHash(dataObject.getJSONObject("nftTokenDetails").toString(),
+                    "SHA3-256");
+
+            //creating authNftQuorumHash
+            String authNftQuorumHash = calculateHash(authNftSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
+            String nftSenderQsign=null;
+            try {
+                nftSenderQsign=getSignFromShares(pvt, authNftSenderByQuorumHash);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            
+            InitiatorProcedureLogger.debug("authNftSenderByQuorumHash "+authNftSenderByQuorumHash);
+            nftdetails.put("nftHash", authNftSenderByQuorumHash);
+            
+            nftdetails.put("nftQhash", authNftQuorumHash);
+            
+            nftdetails.put("nftBuyerDid", receiverDidIpfs);
+            //pvt share signture quorum going to veify 
+            nftdetails.put("nftSign", nftSenderQsign);
+
+            dataSend.put("nftDetails", nftdetails);
+
+        }
+
         Thread alphaThread = new Thread(() -> {
             try {
                 alphaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT, 0, "alpha", alphaList, alphaSize,
@@ -143,7 +179,18 @@ public class InitiatorProcedure {
         alphaThread.start();
         betaThread.start();
         gammaThread.start();
-        while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+
+        if (operation.equals("NFT")) {
+            while ((InitiatorConsensus.nftQuorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7))))) {
+            }
+            InitiatorProcedureLogger.debug(
+                    "ABG NFT Consensus completed with length for NFT :" + InitiatorConsensus.nftQuorumSignature.length()
+                            + " RBT " + InitiatorConsensus.quorumSignature.length());
+        } else {
+            while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+            }
+            InitiatorProcedureLogger
+                    .debug("ABG Consensus completed with length " + InitiatorConsensus.quorumSignature.length());
         }
         InitiatorProcedureLogger
                 .debug("ABG Consensus completed with length " + InitiatorConsensus.quorumSignature.length());
