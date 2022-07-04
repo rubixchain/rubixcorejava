@@ -758,5 +758,80 @@ public class APIHandler {
 
         return resultArray;
     }
+    
+    /**
+     * A call to generate hashtable in node
+     * 
+     * @return Message if failed or succeeded
+     * @throws JSONException 
+     * @throws InterruptedException 
+     * @files TokenHashTable.json
+     */
+    public static JSONArray tokenHashTableGeneration() throws JSONException, InterruptedException {
+    	System.out.println("API Handler - generting hash table");
+        StringBuilder result = new StringBuilder();
+        JSONArray resultArray = new JSONArray();
+        JSONObject jsonObject = new JSONObject();
+        boolean generationStatus = false;
+        File tokenHashTable = new File(DATA_PATH.concat("DataHash"));
+        System.out.println("File path is "+ tokenHashTable.toString());
+        generationStatus = Functions.generateMultiLoopWithHashMap(tokenHashTable.toString());
+        
+        if (generationStatus == true && (tokenHashTable.exists() && (tokenHashTable.length() / (1024 * 1024))>0)) {
+            jsonObject.put("message", "Token Hash Table Generation successful");
+        } else {
+            jsonObject.put("message", "Unable to generate Token Hash Table! Try again after sometime.");
+        }
+        resultArray.put(jsonObject);
+        return resultArray;
+    }
+    
+    /**
+     * This method is to get the no. of staked tokens
+     * 
+     * @param 
+     * @return no. of staked token 
+     * @throws JSONException handles JSON Exceptions
+     * @files 
+     */    
+    public static int stakedTokencount() throws JSONException {
+        String stakedtokens = Functions.WALLET_DATA_PATH.concat("Stake/");
+        int count =0;
+        File stkedtokensfile = new File(stakedtokens);
+          File[] filesList = stkedtokensfile.listFiles();
+          if (stkedtokensfile.exists()) {
+              for ( File file : filesList) {
+            	  String sFile = file.getName();
+                  String k =  stakedtokens+sFile;
+                  String contactsFile = Functions.readFile(k);
+                
+                  JSONObject js = new JSONObject(contactsFile);
+                 
+                  JSONObject stakedata = js.getJSONObject("stakeData");
+                  String staked_mineid = stakedata.getString("stakedToken");
+                  count++;
+              }
+          }
+          return count;
+     }
+    
+    /**
+     * This method is to get the withdrawal balance
+     * 
+     * @param 
+     * @return withdrawal balance 
+     * @throws JSONException handles JSON Exceptions
+     * @files 
+     */    
+    public static Double getAvailableBalance() throws JSONException, IOException
+    {
+    	int stakedtokens=APIHandler.stakedTokencount();
+    	Double balance=Functions.getBalance();
+      
+    	Double availablebalance = balance - stakedtokens;
+      
+    	return availablebalance;
+      
+    }
 
 }

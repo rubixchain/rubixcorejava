@@ -46,6 +46,9 @@ public class InitiatorConsensus {
     public static volatile int[] quorumResponse = { 0, 0, 0 };
     public static volatile JSONArray finalQuorumSignsArray = new JSONArray();
 
+
+
+
     public static volatile JSONObject nftQuorumSignature = new JSONObject();
     private static final Object nftCountLock = new Object();
     private static final Object nftSignLock = new Object();
@@ -58,6 +61,7 @@ public class InitiatorConsensus {
      * To address SocketConnection reset Issue
      */
     private static int socketTimeOut = 120000;
+
 
     /**
      * This method increments the quorumResponse variable
@@ -269,6 +273,11 @@ public class InitiatorConsensus {
                                                     if (quorumResponse[index] <= minQuorum(quorumSize) && voteStatus) {
                                                         InitiatorConsensusLogger.debug(
                                                                 "waiting for  " + quorumSize + " +signs " + role);
+                                                        if (role.equals("alpha")) {
+                                                            InitiatorConsensusLogger
+                                                                    .debug("Picking Quorum for Staking " + quorumID[j]);
+                                                            signedAphaQuorumArray.put(quorumID[j]);
+                                                        }
                                                         while (quorumResponse[index] < minQuorum(quorumSize)) {
                                                         }
                                                         InitiatorConsensusLogger.debug("between Q1- to Q" + quorumSize

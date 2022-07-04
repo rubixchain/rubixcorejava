@@ -1,6 +1,11 @@
 package com.rubix.Resources;
 
 import static com.rubix.Resources.APIHandler.addPublicData;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.calculateHash;
+import static com.rubix.Resources.Functions.deleteFile;
+import static com.rubix.Resources.Functions.formatAmount;
+import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.IPFSNetworkLogger;
 import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
@@ -8,12 +13,6 @@ import static com.rubix.Resources.IPFSNetwork.forwardCheck;
 import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
-
-import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Ping.PingCheck;
-
-import io.ipfs.api.IPFS;
-import io.ipfs.multiaddr.MultiAddress;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -24,10 +23,13 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -37,25 +39,33 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.*;
+import java.util.stream.*;
 
 import javax.imageio.ImageIO;
+import javax.json.JsonArray;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Ping.PingCheck;
+
+import org.apache.log4j.*;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.*;
 
-
-
-
-
-
-
+import io.ipfs.api.IPFS;
+import io.ipfs.multiaddr.MultiAddress;
 
 public class Functions {
 
@@ -997,6 +1007,7 @@ public class Functions {
             dataToSendQuorumUpdate.put("signedquorum", signedQuorumList);
             dataToSendQuorumUpdate.put("status", status);
             String populateQuorumUpdate = dataToSendQuorumUpdate.toString();
+            FunctionsLogger.debug("Sending 'POST' request to URL : " + urlQuorumUpdate);
 
             conQuorumUpdate.setDoOutput(true);
             DataOutputStream wrQuorumUpdate = new DataOutputStream(conQuorumUpdate.getOutputStream());
@@ -1005,7 +1016,6 @@ public class Functions {
             wrQuorumUpdate.close();
 
             int responseCodeQuorumUpdate = conQuorumUpdate.getResponseCode();
-            FunctionsLogger.debug("Sending 'POST' request to URL : " + urlQuorumUpdate);
             FunctionsLogger.debug("Post Data : " + populateQuorumUpdate);
             FunctionsLogger.debug("Response Code : " + responseCodeQuorumUpdate);
 
@@ -1438,7 +1448,7 @@ public class Functions {
         return balance;
     }
 
-    public static String initHash(){
+    public static String initHash() {
         String version = "";
         try {
             URL url = new URL("http://localhost:1898/getVersion");
@@ -1456,7 +1466,7 @@ public class Functions {
                 version = output;
             }
             conn.disconnect();
-            FunctionsLogger.debug("initHash version is "+version);
+            FunctionsLogger.debug("initHash version is " + version);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -1464,19 +1474,21 @@ public class Functions {
         }
         return version;
     }
-    
-    
 
-    /*public static String initHash() throws IOException {
-        String initPath = Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        initPath = initPath.split("\\.jar")[0];
-        initPath = initPath.split("file:", 2)[1];
-        String jarName[] = initPath.split("\\/");
-        initPath = jarName[jarName.length-1];
-        initPath = initPath + ".jar";
-        String hash = calculateFileHash(initPath, "SHA3-256");
-        return hash;
-    }*/
+    /*
+     * public static String initHash() throws IOException {
+     * String initPath =
+     * Functions.class.getProtectionDomain().getCodeSource().getLocation().getPath()
+     * ;
+     * initPath = initPath.split("\\.jar")[0];
+     * initPath = initPath.split("file:", 2)[1];
+     * String jarName[] = initPath.split("\\/");
+     * initPath = jarName[jarName.length-1];
+     * initPath = initPath + ".jar";
+     * String hash = calculateFileHash(initPath, "SHA3-256");
+     * return hash;
+     * }
+     */
 
     public static Double partTokenBalance(String tokenHash) throws JSONException {
         pathSet();
@@ -1559,8 +1571,9 @@ public class Functions {
 
     public static String sanityMessage;
 
-    public static boolean sanityCheck(String userType, String peerid, IPFS ipfs, int port) throws IOException, JSONException {
-        FunctionsLogger.info("Entering " + userType +" SanityCheck");
+    public static boolean sanityCheck(String userType, String peerid, IPFS ipfs, int port)
+            throws IOException, JSONException {
+        FunctionsLogger.info("Entering " + userType + " SanityCheck");
         boolean sanityCheckErrorFlag = true;
         if (sanityCheckErrorFlag && checkIPFSStatus(peerid, ipfs)) {
             FunctionsLogger.debug(userType + " IPFS is working in " + peerid);
@@ -1574,13 +1587,13 @@ public class Functions {
 
         if (sanityCheckErrorFlag) {
             if (bootstrapConnect(peerid, ipfs)) {
-                FunctionsLogger.debug("Bootstrap connected for "+userType +" : " + peerid);
+                FunctionsLogger.debug("Bootstrap connected for " + userType + " : " + peerid);
                 FunctionsLogger.debug("Bootstrap check true");
             } else {
                 sanityCheckErrorFlag = false;
-                FunctionsLogger.debug("Bootstrap connection unsuccessful for "+userType + " : " + peerid);
+                FunctionsLogger.debug("Bootstrap connection unsuccessful for " + userType + " : " + peerid);
                 FunctionsLogger.debug("Bootstrap check false");
-                sanityMessage = "Bootstrap connection unsuccessful for "+userType +" : " + peerid;
+                sanityMessage = "Bootstrap connection unsuccessful for " + userType + " : " + peerid;
             }
         }
 
@@ -1852,5 +1865,327 @@ public class Functions {
         return releasedPort;
 
     }
+
+    public static void ownerIdentity(JSONArray tokens, String receiverDidIpfsHash)  {
+        Functions.pathSet();
+         
+        try {
+            for (int i = 0; i < tokens.length(); i++) {
+            
+                String tokenHash = tokens.getString(i);
+                String hashString = tokenHash.concat(receiverDidIpfsHash);
+                String hashForPositions = calculateHash(hashString, "SHA3-256");
+                BufferedImage pvt = ImageIO.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
+                String firstPrivate = PropImage.img2bin(pvt);
+                int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+                String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+                String positions = "";
+                for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                    positions += privateBinary.charAt(j);
+                }
+                String ownerIdentity = hashForPositions.concat(positions);
+                String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+                File chainFile = new File(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                if (chainFile.exists()) {
+                    String tokenChainFile = readFile(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                    JSONArray tokenChainArray = new JSONArray(tokenChainFile);
+                    JSONObject tokenChainObject = tokenChainArray.getJSONObject(tokenChainArray.length() - 1);
+                    tokenChainObject.put("owner", ownerIdentityHash);
+                    tokenChainArray.remove(tokenChainArray.length() - 1);
+                    tokenChainArray.put(tokenChainObject);
+                    writeToFile(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"), tokenChainArray.toString(), false);
+                    
+                } else {
+                    File partChainFile = new File(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
+                    if (partChainFile.exists()) {
+                        String tokenChainFile = readFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
+                        JSONArray tokenChainArray = new JSONArray(tokenChainFile);
+                        JSONObject tokenChainObject = tokenChainArray.getJSONObject(tokenChainArray.length() - 1);
+                        tokenChainObject.put("owner", ownerIdentityHash);
+                        tokenChainArray.remove(tokenChainArray.length() - 1);
+                        tokenChainArray.put(tokenChainObject);
+                        writeToFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"), tokenChainArray.toString(), false);
+                    
+                    } else {
+                        FunctionsLogger.info("Token chain file not found for token " + tokenHash);
+                    }
+
+                } 
+             
+    
+            }
+        } catch (Exception e) {
+            FunctionsLogger.error("Exception occured at ownerIdentity", e);
+        }
+        
+        
+
+    }
+    
+    public static int multiplePinCheck(String senderDidIpfsHash,JSONObject tokenObject, IPFS ipfs) throws JSONException, InterruptedException {
+    	int statusCode = 200;
+    	FunctionsLogger.debug("Input tokenObject is "+tokenObject.toString());
+        JSONObject TokenDetails = tokenObject.getJSONObject("tokenDetails");
+        JSONArray wholeTokens = TokenDetails.getJSONArray("whole-tokens");
+        JSONArray wholeTokenChains = TokenDetails.getJSONArray("whole-tokenChains");
+
+        JSONArray partTokens = TokenDetails.getJSONArray("part-tokens");
+        JSONObject partTokenChains = TokenDetails.getJSONObject("part-tokenChains");
+        JSONArray partTokenChainsHash = TokenDetails.getJSONArray("hashSender");
+
+        JSONArray previousSendersArray = tokenObject.getJSONArray("previousSender");
+        JSONArray positionsArray = tokenObject.getJSONArray("positions");
+
+        Double amount = tokenObject.getDouble("amount");
+        JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
+        FunctionsLogger.debug("Amount Ledger: " + amountLedger);
+        int intPart = wholeTokens.length();
+        // ? multiple pin check starts
+        Double decimalPart = formatAmount(amount - intPart);
+        JSONArray doubleSpentToken = new JSONArray();
+        boolean tokenOwners = true;
+        ArrayList pinOwnersArray = new ArrayList();
+        ArrayList previousSender = new ArrayList();
+        JSONArray ownersReceived = new JSONArray();
+    	
+        ArrayList ownersArray = new ArrayList();
+        for (int i = 0; i < wholeTokens.length(); ++i) {
+            try {
+            	FunctionsLogger.debug("Checking owners for " + wholeTokens.getString(i) +
+                        " Please wait...");
+                pinOwnersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
+
+                if (pinOwnersArray.size() > 2) {
+
+                    for (int j = 0; j < previousSendersArray.length(); j++) {
+                        if (previousSendersArray.getJSONObject(j).getString("token")
+                                .equals(wholeTokens.getString(i)))
+                            ownersReceived = previousSendersArray.getJSONObject(j).getJSONArray("sender");
+                    }
+
+                    for (int j = 0; j < ownersReceived.length(); j++) {
+                        previousSender.add(ownersReceived.getString(j));
+                    }
+                    FunctionsLogger.debug("Previous Owners: " + previousSender);
+
+                    for (int j = 0; j < pinOwnersArray.size(); j++) {
+                        if (!previousSender.contains(pinOwnersArray.get(j).toString()))
+                            tokenOwners = false;
+                    }
+                }
+            } catch (IOException e) {
+
+            	FunctionsLogger.debug("Ipfs dht find did not execute");
+            }
+        }
+        if (!tokenOwners) {
+            JSONArray owners = new JSONArray();
+            for (int i = 0; i < pinOwnersArray.size(); i++)
+                owners.put(pinOwnersArray.get(i).toString());
+            FunctionsLogger.debug("Multiple Owners for " + doubleSpentToken);
+            FunctionsLogger.debug("Owners: " + owners);
+            statusCode = 420;
+            
+            return statusCode;
+        }
+      
+    	return statusCode;
+    }
+    
+    public static boolean generateMultiLoopWithHashMap(String path) throws InterruptedException {
+        FunctionsLogger.debug("path is " + path);
+        FunctionsLogger.debug("path with file" + path+"/DH00.json");
+        File dataHashPath = new File(path);
+        if (!dataHashPath.exists())
+        	dataHashPath.mkdir();
+        boolean status = false;
+        FunctionsLogger.debug("Main thread started at" + java.time.LocalTime.now());
+
+        long tStart = System.currentTimeMillis();
+        Thread generateHashMapThread1 = new Thread(() -> {
+        	FunctionsLogger.debug("T1 started at" + java.time.LocalTime.now());
+            HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
+            JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
+
+            File tokenHashTable = new File(path+"/DH00.json");
+            long start = System.currentTimeMillis();
+            for (int i = 1; i <= 1250000; i++) {
+                tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
+            }
+            tokenHashTableJSON = new JSONObject(tokenHashMap);
+            writeToFile(tokenHashTable.toString(), tokenHashTableJSON.toString(), false);
+            FunctionsLogger.debug("T1 ended at" + java.time.LocalTime.now());
+
+            tokenHashMap.clear();
+            long end = System.currentTimeMillis();
+            FunctionsLogger.debug("Write to file done in t1 : " +
+                    (end - start) + "ms");
+        });
+        Thread generateHashMapThread2 = new Thread(() -> {
+            System.out.println("T2 started at" + java.time.LocalTime.now());
+
+            HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
+            JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
+            long start = System.currentTimeMillis();
+            File tokenHashTable = new File(path+"/DH01.json");
+
+            for (int i = 1250001; i < 2500000; i++) {
+                tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
+            }
+            tokenHashTableJSON = new JSONObject(tokenHashMap);
+            writeToFile(tokenHashTable.toString(), tokenHashTableJSON.toString(), false);
+            FunctionsLogger.debug("T2 ended at" + java.time.LocalTime.now());
+
+            tokenHashMap.clear();
+            long end = System.currentTimeMillis();
+            FunctionsLogger.debug("Write to file done in t2 : " +
+                    (end - start) + "ms");
+        });
+
+        Thread generateHashMapThread3 = new Thread(() -> {
+            System.out.println("T3 started at" + java.time.LocalTime.now());
+
+            HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
+            JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
+            long start = System.currentTimeMillis();
+            File tokenHashTable = new File(path+"/DH02.json");
+            for (int i = 2500001; i <= 3750000; i++) {
+                tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
+            }
+            tokenHashTableJSON = new JSONObject(tokenHashMap);
+            writeToFile(tokenHashTable.toString(), tokenHashTableJSON.toString(), false);
+            FunctionsLogger.debug("T3 ended at" + java.time.LocalTime.now());
+
+            tokenHashMap.clear();
+
+            long tEnd = System.currentTimeMillis();
+            System.out.println("Write to file done in t3 : " +
+                    (tEnd - start) + "ms");
+        });
+
+        Thread generateHashMapThread4 = new Thread(() -> {
+            System.out.println("T4 started at" + java.time.LocalTime.now());
+
+            HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
+            JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
+            long start = System.currentTimeMillis();
+            File tokenHashTable = new File(path+"/DH03.json");
+            for (int i = 3750001; i <= 5000000; i++) {
+                tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
+            }
+            tokenHashTableJSON = new JSONObject(tokenHashMap);
+            writeToFile(tokenHashTable.toString(), tokenHashTableJSON.toString(), false);
+            FunctionsLogger.debug("T4 ended at" + java.time.LocalTime.now());
+
+            tokenHashMap.clear();
+            long end = System.currentTimeMillis();
+            FunctionsLogger.debug("Write to file done in t4 : " +
+                    (end - start) + "ms");
+        });
+
+        generateHashMapThread1.start();
+        generateHashMapThread2.start();
+        generateHashMapThread3.start();
+        generateHashMapThread4.start();
+        
+        
+
+        FunctionsLogger.debug("Main ended at" + java.time.LocalTime.now());
+
+        long end = System.currentTimeMillis();
+        FunctionsLogger.debug("Main thread" +
+                (end - tStart) + "ms");
+        
+        generateHashMapThread1.join();
+        generateHashMapThread2.join();
+        generateHashMapThread3.join();
+        generateHashMapThread4.join();
+
+        File filepath = new File(path);
+        if ((filepath.length() == 4)) {
+        	FunctionsLogger.debug("DataHashTable size is"+filepath.length());
+            status = true;
+        }else{
+            status = false;
+        }
+
+        return status;
+    }
+    
+    
+    public static int readTokenHashTable(String path,String tokenContent) throws JSONException {
+        File filePath = new File(path);
+        FunctionsLogger.debug("File path to add is "+path);
+        File[] tokenHashTable = filePath.listFiles();
+        Arrays.sort(tokenHashTable);
+        int tokenNumber = -1;
+
+        for (File tokenHashTableFile : tokenHashTable) {
+        	FunctionsLogger.debug(tokenHashTableFile.getName());
+            JSONObject tokenHashTableJSON = new JSONObject(readFile(tokenHashTableFile.toString()));
+            if (tokenHashTableJSON.has(tokenContent)) {
+                tokenNumber = tokenHashTableJSON.getInt(tokenContent);
+                return tokenNumber;
+            }
+
+        }
+        return tokenNumber;
+
+    }
+    
+    public static HashMap<String, Integer> checkTokenHash(HashMap<String,Integer> tokenDetailMap, int tokenLimit) throws InterruptedException {
+    	  HashMap<String,Integer> tokenHashWithNumber = new HashMap<>();
+    	  
+    	        int tokenNumber = -1;
+    	        try {
+    	        long start = System.currentTimeMillis();
+    	        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    	        
+    	        int flag = -1;
+    	        for(int i=1;i<=tokenLimit;i++) {
+    	            String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
+    	            for(String tokenHash : tokenDetailMap.keySet()) {
+    	             if(tokenHash.equals(tokenHashStr)) {
+    	                 tokenNumber = i;
+    	                 flag++;
+    	                 tokenHashWithNumber.put(tokenHash, i);
+    	                 FunctionsLogger.debug("TokenHash is "+ tokenHash + " and token number is "+i);
+    	            }
+    	            
+    	            }
+    	        }
+    	        
+    	        FunctionsLogger.debug("final tokenHashMap is "+tokenHashWithNumber.toString());
+    	        
+    	       
+    	      }catch (NoSuchAlgorithmException e) {
+    	            e.printStackTrace();
+    	        }catch (Exception e) {
+    	   e.printStackTrace();
+    	  }
+    	      
+        return tokenHashWithNumber;
+    }
+    
+
+    /**
+     * This method calculates different types of hashes as mentioned in the passed
+     * parameters for the mentioned message
+     *
+     * @param message   Input string to be hashed
+     * @param 
+     * @return (String) hash
+     */
+
+    private static String calculateSHA256Hash(MessageDigest digest, String message) {
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+        byte[] c = new byte[messageBytes.length];
+        System.arraycopy(messageBytes, 0, c, 0, messageBytes.length);
+        final byte[] hashBytes = digest.digest(messageBytes);
+        return bytesToHex(hashBytes);
+    }
+
+    
+    
 
 }
