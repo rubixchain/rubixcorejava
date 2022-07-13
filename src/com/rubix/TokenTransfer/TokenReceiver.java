@@ -453,7 +453,6 @@ public class TokenReceiver {
 			for (int count = 0; count < wholeTokens.length(); count++) {
 				String tokens = null;
 				TokenReceiverLogger.debug("Json array tokenChain value is " + wholeTokens.get(count).toString());
-				TokenReceiverLogger.debug("Json array allTokensChains value is " + allTokensChains.get(count).toString());
 				JSONArray tokenChain = new JSONArray(allTokensChains.get(count).toString());
 				TokenReceiverLogger.debug("tokenchain is " + tokenChain);
 				TokenReceiverLogger.debug("tokenchain size is " + tokenChain.length());
@@ -469,13 +468,18 @@ public class TokenReceiver {
 
 				// ! check quorum signs for previous transaction for the tokenchain to verify
 				// ! the ownership of sender for the token
-
-				//if ((tokenDetailMap.get(tokenNumberHash) >= 1204400) && (tokenLevelInt >= 4)) {
-
-					JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
-					TokenReceiverLogger.debug("Last Object = " + lastObject);
-
-					if (lastObject.has("owner") && !lastObject.has(MiningConstants.STAKED_TOKEN)) {
+				JSONObject lastObject = new JSONObject();
+				
+				if (tokenChain.length() > 0 ) {
+					
+					lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
+					
+				}
+				TokenReceiverLogger.debug("Last Object = " + lastObject.toString());
+				
+				
+				if (tokenChain.length() > 0 && lastObject.has("owner") && !lastObject.has(MiningConstants.STAKED_TOKEN) &&  
+							( (tokenLevelInt == 4 && (tokenDetailMap.get(tokenNumberHash) >= 1204400)) || (tokenLevelInt >= 5)) ) {
 
 						TokenReceiverLogger.debug("Checking ownership");
 						String owner = lastObject.getString("owner");
@@ -650,7 +654,7 @@ public class TokenReceiver {
 
 						}
 					}
-					if (lastObject.has(MiningConstants.STAKED_TOKEN)) {
+					else if (tokenChain.length() > 0 && lastObject.has(MiningConstants.STAKED_TOKEN)) {
 
 						Boolean minedTokenStatus = true;
 
@@ -726,8 +730,8 @@ public class TokenReceiver {
 						// }
 
 					}
-				}
-			//}
+				
+			}
 
 			if (!ownerCheck) {
 				TokenReceiverLogger.debug("Ownership Check Failed");
@@ -913,14 +917,14 @@ public class TokenReceiver {
 
 				}
 				if (pinDetails.equals("Unpinned")) {
-					int count = 0;
+					int pinCount = 0;
 					for (int i = 0; i < intPart; i++) {
 
 						Path tokensPath = Paths.get(TOKENS_PATH + wholeTokens.get(i));
 						Files.write(tokensPath, wholeTokenContent.get(i).getBytes());
 						add(TOKENS_PATH + wholeTokens.get(i), ipfs);
 						pin(wholeTokens.get(i).toString(), ipfs);
-						count++;
+						pinCount++;
 
 					}
 
@@ -935,7 +939,7 @@ public class TokenReceiver {
 
 					}
 
-					if (count == intPart) {
+					if (pinCount == intPart) {
 						TokenReceiverLogger.debug("Pinned All Tokens");
 						output.println("Successfully Pinned");
 
@@ -958,8 +962,8 @@ public class TokenReceiver {
 						}
 						long endTime = System.currentTimeMillis();
 						for (int i = 0; i < intPart; i++) {
-							String tokens = wholeTokens.getString(i);
-							String hashString = tokens.concat(receiverDidIpfsHash);
+							String wholeToken = wholeTokens.getString(i);
+							String hashString = wholeToken.concat(receiverDidIpfsHash);
 							String hashForPositions = calculateHash(hashString, "SHA3-256");
 
 							BufferedImage pvt = ImageIO
@@ -1020,8 +1024,8 @@ public class TokenReceiver {
 							String chequeHash = IPFSNetwork.add(LOGGER_PATH.concat(partTokens.getString(i)), ipfs);
 							deleteFile(LOGGER_PATH.concat(partTokens.getString(i)));
 
-							String tokens = partTokens.getString(i);
-							String hashString = tokens.concat(receiverDidIpfsHash);
+							String partsTokens = partTokens.getString(i);
+							String hashString = partsTokens.concat(receiverDidIpfsHash);
 							String hashForPositions = calculateHash(hashString, "SHA3-256");
 							BufferedImage pvt = ImageIO
 									.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
