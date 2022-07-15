@@ -3,7 +3,6 @@ package com.rubix.TokenTransfer;
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.*;
 import static com.rubix.Constants.ConsensusConstants.*;
-
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;

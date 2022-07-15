@@ -500,15 +500,11 @@ public class Functions {
     	
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         
-    //	FunctionsLogger.debug("Mutex status is "+mutex);
-
         try {
             while (mutex) {
             }
 
             mutex = true;
-        //	FunctionsLogger.debug("Mutex status is "+mutex+" after while");
-
             File file = new File(filePath);
             if (!file.exists()) {
                 file.createNewFile();
@@ -517,6 +513,7 @@ public class Functions {
             }
             String fileContent = readFile(filePath);
             JSONArray contentArray = new JSONArray(fileContent);
+            
 
             for (int i = 0; i < contentArray.length(); i++) {
                 JSONObject contentArrayJSONObject = contentArray.getJSONObject(i);
@@ -533,11 +530,9 @@ public class Functions {
 
             if (operation.equals("add")) {
                 JSONArray newData = new JSONArray(data);
-             //   FunctionsLogger.debug("data to be added in if condifiton is "+ newData.toString());
                 for (int i = 0; i < newData.length(); i++)
                     contentArray.put(newData.getJSONObject(i));
                 writeToFile(filePath, contentArray.toString(), false);
-             //   FunctionsLogger.debug("Update completed in "+filePath);
             }
             mutex = false;
         } catch (JSONException e) {
@@ -1588,7 +1583,7 @@ public class Functions {
                 sanityMessage = userType + " is not running the latest Jar. PID: " + peerid;
             }
         }
-
+/*
         if (sanityCheckErrorFlag) {
             if (portCheckAndKill(port)) {
                 FunctionsLogger.debug("Ports are available for transcations in " + peerid);
@@ -1597,7 +1592,7 @@ public class Functions {
                 sanityMessage = "Ports are not available for " + peerid;
             }
         }
-
+*/
         return sanityCheckErrorFlag;
     }
     
@@ -1770,9 +1765,10 @@ public class Functions {
 
     public static boolean portCheckAndKill(int port) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        
         boolean portStatus = false;
         long pid = ProcessHandle.current().pid();
-        FunctionsLogger.info("Current OS is " + getOsName());
+        FunctionsLogger.info("Current OS is " + getOsName()+" and port is "+port);
         try {
             if (!getOsName().toLowerCase().contains("windows")) {
                 portStatus = releasePorts(port);
@@ -1796,6 +1792,7 @@ public class Functions {
         String processStr;
         Process processId;
         try {
+        	FunctionsLogger.info("inside try of release ports");
             processId = Runtime.getRuntime().exec("lsof -ti :" + port);
             long currentPid = ProcessHandle.current().pid();
             BufferedReader br = new BufferedReader(
