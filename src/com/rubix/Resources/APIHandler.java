@@ -51,69 +51,40 @@ public class APIHandler {
     public static JSONObject send(String data) throws Exception {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        
-     //   APILogger.debug("data is "+ data);
+
         String senderPeerID = getPeerID(DATA_PATH + "DID.json");
         String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
-        JSONArray tokens;
+
         JSONObject dataObject = new JSONObject(data);
-        
-   //     APILogger.debug("dataObject is "+ dataObject.toString());
-       // String recDID = dataObject.getString("receiverDidIpfsHash");
-        String recDID;
+        String recDID = dataObject.getString("receiverDidIpfsHash");
 
         String dataTableData = readFile(DATA_PATH + "DataTable.json");
         boolean isObjectValid = false;
         JSONArray dataTable = new JSONArray(dataTableData);
+        for (int i = 0; i < dataTable.length(); i++) {
+            JSONObject dataTableObject = dataTable.getJSONObject(i);
+            if (dataTableObject.getString("didHash").equals(recDID)) {
+                isObjectValid = true;
+            }
+        }
+        if (!isObjectValid)
+            networkInfo();
+
         JSONObject sendMessage = new JSONObject();
+        if (recDID.length() != 46) {
+            sendMessage.put("did", senDID);
+            sendMessage.put("tid", "null");
+            sendMessage.put("status", "Failed");
+            sendMessage.put("message", "Invalid Receiver Did Entered");
+            return sendMessage;
+        }
 
-    //    APILogger.debug("dataObject is "+ dataObject.toString());
-     
-    //       APILogger.debug("Trans type is "+ PRIMARY);
+        dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
 
-    	 //  dataObject.put(TRANS_TYPE, PRIMARY);
-    	   recDID = dataObject.getString("receiverDidIpfsHash");
-           tokens = dataObject.getJSONArray("tokens");
-     //      APILogger.debug("Trans type is "+ dataObject.toString());
-
-           if (tokens.length() < 1) {
-               sendMessage.put("did", senDID);
-               sendMessage.put("tid", "null");
-               sendMessage.put("status", "Failed");
-               sendMessage.put("message", "Invalid amount");
-               return sendMessage;
-           }
-
-           if (recDID.length() != 46) {
-               sendMessage.put("did", senDID);
-               sendMessage.put("tid", "null");
-               sendMessage.put("status", "Failed");
-               sendMessage.put("message", "Invalid Receiver Did Entered");
-               return sendMessage;
-           }
-
-           for (int i = 0; i < dataTable.length(); i++) {
-               JSONObject dataTableObject = dataTable.getJSONObject(i);
-               if (dataTableObject.getString("didHash").equals(recDID)) {
-                   isObjectValid = true;
-               }
-           }
-           if (!isObjectValid)
-               networkInfo();
-       
-
-      
-       dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-   //    APILogger.debug("dataObeject is "+dataObject.toString());
-      
-           sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
-
-       
-       
-
-   //    APILogger.debug("send Message is "+sendMessage);
-       return sendMessage;
-   }
+        APILogger.info(sendMessage);
+        return sendMessage;
+    }
         
     
     /**

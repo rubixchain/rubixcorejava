@@ -38,6 +38,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;  
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -1915,6 +1916,174 @@ public class Functions {
     	return APIResponse;
 		
 	}
+    
+    public static int multiplePinCheck(String senderDidIpfsHash,JSONObject tokenObject, IPFS ipfs) throws JSONException, InterruptedException {
+    	int statusCode = 200;
+    	FunctionsLogger.debug("Input tokenObject is "+tokenObject.toString());
+        JSONObject TokenDetails = tokenObject.getJSONObject("tokenDetails");
+        JSONArray wholeTokens = TokenDetails.getJSONArray("whole-tokens");
+        JSONArray wholeTokenChains = TokenDetails.getJSONArray("whole-tokenChains");
+
+        JSONArray partTokens = TokenDetails.getJSONArray("part-tokens");
+        JSONObject partTokenChains = TokenDetails.getJSONObject("part-tokenChains");
+        JSONArray partTokenChainsHash = TokenDetails.getJSONArray("hashSender");
+
+        JSONArray previousSendersArray = tokenObject.getJSONArray("previousSender");
+        JSONArray positionsArray = tokenObject.getJSONArray("positions");
+
+        Double amount = tokenObject.getDouble("amount");
+        JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
+        FunctionsLogger.debug("Amount Ledger: " + amountLedger);
+        int intPart = wholeTokens.length();
+        // ? multiple pin check starts
+        Double decimalPart = formatAmount(amount - intPart);
+        JSONArray doubleSpentToken = new JSONArray();
+        boolean tokenOwners = true;
+        ArrayList pinOwnersArray = new ArrayList();
+        ArrayList previousSender = new ArrayList();
+        JSONArray ownersReceived = new JSONArray();
+    	
+        ArrayList ownersArray = new ArrayList();
+        for (int i = 0; i < wholeTokens.length(); ++i) {
+            try {
+            	FunctionsLogger.debug("Checking owners for " + wholeTokens.getString(i) +
+                        " Please wait...");
+                pinOwnersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
+
+                if (pinOwnersArray.size() > 2) {
+
+                    for (int j = 0; j < previousSendersArray.length(); j++) {
+                        if (previousSendersArray.getJSONObject(j).getString("token")
+                                .equals(wholeTokens.getString(i)))
+                            ownersReceived = previousSendersArray.getJSONObject(j).getJSONArray("sender");
+                    }
+
+                    for (int j = 0; j < ownersReceived.length(); j++) {
+                        previousSender.add(ownersReceived.getString(j));
+                    }
+                    FunctionsLogger.debug("Previous Owners: " + previousSender);
+
+                    for (int j = 0; j < pinOwnersArray.size(); j++) {
+                        if (!previousSender.contains(pinOwnersArray.get(j).toString()))
+                            tokenOwners = false;
+                    }
+                }
+            } catch (IOException e) {
+
+            	FunctionsLogger.debug("Ipfs dht find did not execute");
+            }
+        }
+        if (!tokenOwners) {
+            JSONArray owners = new JSONArray();
+            for (int i = 0; i < pinOwnersArray.size(); i++)
+                owners.put(pinOwnersArray.get(i).toString());
+            FunctionsLogger.debug("Multiple Owners for " + doubleSpentToken);
+            FunctionsLogger.debug("Owners: " + owners);
+            statusCode = 420;
+            
+            return statusCode;
+        }
+      
+    	return statusCode;
+    }
+    
+    public static HashMap<String, Integer> checkTokenHash(HashMap<String,Integer> tokenDetailMap, int tokenLimit) throws InterruptedException {
+  	  HashMap<String,Integer> tokenHashWithNumber = new HashMap<>();
+  	  
+  	        int tokenNumber = -1;
+  	        try {
+  	        long start = System.currentTimeMillis();
+  	        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+  	        
+  	        int flag = -1;
+  	        for(int i=1;i<=tokenLimit;i++) {
+  	            String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
+  	            for(String tokenHash : tokenDetailMap.keySet()) {
+  	             if(tokenHash.equals(tokenHashStr)) {
+  	                 tokenNumber = i;
+  	                 flag++;
+  	                 tokenHashWithNumber.put(tokenHash, i);
+  	                 FunctionsLogger.debug("TokenHash is "+ tokenHash + " and token number is "+i);
+  	            }
+  	            
+  	            }
+  	        }
+  	        
+  	        FunctionsLogger.debug("final tokenHashMap is "+tokenHashWithNumber.toString());
+  	        
+  	       
+  	      }catch (NoSuchAlgorithmException e) {
+  	            e.printStackTrace();
+  	        }catch (Exception e) {
+  	   e.printStackTrace();
+  	  }
+  	      
+      return tokenHashWithNumber;
+  }
+    
+    private static String calculateSHA256Hash(MessageDigest digest, String message) {
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+        byte[] c = new byte[messageBytes.length];
+        System.arraycopy(messageBytes, 0, c, 0, messageBytes.length);
+        final byte[] hashBytes = digest.digest(messageBytes);
+        return bytesToHex(hashBytes);
+    }
+    
+    public static void ownerIdentity(JSONArray tokens, String receiverDidIpfsHash)  {
+        Functions.pathSet();
+         
+        try {
+            for (int i = 0; i < tokens.length(); i++) {
+            
+                String tokenHash = tokens.getString(i);
+                String hashString = tokenHash.concat(receiverDidIpfsHash);
+                String hashForPositions = calculateHash(hashString, "SHA3-256");
+                BufferedImage pvt = ImageIO.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
+                String firstPrivate = PropImage.img2bin(pvt);
+                int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+                String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+                String positions = "";
+                for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                    positions += privateBinary.charAt(j);
+                }
+                String ownerIdentity = hashForPositions.concat(positions);
+                String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+                File chainFile = new File(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                if (chainFile.exists()) {
+                    String tokenChainFile = readFile(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                    JSONArray tokenChainArray = new JSONArray(tokenChainFile);
+                    JSONObject tokenChainObject = tokenChainArray.getJSONObject(tokenChainArray.length() - 1);
+                    tokenChainObject.put("owner", ownerIdentityHash);
+                    tokenChainArray.remove(tokenChainArray.length() - 1);
+                    tokenChainArray.put(tokenChainObject);
+                    writeToFile(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"), tokenChainArray.toString(), false);
+                    
+                } else {
+                    File partChainFile = new File(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
+                    if (partChainFile.exists()) {
+                        String tokenChainFile = readFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
+                        JSONArray tokenChainArray = new JSONArray(tokenChainFile);
+                        JSONObject tokenChainObject = tokenChainArray.getJSONObject(tokenChainArray.length() - 1);
+                        tokenChainObject.put("owner", ownerIdentityHash);
+                        tokenChainArray.remove(tokenChainArray.length() - 1);
+                        tokenChainArray.put(tokenChainObject);
+                        writeToFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"), tokenChainArray.toString(), false);
+                    
+                    } else {
+                        FunctionsLogger.info("Token chain file not found for token " + tokenHash);
+                    }
+
+                } 
+             
+    
+            }
+        } catch (Exception e) {
+            FunctionsLogger.error("Exception occured at ownerIdentity", e);
+        }
+        
+        
+
+    }
     
     
 
