@@ -14,9 +14,12 @@ import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
 import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.deleteFile;
 import static com.rubix.Resources.Functions.getQuorum;
+import static com.rubix.Resources.Functions.getValues;
 import static com.rubix.Resources.Functions.minQuorum;
 import static com.rubix.Resources.Functions.mineUpdate;
 import static com.rubix.Resources.Functions.readFile;
+import static com.rubix.Resources.Functions.sanityCheck;
+import static com.rubix.Resources.Functions.sanityMessage;
 import static com.rubix.Resources.Functions.strToIntArray;
 import static com.rubix.Resources.Functions.updateJSON;
 import static com.rubix.Resources.Functions.updateQuorum;
@@ -49,6 +52,7 @@ import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
 import com.rubix.Consensus.StakeConsensus;
+import com.rubix.Constants.MiningConstants;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
@@ -66,6 +70,9 @@ public class ProofCredits {
     private static ArrayList betaPeersList;
     private static ArrayList gammaPeersList;
     private static int alphaSize = 0;
+    public static String hashChainProof = new String();
+    private static int hashChainRule = 7;
+
 
     public static JSONObject create(String data, IPFS ipfs) throws IOException, JSONException {
 
@@ -73,6 +80,10 @@ public class ProofCredits {
         StakeConsensus.STAKE_LOCKED = 0;
         StakeConsensus.STAKE_FAILED = 0;
         StakeConsensus.stakeDetails = new JSONArray();
+        InitiatorConsensus.signedAphaQuorumArray = new JSONArray();
+        InitiatorConsensus.quorumWithShares = new ArrayList<>();
+        InitiatorConsensus.finalQuorumSignsArray = new JSONArray();
+        InitiatorConsensus.quorumSignature = new JSONObject();
         repo(ipfs);
         JSONObject APIResponse = new JSONObject();
         JSONObject detailsObject = new JSONObject(data);
@@ -86,6 +97,10 @@ public class ProofCredits {
         JSONArray alphaQuorum = new JSONArray();
         JSONArray betaQuorum = new JSONArray();
         JSONArray gammaQuorum = new JSONArray();
+        JSONArray qstArray = new JSONArray();
+        
+        boolean Status = false;
+
 
         int creditsRequired = 50000, level;
         long starttime = System.currentTimeMillis();
@@ -183,7 +198,6 @@ public class ProofCredits {
             } else
                 ProofCreditsLogger.debug("GET request not worked");
 
-            ProofCreditsLogger.debug("*************resJsonData.length()**********" + resJsonData.length());
             // Check if node can mine token
             if (resJsonData.length() > 0) {
                 // Calling Mine token function
@@ -213,6 +227,63 @@ public class ProofCredits {
                 String authSenderByRecHash = calculateHash(token + DID + comments, "SHA3-256");
                 String tid = calculateHash(authSenderByRecHash, "SHA3-256");
 
+                // writeToFile(LOGGER_PATH + "tempbeta", tid.concat(DID), false);
+                // String betaHash = IPFSNetwork.add(LOGGER_PATH + "tempbeta", ipfs);
+                // deleteFile(LOGGER_PATH + "tempbeta");
+
+                // writeToFile(LOGGER_PATH + "tempgamma", tid.concat(DID), false);
+                // String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
+                // deleteFile(LOGGER_PATH + "tempgamma");
+                
+                
+                
+                ProofCreditsLogger.debug("DID is "+DID);
+                ProofCreditsLogger.debug("Quorums list is "+quorumArray.toString());
+                if(quorumArray.toString().contains(DID)) {
+                	JSONArray updatedQuourmList =  new JSONArray();
+                	ProofCreditsLogger.debug("Miner DID "+ DID + "is found in quourmArray");
+                	for(int i=0;i<quorumArray.length();i++) {
+                		if(!quorumArray.get(i).toString().contains(DID)) {
+                			updatedQuourmList.put(quorumArray.get(i));
+                		}
+                	}
+                	ProofCreditsLogger.debug("Old quorum list is "+quorumArray.toString());
+                	ProofCreditsLogger.debug("Updated quourm list is "+updatedQuourmList.toString());
+                	quorumArray = updatedQuourmList;
+                }
+                
+                ProofCreditsLogger.debug("Final quorums list is "+quorumArray.toString());
+
+                // Sanity Check - Start                 
+                int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
+                JSONArray sanityFailedQuorum = new JSONArray();
+                for (int i = 0; i < quorumArray.length(); i++) {
+                    String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
+                            quorumArray.getString(i));
+                    boolean quorumSanityCheck = sanityCheck("Quorum", quorumPeerID, ipfs, SEND_PORT + 11);
+
+                    if (!quorumSanityCheck) {
+                        sanityFailedQuorum.put(quorumPeerID);
+                        if (i <= 6)
+                            alphaCheck++;
+                        if (i >= 7 && i <= 13)
+                            betaCheck++;
+                        if (i >= 14 && i <= 20)
+                            gammaCheck++;
+                    }
+                }
+
+                if (alphaCheck > 2 || betaCheck > 2 || gammaCheck > 2) {
+                    APIResponse.put("did", DID);
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    String message = "Quorum: ".concat(sanityFailedQuorum.toString()).concat(" ");
+                    APIResponse.put("message", message.concat(sanityMessage));
+                    ProofCreditsLogger.warn("Quorum: ".concat(message.concat(sanityMessage)));
+                    return APIResponse;
+                }
+                //Sanity Check - Ends
+                
                 QuorumSwarmConnect(quorumArray, ipfs);
 
                 alphaSize = quorumArray.length() - 14;
@@ -247,11 +318,12 @@ public class ProofCredits {
                 }
 
                 JSONArray signedQuorumList = new JSONArray();
-                if (!oldCreditsFlag) {
+                boolean creditRemoveStatus = false;
+				if (!oldCreditsFlag) {
                     ProofCreditsLogger.debug("New Credits");
                     // Send QST for verification
                     String qstContent = readFile(WALLET_DATA_PATH.concat("QuorumSignedTransactions.json"));
-                    JSONArray qstArray = new JSONArray(qstContent);
+                    qstArray = new JSONArray(qstContent);
 
                     int count = 0;
                     JSONArray creditSignsArray = new JSONArray();
@@ -310,6 +382,7 @@ public class ProofCredits {
                         APIResponse.put("status", "Failed");
                         APIResponse.put("message", "Consensus failed");
                         ProofCreditsLogger.debug("consensus failed");
+                        return APIResponse;
                     } else {
                         ProofCreditsLogger.debug("token mined " + token);
 
@@ -323,9 +396,7 @@ public class ProofCredits {
                             }
                         }
 
-                        for (int i = 0; i < creditUsed; i++)
-                            deleteFile(WALLET_DATA_PATH.concat("/Credits/")
-                                    .concat(qstArray.getJSONObject(i).getString("credits")).concat(".json"));
+                        creditRemoveStatus = true;
 
                     }
                 } else {
@@ -371,8 +442,6 @@ public class ProofCredits {
 
                     writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
                     String tokenHash = IPFSNetwork.add(LOGGER_PATH + "tempToken", ipfs);
-                    writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
-                    deleteFile(LOGGER_PATH + "tempToken");
 
                     FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
                     shareWriter.write(InitiatorConsensus.quorumSignature.toString());
@@ -395,6 +464,7 @@ public class ProofCredits {
                     int[] privateIntegerArray1 = strToIntArray(firstPrivate);
                     String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
                     String positions = "";
+
                     for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
                         positions += privateBinary.charAt(j);
                     }
@@ -421,12 +491,13 @@ public class ProofCredits {
                     tokenChainGenesisObject.put("QSTHeight", QSTHeight);
                     tokenChainGenesisObject.put("tokenHash", tokenHash);
                     tokenChainGenesisObject.put("tokenContent", token.getString(i));
+
                     tokenChainGenesisObject.put("nextHash", calculateHash(tid, "SHA3-256"));
                     tokenChainGenesisObject.put("previousHash", "");
                     // stakingData = tokenChainGenesisObject;
                     // tkHash = tokenHash;
-                    tokenChainArray.put(tokenChainGenesisObject);
 
+                    //tokenChainArray.put(tokenChainGenesisObject);
                     // ! new token will now need a staked token
 
                     /*
@@ -445,16 +516,34 @@ public class ProofCredits {
                     });
                     stakingThread.start();
 
-                    while ((StakeConsensus.STAKE_SUCCESS < 2 && StakeConsensus.STAKE_FAILED < 3)) {
+                    while ((StakeConsensus.STAKE_SUCCESS < 3 && StakeConsensus.STAKE_FAILED < 3)) {
 
                     }
+                    ProofCreditsLogger.debug("Stake consensus stake details is "+ StakeConsensus.stakeDetails.toString());
+                    if (StakeConsensus.STAKE_SUCCESS == 3 && StakeConsensus.stakeDetails.length() > 0) {
+                        tokenChainGenesisObject.put(MiningConstants.MINE_ID, StakeConsensus.stakeDetails);
+                        tokenChainArray.put(tokenChainGenesisObject);
 
-                    ProofCreditsLogger.debug(StakeConsensus.STAKE_SUCCESS + "************" + StakeConsensus.STAKE_FAILED
-                            + "******" + StakeConsensus.stakeDetails.length() + "<<<<<<<<<<<<<"
-                            + StakeConsensus.stakeDetails.toString());
-                    if (StakeConsensus.stakeDetails.length() > 0) {
-                        tokenChainArray.put(StakeConsensus.stakeDetails);
                         ProofCreditsLogger.debug("Stake Details for new mined token: " + StakeConsensus.stakeDetails);
+                        ProofCreditsLogger.debug("Staked quorums are "+ StakeConsensus.stakedDIDs);
+                        ProofCreditsLogger.debug("-----------------------------------------------");
+                        ProofCreditsLogger.debug("Staked quorums are :");
+                        for (String ele : StakeConsensus.stakedDIDs) {
+                        	ProofCreditsLogger.debug(ele+"   ");
+                        }
+                        ProofCreditsLogger.debug("-----------------------------------------------");
+                        writeToFile(TOKENS_PATH + tokenHash, token.getString(i), false);
+                        ProofCreditsLogger.warn(" TOKENHASH " + tokenHash);
+                        ProofCreditsLogger.warn(" TOKENS " + token.getString(i));
+                        deleteFile(LOGGER_PATH + "tempToken");
+                        writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
+                        JSONObject temp = new JSONObject();
+                        temp.put("tokenHash", tokenHash);
+                        JSONArray tempArray = new JSONArray();
+                        tempArray.put(temp);
+                        hashChainProof = HashChain.hashChainCounter(tid, StakeConsensus.stakedDIDs, hashChainRule);
+                        ProofCreditsLogger.debug("HashChainProof is "+hashChainProof+" transcation id is "+ tid);
+                        updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
                     } else {
                         updateQuorum(quorumArray, null, false, type);
                         APIResponse.put("did", DID);
@@ -465,13 +554,8 @@ public class ProofCredits {
                         ProofCreditsLogger.warn("Staking failed");
                         return APIResponse;
                     }
-
-                    writeToFile(TOKENCHAIN_PATH + tokenHash + ".json", tokenChainArray.toString(), false);
-                    JSONObject temp = new JSONObject();
-                    temp.put("tokenHash", tokenHash);
-                    JSONArray tempArray = new JSONArray();
-                    tempArray.put(temp);
-                    updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
+                    
+                   
                 }
 
                 // updateJSON("add", TOKENCHAIN_PATH + tkHash + ".json", tempArray.toString());
@@ -542,6 +626,12 @@ public class ProofCredits {
                 transactionRecord.put("Date", currentTime);
                 transactionRecord.put("totalTime", totalTime);
                 transactionRecord.put("comment", "minedtxn");
+                
+                if(creditRemoveStatus == true) {
+                	for (int i = 0; i < creditUsed; i++)
+                        deleteFile(WALLET_DATA_PATH.concat("/Credits/")
+                                .concat(qstArray.getJSONObject(i).getString("credits")).concat(".json"));
+                }
 
                 JSONArray transactionHistoryEntry = new JSONArray();
                 transactionHistoryEntry.put(transactionRecord);
@@ -669,3 +759,5 @@ public class ProofCredits {
         return APIResponse;
     }
 }
+
+//stakedDIDs

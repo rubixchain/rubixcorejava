@@ -36,6 +36,8 @@ public class StakeConsensus {
     public static volatile int STAKE_SUCCESS = 0;
     public static volatile int STAKE_FAILED = 0;
     public static volatile JSONArray stakeDetails = new JSONArray();
+    public static volatile ArrayList<String> stakedDIDs = new ArrayList<String>();
+
     // MINE_ID
     // QST_HEIGHT
     // STAKED_QUORUM_DID
