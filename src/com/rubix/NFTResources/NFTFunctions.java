@@ -5,6 +5,8 @@ import org.apache.log4j.*;
 import org.json.*;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateKey;
@@ -830,4 +832,51 @@ public class NFTFunctions {
             return DEF_ALG_RES;
         }
     }
+
+    
+ //To update the newly created public key of the user in the DID server.
+ 
+    public static void addPubKeyData_DIDserver() throws JSONException{
+    pathSet();
+
+    
+    String pubKeyIpfsHash = (readFile(DATA_PATH+"PublicKeyIpfsHash"));
+
+
+    String myPeerID = getPeerID(DATA_PATH + "DID.json");
+    String didIpfsHash = getValues(DATA_PATH + "DID.json", "didHash", "peerid", myPeerID);
+
+    JSONArray record = new JSONArray();
+    JSONObject obj = new JSONObject();
+    //int responseCodeSYNC=0;
+
+    obj.put("didHash", didIpfsHash);
+    obj.put("pubKeyIpfsHash", pubKeyIpfsHash);
+    record.put(obj);
+
+    try{
+        URL syncobj = new URL(SYNC_IP + "/addPubKeyData");
+        HttpURLConnection synccon = (HttpURLConnection)syncobj.openConnection();
+        synccon.setRequestMethod("POST");
+        synccon.setRequestProperty("User-Agent", "signer");
+        synccon.setRequestProperty("Content-Type", "application/json");
+        synccon.setDoOutput(true);
+        NftFunctionsLogger.debug("Connected to DID server");
+        DataOutputStream syncWR = new DataOutputStream(synccon.getOutputStream());
+
+        syncWR.writeBytes(record.toString());
+        syncWR.flush();
+        syncWR.close();
+        int responseCodeSYNC = synccon.getResponseCode();
+        NftFunctionsLogger.debug("DID server SYNC Response code : " + responseCodeSYNC);
+        
+
+    }catch (IOException e) {
+        NftFunctionsLogger.error("IO Exception Occurred ", e);
+        e.printStackTrace();
+    }
+    
+    //return responseCodeSYNC;
+}
+
 }
