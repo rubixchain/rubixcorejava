@@ -491,6 +491,8 @@ public class TokenReceiver {
                 }
             }
 
+
+			// Returning responses after chain verification
             if(chainAutheticityFlag == 1){
                 
                 TokenReceiverLogger.debug("Token Transfer continuing without TokenChain authentication check. (Bootstrap purpose)");
@@ -504,7 +506,9 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Token Chain could not be verified");
                 TokenReceiverLogger.info("Token Chain could not be verified.");
-				TokenReceiverLogger.info("Chain auth flag : "+chainAutheticityFlag);
+				//TokenReceiverLogger.info("Chain auth flag : "+chainAutheticityFlag);
+
+				output.println("430");
                 IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
                 output.close();
                 input.close();
@@ -520,8 +524,10 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Token Chain could not be verified. Malicious activity by sender");
                 TokenReceiverLogger.info("Token Chain could not be verified. Malicious activity by sender");
-				TokenReceiverLogger.info("Chain auth flag : "+chainAutheticityFlag);
-                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+				//TokenReceiverLogger.info("Chain auth flag : "+chainAutheticityFlag);
+                
+				output.println("430");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
                 output.close();
                 input.close();
                 sk.close();
@@ -535,7 +541,10 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Token Chain could not be verified. Previous sender's signature not verified");
                 TokenReceiverLogger.info("Token Chain could not be verified. Previous sender's signature not verified");
-                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                //TokenReceiverLogger.info("Chain auth flag : "+chainAutheticityFlag);
+                
+				output.println("430");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
                 output.close();
                 input.close();
                 sk.close();
@@ -549,7 +558,10 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Token Chain could not be verified. Previous sender's signature not verified");
                 TokenReceiverLogger.info("Token Chain could not be verified. Previous sender's signature not verified");
-                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                //TokenReceiverLogger.info("Chain auth flag : "+chainAutheticityFlag);
+                
+				output.println("430");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
                 output.close();
                 input.close();
                 sk.close();
@@ -780,6 +792,7 @@ public class TokenReceiver {
 			}
                 
 
+			// Returning responses after chain verification
 
             if(chainAutheticityFlag2 == 1){
                 
@@ -794,6 +807,8 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Part Token Chain could not be verified. Incorrect hash");
                 TokenReceiverLogger.info("Part Token Chain could not be verified");
+
+				output.println("431");
                 IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
                 output.close();
                 input.close();
@@ -809,7 +824,9 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Part Token Chain could not be verified. Malicious activity by sender");
                 TokenReceiverLogger.info("Part Token Chain could not be verified. Malicious activity by sender");
-                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                
+				output.println("431");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
                 output.close();
                 input.close();
                 sk.close();
@@ -823,7 +840,9 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Part Token Chain could not be verified. Previous sender's signature not verified");
                 TokenReceiverLogger.info("Part Token Chain could not be verified. Previous sender's signature not verified");
-                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                
+				output.println("431");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
                 output.close();
                 input.close();
                 sk.close();
@@ -837,7 +856,9 @@ public class TokenReceiver {
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message", "Part Token Chain could not be verified. Previous sender's signature not verified");
                 TokenReceiverLogger.info("Part Token Chain could not be verified. Previous sender's signature not verified");
-                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                
+				output.println("431");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
                 output.close();
                 input.close();
                 sk.close();
@@ -850,6 +871,8 @@ public class TokenReceiver {
             }
 
 			//Token Chain authenticity check ends.
+
+			
 
 			JSONArray partTokenChainContent = new JSONArray();
 			JSONArray partTokenContent = new JSONArray();
