@@ -1,5 +1,6 @@
 package com.rubix.Consensus;
 
+import com.rubix.Constants.ConsensusConstants.*;
 import static com.rubix.Constants.ConsensusConstants.INIT_HASH;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -137,8 +138,7 @@ public class InitiatorConsensus {
 
             for (int j = 0; j < quorumPeersObject.length(); j++)
                 quorumID[j] = quorumPeersObject.getString(j);
-            
-        	InitiatorConsensusLogger.debug("quorumPeersObject is "+quorumPeersObject.toString());
+
             Thread[] quorumThreads = new Thread[quorumPeersObject.length()];
             for (int i = 0; i < quorumPeersObject.length(); i++) {
                 int j = i;
@@ -155,8 +155,8 @@ public class InitiatorConsensus {
                         String appName = quorumID[j].concat(role);
                         InitiatorConsensusLogger.debug("quourm ID " + quorumID[j] + " appname " + appName);
                         forward(appName, PORT + j, quorumID[j]);
-                        InitiatorConsensusLogger.debug(
-                                "Connected to " + quorumID[j] + "on port " + (PORT + j) + "with AppName" + appName);
+                        //InitiatorConsensusLogger.debug(
+                        //        "Connected to " + quorumID[j] + "on port " + (PORT + j) + "with AppName" + appName);
 
                         qSocket[j] = new Socket("127.0.0.1", PORT + j);
                         qSocket[j].setSoTimeout(socketTimeOut);
@@ -204,8 +204,8 @@ public class InitiatorConsensus {
                                                 detailsToVerify.put("hash", hash);
                                                 detailsToVerify.put("signature", qResponse[j]);
                                                 if (Authenticate.verifySignature(detailsToVerify.toString())) {
-                                                    InitiatorConsensusLogger
-                                                            .debug(role + " node authenticated at index " + index +"Out of j "+j+" and quourmsize is "+quorumSize);
+                                                    //InitiatorConsensusLogger
+                                                    //        .debug(role + " node authenticated at index " + index +"Out of j "+j+" and quourmsize is "+quorumSize);
                                                     boolean voteStatus = voteNCount(index, quorumSize);
                                                     if (quorumResponse[index] <= minQuorum(quorumSize) && voteStatus) {
                                                         InitiatorConsensusLogger.debug(
@@ -220,8 +220,8 @@ public class InitiatorConsensus {
                                                         while (quorumSignature
                                                                 .length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
                                                         }
-                                                        InitiatorConsensusLogger.debug("sending Qsign  of length "
-                                                                + quorumSignature.length() + "at index " + index);
+                                                        //InitiatorConsensusLogger.debug("sending Qsign  of length "
+                                                        //        + quorumSignature.length() + "at index " + index);
                                                         qOut[j].println(finalQuorumSignsArray.toString());
                                                         IPFSNetwork.executeIPFSCommands(
                                                                 "ipfs p2p close -t /p2p/" + quorumID[j]);
@@ -231,8 +231,8 @@ public class InitiatorConsensus {
                                                         IPFSNetwork.executeIPFSCommands(
                                                                 "ipfs p2p close -t /p2p/" + quorumID[j]);
                                                     }
-                                                    InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse
-                                                            + "Signature count : " + quorumSignature.length());
+                                                   // InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse
+                                                   //         + "Signature count : " + quorumSignature.length());
                                                 } else {
                                                     InitiatorConsensusLogger
                                                             .debug("node failed authentication with index " + index
@@ -264,12 +264,12 @@ public class InitiatorConsensus {
                         }
 
                         qOut[j].println(detailsToken);
-                        InitiatorConsensusLogger.debug("Token details from Init Conse is "+detailsToken.toString());
+                  //      InitiatorConsensusLogger.debug("Token details from Init Conse is "+detailsToken.toString());
 
 
                         try {
                             qResponse[j] = qIn[j].readLine();
-                            InitiatorConsensusLogger.debug("qResponse of "+j+" is "+qResponse[j]);
+                            //InitiatorConsensusLogger.debug("qResponse of "+j+" is "+qResponse[j]);
                         } catch (SocketException e) {
                             InitiatorConsensusLogger.warn("Quorum " + quorumID[j] + " is unable to Respond! with operation "+operation);
                             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
@@ -280,8 +280,8 @@ public class InitiatorConsensus {
                                 InitiatorConsensusLogger.debug("Sender Authentication Failure at " + quorumID[j]);
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                             } else {
-                               InitiatorConsensusLogger
-                                      .debug("Signature Received from j "+ j + " with " + quorumID[j] + " is " + qResponse[j]);
+                            //    InitiatorConsensusLogger
+                            //           .debug("Signature Received from j "+ j + " with " + quorumID[j] + " is " + qResponse[j]);
                                 if (quorumResponse[index] > minQuorum(quorumSize)) {
                                 //	InitiatorConsensusLogger.debug("Inside quorumResponse[index] > minQuorum(quorumSize) with quorumResponse index "+ index + " quorumResponse[index] - " +quorumResponse[index] + "minQuorum(quorumSize)" + minQuorum(quorumSize));
                                     qOut[j].println("null");

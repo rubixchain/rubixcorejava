@@ -39,10 +39,10 @@ public class DatainitiatorProcedure {
     public static void dataConsensusSetUp(String data, IPFS ipfs, int PORT, int alphaSize)
             throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        DataInitiatorProcedureLogger.debug("Incoming data to initator procedure is "+data);
+        //DataInitiatorProcedureLogger.debug("Incoming data to initator procedure is "+data);
         JSONObject dataSend = new JSONObject();
         JSONObject dataObject = new JSONObject(data);
-        DataInitiatorProcedureLogger.debug("dataObject is "+dataObject.toString());
+        //DataInitiatorProcedureLogger.debug("dataObject is "+dataObject.toString());
         String tid = dataObject.getString("tid");
         String pvt = dataObject.getString("pvt");
         String operation = ConsensusConstants.DATA;
@@ -64,7 +64,7 @@ public class DatainitiatorProcedure {
                 payload.put("sender", senderDidIpfs);
                 payload.put("blockHash", blockHash);
                 payload.put("tid", tid);
-                DataInitiatorProcedureLogger.debug("payload is "+payload.toString());
+                //DataInitiatorProcedureLogger.debug("payload is "+payload.toString());
             } catch (JSONException e) {
             	DataInitiatorProcedureLogger.error("JSON Exception occurred", e);
                 e.printStackTrace();
