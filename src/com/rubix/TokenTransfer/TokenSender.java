@@ -798,6 +798,18 @@ public class TokenSender {
                             "Contains Invalid Tokens. Kindly check tokens in your wallet");
                     break;
 
+                case "430":
+                    TokenSenderLogger.info("Token chain verification has failed. Whole token chain/chains could not be verified.");
+                    APIResponse.put("message",
+                            "Token Chain/(s) could not be verified.");
+                    break;
+
+                case "431":
+                    TokenSenderLogger.info("Token chain verification has failed. Part token chain/chains could not be verified.");
+                    APIResponse.put("message",
+                            "Token Chain/(s) could not be verified.");
+                    break;
+
             }
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
             output.close();
