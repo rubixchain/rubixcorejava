@@ -34,13 +34,19 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 import javax.imageio.ImageIO;
+import javax.security.auth.callback.LanguageCallback;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -48,6 +54,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.DatainitiatorProcedure;
 import com.rubix.Consensus.InitiatorConsensus;
@@ -66,6 +74,8 @@ public class DataCommitter {
 	private static BufferedReader input;
 	private static Socket senderSocket;
 	private static boolean senderMutex = false;
+	private static HashMap<String, String> dataTableHashMap = Dependency.dataTableHashMap();
+
 
 	/**
 	 * A committer node to commit data
@@ -106,12 +116,14 @@ public class DataCommitter {
 		String comment = detailsObject.getString("comment");
 		APIResponse = new JSONObject();
 
+
 		// DataCommitterLogger.debug("detailsObject is "+ detailsObject.toString());
 
 		String senderPeerID = getPeerID(DATA_PATH + "DID.json");
-		//DataCommitterLogger.debug("sender peer id" + senderPeerID);
-		String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
-		//DataCommitterLogger.debug("sender did ipfs hash" + senderDidIpfsHash);
+		// DataCommitterLogger.debug("sender peer id" + senderPeerID);
+		String senderDidIpfsHash = Dependency.getDIDfromPID(senderPeerID, dataTableHashMap);
+				//getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
+		DataCommitterLogger.debug("sender did ipfs hash" + senderDidIpfsHash);
 
 		if (senderMutex) {
 			APIResponse.put("did", senderDidIpfsHash);
@@ -140,7 +152,7 @@ public class DataCommitter {
 		 * 
 		 * 
 		 */
-		//DataCommitterLogger.debug("skipping normal trnx");
+		// DataCommitterLogger.debug("skipping normal trnx");
 		String datumFolderPath = DATUM_CHAIN_PATH;
 		File datumFolder = new File(datumFolderPath);
 		File datumCommitHistory = new File(datumFolderPath.concat("datumCommitHistory.json"));
@@ -166,8 +178,7 @@ public class DataCommitter {
 
 		String blockHash = detailsObject.getString("blockHash");
 		// DataCommitterLogger.debug("blockhash is "+ blockHash);
-		String authSenderByRecHash = calculateHash(blockHash + senderDidIpfsHash + comment,
-				"SHA3-256");
+		String authSenderByRecHash = calculateHash(blockHash + senderDidIpfsHash + comment, "SHA3-256");
 		// TokenSenderLogger.debug("iauthSenderByRecHash is "+authSenderByRecHash);
 		// TokenSenderLogger.debug("Hash to verify Data: " + authSenderByRecHash);
 		String tid = calculateHash(authSenderByRecHash, "SHA3-256");
@@ -179,6 +190,7 @@ public class DataCommitter {
 		// getValues(datumFolderPath.concat("datumCommitChain.json"), "blockHash",
 		// "blockHash", blockHash));
 
+		DataCommitterLogger.debug("bankfile open");
 		String bankFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
 		JSONArray bankArray = new JSONArray(bankFile);
 		// JSONArray wholeTokens = new JSONArray();
@@ -198,6 +210,7 @@ public class DataCommitter {
 		}
 
 		// JSONArray datArray = new JSONArray(DAT_TOKEN_FILE);
+		DataCommitterLogger.debug("DAT01 open");
 		String dataTokenFile = readFile(PAYMENTS_PATH.concat("DAT01.json"));
 		JSONArray datArray = new JSONArray(dataTokenFile);
 
@@ -205,6 +218,7 @@ public class DataCommitter {
 
 		if (datArray.length() < 1) {
 			if (bankArray.length() < 1) {
+				senderMutex = false;
 				APIResponse.put("ERROR", "Insufficent Balance");
 				APIResponse.put("did", senderDidIpfsHash);
 				APIResponse.put("tid", "null");
@@ -212,26 +226,33 @@ public class DataCommitter {
 				APIResponse.put("message", "Insufficent Balance");
 				return APIResponse;
 			} else {
-				//DataCommitterLogger.debug("Data token is empty");
-				//DataCommitterLogger.debug("Token to be moved to DAT01 " + bankArray.get(0).toString());
+				// DataCommitterLogger.debug("Data token is empty");
+				DataCommitterLogger.debug("Token to be moved to DAT01 " + bankArray.get(0).toString());
+				DataCommitterLogger.debug("Token to be moved to DAT01 in json is" + bankArray.get(0));
+
 				JSONObject tokenChainName = new JSONObject(bankArray.get(0).toString());
-				//DataCommitterLogger.debug("tokenChainName is " + tokenChainName);
-				//DataCommitterLogger.debug("tokenChainType is " + tokenChainName.getClass().getName());
-				updateJSON("add", dat01File, "[" + bankArray.get(0).toString() + "]");
+				DataCommitterLogger.debug("tokenChainName is " + tokenChainName);
+				// DataCommitterLogger.debug("tokenChainType is " +
+				// tokenChainName.getClass().getName());
+				JSONArray tokenNameArray = new JSONArray();
+				tokenNameArray.put(tokenChainName);
+				DataCommitterLogger.debug("tokenNameArray " + tokenNameArray);
+				updateJSON("add", dat01File, tokenNameArray.toString());
+				DataCommitterLogger.debug("dat01 open");
+				dataTokenFile = readFile(PAYMENTS_PATH.concat("DAT01.json"));
+				datArray = new JSONArray(dataTokenFile);
 			}
 		} // else
 		/*
-		 * {
-		 * DataCommitterLogger.debug("Token in data commit is "+ datArray.toString());
+		 * { DataCommitterLogger.debug("Token in data commit is "+ datArray.toString());
 		 * DataCommitterLogger.debug("bankArray.toString() "+ bankArray.toString());
 		 * DataCommitterLogger.debug("datArray.get(0).toString() "+
-		 * datArray.get(0).toString());
-		 * DataCommitterLogger.
+		 * datArray.get(0).toString()); DataCommitterLogger.
 		 * debug("datArray.get(0).toString().contains(bankArray.toString()) is "+
 		 * datArray.get(0).toString().contains(bankArray.toString()));
 		 * 
-		 * for(int i=0;i<datArray.length();i++) {
-		 * for(int j=0;j<bankArray.length();j++) {
+		 * for(int i=0;i<datArray.length();i++) { for(int j=0;j<bankArray.length();j++)
+		 * {
 		 * if(!bankArray.get(j).toString().contains(datArray.getJSONObject(i).getString(
 		 * "tokenHash"))) {
 		 * DataCommitterLogger.debug("Data token is "+datArray.get(0).toString()
@@ -245,8 +266,7 @@ public class DataCommitter {
 		 * 
 		 * }
 		 * 
-		 * }
-		 * }
+		 * } }
 		 */
 		List<String> dataToken = new ArrayList<String>();
 		List<String> bankToken = new ArrayList<String>();
@@ -270,13 +290,15 @@ public class DataCommitter {
 		writeToFile(dataTokenFile, datArray.toString(), false);
 
 		int wholeAmount = datArray.length();
-		//DataCommitterLogger.debug("Whole amount is " + wholeAmount);
+		// DataCommitterLogger.debug("Whole amount is " + wholeAmount);
 
-		//DataCommitterLogger.debug(
-		//		getValues(datumFolderPath.concat("datumCommitHistory.json"), "blockHash", "blockHash", blockHash));
+		// DataCommitterLogger.debug(
+		// getValues(datumFolderPath.concat("datumCommitHistory.json"), "blockHash",
+		// "blockHash", blockHash));
 
 		if (getValues(datumFolderPath.concat("datumCommitHistory.json"), "blockHash", "blockHash", blockHash)
 				.equals(blockHash)) {
+			senderMutex = false;
 			APIResponse.put("did", senderDidIpfsHash);
 			APIResponse.put("tid", "null");
 			APIResponse.put("status", "Failed");
@@ -292,7 +314,7 @@ public class DataCommitter {
 
 		}
 
-		//DataCommitterLogger.debug("WholeTokens for data is " + wholeTokensListForData.toString());
+		DataCommitterLogger.debug("WholeTokens for data is " + wholeTokensListForData.toString());
 
 		for (int i = 0; i < wholeTokensListForData.length(); i++) {
 			String tokenRemove = wholeTokensListForData.getString(i);
@@ -319,47 +341,136 @@ public class DataCommitter {
 
 			}
 			String wholeTokenForDataHashIPFSPin = add(TOKENS_PATH + wholeTokensListForData.get(i), ipfs);
-		//	DataCommitterLogger.debug("Whole Token wholeTokenForDataHashIPFSPin is " + wholeTokenForDataHashIPFSPin);
+			DataCommitterLogger.debug("Whole Token wholeTokenForDataHashIPFSPin is " + wholeTokenForDataHashIPFSPin);
 			pin(wholeTokenForDataHashIPFSPin, ipfs);
 			String tokenChainForDataHashIPFSPin = add(TOKENCHAIN_PATH + wholeTokensListForData.get(i) + ".json", ipfs);
 			wholeTokenForDataChainHash.put(tokenChainForDataHashIPFSPin);
 
-		//	DataCommitterLogger.debug("IPFS pinned tokenchain is " + tokenChainForDataHashIPFSPin);
-		//	DataCommitterLogger.debug("IPFS pinned token is " + wholeTokenForDataHashIPFSPin);
-		//	DataCommitterLogger.debug("Whole token chain hash " + wholeTokenForDataChainHash);
+			DataCommitterLogger.debug("IPFS pinned tokenchain is " + tokenChainForDataHashIPFSPin);
+			DataCommitterLogger.debug("IPFS pinned token is " + wholeTokenForDataHashIPFSPin);
+			DataCommitterLogger.debug("Whole token chain hash " + wholeTokenForDataChainHash);
 
+			DataCommitterLogger.debug("tokenchain open");
 			String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokensListForData.get(i) + ".json");
+
+		//	tokenChainFileContent = null;
+
+		//	tokenChainFileContent = Functions
+		//			.readFile(TOKENCHAIN_PATH + wholeTokensListForData.get(i) + ".json");
+
 			// DataCommitterLogger.debug("tokenChainFile content is "+
 			// tokenChainFileContent);
 			JSONArray tokenChainFileArray = new JSONArray(tokenChainFileContent);
+			DataCommitterLogger.debug("Tokenchain length is " + tokenChainFileArray.length());
+
 			// DataCommitterLogger.debug("tokenChainFileArray is
 			// "+tokenChainFileArray.toString());
 			JSONArray previousSenderArray = new JSONArray();
 			JSONObject lastObject = tokenChainFileArray.getJSONObject(tokenChainFileArray.length() - 1);
-			// DataCommitterLogger.debug("LastObject "+lastObject.toString());
+			DataCommitterLogger.debug("LastObject " + lastObject.toString());
 			// TokenSenderLogger.debug("Last object is "+lastObject.toString());
 			// DataCommitterLogger.debug("tokenChainFileArray
 			// "+tokenChainFileArray.toString());
+			
+			
 
-			if (tokenChainFileArray.length() > 0) {
-				// JSONObject lastObject =
-				// tokenChainFileArray.getJSONObject(tokenChainFileArray.length() - 1);
+			for (int j = 0; j < tokenChainFileArray.length(); j++) {
+				String peerIDString = Dependency.getPIDfromDID(tokenChainFileArray.getJSONObject(j).getString("sender"), dataTableHashMap);
+				if(peerIDString.contains("Not Found")) {
+				   // throw new IOException("PeerID not found for the did");   
+					APIResponse.put("ERROR", "PeerID not found for the DID "+tokenChainFileArray.getJSONObject(j).getString("sender"));
+					APIResponse.put("blockHash", blockHash);
+					APIResponse.put("tid", "null");
+					APIResponse.put("status", "Failed");
+					APIResponse.put("message", "Kindly rotate the token to add more commits");
+				    senderMutex =false;
+				    return APIResponse;
 
-				for (int j = 0; j < tokenChainFileArray.length(); j++) {
-					String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
-							tokenChainFileArray.getJSONObject(j).getString("sender"));
-					previousSenderArray.put(peerID);
+				}else {
+					previousSenderArray.put(peerIDString);
 				}
+				
 			}
+
+			/*
+			 * if (tokenChainFileArray.length() > 0) { // JSONObject lastObject = //
+			 * tokenChainFileArray.getJSONObject(tokenChainFileArray.length() - 1);
+			 * 
+			 * for (int j = 0; j < tokenChainFileArray.length(); j++) { String peerID =
+			 * getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
+			 * tokenChainFileArray.getJSONObject(j).getString("sender"));
+			 * previousSenderArray.put(peerID); } }
+			 */
+
+			if (tokenChainFileArray.length() > 256) {
+				int dataCtr = 0;
+				int nodataCtr = 0;
+				List<String> tokenChainContentSet = new ArrayList<String>();
+				// System.out.println(tokenChainFileArray.getJSONObject(((tokenChainFileArray.length())-256)).toString());
+				// System.out.println("loop starting at "+ (tokenChainFileArray.length()-256));
+				for (int dataCount = ((tokenChainFileArray.length()) - 256); dataCount < tokenChainFileArray
+						.length(); dataCount++) {
+					tokenChainContentSet.add(tokenChainFileArray.getJSONObject(dataCount).toString());
+				}
+				// System.out.println("Hashset size is " + tokenChainContentSet.size());
+				// System.out.println(tokenChainContentSet.get(255).toString());
+
+				for (int d = 0; d < tokenChainContentSet.size(); d++) {
+					if (!tokenChainContentSet.get(d).contains("blockHash")) {
+						nodataCtr++;
+						break;
+					} else {
+						dataCtr++;
+					}
+				}
+				DataCommitterLogger.debug("Data commit counter is " + dataCtr);
+				DataCommitterLogger.debug("nodataCtr counter is " + nodataCtr);
+				if (dataCtr >= 256) {
+					senderMutex = false;
+					APIResponse.put("ERROR", "Commit limit exceeded");
+					APIResponse.put("blockHash", blockHash);
+					APIResponse.put("tid", "null");
+					APIResponse.put("status", "Failed");
+					APIResponse.put("message", "Kindly rotate the token to add more commits");
+					return APIResponse;
+				}
+
+			}
+//	        DataCommitterLogger.debug("Hash set end time is "+LocalDateTime.now());
+//	        DataCommitterLogger.debug("Normal strating time is "+LocalDateTime.now());
+//
+//			
+//			
+//			if(tokenChainFileArray.length()>256) {
+//				int dataCtr = 0;
+//				int nodataCtr = 0;
+//				//System.out.println(tokenChainFileArray.getJSONObject(((tokenChainFileArray.length())-256)).toString());
+//				//System.out.println("loop starting at "+ (tokenChainFileArray.length()-256));
+//				for(int dataCount=((tokenChainFileArray.length())-256);dataCount<tokenChainFileArray.length();dataCount++){
+//					System.out.println(dataCount+"   "+!tokenChainFileArray.getJSONObject(dataCount).toString().contains("blockHash"));
+//					if(!tokenChainFileArray.getJSONObject(dataCount).toString().contains("blockHash")) {
+//						nodataCtr++;
+//						break;
+//					}else {
+//						dataCtr++;
+//					}
+//				}
+//				DataCommitterLogger.debug("Data commit counter is "+dataCtr);
+//				//DataCommitterLogger.debug("nodataCtr counter is "+nodataCtr);
+//				if(dataCtr>=256) {
+//					senderMutex =false;
+//					APIResponse.put("ERROR", "Commit limit exceeded");
+//					APIResponse.put("blockHash", blockHash);
+//					APIResponse.put("tid", "null");
+//					APIResponse.put("status", "Failed");
+//					APIResponse.put("message", "Kindly rotate the token to add more commits");
+//				//	return APIResponse;
+//				}	
+//			}
+//	        DataCommitterLogger.debug("Normal ending time is "+LocalDateTime.now());
 
 			if (lastObject.has("mineID")) {
 				wholeTokensListForData.remove(i);
-			}
-
-			for (int j = 0; j < tokenChainFileArray.length(); j++) {
-				String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
-						tokenChainFileArray.getJSONObject(j).getString("sender"));
-				previousSenderArray.put(peerID);
 			}
 
 			JSONObject previousSenderObject = new JSONObject();
@@ -367,15 +478,17 @@ public class DataCommitter {
 			previousSenderObject.put("sender", previousSenderArray);
 			tokenPreviousSender.put(previousSenderObject);
 
-		//	DataCommitterLogger.debug("previousSenderObject is " + previousSenderObject.toString());
+			DataCommitterLogger.debug("previousSenderObject is " + previousSenderObject.toString());
+			DataCommitterLogger.debug("previousSenderObject length is  " + previousSenderObject.length());
 
 		}
 
 		JSONArray dataCommitToken = new JSONArray();
 		dataCommitToken.put(wholeTokensListForData.getString(0));
 
-		// DataCommitterLogger.debug("WholeToken for data is " + wholeTokensListForData.toString());
-		// DataCommitterLogger.debug("dataCommitToken for data is " + dataCommitToken.toString());
+		DataCommitterLogger.debug("WholeToken for data is " + wholeTokensListForData.toString());
+		// DataCommitterLogger.debug("dataCommitToken for data is " +
+		// dataCommitToken.toString());
 
 		// DataCommitterLogger.debug("Whole token length is "+
 		// wholeTokensListForData.length()+" and Whole token content is
@@ -383,8 +496,9 @@ public class DataCommitter {
 
 		JSONArray positionsArray = new JSONArray();
 		String tokens = new String();
-		// DataCommitterLogger.debug("All token lenght is " + dataCommitToken.length() + " Whole token length is "
-		//		+ wholeTokensListForData.length());
+		// DataCommitterLogger.debug("All token lenght is " + dataCommitToken.length() +
+		// " Whole token length is "
+		// + wholeTokensListForData.length());
 		for (int i = 0; i < dataCommitToken.length(); i++) {
 			tokens = dataCommitToken.getString(i);
 			DataCommitterLogger.debug("tokens in string is " + tokens);
@@ -405,12 +519,12 @@ public class DataCommitter {
 			String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
 
 			DataCommitterLogger.debug("Ownership Here Sender Calculation");
-		//	DataCommitterLogger.debug("tokens: " + tokens);
-		//	DataCommitterLogger.debug("hashString: " + hashString);
-		//	DataCommitterLogger.debug("hashForPositions: " + hashForPositions);
-		//	DataCommitterLogger.debug("p1: " + positions);
-		//	DataCommitterLogger.debug("ownerIdentity: " + ownerIdentity);
-		//	DataCommitterLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
+			DataCommitterLogger.debug("tokens: " + tokens);
+			DataCommitterLogger.debug("hashString: " + hashString);
+			DataCommitterLogger.debug("hashForPositions: " + hashForPositions);
+			DataCommitterLogger.debug("p1: " + positions);
+			DataCommitterLogger.debug("ownerIdentity: " + ownerIdentity);
+			DataCommitterLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
 
 		}
 
@@ -426,72 +540,60 @@ public class DataCommitter {
 		JSONArray quorumArray;
 		// TokenSenderLogger.debug("Type "+type);
 		switch (type) {
-			case 1: {
-				writeToFile(LOGGER_PATH + "tempbeta", tid.concat(senderDidIpfsHash), false);
-				String betaHash = IPFSNetwork.add(LOGGER_PATH + "tempbeta", ipfs);
-				deleteFile(LOGGER_PATH + "tempbeta");
+		case 1: {
+			writeToFile(LOGGER_PATH + "tempbeta", tid.concat(senderDidIpfsHash), false);
+			String betaHash = IPFSNetwork.add(LOGGER_PATH + "tempbeta", ipfs);
+			deleteFile(LOGGER_PATH + "tempbeta");
 
-				writeToFile(LOGGER_PATH + "tempgamma", tid.concat(blockHash), false);
-				String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
-				deleteFile(LOGGER_PATH + "tempgamma");
+			writeToFile(LOGGER_PATH + "tempgamma", tid.concat(blockHash), false);
+			String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
+			deleteFile(LOGGER_PATH + "tempgamma");
 
-				quorumArray = getQuorum(senderDidIpfsHash, blockHash,
-						0);
-				break;
-			}
+			quorumArray = getQuorum(senderDidIpfsHash, blockHash, 0);
+			break;
+		}
 
-			case 2: {
-				quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
-				break;
-			}
-			case 3: {
-				quorumArray = detailsObject.getJSONArray("quorum");
-				break;
-			}
-			default: {
-				DataCommitterLogger.error("Unknown quorum type input, cancelling transaction");
-				APIResponse.put("status", "Failed");
-				APIResponse.put("message", "Unknown quorum type input, cancelling transaction");
-				return APIResponse;
+		case 2: {
+			DataCommitterLogger.debug("quorumlist open");
+			quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+			break;
+		}
+		case 3: {
+			quorumArray = detailsObject.getJSONArray("quorum");
+			break;
+		}
+		default: {
+			DataCommitterLogger.error("Unknown quorum type input, cancelling transaction");
+			APIResponse.put("status", "Failed");
+			APIResponse.put("message", "Unknown quorum type input, cancelling transaction");
+			return APIResponse;
 
-			}
+		}
 		}
 
 		/*
-		 * DataCommitterLogger.debug("Quorum list "+quorumArray.toString());
-		 * int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
-		 * JSONArray sanityFailedQuorum = new JSONArray();
-		 * DataCommitterLogger.debug("Getting into Sanity Check for quorum");
-		 * for (int i = 0; i < quorumArray.length(); i++) {
-		 * String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid",
-		 * "didHash",
-		 * quorumArray.getString(i));
-		 * boolean quorumSanityCheck = sanityCheck("Quorum",quorumPeerID, ipfs, port +
-		 * 11);
+		 * DataCommitterLogger.debug("Quorum list "+quorumArray.toString()); int
+		 * alphaCheck = 0, betaCheck = 0, gammaCheck = 0; JSONArray sanityFailedQuorum =
+		 * new JSONArray();
+		 * DataCommitterLogger.debug("Getting into Sanity Check for quorum"); for (int i
+		 * = 0; i < quorumArray.length(); i++) { String quorumPeerID =
+		 * getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
+		 * quorumArray.getString(i)); boolean quorumSanityCheck =
+		 * sanityCheck("Quorum",quorumPeerID, ipfs, port + 11);
 		 * DataCommitterLogger.debug("quorumSanityCheck is "+quorumSanityCheck);
 		 * 
-		 * if (!quorumSanityCheck) {
-		 * sanityFailedQuorum.put(quorumPeerID);
-		 * if (i <= 6)
-		 * alphaCheck++;
-		 * if (i >= 7 && i <= 13)
-		 * betaCheck++;
-		 * if (i >= 14 && i <= 20)
-		 * gammaCheck++;
-		 * }
-		 * }
+		 * if (!quorumSanityCheck) { sanityFailedQuorum.put(quorumPeerID); if (i <= 6)
+		 * alphaCheck++; if (i >= 7 && i <= 13) betaCheck++; if (i >= 14 && i <= 20)
+		 * gammaCheck++; } }
 		 * 
 		 * if (alphaCheck > 2 || betaCheck > 2 || gammaCheck > 2) {
 		 * DataCommitterLogger.debug("Inisde alpha beta gamma check");
-		 * APIResponse.put("did", senderDidIpfsHash);
-		 * APIResponse.put("tid", "null");
-		 * APIResponse.put("status", "Failed");
-		 * String message =
+		 * APIResponse.put("did", senderDidIpfsHash); APIResponse.put("tid", "null");
+		 * APIResponse.put("status", "Failed"); String message =
 		 * "Quorum: ".concat(sanityFailedQuorum.toString()).concat(" ");
 		 * APIResponse.put("message", message.concat(sanityMessage));
 		 * DataCommitterLogger.warn("Quorum: ".concat(message.concat(sanityMessage)));
-		 * return APIResponse;
-		 * }
+		 * return APIResponse; }
 		 */
 
 		long startTime, endTime, totalTime;
@@ -539,9 +641,9 @@ public class DataCommitter {
 		// tokenDetails.put("part-tokenChains", partTokenChainArrays);
 		tokenDetails.put("sender", senderDidIpfsHash);
 
-		//DataCommitterLogger.debug("tokenDetails is " + tokenDetails.toString());
+		// DataCommitterLogger.debug("tokenDetails is " + tokenDetails.toString());
 
-		//DataCommitterLogger.debug("tokenDetails " + tokenDetails.toString());
+		// DataCommitterLogger.debug("tokenDetails " + tokenDetails.toString());
 		String doubleSpendString = tokenDetails.toString();
 
 		String doubleSpend = calculateHash(doubleSpendString, "SHA3-256");
@@ -561,7 +663,8 @@ public class DataCommitter {
 		dataObject.put("betaList", betaPeersList);
 		dataObject.put("gammaList", gammaPeersList);
 
-		//DataCommitterLogger.debug("dataobject for Data (Double Spend Hash) " + dataObject.toString());
+		// DataCommitterLogger.debug("dataobject for Data (Double Spend Hash) " +
+		// dataObject.toString());
 
 		DataCommitterLogger.debug("Starting consensusSetUp");
 		DatainitiatorProcedure.dataConsensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize);
@@ -634,10 +737,11 @@ public class DataCommitter {
 		// requestedAmount = formatAmount(requestedAmount);
 		// dataBlockRecord.put("amount-spent", requestedAmount);
 
-		//DataCommitterLogger.debug("data block record is " + dataBlockRecord.toString());
+		// DataCommitterLogger.debug("data block record is " +
+		// dataBlockRecord.toString());
 		JSONArray dataBlockEntry = new JSONArray();
 		dataBlockEntry.put(dataBlockRecord);
-		//DataCommitterLogger.debug("dataBlockRecord being added to json files");
+		// DataCommitterLogger.debug("dataBlockRecord being added to json files");
 		updateJSON("add", datumFolderPath.concat("datumCommitHistory.json"), dataBlockEntry.toString());
 		updateJSON("add", WALLET_DATA_PATH.concat("TransactionHistory.json"), dataBlockEntry.toString());
 		// writeToFile(DATUM_CHAIN_PATH + wholeTokensForData.getString(0) + ".json",
@@ -653,8 +757,7 @@ public class DataCommitter {
 
 		String hashString = tokens.concat(senderDidIpfsHash);
 		String hashForPositions = calculateHash(hashString, "SHA3-256");
-		BufferedImage prvt = ImageIO
-				.read(new File(DATA_PATH.concat(senderDidIpfsHash).concat("/PrivateShare.png")));
+		BufferedImage prvt = ImageIO.read(new File(DATA_PATH.concat(senderDidIpfsHash).concat("/PrivateShare.png")));
 		String firstPrivate = PropImage.img2bin(prvt);
 		int[] privateIntegerArray1 = strToIntArray(firstPrivate);
 		String privateBinary = Functions.intArrayToStr(privateIntegerArray1);

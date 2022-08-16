@@ -35,6 +35,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;  
 import java.util.Date;
@@ -53,6 +54,8 @@ import org.json.JSONObject;
 
 import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Datum.DataCommitter;
+import com.rubix.Datum.Dependency;
 import com.rubix.Ping.PingCheck;
 
 import io.ipfs.api.IPFS;
@@ -349,6 +352,8 @@ public class Functions {
      * @return File Content as string
      */
     public static String readFile(String filePath) {
+    	
+
         FileReader fileReader;
         StringBuilder fileContent = new StringBuilder();
         try {
@@ -360,8 +365,10 @@ public class Functions {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         return fileContent.toString();
     }
+    
 
     /**
      * This method writes the mentioned data into the file passed to it
@@ -617,7 +624,8 @@ public class Functions {
             for (int i = 0; i < quorum.length(); i++) {
                 String quorumPeer;
                 try {
-                    quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
+                    quorumPeer = Dependency.getPIDfromDID(quorum.getString(i),Dependency.dataTableHashMap());
+                    		//getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
                     if (checkSwarmConnect().contains(quorumPeer)) {
                         peers.add(quorumPeer);
                         FunctionsLogger.debug(quorumPeer + " added to list");
@@ -647,7 +655,8 @@ public class Functions {
         for (int i = 0; i < quorum.length(); i++) {
             String quorumPeer;
             try {
-                quorumPeer = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
+                quorumPeer = Dependency.getPIDfromDID(quorum.getString(i), Dependency.dataTableHashMap());
+                		//getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", quorum.getString(i));
 
                 IPFSNetwork.swarmConnectP2P(quorumPeer, ipfs);
 

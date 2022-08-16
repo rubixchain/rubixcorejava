@@ -31,6 +31,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.Datum.Dependency;
 import com.rubix.Resources.IPFSNetwork;
 
 import org.apache.log4j.Logger;
@@ -77,7 +78,7 @@ public class DataConsensus implements Runnable {
             try {
 
                 peerID = getPeerID(DATA_PATH + "DID.json");
-                String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
+                String didHash = Dependency.getDIDfromPID(peerID, Dependency.dataTableHashMap()); //getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", peerID);
                 appName = peerID.concat(role);
 
                 listen(appName, port);
@@ -163,7 +164,7 @@ class ValidationHandler extends Thread {
 
                     syncDataTable(senderDidIpfsHash, null);
 
-                    senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", senderDidIpfsHash);
+                    senderPID = Dependency.getPIDfromDID(senderDidIpfsHash, Dependency.dataTableHashMap());//getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", senderDidIpfsHash);
                     String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
                             senderDidIpfsHash);
 

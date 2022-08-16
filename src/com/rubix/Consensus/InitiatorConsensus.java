@@ -22,6 +22,7 @@ import java.net.SocketException;
 import java.util.ArrayList;
 
 import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.Datum.Dependency;
 import com.rubix.Resources.IPFSNetwork;
 
 import org.apache.log4j.Logger;
@@ -140,8 +141,9 @@ public class InitiatorConsensus {
                     try {
                         swarmConnectP2P(quorumID[j], ipfs);
                         syncDataTable(null, quorumID[j]);
-                        String quorumDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
-                                quorumID[j]);
+                        String quorumDidIpfsHash = Dependency.getDIDfromPID(quorumID[j], Dependency.dataTableHashMap());
+                        		//getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
+                                //quorumID[j]);
                         String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "peerid",
                                 quorumID[j]);
                         nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
