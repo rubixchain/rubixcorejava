@@ -88,6 +88,7 @@ public class InitiatorProcedure {
                     + " to be signed with pvt share in to " + signFile);
             JSONObject signDetailsObject = new JSONObject();
             JSONArray signDetailsArray = new JSONArray();
+            signDetailsObject.put("DID", senderDidIpfs);
             signDetailsObject.put("content", authSenderByQuorumHash);
             signDetailsArray.put(signDetailsObject);
 

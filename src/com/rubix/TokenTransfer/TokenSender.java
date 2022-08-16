@@ -619,6 +619,7 @@ public class TokenSender {
         TokenSenderLogger.debug("writing hash authSenderByRecHash "+authSenderByRecHash+" to be signed with pvt share in to "+signFile);
         JSONObject signDetailsObject = new JSONObject();
         JSONArray signDetailsArray = new JSONArray();
+        signDetailsObject.put("DID", senderDidIpfsHash);
         signDetailsObject.put("content", authSenderByRecHash);
         signDetailsArray.put(signDetailsObject);
 
