@@ -54,6 +54,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 import javax.net.ssl.HttpsURLConnection;
@@ -610,8 +611,34 @@ public class TokenSender {
             return APIResponse;
 
         }
+        //create json file to write data
+        TokenSenderLogger.debug("Creating file to write signing data");
+        String signFile = DATA_PATH+"/SignFile.json";
+        writeToFile(signFile, "[]", false);
+        //write sign details
+        TokenSenderLogger.debug("writing hash authSenderByRecHash "+authSenderByRecHash+" to be signed with pvt share in to "+signFile);
+        JSONObject signDetailsObject = new JSONObject();
+        JSONArray signDetailsArray = new JSONArray();
+        signDetailsObject.put("content", authSenderByRecHash);
+        signDetailsArray.put(signDetailsObject);
+
+        TokenSenderLogger.debug("write signing data");
+        writeToFile(signFile, signDetailsArray.toString(), false);
+        TokenSenderLogger.debug("starting wait of 5 minutes");
         
-        String senderSign = getSignFromShares(pvt, authSenderByRecHash);
+        TimeUnit.MINUTES.sleep(5);
+
+        TokenSenderLogger.debug("end wait of 5 minutes");
+        
+        TokenSenderLogger.debug("read sign file");
+        String signFiledata = readFile(signFile);
+
+        signDetailsArray = new JSONArray(signFiledata);
+        signDetailsObject = new JSONObject(signDetailsArray.getJSONObject(0));
+        //String senderSign = getSignFromShares(pvt, authSenderByRecHash);
+        String senderSign = signDetailsObject.getString("signature");
+        TokenSenderLogger.debug("senderSign "+senderSign);
+
         JSONObject senderDetails2Receiver = new JSONObject();
         senderDetails2Receiver.put("sign", senderSign);
         senderDetails2Receiver.put("tid", tid);

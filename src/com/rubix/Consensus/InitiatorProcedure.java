@@ -5,8 +5,10 @@ import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.getSignFromShares;
 import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.minQuorum;
+import static com.rubix.Resources.Functions.*;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import com.rubix.Constants.ConsensusConstants;
 import com.rubix.SplitandStore.SeperateShares;
@@ -76,7 +78,35 @@ public class InitiatorProcedure {
         JSONObject data1 = new JSONObject();
         JSONObject data2 = new JSONObject();
         try {
-            senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
+
+            // create json file to write data
+            InitiatorProcedureLogger.debug("Creating file to write signing data");
+            String signFile = DATA_PATH + "/SignFile.json";
+            writeToFile(signFile, "[]", false);
+            // write sign details
+            InitiatorProcedureLogger.debug("writing hash authSenderByRecHash " + authSenderByQuorumHash
+                    + " to be signed with pvt share in to " + signFile);
+            JSONObject signDetailsObject = new JSONObject();
+            JSONArray signDetailsArray = new JSONArray();
+            signDetailsObject.put("content", authSenderByQuorumHash);
+            signDetailsArray.put(signDetailsObject);
+
+            InitiatorProcedureLogger.debug("write signing data");
+            writeToFile(signFile, signDetailsArray.toString(), false);
+            InitiatorProcedureLogger.debug("starting wait of 5 minutes");
+
+            TimeUnit.MINUTES.sleep(5);
+
+            InitiatorProcedureLogger.debug("end wait of 5 minutes");
+
+            InitiatorProcedureLogger.debug("read sign file");
+            String signFiledata = readFile(signFile);
+
+            signDetailsArray = new JSONArray(signFiledata);
+            signDetailsObject = new JSONObject(signDetailsArray.getJSONObject(0));
+
+            senderSignQ = signDetailsObject.getString("signature");
+            InitiatorProcedureLogger.debug("SenderSignQ : "+senderSignQ);
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
             data1.put(ConsensusConstants.TRANSACTION_ID, tid);
@@ -88,8 +118,11 @@ public class InitiatorProcedure {
             data2.put("Share2", Q2Share);
             data2.put("Share3", Q3Share);
             data2.put("Share4", Q4Share);
-        } catch (JSONException | IOException e) {
+        } catch (JSONException e) {
             InitiatorProcedureLogger.error("JSON Exception occurred", e);
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -102,9 +135,9 @@ public class InitiatorProcedure {
         JSONObject dataSend = new JSONObject();
         dataSend.put("hash", authQuorumHash);
         dataSend.put("details", detailsForQuorum);
-        
-        InitiatorProcedureLogger.debug("hash"+authQuorumHash);
-        InitiatorProcedureLogger.debug("data1"+data1.toString());
+
+        InitiatorProcedureLogger.debug("hash" + authQuorumHash);
+        InitiatorProcedureLogger.debug("data1" + data1.toString());
 
         if (operation.equals("new-credits-mining")) {
             JSONObject qstDetails = dataObject.getJSONObject("qstDetails");
