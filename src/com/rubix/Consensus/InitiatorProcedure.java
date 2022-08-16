@@ -95,6 +95,7 @@ public class InitiatorProcedure {
             InitiatorProcedureLogger.debug("write signing data");
             writeToFile(signFile, signDetailsArray.toString(), false);
             InitiatorProcedureLogger.debug("starting wait of 5 minutes");
+            InitiatorProcedureLogger.debug("################################");
             InitiatorProcedureLogger.debug("Please move file "+signFile+" to cold Wallet for Signature and return back to same location");
 
 
