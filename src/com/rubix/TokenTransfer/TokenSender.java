@@ -626,6 +626,7 @@ public class TokenSender {
         TokenSenderLogger.debug("write signing data");
         writeToFile(signFile, signDetailsArray.toString(), false);
         TokenSenderLogger.debug("starting wait of 5 minutes");
+        TokenSenderLogger.debug("Please move file "+signFile+" to cold Wallet for Signature and return back to same location");
         
         TimeUnit.MINUTES.sleep(5);
 
