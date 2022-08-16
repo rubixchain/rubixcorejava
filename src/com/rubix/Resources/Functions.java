@@ -2185,6 +2185,40 @@ public class Functions {
         return bytesToHex(hashBytes);
     }
 
+    /*
+     * This method calculates Pvtshare signature in cold wallet by content from file
+     */
+
+     public static String getSign()
+     {
+        JSONObject result = new JSONObject();
+        pathSet();
+        try {
+            String fileData= readFile(DATA_PATH+"/SignFile.json");
+            JSONArray fileArray = new JSONArray(fileData);
+            JSONObject fileObject = fileArray.getJSONObject(0);
+            String content = fileObject.getString("content");
+            String Did = fileObject.getString("DID");
+            String pvt = DATA_PATH + Did + "/PrivateShare.png";
+
+            String signature = getSignFromShares(pvt, content);
+
+            if (signature.isBlank())
+            {
+                result.put("status", "false");
+            }else{
+                fileObject.put("signature", signature);
+                JSONArray resArray = new JSONArray();
+                resArray.put(fileObject);
+                writeToFile(DATA_PATH+"/SignFile.json", resArray.toString(), false);
+                result.put("status","true");
+            }
+            
+        } catch (Exception e) {
+            //TODO: handle exception
+        }
+        return result.toString();
+     }
     
     
 
