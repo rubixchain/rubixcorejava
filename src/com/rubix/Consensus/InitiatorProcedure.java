@@ -7,6 +7,7 @@ import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.minQuorum;
 import static com.rubix.Resources.Functions.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -82,6 +83,10 @@ public class InitiatorProcedure {
             // create json file to write data
             InitiatorProcedureLogger.debug("Creating file to write signing data");
             String signFile = DATA_PATH + "/SignFile.json";
+            File f = new File(signFile);
+            if (f.exists()) {
+                f.delete();
+            }
             writeToFile(signFile, "[]", false);
             // write sign details
             InitiatorProcedureLogger.debug("writing hash authSenderByRecHash " + authSenderByQuorumHash
@@ -94,15 +99,16 @@ public class InitiatorProcedure {
 
             InitiatorProcedureLogger.debug("write signing data");
             writeToFile(signFile, signDetailsArray.toString(), false);
-            InitiatorProcedureLogger.debug("starting wait of 5 minutes");
+            // InitiatorProcedureLogger.debug("starting wait of 5 minutes");
             InitiatorProcedureLogger.debug("################################");
-            InitiatorProcedureLogger.debug("Please move file "+signFile+" to cold Wallet for Signature and return back to same location");
+            InitiatorProcedureLogger.debug(
+                    "Please move file " + signFile + " to cold Wallet for Signature and return back to same location");
 
+            TimeUnit.MINUTES.sleep(1);
 
-            TimeUnit.MINUTES.sleep(5);
+            InitiatorProcedureLogger.debug("Waiting for File with Signature from cold wallet");
 
-            InitiatorProcedureLogger.debug("end wait of 5 minutes");
-
+            boolean fileModify = checkFile("SignFile.json", DATA_PATH);
             InitiatorProcedureLogger.debug("read sign file");
             String signFiledata = readFile(signFile);
 
@@ -110,7 +116,7 @@ public class InitiatorProcedure {
             signDetailsObject = new JSONObject(signDetailsArray.getJSONObject(0));
 
             senderSignQ = signDetailsObject.getString("signature");
-            InitiatorProcedureLogger.debug("SenderSignQ : "+senderSignQ);
+            InitiatorProcedureLogger.debug("SenderSignQ : " + senderSignQ);
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
             data1.put(ConsensusConstants.TRANSACTION_ID, tid);
