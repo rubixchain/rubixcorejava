@@ -33,6 +33,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -116,6 +119,7 @@ public class DataCommitter {
 		String comment = detailsObject.getString("comment");
 		APIResponse = new JSONObject();
 
+		Dependency.checkDatumPath();
 
 		// DataCommitterLogger.debug("detailsObject is "+ detailsObject.toString());
 
@@ -157,12 +161,18 @@ public class DataCommitter {
 		File datumFolder = new File(datumFolderPath);
 		File datumCommitHistory = new File(datumFolderPath.concat("datumCommitHistory.json"));
 		File datumCommitToken = new File(PAYMENTS_PATH.concat("dataToken.json"));
+		File datumTokenFolder = new File(datumFolderPath+"DatumTokens/");
 		// File datumCommitChain =
 		if (!datumFolder.exists()) {
 			DataCommitterLogger.debug("datum Folder is missing");
 			datumFolder.mkdir();
 			DataCommitterLogger.debug("datum Folder created");
 
+		}
+		if(!datumTokenFolder.exists()) {
+			DataCommitterLogger.debug("datum token Folder is missing");
+			datumTokenFolder.mkdir();
+			DataCommitterLogger.debug("datum token Folder created");
 		}
 		if (!datumCommitHistory.exists()) {
 			DataCommitterLogger.debug("datumCommitHistory is missing");
@@ -190,7 +200,6 @@ public class DataCommitter {
 		// getValues(datumFolderPath.concat("datumCommitChain.json"), "blockHash",
 		// "blockHash", blockHash));
 
-		DataCommitterLogger.debug("bankfile open");
 		String bankFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
 		JSONArray bankArray = new JSONArray(bankFile);
 		// JSONArray wholeTokens = new JSONArray();
@@ -210,7 +219,6 @@ public class DataCommitter {
 		}
 
 		// JSONArray datArray = new JSONArray(DAT_TOKEN_FILE);
-		DataCommitterLogger.debug("DAT01 open");
 		String dataTokenFile = readFile(PAYMENTS_PATH.concat("DAT01.json"));
 		JSONArray datArray = new JSONArray(dataTokenFile);
 
@@ -478,8 +486,8 @@ public class DataCommitter {
 			previousSenderObject.put("sender", previousSenderArray);
 			tokenPreviousSender.put(previousSenderObject);
 
-			DataCommitterLogger.debug("previousSenderObject is " + previousSenderObject.toString());
-			DataCommitterLogger.debug("previousSenderObject length is  " + previousSenderObject.length());
+			DataCommitterLogger.debug("previousSenderObject is " + previousSenderObject.get("sender").toString());
+			DataCommitterLogger.debug("previousSender size is  " + previousSenderArray.length());
 
 		}
 
@@ -708,6 +716,26 @@ public class DataCommitter {
 		// TokenSenderLogger.debug("signed Quorum list is "+
 		// signedQuorumList.toString());
 
+		
+		JSONObject blockHashObject = new JSONObject();
+		blockHashObject.put("blockHash", blockHash);
+		blockHashObject.put("token", dataCommitToken.toString().substring(1, dataCommitToken.toString().length()-1));
+		blockHashObject.put("committer", senderDidIpfsHash);
+		JSONArray blockHashArray = new JSONArray();
+		blockHashArray.put(blockHashObject);
+		String dataTokenNameString = datumTokenFolder+ "/" +blockHash + ".json" ;
+		
+		DataCommitterLogger.debug("path is "+dataTokenNameString);
+		writeToFile(dataTokenNameString, blockHashArray.toString(), false);
+		//writeToFile(datumTokenFolder+ blockHash + ".json" , blockHashArray.toString(), false);
+		String filenameString = add(dataTokenNameString, ipfs);
+		DataCommitterLogger.debug("CID is "+filenameString);
+		pin(filenameString, ipfs);
+		Path renameFile = Paths.get(dataTokenNameString);
+		Files.move(renameFile, renameFile.resolveSibling(filenameString));
+		
+		
+		
 		APIResponse.put("tid", tid);
 		APIResponse.put("committedToken", wholeTokensListForData.getString(0));
 		APIResponse.put("blockHash", blockHash);
@@ -715,16 +743,18 @@ public class DataCommitter {
 		APIResponse.put("did", senderDidIpfsHash);
 		APIResponse.put("message", "Data added successfully");
 		APIResponse.put("quorumlist", signedQuorumList);
-		// APIResponse.put("receiver", receiverDidIpfsHash);
+		APIResponse.put("CID", filenameString);
 		APIResponse.put("totaltime", totalTime);
 
 		// TokenSenderLogger.debug("API Response is "+APIResponse.toString());
 
 		updateQuorum(quorumArray, signedQuorumList, true, type);
+		
+		
 
 		JSONObject dataBlockRecord = new JSONObject();
 		dataBlockRecord.put("role", "DataCommitter");
-		dataBlockRecord.put("tokens", dataCommitToken);
+		dataBlockRecord.put("tokens", dataCommitToken.toString().substring(1, dataCommitToken.toString().length()-1));
 		dataBlockRecord.put("txn", tid);
 		dataBlockRecord.put("quorumList", signedQuorumList);
 		dataBlockRecord.put("senderDID", senderDidIpfsHash);
@@ -736,6 +766,13 @@ public class DataCommitter {
 		dataBlockRecord.put("essentialShare", InitiatorProcedure.essential);
 		// requestedAmount = formatAmount(requestedAmount);
 		// dataBlockRecord.put("amount-spent", requestedAmount);
+		
+		
+		
+		
+		
+		
+		
 
 		// DataCommitterLogger.debug("data block record is " +
 		// dataBlockRecord.toString());
@@ -776,7 +813,7 @@ public class DataCommitter {
 		commitChainObject.put("tid", tid);
 		commitChainObject.put("blockHash", blockHash);
 		commitChainObject.put("owner", ownerIdentityHash);
-		commitChainObject.put("group", "[]");
+		commitChainObject.put("group", JSONObject.NULL);
 
 		JSONArray commitChainEntry = new JSONArray();
 		commitChainEntry.put(commitChainObject);

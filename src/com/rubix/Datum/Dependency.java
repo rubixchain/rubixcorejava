@@ -1,7 +1,8 @@
 package com.rubix.Datum;
 
-import static com.rubix.Resources.Functions.DATA_PATH;
+import static com.rubix.Resources.Functions.*;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -67,6 +68,32 @@ public class Dependency {
         }
 		return widString;
 	}
+	
+	public static void checkDatumPath() {
+        boolean status = false;
+        String configPath = "";
+        String OSName = getOsName();
+        if (OSName.contains("Windows")) {
+            configPath = ("C:\\Rubix\\");
+        } else if (OSName.contains("Mac")) {
+            configPath = "/Applications/Rubix/";
+        } else if (OSName.contains("Linux")) {
+            configPath = "/home/" + getSystemUser() + "/Rubix/";
+        }
+        String configContentString = readFile(configPath + "config.json");
+        JSONArray configContentArray = new JSONArray(configContentString);
+
+        if (!configContentString.contains("DATUM_CHAIN_PATH")) {
+            configContentArray.getJSONObject(0).put("DATUM_CHAIN_PATH", configPath + "DATUM/");
+            writeToFile(configPath + "config.json", configContentArray.toString(), false);
+        } 
+
+        configContentString = readFile(configPath + "config.json");
+        if (configContentString.contains("DATUM_CHAIN_PATH")) {
+            status = true;
+        }
+
+    }
 	
 
 }
