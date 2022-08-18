@@ -24,7 +24,7 @@ public class InitiatorProcedure {
     public static String essential;
     public static String senderSignQ;
     public static JSONObject payload = new JSONObject();
-    public static JSONObject alphaReply, betaReply, gammaReply;
+    public static JSONArray alphaReply, betaReply, gammaReply;
 
     public static Logger InitiatorProcedureLogger = Logger.getLogger(InitiatorProcedure.class);
 
@@ -174,7 +174,7 @@ public class InitiatorProcedure {
             }
         });
 
-        InitiatorConsensus.quorumSignature = new JSONObject();
+        InitiatorConsensus.quorumSignature = new JSONArray();
         InitiatorConsensus.finalQuorumSignsArray = new JSONArray();
         alphaThread.start();
         betaThread.start();

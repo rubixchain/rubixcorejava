@@ -88,7 +88,7 @@ public class TokenReceiver {
 			}
 
 			int quorumSignVerifyCount = 0;
-			JSONObject quorumSignatures = null;
+			JSONArray quorumSignatures = null;
 
 			ArrayList<String> quorumDID = new ArrayList<>();
 			PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -288,7 +288,7 @@ public class TokenReceiver {
 				ss.close();
 				return APIResponse.toString();
 			} 
-
+ 
 			// Check IPFS get for all Tokens
 			int ipfsGetFlag = 0;
 			ArrayList<String> wholeTokenContent = new ArrayList<>();
@@ -448,7 +448,7 @@ public class TokenReceiver {
                         forNLSScheck.put("hash", hashToCheck);
                         forNLSScheck.put("signature", pvtShareBits);
 
-                        String prevSenderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(prevSenderDID); //get public key ipfs hash of the sender.
+                        String prevSenderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(prevSenderDID,1); //get public key ipfs hash of the sender.
                         //Need to handle the case where DID server isnt available.
 
                         String prevSenderPubKeyStr= IPFSNetwork.get(prevSenderPublicKeyIpfsHash, ipfs); // get sender's public key from ipfs.
@@ -747,7 +747,7 @@ public class TokenReceiver {
                         forNLSScheck.put("hash", hashToCheck);
                         forNLSScheck.put("signature", pvtShareBits);
 
-                        String prevSenderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(prevSenderDID); //get public key ipfs hash of the sender.
+                        String prevSenderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(prevSenderDID,1); //get public key ipfs hash of the sender.
                         //Need to handle the case where DID server isnt available.
 
                         String prevSenderPubKeyStr= IPFSNetwork.get(prevSenderPublicKeyIpfsHash, ipfs); // get sender's public key from ipfs.
@@ -872,7 +872,7 @@ public class TokenReceiver {
 
 			//Token Chain authenticity check ends.
 
-			
+
 
 			JSONArray partTokenChainContent = new JSONArray();
 			JSONArray partTokenContent = new JSONArray();
@@ -1347,10 +1347,10 @@ public class TokenReceiver {
 			if (!Status.equals("Consensus Failed")) {
 				boolean yesQuorum = false;
 				if (Status.equals("Consensus Reached")) {
-					quorumSignatures = new JSONObject(QuorumDetails);
+					quorumSignatures = new JSONArray(QuorumDetails);
 					String selectQuorumHash = calculateHash(senderToken, "SHA3-256");
 					String verifyQuorumHash = calculateHash(selectQuorumHash.concat(receiverDidIpfsHash), "SHA3-256");
-
+/* 
 					Iterator<String> keys = quorumSignatures.keys();
 					while (keys.hasNext()) {
 						String key = keys.next();
@@ -1363,17 +1363,40 @@ public class TokenReceiver {
 								quorumDidIpfsHash);
 
 						nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
+					} */
+
+					for (int i = 0; i < quorumSignatures.length(); i++) {
+						JSONObject QuorumMember = quorumSignatures.getJSONObject(i);
+						syncDataTable(QuorumMember.getString("quorum_did"), null);
+						String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
+						QuorumMember.getString("quorum_did"));
+
+						nodeData((QuorumMember.getString("quorum_did")), quorumWidIpfsHash, ipfs);
 					}
 
 					for (int i = 0; i < quorumSignatures.length(); i++) {
 
+						JSONObject quorumMember = quorumSignatures.getJSONObject(i);
+
+						//TokenReceiverLogger.debug("Quorum sign of member " +i+ ":"+quorumMember);
+						
+                        String quorumsPrivateShareSign = quorumMember.getString("quorumPrivateShareSign");
+                        String quorumsPrivateKeySign = quorumMember.getString("quorumPvtKeySign");
+                
+                        String QuorumPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(quorumMember.getString("quorum_did"),2); //get public key ipfs hash of the quorum member.
+                        String quorumPubKeyStr= IPFSNetwork.get(QuorumPublicKeyIpfsHash, ipfs); // get quorum member's public key from ipfs.
+						String pubKeyAlgo = publicKeyAlgStr(quorumPubKeyStr);
+
 						JSONObject detailsForVerify = new JSONObject();
-						detailsForVerify.put("did", quorumDID.get(i));
+						detailsForVerify.put("did",quorumMember.getString("quorum_did") );
 						detailsForVerify.put("hash", verifyQuorumHash);
-						detailsForVerify.put("signature", quorumSignatures.getString(quorumDID.get(i)));
-						boolean val = Authenticate.verifySignature(detailsForVerify.toString());
-						if (val)
+						detailsForVerify.put("signature",quorumMember.getString("quorumPrivateShareSign"));
+
+						boolean val = ((verifySignature(quorumsPrivateShareSign,getPubKeyFromStr(quorumPubKeyStr,pubKeyAlgo),quorumsPrivateKeySign,pubKeyAlgo)) && (Authenticate.verifySignature(detailsForVerify.toString())));
+						if (val){
 							quorumSignVerifyCount++;
+							TokenReceiverLogger.debug("Quorum member " +quorumMember.getString("quorum_did") + " verified.");
+						}
 					}
 					TokenReceiverLogger.debug("Verified Quorum Count " + quorumSignVerifyCount);
 					yesQuorum = quorumSignVerifyCount >= quorumSignatures.length();
@@ -1394,7 +1417,7 @@ public class TokenReceiver {
 
 				boolean yesSender = false;
 
-                String senderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(senderDidIpfsHash); //get public key ipfs hash of the sender.
+                String senderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(senderDidIpfsHash,1); //get public key ipfs hash of the sender.
 
                 String senderPubKeyStr= IPFSNetwork.get(senderPublicKeyIpfsHash, ipfs); // get sender's public key from ipfs.
 
@@ -1781,7 +1804,7 @@ public class TokenReceiver {
 						transactionRecord.put("role", "Receiver");
 						transactionRecord.put("tokens", allTokens);
 						transactionRecord.put("txn", tid);
-						transactionRecord.put("quorumList", quorumSignatures.keys());
+						transactionRecord.put("quorumList", quorumSignatures);
 						transactionRecord.put("senderDID", senderDidIpfsHash);
 						transactionRecord.put("receiverDID", receiverDidIpfsHash);
 						transactionRecord.put("Date", getCurrentUtcTime());

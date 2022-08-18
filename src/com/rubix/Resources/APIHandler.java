@@ -188,9 +188,10 @@ public class APIHandler {
     }
 
 
-    public static String getPubKeyIpfsHash_DIDserver(String senderDidIpfsHash) throws IOException{
+    public static String getPubKeyIpfsHash_DIDserver(String senderDidIpfsHash, int type) throws IOException{
         
             String pubKeyIpfsHash;
+            String quorum_pubKeyIpfsHash;
 
             URL url2 = new URL(SYNC_IP + "/getPubKeyData");
             HttpURLConnection conn = (HttpURLConnection) url2.openConnection();
@@ -213,9 +214,18 @@ public class APIHandler {
             writeToFile(DATA_PATH + "DataTable_PublicKeys.json", result.toString(), false);
             
     
-            pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","pubKeyIpfsHash","didHash", senderDidIpfsHash);
+            if(type == 1){
+                
+                pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                return pubKeyIpfsHash;
 
-            return pubKeyIpfsHash;
+            }
+            else{
+                
+                quorum_pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","quorum_pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                return quorum_pubKeyIpfsHash;
+            }
+            
     }
 
     /**

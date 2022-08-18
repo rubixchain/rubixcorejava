@@ -371,8 +371,8 @@ public class NftBuyer {
 
                 keyPass = String.valueOf(privateKeyPass);
 
-                buyerPvtKeyAlg=privateKeyAlgorithm();
-                pvtKey = getPvtKey(keyPass);
+                buyerPvtKeyAlg=privateKeyAlgorithm(1);
+                pvtKey = getPvtKey(keyPass,1);
                 if (pvtKey == null || pvtKey.equals("")) {
                     output.println("421");
                     nftBuyerLogger.warn("Buyer entered wrong private key password");

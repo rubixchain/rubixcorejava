@@ -112,7 +112,7 @@ public class TokenSender {
         String comment = detailsObject.getString("comment");
         String keyPass = detailsObject.getString("pvtKeyPass");
         PrivateKey pvtKey = null;
-        pvtKey = getPvtKey(keyPass);
+        pvtKey = getPvtKey(keyPass,1);
 
         //If user enters wrong pvt key password
         if(pvtKey==null){
@@ -646,7 +646,7 @@ public class TokenSender {
         }
         
         String senderSign = getSignFromShares(pvt, authSenderByRecHash);
-        String pvtKeyType = privateKeyAlgorithm();
+        String pvtKeyType = privateKeyAlgorithm(1);
         String senderSignWithPvtKey = pvtKeySign(senderSign,pvtKey,pvtKeyType);
 
         JSONObject senderDetails2Receiver = new JSONObject();
@@ -950,7 +950,7 @@ public class TokenSender {
             String hashForTokenChain = calculateHash(tokenChain.toString(), "SHA3-256");
 
             String hashSignedwithPvtShare = getSignFromShares(pvt, hashForTokenChain);
-            String PvtKeySign = pvtKeySign(hashSignedwithPvtShare, pvtKey, privateKeyAlgorithm());
+            String PvtKeySign = pvtKeySign(hashSignedwithPvtShare, pvtKey, privateKeyAlgorithm(1));
 
             JSONObject obj = new JSONObject();
             obj.put("hash", hashForTokenChain);
@@ -1127,10 +1127,21 @@ public class TokenSender {
             unpin(String.valueOf(wholeTokens.get(i)), ipfs);
         repo(ipfs);	
         
-        Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
+/*         Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
         JSONArray signedQuorumList = new JSONArray();
         while (keys.hasNext())
-            signedQuorumList.put(keys.next());
+            signedQuorumList.put(keys.next()); */
+
+        JSONArray QuorumSignatures = new JSONArray(InitiatorConsensus.quorumSignature.toString());
+        JSONArray signedQuorumList = new JSONArray();
+        JSONObject temp = new JSONObject();
+
+        for(int i = 0; i< QuorumSignatures.length(); i++){
+            
+            temp = QuorumSignatures.getJSONObject(i);
+            signedQuorumList.put(temp.getString("quorum_did"));
+        }
+      
         APIResponse.put("tid", tid);
         APIResponse.put("status", "Success");
         APIResponse.put("did", senderDidIpfsHash);

@@ -82,7 +82,7 @@ public class ProofCredits {
         InitiatorConsensus.signedAphaQuorumArray = new JSONArray();
         InitiatorConsensus.quorumWithShares = new ArrayList<>();
         InitiatorConsensus.finalQuorumSignsArray = new JSONArray();
-        InitiatorConsensus.quorumSignature = new JSONObject();
+        InitiatorConsensus.quorumSignature = new JSONArray();
         repo(ipfs);
         JSONObject APIResponse = new JSONObject();
         JSONObject detailsObject = new JSONObject(data);
@@ -596,10 +596,19 @@ public class ProofCredits {
                 ProofCreditsLogger.debug("Updated balance of node : " + (availableCredits - creditUsed));
                 long endtime = System.currentTimeMillis();
                 totalTime = endtime - starttime;
-                Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
+/*                 Iterator<String> keys = InitiatorConsensus.quorumSignature.keys();
 
                 while (keys.hasNext())
-                    signedQuorumList.put(keys.next());
+                    signedQuorumList.put(keys.next()); */
+
+                JSONArray QuorumSignatures = new JSONArray(InitiatorConsensus.quorumSignature.toString());
+                JSONObject temp = new JSONObject();
+        
+                for(int i = 0; i< QuorumSignatures.length(); i++){
+                    
+                    temp = QuorumSignatures.getJSONObject(i);
+                    signedQuorumList.put(temp.getString("quorum_did"));
+                }
 
                 updateQuorum(quorumArray, signedQuorumList, true, type);
                 mineUpdate(DID, creditUsed);
