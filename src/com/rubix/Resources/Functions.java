@@ -2202,7 +2202,7 @@ public class Functions {
             JSONObject fileObject = fileArray.getJSONObject(0);
             String content = fileObject.getString("content");
             String Did = fileObject.getString("DID");
-            String pvt = DATA_PATH + Did + "/PrivateShare.png";
+            String pvt = DATA_PATH +"/" +Did + "/PrivateShare.png";
 
             String signature = getSignFromShares(pvt, content);
 
