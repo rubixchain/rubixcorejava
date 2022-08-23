@@ -36,6 +36,9 @@ import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.listen;
 import static com.rubix.Resources.IPFSNetwork.pin;
 
+import static com.rubix.Resources.IPFSNetwork.*;
+import static com.rubix.NFTResources.NFTFunctions.*;
+
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
@@ -48,6 +51,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
+import java.security.PublicKey;
 import java.text.ParseException;
 import java.util.HashSet;
 import java.util.Random;
@@ -96,7 +100,7 @@ public class QuorumConsensus implements Runnable {
     public void run() {
         while (true) {
             PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-            String peerID, transactionID, verifySenderHash, receiverDID, appName, senderPrivatePos,
+            String peerID, transactionID="", verifySenderHash="", receiverDID="", appName, senderPrivatePos="",
                     senderDidIpfsHash = "", senderPID = "", ownerHash = "", initHash = "";
             ServerSocket serverSocket = null;
             Socket socket = null;
@@ -532,8 +536,143 @@ public class QuorumConsensus implements Runnable {
                         serverSocket.close();
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     }
-                }           
-                else 
+                }  else if (operation.equals("NFT")) {
+                    String quorumHash = null, nftQuorumHash = null;
+                    String nftDetails = null;
+                    try {
+                        nftDetails = in.readLine();
+                    } catch (SocketException e) {
+                        QuorumConsensusLogger.debug("Sender Input Stream Null - Ping Check / Receiver Details");
+                        socket.close();
+                        serverSocket.close();
+                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                    }
+                    if (nftDetails != null) {
+                        JSONObject nftDetailsObject = new JSONObject(nftDetails);
+                        String nftSaleContractIpfsHash = nftDetailsObject.getString("saleContractIpfsHash");
+
+                        String saleContractContent = get(nftSaleContractIpfsHash, ipfs);
+                        JSONObject saleContractObject = new JSONObject(saleContractContent);
+
+                        String saleSignature = saleContractObject.getString("sign");
+
+                        /* JSONObject data1 = new JSONObject();
+                        data1.put("sellerDID",
+                                nftDetailsObject.getJSONObject("nftTokenDetails").getString("sellerDid"));
+                        data1.put("nftToken", nftDetailsObject.getJSONObject("nftTokenDetails").getString("nftToken"));
+                        data1.put("rbtAmount", nftDetailsObject.getDouble("tokenAmount")); */
+
+                        //creating new temp jsonobject to use verify sale contract
+                        JSONObject saleDataObj = new JSONObject(saleContractContent);
+                        saleDataObj.remove("sign");
+
+                        
+                        String pubKeyStr =get(nftDetailsObject.getString("sellerPubKeyIpfsHash"), ipfs);
+                        String pubKeyAlgorithm = publicKeyAlgStr(pubKeyStr);
+                        PublicKey pubKey = getPubKeyFromStr(pubKeyStr,pubKeyAlgorithm);
+
+                        QuorumConsensusLogger.debug("Recreated String to verify nft Signture " + saleDataObj.toString());
+                        QuorumConsensusLogger
+                                .debug("Contents of SaleContract fetched from ipfs " + saleContractObject.toString());
+                        QuorumConsensusLogger.debug("Signature contained inside the saleContract" + saleSignature);
+                        QuorumConsensusLogger.debug(
+                                "seller Public Key ipfs hash" + nftDetailsObject.getString("sellerPubKeyIpfsHash"));
+
+
+                        String verifyNftSenderHash = nftDetailsObject.getString("nftHash");
+                        // data to verify nftbuyer
+                        JSONObject detailsToVerify = new JSONObject();
+                        detailsToVerify.put("did", nftDetailsObject.getString("nftBuyerDid"));
+                        detailsToVerify.put("hash", verifyNftSenderHash);
+                        detailsToVerify.put("signature", nftDetailsObject.getString("nftSign"));
+
+
+                        if(Authenticate.verifySignature(detailsToVerify.toString()))
+                        {
+                            QuorumConsensusLogger.debug("Quorum Authenticated NFT Buyer");
+                            out.println("Buyer_verified");
+                        }
+
+                        /* if (verifySignature(saleDataObj.toString(), pubKey, saleSignature)) {
+                            QuorumConsensusLogger.debug("Quorom Authenticated NFT sale contract");
+                            out.println("Contract_verified");
+
+                        } */ else {
+                            QuorumConsensusLogger.debug("NFT Buyer Authentication Failure - Quorum");
+                            out.println("Buyer_Not_Verified");
+                        }
+
+                        
+
+                        if (verifySignature(saleDataObj.toString(), pubKey, saleSignature,pubKeyAlgorithm)) {
+                            QuorumConsensusLogger.debug("Quorom Authenticated Sender NFT Signature");
+
+                            nftQuorumHash = calculateHash(
+                                    verifyNftSenderHash.concat(nftDetailsObject.getString("nftBuyerDid")), "SHA3-256");
+                            String QuorumNFTSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
+                                    nftQuorumHash);
+                            out.println(QuorumNFTSignature);
+
+                            String nftCreditSignatures = null;
+                            try {
+                                nftCreditSignatures = in.readLine();
+                            } catch (SocketException e) {
+                                QuorumConsensusLogger.debug("Sender Input Stream Null - Credits");
+                                socket.close();
+                                serverSocket.close();
+                                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                            }
+                            QuorumConsensusLogger.debug("nft credit Signature " + nftCreditSignatures);
+
+                            if (!nftCreditSignatures.equals("null")) { // commented as per test for multiple consensus
+                                                                       // threads
+
+                                FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
+                                shareWriter.write(nftCreditSignatures);
+                                shareWriter.close();
+                                File readCredit = new File(LOGGER_PATH + "mycredit.txt");
+                                String credit = add(readCredit.toString(), ipfs);
+
+                                File creditFile = new File(
+                                        WALLET_DATA_PATH.concat("/Credits/").concat(credit).concat(".json"));
+                                if (!creditFile.exists())
+                                    creditFile.createNewFile();
+                                writeToFile(creditFile.toString(), nftCreditSignatures, false);
+
+                                QuorumConsensusLogger.debug("Credit object: " + credit);
+                                QuorumConsensusLogger.debug("Credit Hash: " + calculateHash(credit, "SHA3-256"));
+                                JSONObject storeDetailsQuorum = new JSONObject();
+                                storeDetailsQuorum.put("tid", nftDetailsObject.getString("tid"));
+                                //modified consensus id got for nftTxn
+                                storeDetailsQuorum.put("consensusID", nftDetailsObject.getString("nftHash"));
+                                //modified sign got for nftSign that quorum verfies for nft txn
+                                storeDetailsQuorum.put("sign", nftDetailsObject.getString("nftSign"));
+                                storeDetailsQuorum.put("credits", credit);
+                                storeDetailsQuorum.put("creditHash", calculateHash(credit, "SHA3-256"));
+                                storeDetailsQuorum.put("senderdid",
+                                        nftDetailsObject.getJSONObject("nftTokenDetails").getString("sellerDid"));
+                                storeDetailsQuorum.put("Date", Functions.getCurrentUtcTime());
+                                storeDetailsQuorum.put("recdid",
+                                        nftDetailsObject.getJSONObject("rbtTokenDetails").getString("sender"));
+                                JSONArray data = new JSONArray();
+                                data.put(storeDetailsQuorum);
+                                QuorumConsensusLogger.debug("Quorum Share: " + credit);
+                                updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
+                                deleteFile(LOGGER_PATH + "mycredit.txt");
+                                writeToFile(LOGGER_PATH + "consenusIDhash", verifySenderHash, false);
+                                String consenusIDhash = IPFSNetwork.add(LOGGER_PATH + "consenusIDhash", ipfs);
+                                deleteFile(LOGGER_PATH + "consenusIDhash");
+                                QuorumConsensusLogger.debug("added consensus ID " + consenusIDhash);
+                            }
+
+                        } else {
+                            QuorumConsensusLogger.debug("NFT Sale Contract and Sender signature Authentication Failure - Quorum");
+                            out.println("NFT_Sig_Auth_Failed");
+                        }
+                    }
+
+                }         
+                else {
                     QuorumConsensusLogger.debug("Old Credits Mining / Whole RBT Token Transfer");
 
 	                String getRecData = null;
@@ -652,7 +791,7 @@ public class QuorumConsensus implements Runnable {
 	                    serverSocket.close();
 	                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
 	                }
-	           
+                }
             } catch (IOException e) {
                 QuorumConsensusLogger.error("IOException Occurred", e);
             } catch (JSONException e) {

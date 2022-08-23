@@ -13,6 +13,8 @@ import static com.rubix.Resources.IPFSNetwork.forward;
 import static com.rubix.Resources.IPFSNetwork.repo;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 
+import static com.rubix.Resources.Functions.*;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -43,7 +45,23 @@ public class InitiatorConsensus {
     public static ArrayList<String> quorumWithShares = new ArrayList<>();
     public static volatile int[] quorumResponse = { 0, 0, 0 };
     public static volatile JSONArray finalQuorumSignsArray = new JSONArray();
-    private static int socketTimeOut = 0;
+
+
+
+
+    public static volatile JSONObject nftQuorumSignature = new JSONObject();
+    private static final Object nftCountLock = new Object();
+    private static final Object nftSignLock = new Object();
+    public static ArrayList<String> nftQuorumWithShares = new ArrayList<>();
+    public static volatile int[] nftQuorumResponse = { 0, 0, 0 };
+    public static volatile JSONArray nftFinalQuorumSignsArray = new JSONArray();
+
+    /**
+     * Added by Anuradha K on 04/01/20222.
+     * To address SocketConnection reset Issue
+     */
+    private static int socketTimeOut = 120000;
+
 
     /**
      * This method increments the quorumResponse variable
@@ -60,6 +78,26 @@ public class InitiatorConsensus {
             } else {
                 status = false;
                 InitiatorConsensusLogger.debug("Consensus Reached for index " + i);
+            }
+        }
+        return status;
+    }
+
+    /**
+     * This method increments the nftQuorumResponse variable
+     */
+    private static synchronized boolean voteNftNCount(int i, int quorumSize) {
+        boolean status;
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        synchronized (nftCountLock) {
+            if (nftQuorumResponse[i] < minQuorum(quorumSize)) {
+                nftQuorumResponse[i]++;
+                InitiatorConsensusLogger.debug("NFT quorum response added index " + i + "  is " + nftQuorumResponse[i]
+                        + " quorumsize " + minQuorum(quorumSize));
+                status = true;
+            } else {
+                status = false;
+                InitiatorConsensusLogger.debug("NFT Consensus Reached for index " + i);
             }
         }
         return status;
@@ -87,6 +125,38 @@ public class InitiatorConsensus {
                     quorumSignature.put(quorumDID, quorumSignResponse);
                 } else {
                     InitiatorConsensusLogger.debug("quorum already reached consensus " + quorumSignature.length());
+                }
+            } catch (JSONException e) {
+                InitiatorConsensusLogger.error("JSON Exception Occurred", e);
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * This method stores all the quorum signatures until required count for
+     * consensus
+     *
+     * @param quorumDID          DID of the Quorum
+     * @param quorumSignResponse Signature of the Quorum
+     */
+    private static synchronized void nftQuorumSign(String quorumDID, String hash, String nftQuorumSignResponse,
+            int index,
+            int quorumSize, int alphaSize) {
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        synchronized (nftSignLock) {
+            try {
+                if (nftQuorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))
+                        && nftQuorumResponse[index] <= minQuorum(quorumSize)) {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("did", quorumDID);
+                    jsonObject.put("signature", nftQuorumSignResponse);
+                    jsonObject.put("hash", hash);
+                    nftFinalQuorumSignsArray.put(jsonObject);
+                    nftQuorumSignature.put(quorumDID, nftQuorumSignResponse);
+                } else {
+                    InitiatorConsensusLogger
+                            .debug("NFT quorum already reached consensus " + nftQuorumSignature.length());
                 }
             } catch (JSONException e) {
                 InitiatorConsensusLogger.error("JSON Exception Occurred", e);
@@ -259,70 +329,175 @@ public class InitiatorConsensus {
                                 }
                             }
 
-                        }
+                        } else if (operation.equals("NFT")) {
+                            InitiatorConsensusLogger.debug("NFT Transaction");
+                            JSONObject nftDetails = dataObject.getJSONObject("nftDetails");
 
-                        qOut[j].println(detailsToken);
+                            qOut[j].println(nftDetails);
 
-                        try {
-                            qResponse[j] = qIn[j].readLine();
-                        } catch (SocketException e) {
-                            InitiatorConsensusLogger.warn("Quorum " + quorumID[j] + " is unable to Respond!");
-                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                        }
-
-                        if (qResponse[j] != null) {
-                            if (qResponse[j].equals("Auth_Failed")) {
-                                InitiatorConsensusLogger.debug("Sender Authentication Failure at " + quorumID[j]);
+                            try {
+                                qResponse[j] = qIn[j].readLine();
+                            } catch (SocketException e) {
+                                InitiatorConsensusLogger.warn("Quorum " + quorumID[j] + " is unable to Respond!");
                                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
-                            } else {
-                                InitiatorConsensusLogger
-                                        .debug("Signature Received from " + quorumID[j] + " " + qResponse[j]);
-                                if (quorumResponse[index] > minQuorum(quorumSize)) {
-                                    qOut[j].println("null");
+                            }
+
+                            if (qResponse[j] != null) {
+                                if (qResponse[j].equals("Buyer_Not_Verified")) {
+                                    InitiatorConsensusLogger.debug("NFT Buyer Authentication Failure at " + quorumID[j]);
                                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                 } else {
-                                    String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
-                                            quorumID[j]);
-                                    JSONObject detailsToVerify = new JSONObject();
-                                    detailsToVerify.put("did", didHash);
-                                    detailsToVerify.put("hash", hash);
-                                    detailsToVerify.put("signature", qResponse[j]);
-                                    if (Authenticate.verifySignature(detailsToVerify.toString())) {
-                                        InitiatorConsensusLogger.debug(role + " node authenticated at index " + index);
-                                        boolean voteStatus = voteNCount(index, quorumSize);
-                                        if (quorumResponse[index] <= minQuorum(quorumSize) && voteStatus) {
+                                    InitiatorConsensusLogger
+                                            .debug("Quorum Verified NFT Buyer " + quorumID[j] + " " + qResponse[j]);
+                                }
+                            }
+
+                            try {
+                                qResponse[j] = qIn[j].readLine();
+                            } catch (SocketException e) {
+                                InitiatorConsensusLogger.warn("Quorum " + quorumID[j] + " is unable to Respond!");
+                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                            }
+
+                            if (qResponse[j] != null) {
+                                if (qResponse[j].equals("NFT_Sig_Auth_Failed")) {
+                                    InitiatorConsensusLogger.debug("NFT Sign Authentication Failure at " + quorumID[j]);
+                                    InitiatorConsensusLogger.debug("NFT Sale and Sender signature verification failed");
+                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                } else {
+                                    InitiatorConsensusLogger
+                                            .debug("Quorum Verified NFT Sale and Sender" + quorumID[j] + " " + qResponse[j]);
+                                    if (nftQuorumResponse[index] > minQuorum(quorumSize)) {
+                                        qOut[j].println("null");
+                                        // IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                    } else {
+                                        String nftHash = nftDetails.getString("nftHash");
+                                        String quorumSignValue = calculateHash(
+                                                nftHash.concat(nftDetails.getString("nftBuyerDid")), "SHA3-256");
+                                        String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
+                                                quorumID[j]);
+                                        JSONObject detailsToVerify = new JSONObject();
+                                        detailsToVerify.put("did", didHash);
+                                        detailsToVerify.put("hash", quorumSignValue);
+                                        // detailsToVerify.put("nftDetails", nftDetails);
+                                        detailsToVerify.put("signature", qResponse[j]);
+                                        if (Authenticate.verifySignature(detailsToVerify.toString())) {
                                             InitiatorConsensusLogger
-                                                    .debug("waiting for  " + quorumSize + " +signs " + role);
-                                            if (role.equals("alpha")) {
+                                                    .debug(role + " node authenticated at index " + index);
+                                            boolean voteNftStatus = voteNftNCount(index, quorumSize);
+                                            if (nftQuorumResponse[index] <= minQuorum(quorumSize) && voteNftStatus) {
                                                 InitiatorConsensusLogger
-                                                        .debug("Picking Quorum for Staking " + quorumID[j]);
-                                                signedAphaQuorumArray.put(quorumID[j]);
+                                                        .debug("waiting for  " + quorumSize + " +signs " + role);
+                                                while (nftQuorumResponse[index] < minQuorum(quorumSize)) {
+                                                }
+                                                InitiatorConsensusLogger
+                                                        .debug("between Q1- to Q" + quorumSize + " for index " + index);
+                                                nftQuorumSign(didHash, quorumSignValue, qResponse[j], index, quorumSize,
+                                                        alphaSize);
+                                                nftQuorumWithShares.add(quorumPeersObject.getString(j));
+                                                while (nftQuorumSignature
+                                                        .length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+                                                }
+                                                InitiatorConsensusLogger.debug("NFT :sending Qsign  of length "
+                                                        + nftQuorumSignature.length() + "at index " + index);
+                                                qOut[j].println(nftFinalQuorumSignsArray.toString());
+                                                IPFSNetwork
+                                                        .executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                            } else {
+                                                InitiatorConsensusLogger.debug("sending null for slow quorum ");
+                                                qOut[j].println("null");
+                                                IPFSNetwork
+                                                        .executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                             }
-                                            while (quorumResponse[index] < minQuorum(quorumSize)) {
-                                            }
-                                            InitiatorConsensusLogger
-                                                    .debug("between Q1- to Q" + quorumSize + " for index " + index);
-                                            quorumSign(didHash, hash, qResponse[j], index, quorumSize, alphaSize);
-                                            quorumWithShares.add(quorumPeersObject.getString(j));
-                                            while (quorumSignature
-                                                    .length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
-                                            }
-                                            InitiatorConsensusLogger.debug("sending Qsign  of length "
-                                                    + quorumSignature.length() + "at index " + index);
-                                            qOut[j].println(finalQuorumSignsArray.toString());
-                                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                            InitiatorConsensusLogger.debug("Quorum Count : " + nftQuorumResponse
+                                                    + "Signature count : " + nftQuorumSignature.length());
                                         } else {
-                                            InitiatorConsensusLogger.debug("sending null for slow quorum ");
-                                            qOut[j].println("null");
+                                            InitiatorConsensusLogger.debug("node failed authentication with index "
+                                                    + index + " with role " + role + " with did " + didHash
+                                                    + " and data to verify " + detailsToVerify);
                                             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
                                         }
-                                        InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse
-                                                + "Signature count : " + quorumSignature.length());
-                                    } else {
-                                        InitiatorConsensusLogger.debug("node failed authentication with index " + index
-                                                + " with role " + role + " with did " + didHash + " and data to verify "
-                                                + detailsToVerify);
+                                    }
+
+                                }
+                            }
+                            InitiatorConsensusLogger.debug("NFT quorumSignatures length" + nftQuorumSignature.length());
+
+                            while ((nftQuorumResponse[index] < minQuorum(quorumSize)
+                                            || nftQuorumSignature
+                                                    .length() < (minQuorum(alphaSize) + 2 * minQuorum(7)))) {
+                            }
+
+                        } else {
+
+                            qOut[j].println(detailsToken);
+
+                            try {
+                                qResponse[j] = qIn[j].readLine();
+                            } catch (SocketException e) {
+                                InitiatorConsensusLogger.warn("Quorum " + quorumID[j] + " is unable to Respond!");
+                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                            }
+
+                            if (qResponse[j] != null) {
+                                if (qResponse[j].equals("Auth_Failed")) {
+                                    InitiatorConsensusLogger.debug("Sender Authentication Failure at " + quorumID[j]);
+                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                } else {
+                                    InitiatorConsensusLogger
+                                            .debug("Signature Received from " + quorumID[j] + " " + qResponse[j]);
+                                    if (quorumResponse[index] > minQuorum(quorumSize)) {
+                                        qOut[j].println("null");
                                         IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                    } else {
+                                        String didHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid",
+                                                quorumID[j]);
+                                        JSONObject detailsToVerify = new JSONObject();
+                                        detailsToVerify.put("did", didHash);
+                                        detailsToVerify.put("hash", hash);
+                                        detailsToVerify.put("signature", qResponse[j]);
+                                        if (Authenticate.verifySignature(detailsToVerify.toString())) {
+                                            InitiatorConsensusLogger
+                                                    .debug(role + " node authenticated at index " + index);
+                                            boolean voteStatus = voteNCount(index, quorumSize);
+                                            if (quorumResponse[index] <= minQuorum(quorumSize) && voteStatus) {
+                                                InitiatorConsensusLogger
+                                                        .debug("waiting for  " + quorumSize + " +signs " + role);
+                                                if (role.equals("alpha")) {
+                                                    InitiatorConsensusLogger
+                                                            .debug("Picking Quorum for Staking " + quorumID[j]);
+                                                    signedAphaQuorumArray.put(quorumID[j]);
+                                                }
+                                                while (quorumResponse[index] < minQuorum(quorumSize)) {
+                                                }
+                                                InitiatorConsensusLogger
+                                                        .debug("between Q1- to Q" + quorumSize + " for index " + index);
+                                                quorumSign(didHash, hash, qResponse[j], index, quorumSize, alphaSize);
+                                                quorumWithShares.add(quorumPeersObject.getString(j));
+                                                while (quorumSignature
+                                                        .length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+                                                }
+                                                InitiatorConsensusLogger.debug("sending Qsign  of length "
+                                                        + quorumSignature.length() + "at index " + index);
+                                                qOut[j].println(finalQuorumSignsArray.toString());
+                                                IPFSNetwork
+                                                        .executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                            } else {
+                                                InitiatorConsensusLogger.debug("sending null for slow quorum ");
+                                                qOut[j].println("null");
+                                                IPFSNetwork
+                                                        .executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                            }
+                                            InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse
+                                                    + "Signature count : " + quorumSignature.length());
+                                        } else {
+                                            InitiatorConsensusLogger
+                                                    .debug("node failed authentication with index " + index
+                                                            + " with role " + role + " with did " + didHash
+                                                            + " and data to verify "
+                                                            + detailsToVerify);
+                                            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID[j]);
+                                        }
                                     }
                                 }
                             }
