@@ -31,6 +31,12 @@ import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 import com.rubix.Constants.MiningConstants.*;
 
+import static com.rubix.Resources.APIHandler.getPubKeyIpfsHash_DIDserver;
+import static com.rubix.NFTResources.NFTFunctions.*;
+
+import java.lang.reflect.Field;
+import java.util.LinkedHashMap;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
@@ -82,14 +88,24 @@ public class TokenReceiver {
 			}
 
 			int quorumSignVerifyCount = 0;
-			JSONObject quorumSignatures = null;
+			JSONArray quorumSignatures = null;
 
 			ArrayList<String> quorumDID = new ArrayList<>();
 			PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
+			ArrayList<String>   WholeTokenChainsWithAppendedBlock = new ArrayList<String>();
+            JSONArray hash_Signs_ForTokenChains = new JSONArray();
+			JSONArray hashes_Signs_PartTokenChains = new JSONArray();
+			JSONObject final_parttokenchains = new JSONObject();
+			
+
 			String receiverPeerID = getPeerID(DATA_PATH + "DID.json");
 
 			String receiverDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", receiverPeerID);
+
+			JSONObject temp = new JSONObject();
+			temp.put("pvtShare",DATA_PATH + receiverDidIpfsHash + "/PrivateShare.png");
+			String pvt = temp.getString("pvtShare");
 
 			listen(receiverPeerID, RECEIVER_PORT);
 			ss = new ServerSocket(RECEIVER_PORT);
@@ -180,6 +196,7 @@ public class TokenReceiver {
 
 			JSONArray partTokens = TokenDetails.getJSONArray("part-tokens");
 			JSONObject partTokenChains = TokenDetails.getJSONObject("part-tokenChains");
+			JSONObject partTokenChainsForVerification = TokenDetails.getJSONObject("part-tokenChains-PrevState");
 			JSONArray partTokenChainsHash = TokenDetails.getJSONArray("hashSender");
 
 			JSONArray previousSendersArray = tokenObject.getJSONArray("previousSender");
@@ -257,7 +274,7 @@ public class TokenReceiver {
 			String consensusIDIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "consensusID", ipfs);
 			deleteFile(LOGGER_PATH + "consensusID");
 
-			if (!IPFSNetwork.dhtEmpty(consensusIDIPFSHash, ipfs)) {
+			 if (!IPFSNetwork.dhtEmpty(consensusIDIPFSHash, ipfs)) {
 				TokenReceiverLogger.debug("consensus ID not unique" + consensusIDIPFSHash);
 				output.println("421");
 				APIResponse.put("did", senderDidIpfsHash);
@@ -270,8 +287,8 @@ public class TokenReceiver {
 				sk.close();
 				ss.close();
 				return APIResponse.toString();
-			}
-
+			} 
+ 
 			// Check IPFS get for all Tokens
 			int ipfsGetFlag = 0;
 			ArrayList<String> wholeTokenContent = new ArrayList<>();
@@ -363,6 +380,500 @@ public class TokenReceiver {
 			}
 			/** Token Authenticity Check - Ends */
 
+
+
+			//Token Chains authenticity check starts
+
+			TokenReceiverLogger.debug("VERIFYING TOKEN CHAIN(S).. ");
+
+			//For WholeTokenChains
+            int chainAutheticityFlag = 0;
+            boolean flag=false;
+			TokenReceiverLogger.debug("Verifying whole token chains.. ");
+            for (int i = 0; i < intPart; i++) {
+                
+				TokenReceiverLogger.debug("Verifying whole Token Chain : "+wholeTokenChains.getString(i));
+                
+                String TokenChainContent = get(wholeTokenChains.getString(i), ipfs);
+
+				JSONArray TokenChainArray = new JSONArray(TokenChainContent);
+				//TokenReceiverLogger.debug("Token Chain content fetched from ipfs for tokenchain"+i+" : "+ TokenChainArray);
+
+				JSONObject lastValueOnChain= TokenChainArray.getJSONObject(TokenChainArray.length()-1);
+				            
+                JSONObject forNLSScheck =new JSONObject();
+				
+
+				if(lastValueOnChain.has("hash") && lastValueOnChain.has("pvtShareBits") && lastValueOnChain.has("pvtKeySign")){
+										
+					String hash= lastValueOnChain.getString("hash");
+					//TokenReceiverLogger.debug("Hash to check  : "+ hash);
+					String pvtShareBits = lastValueOnChain.getString("pvtShareBits");
+					String pvtKeySign = lastValueOnChain.getString("pvtKeySign");
+					String prevSenderDID = lastValueOnChain.getString("sender");
+
+
+                    //Editing last object before calc hash.
+
+					JSONObject lastObj = new JSONObject();
+					lastObj = TokenChainArray.getJSONObject(TokenChainArray.length()-1);
+					TokenChainArray.remove(TokenChainArray.length()-1);
+					lastObj.remove("hash");
+					lastObj.remove("pvtShareBits");
+					lastObj.remove("pvtKeySign");
+
+					TokenChainArray.put(lastObj);
+
+					//TokenReceiverLogger.debug("Token Chain Content that is to be hashed : "+TokenChainArray);
+
+					String hashToCheck = calculateHash(TokenChainArray.toString(), "SHA3-256");
+
+					TokenReceiverLogger.debug("Calculated Hash : "+ hashToCheck);
+
+                    //Check 1 : Hash comaprison check
+					if(hashToCheck.equals(hash)){
+
+						TokenReceiverLogger.debug("Hash values match.");
+                    
+                        // Check to ensure the sender hasnt changed the DID on the second last block to their DID instead of the prev sender.
+                        //If the above is done, the sender cn easily change the contents of the chain and, hash and sign, and the receiver wont know.
+                        //Hence the check.
+                        if(prevSenderDID.equals(senderDidIpfsHash)){
+                            chainAutheticityFlag = 3;
+                            break;
+                        }
+
+
+                        forNLSScheck.put("did", prevSenderDID);
+                        forNLSScheck.put("hash", hashToCheck);
+                        forNLSScheck.put("signature", pvtShareBits);
+
+                        String prevSenderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(prevSenderDID,1); //get public key ipfs hash of the sender.
+                        //Need to handle the case where DID server isnt available.
+
+                        String prevSenderPubKeyStr= IPFSNetwork.get(prevSenderPublicKeyIpfsHash, ipfs); // get sender's public key from ipfs.
+                        //Need to handle the case when ipfs isn't avaialble.
+
+						String pubKeyAlgo = publicKeyAlgStr(prevSenderPubKeyStr);
+
+                        //Check 2: prev Sender authenticity check (Signature)
+                        if(verifySignature(pvtShareBits,getPubKeyFromStr(prevSenderPubKeyStr,pubKeyAlgo),pvtKeySign,pubKeyAlgo)==true){
+
+                            flag = Authenticate.verifySignature(forNLSScheck.toString());
+                            if(!flag){
+
+                                chainAutheticityFlag = 5;
+                                break;
+                            }else{
+								TokenReceiverLogger.debug("Previous sender's sign also authenticated.");
+								TokenReceiverLogger.debug("Token chain "+wholeTokenChains.getString(i)+ "verified");
+							}
+                        
+                        } else {
+                            
+                            //If private key signature verification of prev sender doesn't complete.
+                            chainAutheticityFlag = 4;
+                            break; 
+                        }
+                        
+
+					}else { 
+                        
+                        //If hash values dont match
+                        chainAutheticityFlag = 2;
+                        break;
+                    }
+
+				} else{
+                    //If the hash and sign are not present in the TokenChain
+                    chainAutheticityFlag = 1;
+                    break;
+                }
+            }
+
+
+			// Returning responses after chain verification
+            if(chainAutheticityFlag == 1){
+                
+                TokenReceiverLogger.debug("Token Transfer continuing without TokenChain authentication check. (Bootstrap purpose)");
+                //if condition needs to be removed after bootstrapping.
+            }
+
+            //If hash values for tokenchain authenticity checks have a mismatch.
+            if(chainAutheticityFlag == 2){
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Token Chain could not be verified");
+                TokenReceiverLogger.info("Token Chain could not be verified.");
+				//TokenReceiverLogger.info("Chain auth flag : "+chainAutheticityFlag);
+
+				output.println("430");
+                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+                
+            //If sender tries to edit the token chain with the hash and the sign. Ideally by putting his DID instead of prev sender's DID in the last appended block.
+            if(chainAutheticityFlag == 3){
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Token Chain could not be verified. Malicious activity by sender");
+                TokenReceiverLogger.info("Token Chain could not be verified. Malicious activity by sender");
+				//TokenReceiverLogger.info("Chain auth flag : "+chainAutheticityFlag);
+                
+				output.println("430");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+
+            if(chainAutheticityFlag == 4){
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Token Chain could not be verified. Previous sender's signature not verified");
+                TokenReceiverLogger.info("Token Chain could not be verified. Previous sender's signature not verified");
+                //TokenReceiverLogger.info("Chain auth flag : "+chainAutheticityFlag);
+                
+				output.println("430");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+
+            if(chainAutheticityFlag==5){
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Token Chain could not be verified. Previous sender's signature not verified");
+                TokenReceiverLogger.info("Token Chain could not be verified. Previous sender's signature not verified");
+                //TokenReceiverLogger.info("Chain auth flag : "+chainAutheticityFlag);
+                
+				output.println("430");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+
+            if(flag){
+                TokenReceiverLogger.debug("Whole Token Chains successfully verified !");
+            }
+
+
+
+			
+			//For PartTokenChains
+			int chainAutheticityFlag2 = 0;
+            boolean flag2=false;
+			TokenReceiverLogger.debug("Verifying part token chains.. ");
+			for (int i = 0; i < partTokens.length(); i++){
+
+				JSONObject forNLSScheck =new JSONObject();
+				JSONArray partTokenChainToVerify = new JSONArray();
+				JSONObject lastValueOnChain2 = new JSONObject();
+				TokenReceiverLogger.debug("Verifying part Token Chain : "+partTokens.getString(i));
+
+				partTokenChainToVerify = partTokenChainsForVerification.getJSONArray(partTokens.getString(i));
+
+				lastValueOnChain2 = partTokenChainToVerify.getJSONObject(partTokenChainToVerify.length()-1);
+
+				if((lastValueOnChain2.has("role"))){
+
+					if(lastValueOnChain2.getString("role").equals("Sender")){
+
+						if(lastValueOnChain2.has("hash") && lastValueOnChain2.has("pvtShareBits")){
+						
+							String hash = lastValueOnChain2.getString("hash");
+							TokenReceiverLogger.debug("Hash to check  : "+ hash);
+		
+							String pvtShareBits = lastValueOnChain2.getString("pvtShareBits");
+							
+							String requiredDID = lastValueOnChain2.getString("receiver");
+		
+							//Editing last object before calc hash.
+		
+							JSONObject lastObj2 = new JSONObject();
+							lastObj2 = partTokenChainToVerify.getJSONObject(partTokenChainToVerify.length()-1);
+							partTokenChainToVerify.remove(partTokenChainToVerify.length()-1);
+							lastObj2.remove("hash");
+							lastObj2.remove("pvtShareBits");
+							//lastObj.remove("pvtKeySign");
+		
+							partTokenChainToVerify.put(lastObj2);
+
+							TokenReceiverLogger.debug("Token Chain to be hashed : "+ partTokenChainToVerify);
+		
+							String hashToCheck = calculateHash(partTokenChainToVerify.toString(), "SHA3-256");
+							//TokenReceiverLogger.debug("Calculated Hash : "+ hashToCheck);
+				
+							if(hashToCheck.equals(hash)){
+							//TokenReceiverLogger.debug("Hash values match.");
+		
+								forNLSScheck.put("did", requiredDID);
+								forNLSScheck.put("hash", hashToCheck);
+								forNLSScheck.put("signature", pvtShareBits);
+
+								flag2 = Authenticate.verifySignature(forNLSScheck.toString());
+								if(!flag2){
+		
+									chainAutheticityFlag2 = 5;
+										break;
+								}
+								
+							}else { 
+								
+								//If hash values dont match
+								chainAutheticityFlag2 = 2;
+								break;
+							}
+						}else{
+							//If the hash and sign are not present in the TokenChain
+							chainAutheticityFlag2 = 1;
+							break;
+						}
+					}
+
+					else {
+
+						if(lastValueOnChain2.has("hash") && lastValueOnChain2.has("pvtShareBits")){
+						
+							String hash = lastValueOnChain2.getString("hash");
+							//TokenReceiverLogger.debug("Hash to check  : "+ hash);
+		
+							String pvtShareBits = lastValueOnChain2.getString("pvtShareBits");
+							//String pvtKeySign = lastValueOnChain.getString("pvtKeySign");
+		
+							String requiredDID = lastValueOnChain2.getString("sender");
+							
+							//Editing last object before calc hash.
+							JSONObject lastObj3 = new JSONObject();
+							JSONObject newobj3 = new JSONObject();
+							lastObj3 = partTokenChainToVerify.getJSONObject(partTokenChainToVerify.length()-1);
+							
+							partTokenChainToVerify.remove(partTokenChainToVerify.length()-1);							
+							
+							lastObj3.remove("hash");
+							lastObj3.remove("pvtShareBits");	  
+
+							partTokenChainToVerify.put(lastObj3);
+
+							//TokenReceiverLogger.debug("Token chain to be hashed (AFTER EDITING LAST BLOCK)  : "+ partTokenChainToVerify);
+		
+							String hashToCheck = calculateHash(partTokenChainToVerify.toString(), "SHA3-256");
+							TokenReceiverLogger.debug("Calculated Hash : "+ hashToCheck);
+				
+						
+							if(hashToCheck.equals(hash)){
+							//TokenReceiverLogger.debug("Hash values match.");
+								
+								forNLSScheck.put("did", requiredDID);
+								forNLSScheck.put("hash", hashToCheck);
+								forNLSScheck.put("signature", pvtShareBits);
+		
+		
+								flag2 = Authenticate.verifySignature(forNLSScheck.toString());
+								if(!flag2){
+		
+									chainAutheticityFlag2 = 5;
+									break;
+								}
+								
+							}else{ 
+								
+								//If hash values dont match
+								chainAutheticityFlag2 = 2;
+								break;
+							}
+		
+						} else{
+							//If the hash and sign are not present in the TokenChain
+							chainAutheticityFlag2 = 1;
+							break;
+						}
+					}
+
+				}
+				else if (lastValueOnChain2.has("hash") && lastValueOnChain2.has("pvtShareBits") && lastValueOnChain2.has("pvtKeySign")){
+					
+					String hash= lastValueOnChain2.getString("hash");
+					//TokenReceiverLogger.debug("Hash to check  : "+ hash);
+					String pvtShareBits = lastValueOnChain2.getString("pvtShareBits");
+					String pvtKeySign = lastValueOnChain2.getString("pvtKeySign");
+					String prevSenderDID = lastValueOnChain2.getString("sender");
+
+
+                    //Editing last object before calc hash.
+
+					JSONObject lastObj4 = new JSONObject();
+					lastObj4 = partTokenChainToVerify.getJSONObject(partTokenChainToVerify.length()-1);
+					partTokenChainToVerify.remove(partTokenChainToVerify.length()-1);
+					lastObj4.remove("hash");
+					lastObj4.remove("pvtShareBits");
+					lastObj4.remove("pvtKeySign");
+
+					partTokenChainToVerify.put(lastObj4);
+
+					//TokenReceiverLogger.debug("Token Chain Content that is to be hashed : "+TokenChainArray);
+
+					String hashToCheck = calculateHash(partTokenChainToVerify.toString(), "SHA3-256");
+
+					if(hashToCheck.equals(hash)){
+
+						TokenReceiverLogger.debug("Hash values match.");
+                    
+                        // Check to ensure the sender hasnt changed the DID on the second last block to their DID instead of the prev sender.
+                        //If the above is done, the sender cn easily change the contents of the chain and, hash and sign, and the receiver wont know.
+                        //Hence the check.
+                        if(prevSenderDID.equals(senderDidIpfsHash)){
+                            chainAutheticityFlag = 3;
+                            break;
+                        }
+
+                        forNLSScheck.put("did", prevSenderDID);
+                        forNLSScheck.put("hash", hashToCheck);
+                        forNLSScheck.put("signature", pvtShareBits);
+
+                        String prevSenderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(prevSenderDID,1); //get public key ipfs hash of the sender.
+                        //Need to handle the case where DID server isnt available.
+
+                        String prevSenderPubKeyStr= IPFSNetwork.get(prevSenderPublicKeyIpfsHash, ipfs); // get sender's public key from ipfs.
+                        //Need to handle the case when ipfs isn't avaialble.
+
+						String pubKeyAlgo = publicKeyAlgStr(prevSenderPubKeyStr);
+
+                        //Check 2: prev Sender authenticity check (Signature)
+                        if(verifySignature(pvtShareBits,getPubKeyFromStr(prevSenderPubKeyStr,pubKeyAlgo),pvtKeySign,pubKeyAlgo)==true){
+
+                            flag = Authenticate.verifySignature(forNLSScheck.toString());
+                            if(!flag){
+
+                                chainAutheticityFlag = 5;
+                                break;
+                            }else{
+								TokenReceiverLogger.debug("Previous sender's sign also authenticated.");
+								TokenReceiverLogger.debug("Token chain "+wholeTokenChains.getString(i)+ "verified");
+							}
+                        
+                        } else {
+                            
+                            //If private key signature verification of prev sender doesn't complete.
+                            chainAutheticityFlag = 4;
+                            break; 
+                        }
+                        
+
+					}else { 
+                        
+                        //If hash values dont match
+                        chainAutheticityFlag = 2;
+                        break;
+                    }
+
+				}
+				else {
+					chainAutheticityFlag2 =1;
+				}
+					
+
+			}
+                
+
+			// Returning responses after chain verification
+
+            if(chainAutheticityFlag2 == 1){
+                
+                TokenReceiverLogger.debug("Token Transfer for a particular token is continuing without TokenChain authentication check. (Bootstrap purpose)");
+                //if condition needs to be removed after bootstrapping.
+            }
+
+            //If hash values for tokenchain authenticity checks have a mismatch.
+            if(chainAutheticityFlag2 == 2){
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Part Token Chain could not be verified. Incorrect hash");
+                TokenReceiverLogger.info("Part Token Chain could not be verified");
+
+				output.println("431");
+                IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+                
+            //If sender tries to edit the token chain with the hash and the sign. Ideally by putting his DID instead of prev sender's DID in the last appended block.
+            if(chainAutheticityFlag2 == 3){
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Part Token Chain could not be verified. Malicious activity by sender");
+                TokenReceiverLogger.info("Part Token Chain could not be verified. Malicious activity by sender");
+                
+				output.println("431");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+
+            if(chainAutheticityFlag2 == 4){
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Part Token Chain could not be verified. Previous sender's signature not verified");
+                TokenReceiverLogger.info("Part Token Chain could not be verified. Previous sender's signature not verified");
+                
+				output.println("431");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+
+            if(chainAutheticityFlag2==5){
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Part Token Chain could not be verified. Previous sender's signature not verified");
+                TokenReceiverLogger.info("Part Token Chain could not be verified. Previous sender's signature not verified");
+                
+				output.println("431");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+                output.close();
+                input.close();
+                sk.close();
+                ss.close();
+                return APIResponse.toString();
+            }
+
+            if(flag2){
+                TokenReceiverLogger.debug("Part Token Chains verified !");
+            }
+
+			//Token Chain authenticity check ends.
+
+
+
 			JSONArray partTokenChainContent = new JSONArray();
 			JSONArray partTokenContent = new JSONArray();
 
@@ -373,7 +884,7 @@ public class TokenReceiver {
 				partTokenContent.put(TokenContent);
 			}
 
-			boolean chainFlag = true;
+			/* boolean chainFlag = true;
 			for (int i = 0; i < partTokenChainContent.length(); i++) {
 				JSONArray tokenChainContent = partTokenChainContent.getJSONArray(i);
 				for (int j = 0; j < tokenChainContent.length(); j++) {
@@ -429,7 +940,7 @@ public class TokenReceiver {
 				sk.close();
 				ss.close();
 				return APIResponse.toString();
-			}
+			} */
 
 			boolean ownerCheck = true;
 
@@ -818,7 +1329,10 @@ public class TokenReceiver {
 
 			}
 			JSONObject SenderDetails = new JSONObject(senderDetails);
-			String senderSignature = SenderDetails.getString("sign");
+
+			String senderSignature = SenderDetails.getString("pvtKeySign");
+			String senderPvtShareBits = SenderDetails.getString("pvtShareBits");
+
 			String tid = SenderDetails.getString("tid");
 			String comment = SenderDetails.getString("comment");
 			String Status = SenderDetails.getString("status");
@@ -833,10 +1347,10 @@ public class TokenReceiver {
 			if (!Status.equals("Consensus Failed")) {
 				boolean yesQuorum = false;
 				if (Status.equals("Consensus Reached")) {
-					quorumSignatures = new JSONObject(QuorumDetails);
+					quorumSignatures = new JSONArray(QuorumDetails);
 					String selectQuorumHash = calculateHash(senderToken, "SHA3-256");
 					String verifyQuorumHash = calculateHash(selectQuorumHash.concat(receiverDidIpfsHash), "SHA3-256");
-
+/* 
 					Iterator<String> keys = quorumSignatures.keys();
 					while (keys.hasNext()) {
 						String key = keys.next();
@@ -849,17 +1363,40 @@ public class TokenReceiver {
 								quorumDidIpfsHash);
 
 						nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
+					} */
+
+					for (int i = 0; i < quorumSignatures.length(); i++) {
+						JSONObject QuorumMember = quorumSignatures.getJSONObject(i);
+						syncDataTable(QuorumMember.getString("quorum_did"), null);
+						String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
+						QuorumMember.getString("quorum_did"));
+
+						nodeData((QuorumMember.getString("quorum_did")), quorumWidIpfsHash, ipfs);
 					}
 
 					for (int i = 0; i < quorumSignatures.length(); i++) {
 
+						JSONObject quorumMember = quorumSignatures.getJSONObject(i);
+
+						//TokenReceiverLogger.debug("Quorum sign of member " +i+ ":"+quorumMember);
+						
+                        String quorumsPrivateShareSign = quorumMember.getString("quorumPrivateShareSign");
+                        String quorumsPrivateKeySign = quorumMember.getString("quorumPvtKeySign");
+                
+                        String QuorumPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(quorumMember.getString("quorum_did"),2); //get public key ipfs hash of the quorum member.
+                        String quorumPubKeyStr= IPFSNetwork.get(QuorumPublicKeyIpfsHash, ipfs); // get quorum member's public key from ipfs.
+						String pubKeyAlgo = publicKeyAlgStr(quorumPubKeyStr);
+
 						JSONObject detailsForVerify = new JSONObject();
-						detailsForVerify.put("did", quorumDID.get(i));
+						detailsForVerify.put("did",quorumMember.getString("quorum_did") );
 						detailsForVerify.put("hash", verifyQuorumHash);
-						detailsForVerify.put("signature", quorumSignatures.getString(quorumDID.get(i)));
-						boolean val = Authenticate.verifySignature(detailsForVerify.toString());
-						if (val)
+						detailsForVerify.put("signature",quorumMember.getString("quorumPrivateShareSign"));
+
+						boolean val = ((verifySignature(quorumsPrivateShareSign,getPubKeyFromStr(quorumPubKeyStr,pubKeyAlgo),quorumsPrivateKeySign,pubKeyAlgo)) && (Authenticate.verifySignature(detailsForVerify.toString())));
+						if (val){
 							quorumSignVerifyCount++;
+							TokenReceiverLogger.debug("Quorum member " +quorumMember.getString("quorum_did") + " verified.");
+						}
 					}
 					TokenReceiverLogger.debug("Verified Quorum Count " + quorumSignVerifyCount);
 					yesQuorum = quorumSignVerifyCount >= quorumSignatures.length();
@@ -876,9 +1413,23 @@ public class TokenReceiver {
 				JSONObject detailsForVerify = new JSONObject();
 				detailsForVerify.put("did", senderDidIpfsHash);
 				detailsForVerify.put("hash", hash);
-				detailsForVerify.put("signature", senderSignature);
+				detailsForVerify.put("signature", senderPvtShareBits);
 
-				boolean yesSender = Authenticate.verifySignature(detailsForVerify.toString());
+				boolean yesSender = false;
+
+                String senderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(senderDidIpfsHash,1); //get public key ipfs hash of the sender.
+
+                String senderPubKeyStr= IPFSNetwork.get(senderPublicKeyIpfsHash, ipfs); // get sender's public key from ipfs.
+
+				String pubKeyAlgo = publicKeyAlgStr(senderPubKeyStr);
+
+                //verifySignature uses sender's public key to verify the private key signature. 
+                if(verifySignature(senderPvtShareBits,getPubKeyFromStr(senderPubKeyStr,pubKeyAlgo),senderSignature,pubKeyAlgo)==true)
+                
+                {
+                    yesSender = Authenticate.verifySignature(detailsForVerify.toString());
+                }
+
 				TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + " Sender Auth : " + yesSender);
 				if (!(yesSender && yesQuorum)) {
 					output.println("420");
@@ -899,10 +1450,257 @@ public class TokenReceiver {
 				TokenReceiverLogger.debug("Sender and Quorum Verified");
 				output.println("200");
 
+
+				//To accecpt sender req for new Token chain block, and provide the same
+                String request;
+                try {
+                    request = input.readLine();
+                } catch (SocketException e) {
+                    TokenReceiverLogger.warn("Sender Stream Null, receiver unable to accept senders request to get new Token chain block for hashing");
+                    APIResponse.put("did", "");
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Sender Stream Null, receiver unable to accept senders request to get new Token chain block for hashing");
+
+                    output.close();
+                    input.close();
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
+
+                }
+
+                JSONArray arrLastObjects = new JSONArray();
+                if(request.equals("Request for new blocks being added to the Token Chains")){
+
+                    
+                    for (int i = 0; i < intPart; i++) {
+                        String tokens = wholeTokens.getString(i);
+                        String hashString = tokens.concat(receiverDidIpfsHash);
+                        String hashForPositions = calculateHash(hashString, "SHA3-256");
+
+                        BufferedImage pvt1 = ImageIO
+                                .read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
+                        String firstPrivate = PropImage.img2bin(pvt1);
+                        int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+                        String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+                        String positions = "";
+                        for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                            positions += privateBinary.charAt(j);
+                        }
+                        String ownerIdentity = hashForPositions.concat(positions);
+                        String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+
+                        TokenReceiverLogger.debug("Ownership Here");
+                        TokenReceiverLogger.debug("tokens: " + wholeTokens.getString(i));
+                        TokenReceiverLogger.debug("hashString: " + hashString);
+                        TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
+                        TokenReceiverLogger.debug("p1: " + positions);
+                        TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
+                        TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
+
+                        ArrayList<String> groupTokens = new ArrayList<>();
+                        for (int k = 0; k < intPart; k++) {
+                            if (!wholeTokens.getString(i).equals(wholeTokens.getString(k)))
+                                groupTokens.add(wholeTokens.getString(k));
+                        }
+
+                        JSONArray arrToken = new JSONArray();
+                        JSONObject objectToken = new JSONObject();
+                        objectToken.put("tokenHash", wholeTokens.getString(i));
+                        arrToken.put(objectToken);
+                        
+                        JSONArray arr = new JSONArray(wholeTokenChainContent.get(i));
+                        
+                        JSONObject obj2 = new JSONObject();
+                        obj2.put("senderSign", senderPvtShareBits);
+                        obj2.put("sender", senderDidIpfsHash);
+                        obj2.put("group", groupTokens);
+                        obj2.put("comment", comment);
+                        obj2.put("tid", tid);
+                        obj2.put("owner", ownerIdentityHash);
+                        arrLastObjects.put(obj2);
+
+                        arr.put(obj2);
+                        WholeTokenChainsWithAppendedBlock.add(arr.toString());
+
+                    }
+                }
+
+                output.println(arrLastObjects.toString());
+
+
+
+				String hashAndSignsforTokenChains;
+                try {
+                    hashAndSignsforTokenChains = input.readLine();
+                    hash_Signs_ForTokenChains = new JSONArray(hashAndSignsforTokenChains);
+                } catch (SocketException e) {
+                    TokenReceiverLogger.warn("Sender Stream Null - Token Chain Updation status");
+                    APIResponse.put("did", "");
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Sender Stream Null - Token Chain Updation Status");
+
+                    output.close();
+                    input.close();
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
+
+                }
+
+
+				//To accecpt sender req for new Part Token chain blocks, and provide the same
+                String request_parttokenchains;
+                try {
+                    request_parttokenchains = input.readLine();
+                } catch (SocketException e) {
+                    TokenReceiverLogger.warn("Sender Stream Null, receiver unable to accept senders request to get new part Token chain block for hashing");
+                    APIResponse.put("did", "");
+                    APIResponse.put("tid", "null");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Sender Stream Null, receiver unable to accept senders request to get new part Token chain block for hashing");
+
+                    output.close();
+                    input.close();
+                    sk.close();
+                    ss.close();
+                    return APIResponse.toString();
+
+                }
+
+				JSONObject parttokenchainsToBeHashed = new JSONObject();
+                if(request_parttokenchains.equals("Request for Part Token Chains to be hashed")){
+
+					for (int i = 0; i < partTokens.length(); i++) {
+						JSONObject chequeObject = new JSONObject();
+						chequeObject.put("sender", senderDidIpfsHash);
+						chequeObject.put("receiver", receiverDidIpfsHash);
+						chequeObject.put("parent-token", partTokens.getString(i));
+						chequeObject.put("parent-chain", partTokenChains.getJSONArray(partTokens.getString(i)));
+						Double partAmount = formatAmount(amountLedger.getDouble(partTokens.getString(i)));
+						chequeObject.put("amount", partAmount);
+						chequeObject.put("tid", tid);
+
+						writeToFile(LOGGER_PATH.concat(partTokens.getString(i)), chequeObject.toString(), false);
+						String chequeHash = IPFSNetwork.add(LOGGER_PATH.concat(partTokens.getString(i)), ipfs);
+						deleteFile(LOGGER_PATH.concat(partTokens.getString(i)));
+
+						String tokens = partTokens.getString(i);
+						String hashString = tokens.concat(receiverDidIpfsHash);
+						String hashForPositions = calculateHash(hashString, "SHA3-256");
+						BufferedImage pvt1 = ImageIO
+								.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
+						String firstPrivate = PropImage.img2bin(pvt1);
+						int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+						String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+						String positions = "";
+						for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+							positions += privateBinary.charAt(j);
+						}
+
+						String ownerIdentity = hashForPositions.concat(positions);
+						String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+
+						TokenReceiverLogger.debug("Ownership Here");
+						TokenReceiverLogger.debug("tokens: " + partTokens.getString(i));
+						TokenReceiverLogger.debug("hashString: " + hashString);
+						TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
+						TokenReceiverLogger.debug("p1: " + positions);
+						TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
+						TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
+
+						JSONObject newPartObject = new JSONObject();
+						newPartObject.put("senderSign", senderSignature);
+						newPartObject.put("sender", senderDidIpfsHash);
+						newPartObject.put("receiver", receiverDidIpfsHash);
+						newPartObject.put("comment", comment);
+						newPartObject.put("tid", tid);
+						//newPartObject.put("nextHash", "");
+						newPartObject.put("owner", ownerIdentityHash);
+						/* if (partTokenChainContent.getJSONArray(i).length() == 0)
+							newPartObject.put("previousHash", "");
+						else
+							newPartObject.put("previousHash",
+									calculateHash(partTokenChainContent.getJSONArray(i)
+											.getJSONObject(partTokenChainContent.getJSONArray(i).length() - 1)
+											.getString("tid"), "SHA3-256")); */
+
+						newPartObject.put("amount", partAmount);
+						newPartObject.put("cheque", chequeHash);
+						newPartObject.put("role", "Receiver");
+
+						JSONArray partTokenChainContentArray = partTokenChainContent.getJSONArray(i);
+
+							File chainFile = new File(
+									PART_TOKEN_CHAIN_PATH.concat(partTokens.getString(i)).concat(".json"));
+							if (chainFile.exists()) {
+
+								String readChain = readFile(PART_TOKEN_CHAIN_PATH + partTokens.getString(i) + ".json");
+								JSONArray readChainArray = new JSONArray(readChain);
+								JSONArray chainArray = new JSONArray();
+								for (int j =0; j< readChainArray.length(); j++){
+									
+									JSONObject object = readChainArray.getJSONObject(j);
+
+									if(object.has("nextHash") && object.has("previousHash")){
+										object.remove("nextHash");
+										object.remove("previousHash");
+									}
+					
+									chainArray.put(object);
+
+								}
+
+								chainArray.put(partTokenChainContentArray.getJSONObject(partTokenChainContentArray.length() - 1));
+								chainArray.put(newPartObject);
+								//TokenReceiverLogger.debug("Parts token chain to be hashed : "+readChainArray);
+
+								parttokenchainsToBeHashed.put(partTokens.getString(i),chainArray);
+								final_parttokenchains.put(partTokens.getString(i),chainArray);
+								
+							}else {
+
+								partTokenChainContentArray.put(newPartObject);
+
+								parttokenchainsToBeHashed.put(partTokens.getString(i),partTokenChainContentArray);
+								final_parttokenchains.put(partTokens.getString(i),partTokenChainContentArray);
+
+							}
+					}
+				}
+				
+				output.println(parttokenchainsToBeHashed.toString());
+
+				
+
+				String req_hashesAndSignsPartTokenChains;
+				try {
+					req_hashesAndSignsPartTokenChains = input.readLine();
+					hashes_Signs_PartTokenChains = new JSONArray(req_hashesAndSignsPartTokenChains);
+
+					
+					}catch (SocketException e) {
+						TokenReceiverLogger.warn("Sender Stream Null - Token Chain Updation status");
+						APIResponse.put("did", "");
+						APIResponse.put("tid", "null");
+						APIResponse.put("status", "Failed");
+						APIResponse.put("message", "Sender Stream Null - Token Chain Updation Status");
+	
+						output.close();
+						input.close();
+						sk.close();
+						ss.close();
+						return APIResponse.toString();
+	
+					}
+
+
 				String pinDetails;
 				try {
 					pinDetails = input.readLine();
-				} catch (SocketException e) {
+				}catch (SocketException e) {
 					TokenReceiverLogger.warn("Sender Stream Null - Pinning Status");
 					APIResponse.put("did", "");
 					APIResponse.put("tid", "null");
@@ -916,6 +1714,7 @@ public class TokenReceiver {
 					return APIResponse.toString();
 
 				}
+
 				if (pinDetails.equals("Unpinned")) {
 					int pinCount = 0;
 					for (int i = 0; i < intPart; i++) {
@@ -961,138 +1760,51 @@ public class TokenReceiver {
 
 						}
 						long endTime = System.currentTimeMillis();
+						
+
+						//Writing Whole and part token chains to receiver's local storage.
 						for (int i = 0; i < intPart; i++) {
-							String wholeToken = wholeTokens.getString(i);
-							String hashString = wholeToken.concat(receiverDidIpfsHash);
-							String hashForPositions = calculateHash(hashString, "SHA3-256");
+			
+							String tokenChainContent_WithoutHashAndSign = WholeTokenChainsWithAppendedBlock.get(i);
+                            JSONArray tokenChain = new JSONArray(tokenChainContent_WithoutHashAndSign);
 
-							BufferedImage pvt = ImageIO
-									.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
-							String firstPrivate = PropImage.img2bin(pvt);
-							int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-							String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-							String positions = "";
-							for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
-								positions += privateBinary.charAt(j);
-							}
-							String ownerIdentity = hashForPositions.concat(positions);
-							String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+							JSONObject lastObj = new JSONObject();
+                            lastObj = tokenChain.getJSONObject(tokenChain.length() - 1);
+							tokenChain.remove(tokenChain.length() - 1);
+							lastObj.put("hash", hash_Signs_ForTokenChains.getJSONObject(i).getString("hash"));
+							lastObj.put("pvtShareBits", hash_Signs_ForTokenChains.getJSONObject(i).getString("pvtShareBits"));
+							lastObj.put("pvtKeySign", hash_Signs_ForTokenChains.getJSONObject(i).getString("pvtKeySign"));
+							
+							tokenChain.put(lastObj);
 
-							TokenReceiverLogger.debug("Ownership Here");
-							TokenReceiverLogger.debug("tokens: " + wholeTokens.getString(i));
-							TokenReceiverLogger.debug("hashString: " + hashString);
-							TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
-							TokenReceiverLogger.debug("p1: " + positions);
-							TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
-							TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
-
-							ArrayList<String> groupTokens = new ArrayList<>();
-							for (int k = 0; k < intPart; k++) {
-								if (!wholeTokens.getString(i).equals(wholeTokens.getString(k)))
-									groupTokens.add(wholeTokens.getString(k));
-							}
-
-							JSONArray arrToken = new JSONArray();
-							JSONObject objectToken = new JSONObject();
-							objectToken.put("tokenHash", wholeTokens.getString(i));
-							arrToken.put(objectToken);
-							JSONArray arr1 = new JSONArray(wholeTokenChainContent.get(i));
-							JSONObject obj2 = new JSONObject();
-							obj2.put("senderSign", senderSignature);
-							obj2.put("sender", senderDidIpfsHash);
-							obj2.put("group", groupTokens);
-							obj2.put("comment", comment);
-							obj2.put("tid", tid);
-							obj2.put("owner", ownerIdentityHash);
-							arr1.put(obj2);
-
-							writeToFile(TOKENCHAIN_PATH + wholeTokens.getString(i) + ".json", arr1.toString(), false);
-
+							writeToFile(TOKENCHAIN_PATH + wholeTokens.getString(i) + ".json", tokenChain.toString(), false);
 						}
 
 						for (int i = 0; i < partTokens.length(); i++) {
-							JSONObject chequeObject = new JSONObject();
-							chequeObject.put("sender", senderDidIpfsHash);
-							chequeObject.put("receiver", receiverDidIpfsHash);
-							chequeObject.put("parent-token", partTokens.getString(i));
-							chequeObject.put("parent-chain", partTokenChains.getJSONArray(partTokens.getString(i)));
-							Double partAmount = formatAmount(amountLedger.getDouble(partTokens.getString(i)));
-							chequeObject.put("amount", partAmount);
-							chequeObject.put("tid", tid);
 
-							writeToFile(LOGGER_PATH.concat(partTokens.getString(i)), chequeObject.toString(), false);
-							String chequeHash = IPFSNetwork.add(LOGGER_PATH.concat(partTokens.getString(i)), ipfs);
-							deleteFile(LOGGER_PATH.concat(partTokens.getString(i)));
+							JSONArray finalPartTokenChain = final_parttokenchains.getJSONArray(partTokens.getString(i));
 
-							String partsTokens = partTokens.getString(i);
-							String hashString = partsTokens.concat(receiverDidIpfsHash);
-							String hashForPositions = calculateHash(hashString, "SHA3-256");
-							BufferedImage pvt = ImageIO
-									.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
-							String firstPrivate = PropImage.img2bin(pvt);
-							int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-							String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-							String positions = "";
-							for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
-								positions += privateBinary.charAt(j);
-							}
+							JSONObject last = new JSONObject();
+							last = finalPartTokenChain.getJSONObject(finalPartTokenChain.length()-1);
+							finalPartTokenChain.remove(finalPartTokenChain.length()-1);
 
-							String ownerIdentity = hashForPositions.concat(positions);
-							String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+							last.put("hash",hashes_Signs_PartTokenChains.getJSONObject(i).getString("hash"));
+							last.put("pvtShareBits",hashes_Signs_PartTokenChains.getJSONObject(i).getString("pvtShareBits"));
+							//last.put("pvtKeySign", hashes_Signs_PartTokenChains.getJSONObject(i).getString("pvtKeySign"));
 
-							TokenReceiverLogger.debug("Ownership Here");
-							TokenReceiverLogger.debug("tokens: " + partTokens.getString(i));
-							TokenReceiverLogger.debug("hashString: " + hashString);
-							TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
-							TokenReceiverLogger.debug("p1: " + positions);
-							TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
-							TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
+							finalPartTokenChain.put(last);
 
-							JSONObject newPartObject = new JSONObject();
-							newPartObject.put("senderSign", senderSignature);
-							newPartObject.put("sender", senderDidIpfsHash);
-							newPartObject.put("receiver", receiverDidIpfsHash);
-							newPartObject.put("comment", comment);
-							newPartObject.put("tid", tid);
-							newPartObject.put("nextHash", "");
-							newPartObject.put("owner", ownerIdentityHash);
-							if (partTokenChainContent.getJSONArray(i).length() == 0)
-								newPartObject.put("previousHash", "");
-							else
-								newPartObject.put("previousHash",
-										calculateHash(partTokenChainContent.getJSONArray(i)
-												.getJSONObject(partTokenChainContent.getJSONArray(i).length() - 1)
-												.getString("tid"), "SHA3-256"));
-
-							newPartObject.put("amount", partAmount);
-							newPartObject.put("cheque", chequeHash);
-							newPartObject.put("role", "Receiver");
-
-							File chainFile = new File(
-									PART_TOKEN_CHAIN_PATH.concat(partTokens.getString(i)).concat(".json"));
-							if (chainFile.exists()) {
-
-								String readChain = readFile(PART_TOKEN_CHAIN_PATH + partTokens.getString(i) + ".json");
-								JSONArray readChainArray = new JSONArray(readChain);
-								readChainArray.put(partTokenChainContent.getJSONArray(i)
-										.getJSONObject(partTokenChainContent.getJSONArray(i).length() - 1));
-								readChainArray.put(newPartObject);
-
-								writeToFile(PART_TOKEN_CHAIN_PATH + partTokens.getString(i) + ".json",
-										readChainArray.toString(), false);
-
-							} else {
-								partTokenChainContent.getJSONArray(i).put(newPartObject);
-								writeToFile(PART_TOKEN_CHAIN_PATH + partTokens.getString(i) + ".json",
-										partTokenChainContent.getJSONArray(i).toString(), false);
-							}
+							writeToFile(PART_TOKEN_CHAIN_PATH + partTokens.getString(i) + ".json",
+										finalPartTokenChain.toString(), false);
 						}
+
+
 
 						JSONObject transactionRecord = new JSONObject();
 						transactionRecord.put("role", "Receiver");
 						transactionRecord.put("tokens", allTokens);
 						transactionRecord.put("txn", tid);
-						transactionRecord.put("quorumList", quorumSignatures.keys());
+						transactionRecord.put("quorumList", quorumSignatures);
 						transactionRecord.put("senderDID", senderDidIpfsHash);
 						transactionRecord.put("receiverDID", receiverDidIpfsHash);
 						transactionRecord.put("Date", getCurrentUtcTime());
@@ -1136,8 +1848,119 @@ public class TokenReceiver {
 						}
 						writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partsReadArray.toString(), false);
 
-						TokenReceiverLogger.info("Transaction ID: " + tid + "Transaction Successful");
+						
 						output.println("Send Response");
+
+
+
+						//Updating the sender's part token chains with the chains hash and receivers sign.
+						String parttokenchains_req;
+						try {
+                			parttokenchains_req = input.readLine();
+
+            			}catch (SocketException e) {
+
+							APIResponse.put("did", "");
+							APIResponse.put("tid", "null");
+							APIResponse.put("status", "Failed");
+							APIResponse.put("message", "Part token chain hashing req not received.");
+
+							output.close();
+							input.close();
+							sk.close();
+							ss.close();
+							return APIResponse.toString();
+            				
+            			} 
+
+						if(parttokenchains_req.equals("New part token chain to be hashed")) {
+							String PartTokenChainToBeHashed_1_string;
+						
+							try {
+								PartTokenChainToBeHashed_1_string = input.readLine();
+
+							}catch (SocketException e) {
+
+								APIResponse.put("did", "");
+								APIResponse.put("tid", "null");
+								APIResponse.put("status", "Failed");
+								APIResponse.put("message", "Receiver not ale to hash part token chains for the sender.");
+
+								output.close();
+								input.close();
+								sk.close();
+								ss.close();
+								return APIResponse.toString();
+								
+							} 
+
+							JSONArray partTokenChainToBeHashed = new JSONArray(PartTokenChainToBeHashed_1_string);
+
+							String hashForChain = calculateHash(partTokenChainToBeHashed.toString(), "SHA3-256");
+
+							String hashSignedwithPvtShare = getSignFromShares(pvt, hashForChain);
+
+							JSONObject obj = partTokenChainToBeHashed.getJSONObject(partTokenChainToBeHashed.length() - 1);
+							partTokenChainToBeHashed.remove(partTokenChainToBeHashed.length() - 1);
+							obj.put("hash", hashForChain);
+							obj.put("pvtShareBits", hashSignedwithPvtShare);
+							
+							partTokenChainToBeHashed.put(obj);
+
+							output.println(partTokenChainToBeHashed.toString());
+						}
+
+
+						if(parttokenchains_req.equals("Old part token chains to be hashed")){
+
+							String PartTokenChainToBeHashed_2_string;
+						
+							try {
+								PartTokenChainToBeHashed_2_string = input.readLine();
+
+							}catch (SocketException e) {
+
+								APIResponse.put("did", "");
+								APIResponse.put("tid", "null");
+								APIResponse.put("status", "Failed");
+								APIResponse.put("message", "Receiver not ale to hash part token chains for the sender.");
+
+								output.close();
+								input.close();
+								sk.close();
+								ss.close();
+								return APIResponse.toString();
+								
+							} 
+
+							JSONObject PartTokenChainsToBeHashed= new JSONObject(PartTokenChainToBeHashed_2_string);
+
+							JSONObject hashedAndSigned_partTokenChains = new JSONObject();
+
+							for (int i = 0; i < partTokens.length(); i++){
+
+								JSONArray parttokenChain = PartTokenChainsToBeHashed.getJSONArray(partTokens.getString(i));
+								
+								String hashForChain2 = calculateHash(parttokenChain.toString(), "SHA3-256");
+
+								String hashSignedwithPvtShare2 = getSignFromShares(pvt, hashForChain2);
+
+								JSONObject obj2 = parttokenChain.getJSONObject(parttokenChain.length() - 1);
+								parttokenChain.remove(parttokenChain.length() - 1);
+								obj2.put("hash", hashForChain2);
+								obj2.put("pvtShareBits", hashSignedwithPvtShare2);
+								
+								parttokenChain.put(obj2);
+
+								hashedAndSigned_partTokenChains.put(partTokens.getString(i),parttokenChain);
+							}
+
+							output.println(hashedAndSigned_partTokenChains.toString());
+						}
+						
+
+
+						TokenReceiverLogger.info("Transaction ID: " + tid + "Transaction Successful");
 						APIResponse.put("did", senderDidIpfsHash);
 						APIResponse.put("tid", tid);
 						APIResponse.put("status", "Success");

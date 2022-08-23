@@ -25,7 +25,7 @@ public class EcDSAKeyGen {
     public static Logger EcDSAKeyGenLogger = Logger.getLogger(EcDSAKeyGen.class);
     public static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
 
-    public static void generateKeyPair( String password) {
+    public static void generateKeyPair(String password) throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         
         
@@ -49,6 +49,37 @@ public class EcDSAKeyGen {
         writeToFile(DATA_PATH+"PublicKeyIpfsHash", PublicKeyIpfsHash, false);
 
         pin(PublicKeyIpfsHash, ipfs);
+
+    }
+
+    public static void generateKeyPair_Quorum( String password) throws JSONException {
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        
+        
+        EcDSAKeyGenLogger.debug("Generating Quorum private key public key pair");
+
+        //Generating key pair to be used as Quorum key
+
+        KeyPair keyPair2 = generateCryptoKeyPair();
+        PrivateKey priv2 = keyPair2.getPrivate();
+        PublicKey pub2 = keyPair2.getPublic();
+
+        pvtKeyEncrypt(priv2, password,"Quorum_privatekey.pem");
+        try {
+            pathSet();
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        writePemFile(pub2, "EC PUBLIC KEY", DATA_PATH+"Quorum_publickey.pub");
+
+        String Quorum_PublicKeyIpfsHash= add(DATA_PATH+"Quorum_publickey.pub", ipfs);
+
+        writeToFile(DATA_PATH+"Quorum_PublicKeyIpfsHash", Quorum_PublicKeyIpfsHash, false);
+
+        pin(Quorum_PublicKeyIpfsHash, ipfs);
+
 
     }
 

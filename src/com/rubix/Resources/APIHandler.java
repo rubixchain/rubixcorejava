@@ -187,6 +187,47 @@ public class APIHandler {
         return resultArray.toString();
     }
 
+
+    public static String getPubKeyIpfsHash_DIDserver(String senderDidIpfsHash, int type) throws IOException{
+        
+            String pubKeyIpfsHash;
+            String quorum_pubKeyIpfsHash;
+
+            URL url2 = new URL(SYNC_IP + "/getPubKeyData");
+            HttpURLConnection conn = (HttpURLConnection) url2.openConnection();
+            conn.setRequestMethod("GET");
+            StringBuilder result = new StringBuilder();
+            //JSONArray resultArray = new JSONArray();
+            BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String line;
+    
+            while ((line = rd.readLine()) != null) {
+                result.append(line);
+            }
+            rd.close();
+              
+            File dt_PubKey =new File(DATA_PATH + "DataTable_PublicKeys.json");
+            if(! dt_PubKey.exists()) {
+                dt_PubKey.createNewFile();
+            }
+            
+            writeToFile(DATA_PATH + "DataTable_PublicKeys.json", result.toString(), false);
+            
+    
+            if(type == 1){
+                
+                pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                return pubKeyIpfsHash;
+
+            }
+            else{
+                
+                quorum_pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","quorum_pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                return quorum_pubKeyIpfsHash;
+            }
+            
+    }
+
     /**
      * Method to query the credits information
      * 

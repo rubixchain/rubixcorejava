@@ -55,6 +55,7 @@ import java.security.PublicKey;
 import java.text.ParseException;
 import java.util.HashSet;
 import java.util.Random;
+import java.security.PrivateKey;
 
 import javax.imageio.ImageIO;
 
@@ -89,11 +90,13 @@ public class QuorumConsensus implements Runnable {
     int port;
     IPFS ipfs;
     String role;
+    String pvtKeyPass;
 
-    public QuorumConsensus(String role, int port) {
+    public QuorumConsensus(String role, int port,String pvtKeyPass) {
         this.role = role;
         this.port = port;
         this.ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
+        this.pvtKeyPass = pvtKeyPass;
     }
 
     @Override
@@ -115,6 +118,7 @@ public class QuorumConsensus implements Runnable {
                 listen(appName, port);
 
                 QuorumConsensusLogger.debug("Quorum Listening on " + port + " appname " + appName);
+                QuorumConsensusLogger.debug("Quorum's pvt key pass :" + pvtKeyPass);
                 serverSocket = new ServerSocket(port);
                 socket = serverSocket.accept();
 
@@ -726,7 +730,19 @@ public class QuorumConsensus implements Runnable {
 	                                        quorumHash);
 	                                
 	                                QuorumConsensusLogger.debug(QuorumSignature);
-	                                out.println(QuorumSignature);
+
+                                    //Quorum member signs the private share postions with their private key.
+
+                                    PrivateKey pvtKey = null;
+                                    pvtKey = getPvtKey(pvtKeyPass,2);
+                                    String pvtKeyType = privateKeyAlgorithm(2);
+                                    String PvtKeySign = pvtKeySign(QuorumSignature, pvtKey,pvtKeyType);
+
+                                    JSONObject quorum_sign = new JSONObject();
+                                    quorum_sign.put("privateShareSign",QuorumSignature);
+                                    quorum_sign.put("privateKeySign",PvtKeySign);
+
+	                                out.println(quorum_sign.toString());
 	
 	                                String creditSignatures = null;
 	                                try {

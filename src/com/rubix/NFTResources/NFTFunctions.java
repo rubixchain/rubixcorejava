@@ -5,6 +5,8 @@ import org.apache.log4j.*;
 import org.json.*;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateKey;
@@ -68,9 +70,9 @@ public class NFTFunctions {
                 apiData.remove("pvtKeyStr");
             } else {
                 //getting type of privateKeyAlgotithm
-                pvtKeyAlg=privateKeyAlgorithm();
+                pvtKeyAlg=privateKeyAlgorithm(1);
                 NftFunctionsLogger.debug("private key algorithm "+pvtKeyAlg);
-                pvtKey = getPvtKey(keyPass);
+                pvtKey = getPvtKey(keyPass,1);
             }
 
             if(pvtKey == null || pvtKey.equals(""))
@@ -222,10 +224,18 @@ public class NFTFunctions {
      * @param passowrd private key password
      * @return private key
      */
-    public static PrivateKey getPvtKey(String password) {
+    public static PrivateKey getPvtKey(String password, int type) {
         pathSet();
 
-        String keyFile = DATA_PATH + "privatekey.pem";
+        String keyFile;
+        
+        if(type==1){
+            keyFile = DATA_PATH + "privatekey.pem";
+        }
+        else{
+            keyFile = DATA_PATH + "Quorum_privatekey.pem";
+        }
+        
         PrivateKey key = null;
         File privateKeyFile = new File(keyFile);
         PEMParser pemParser;
@@ -487,6 +497,21 @@ public class NFTFunctions {
         return result;
     }
 
+    public static boolean checkKeyFiles_Quorum()
+    {
+        boolean result=false;
+
+        pathSet();
+        File privatekey = new File(DATA_PATH+"Quorum_privatekey.pem");
+        File publickey = new File(DATA_PATH+"Quorum_publickey.pub");
+
+        if(privatekey.exists() && publickey.exists())
+        {
+            result=true;
+        }
+        return result;
+    }
+
     public static String getPubKeyIpfsHash()
     {
         pathSet();
@@ -519,10 +544,10 @@ public class NFTFunctions {
             }
             else{
                 //get the algorithm of private key
-                pvtKeyAlg=privateKeyAlgorithm();
+                pvtKeyAlg=privateKeyAlgorithm(1);
                 NftFunctionsLogger.debug("pvt key algorithm"+pvtKeyAlg);
                 NftFunctionsLogger.debug("getting pvt key stored in node");
-                key=getPvtKey(dataObject.getString("sellerPvtKeyPass"));
+                key=getPvtKey(dataObject.getString("sellerPvtKeyPass"),1);
             }
             if(key ==null || key.equals(""))
             {
@@ -695,10 +720,15 @@ public class NFTFunctions {
      * @param null
      * @return Private Key Algorithm
      */
-    public static String privateKeyAlgorithm()
+    public static String privateKeyAlgorithm(int type)
     {
-        String readPvtKeyData = readFile(DATA_PATH+"privatekey.pem");
-
+        String readPvtKeyData;
+        if (type==2){
+            readPvtKeyData = readFile(DATA_PATH+"Quorum_privatekey.pem");
+        }else {
+            readPvtKeyData = readFile(DATA_PATH+"privatekey.pem");
+        }
+        
         if(readPvtKeyData.contains("-----BEGIN EC PRIVATE KEY-----"))
         {
             return EC_ALG;
@@ -830,4 +860,74 @@ public class NFTFunctions {
             return DEF_ALG_RES;
         }
     }
+
+    
+ //To update the newly created public key of the user in the DID server.
+ 
+    public static void addPubKeyData_DIDserver() throws JSONException{
+    pathSet();
+
+    File pubKeyHash_main = new File(DATA_PATH+"PublicKeyIpfsHash");
+    File pubKeyHash_Quorum = new File(DATA_PATH+"Quorum_PublicKeyIpfsHash");
+
+    String myPeerID = getPeerID(DATA_PATH + "DID.json");
+    String didIpfsHash = getValues(DATA_PATH + "DID.json", "didHash", "peerid", myPeerID);
+
+    JSONArray record = new JSONArray();
+    JSONObject obj = new JSONObject();
+
+    if(pubKeyHash_main.exists() && pubKeyHash_Quorum.exists()){
+
+        String pubKeyIpfsHash = (readFile(DATA_PATH+"PublicKeyIpfsHash"));
+        String Quorum_pubKeyIpfsHash = (readFile(DATA_PATH+"Quorum_PublicKeyIpfsHash"));
+
+        obj.put("didHash", didIpfsHash);
+        obj.put("pubKeyIpfsHash", pubKeyIpfsHash);
+        obj.put("quorum_pubKeyIpfsHash", Quorum_pubKeyIpfsHash);
+
+    }else if(pubKeyHash_Quorum.exists()){
+
+        String Quorum_pubKeyIpfsHash = (readFile(DATA_PATH+"Quorum_PublicKeyIpfsHash"));
+
+        obj.put("didHash", didIpfsHash);
+        obj.put("quorum_pubKeyIpfsHash", Quorum_pubKeyIpfsHash);
+
+    }else{
+
+        String pubKeyIpfsHash = (readFile(DATA_PATH+"PublicKeyIpfsHash"));
+        obj.put("didHash", didIpfsHash);
+        obj.put("pubKeyIpfsHash", pubKeyIpfsHash);
+
+    }
+    
+    //int responseCodeSYNC=0;
+
+   
+    record.put(obj);
+
+    try{
+        URL syncobj = new URL(SYNC_IP + "/addPubKeyData");
+        HttpURLConnection synccon = (HttpURLConnection)syncobj.openConnection();
+        synccon.setRequestMethod("POST");
+        synccon.setRequestProperty("User-Agent", "signer");
+        synccon.setRequestProperty("Content-Type", "application/json");
+        synccon.setDoOutput(true);
+        NftFunctionsLogger.debug("Connected to DID server");
+        DataOutputStream syncWR = new DataOutputStream(synccon.getOutputStream());
+
+        syncWR.writeBytes(record.toString());
+        syncWR.flush();
+        syncWR.close();
+        int responseCodeSYNC = synccon.getResponseCode();
+        NftFunctionsLogger.debug("DID server SYNC Response code : " + responseCodeSYNC);
+        
+
+    }catch (IOException e) {
+        NftFunctionsLogger.error("IO Exception Occurred ", e);
+        e.printStackTrace();
+    }
+    
+    //return responseCodeSYNC;
+}
+
 }

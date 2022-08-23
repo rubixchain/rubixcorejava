@@ -359,7 +359,7 @@ public class NFTAPIHandler {
         return result;
     } */
 
-    public static String generateCryptoKeys(String password, String keyType, int returnKey) {
+    public static String generateCryptoKeys(String password, String keyType, int returnKey) throws JSONException {
         String result = null;
         if (keyType.equals("ECDSA")) {
             if (returnKey == 0) {
