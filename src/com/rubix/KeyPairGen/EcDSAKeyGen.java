@@ -5,6 +5,7 @@ import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.*;
 import java.io.*;
 import java.security.*;
+import java.util.UUID;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -55,29 +56,30 @@ public class EcDSAKeyGen {
     public static String genAndRetKey(String password) {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
+        UUID uuid = UUID.randomUUID();
         JSONObject resultObject = new JSONObject();
         Security.addProvider(new BouncyCastleProvider());
         EcDSAKeyGenLogger.debug("Generating ECDSA private key public key pair");
         KeyPair keyPair = generateCryptoKeyPair();
         PrivateKey priv = keyPair.getPrivate();
         PublicKey pub = keyPair.getPublic();
-        pvtKeyEncrypt(priv, password, "tempPrivatekey.pem");
+        pvtKeyEncrypt(priv, password, uuid+"-Privatekey.pem");
         try {
             pathSet();
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        writePemFile(pub, "EC PUBLIC KEY", DATA_PATH + "tempPublickey.pub");
+        writePemFile(pub, "EC PUBLIC KEY", DATA_PATH +uuid +"-Publickey.pub");
 
-        String PublicKeyIpfsHash = add(DATA_PATH + "tempPublickey.pub", ipfs);
+        String PublicKeyIpfsHash = add(DATA_PATH +uuid +"-Publickey.pub", ipfs);
         pin(PublicKeyIpfsHash, ipfs);
 
-        String privateKey = readFile(DATA_PATH + "tempPrivatekey.pem");
-        String publicKey = readFile(DATA_PATH + "tempPublickey.pub");
+        String privateKey = readFile(DATA_PATH +uuid +"-Privatekey.pem");
+        String publicKey = readFile(DATA_PATH +uuid +"-Publickey.pub");
 
-        deleteFile(DATA_PATH + "tempPrivatekey.pem");
-        deleteFile(DATA_PATH + "tempPublickey.pub");
+        deleteFile(DATA_PATH +uuid +"-Privatekey.pem");
+        deleteFile(DATA_PATH +uuid +"-Publickey.pub");
 
         try {
             resultObject.put("privateKey", privateKey);
