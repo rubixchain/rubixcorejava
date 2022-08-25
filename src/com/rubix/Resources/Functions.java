@@ -91,6 +91,8 @@ public class Functions {
     public static boolean CONSENSUS_STATUS;
     public static JSONObject QUORUM_MEMBERS;
     public static JSONArray BOOTSTRAPS;
+    public static String DATUM_CHAIN_PATH = "";
+
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
