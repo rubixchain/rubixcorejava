@@ -167,6 +167,8 @@ public class Functions {
             TOKENCHAIN_PATH = pathsArray.getJSONObject(0).getString("TOKENCHAIN_PATH");
             WALLET_DATA_PATH = pathsArray.getJSONObject(0).getString("WALLET_DATA_PATH");
             PAYMENTS_PATH = pathsArray.getJSONObject(0).getString("PAYMENTS_PATH");
+            DATUM_CHAIN_PATH = pathsArray.getJSONObject(0).getString("DATUM_CHAIN_PATH");
+
 
             SEND_PORT = pathsArray.getJSONObject(1).getInt("SEND_PORT");
             RECEIVER_PORT = pathsArray.getJSONObject(1).getInt("RECEIVER_PORT");
