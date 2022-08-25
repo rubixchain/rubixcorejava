@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import com.rubix.Datum.DataCommitter;
 import com.rubix.Mining.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
 
@@ -133,6 +134,55 @@ public class APIHandler {
         APILogger.info(sendMessage);
         return sendMessage;
     }
+    
+    /**
+     * A method to commit block to the RubixChain and 
+     * returns data token
+     * 
+     * @param data
+     * @return Data Token
+     */
+    public static JSONObject commit(String data) throws Exception {
+        Functions.pathSet();
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        
+     //   APILogger.debug("data is "+ data);
+        String senderPeerID = getPeerID(DATA_PATH + "DID.json");
+        String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+        JSONArray tokens;
+        JSONObject dataObject = new JSONObject(data);
+        
+   //     APILogger.debug("dataObject is "+ dataObject.toString());
+       // String recDID = dataObject.getString("receiverDidIpfsHash");
+        String blockHash;
+        String recDID;
+
+        String dataTableData = readFile(DATA_PATH + "DataTable.json");
+        boolean isObjectValid = false;
+        JSONArray dataTable = new JSONArray(dataTableData);
+        JSONObject sendMessage = new JSONObject();
+
+    
+    //       APILogger.debug("Trans type is "+ DATA);
+
+         //  dataObject.put(TRANS_TYPE, DATA);
+           
+           blockHash = dataObject.getString("blockHash");
+           if (blockHash.length() != 46) {
+               sendMessage.put("did", senDID);
+               sendMessage.put("tid", "null");
+               sendMessage.put("status", "Failed");
+               sendMessage.put("message", "Invalid Block Hash Entered");
+               return sendMessage;
+           }
+       
+      
+       dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+   //    APILogger.debug("dataObeject is "+dataObject.toString());
+    	   sendMessage = DataCommitter.Commit(dataObject.toString(), ipfs, SEND_PORT);
+   //    APILogger.debug("send Message is "+sendMessage);
+       return sendMessage;
+   }
 
     /**
      * A method to add and host your DID ans Public share to ipfs
