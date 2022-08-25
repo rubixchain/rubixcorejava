@@ -57,6 +57,7 @@ public class EcDSAKeyGen {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         UUID uuid = UUID.randomUUID();
+        EcDSAKeyGenLogger.debug("UUID : "+uuid);
         JSONObject resultObject = new JSONObject();
         Security.addProvider(new BouncyCastleProvider());
         EcDSAKeyGenLogger.debug("Generating ECDSA private key public key pair");
