@@ -1,5 +1,8 @@
 package com.rubix.Datum;
 
+import static com.rubix.NFTResources.NFTFunctions.getPvtKey;
+import static com.rubix.NFTResources.NFTFunctions.privateKeyAlgorithm;
+import static com.rubix.NFTResources.NFTFunctions.pvtKeySign;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.DATUM_CHAIN_PATH;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -38,6 +41,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -116,6 +120,21 @@ public class DataCommitter {
 		String pvt = detailsObject.getString("pvt");
 		int type = detailsObject.getInt("type");
 		String comment = detailsObject.getString("comment");
+		
+		String keyPass = detailsObject.getString("pvtKeyPass");
+        PrivateKey pvtKey = null;
+        pvtKey = getPvtKey(keyPass,1);
+
+        //If user enters wrong pvt key password
+        if(pvtKey==null){
+            APIResponse.put("message", "Incorrect password entered for Private Key, cannot proceed with the commit");
+            DataCommitterLogger.warn("Incorrect Private Key password entered");
+            return APIResponse;        
+        }
+
+        detailsObject.remove("pvtKeyPass");
+        
+        
 		APIResponse = new JSONObject();
 
 		Dependency.checkDatumPath();
@@ -707,27 +726,37 @@ public class DataCommitter {
 		DataCommitterLogger.debug("Consensus Reached");
 		DataCommitterLogger.debug("Quorum Signatures length " + InitiatorConsensus.quorumSignature.length());
 		String senderSign = getSignFromShares(pvt, authSenderByRecHash);
+		
+		String pvtKeyType = privateKeyAlgorithm(1);
+        String senderSignWithPvtKey = pvtKeySign(senderSign,pvtKey,pvtKeyType);
+		
 		JSONArray quorumSignatureKeys = InitiatorConsensus.quorumSignature;
 		JSONArray signedQuorumList = new JSONArray();
 		Iterator<String> keys = null;
 
+		JSONObject temp = new JSONObject();
+
+        for(int i = 0; i< quorumSignatureKeys.length(); i++){
+            
+            temp = quorumSignatureKeys.getJSONObject(i);
+            signedQuorumList.put(temp.getString("quorum_did"));
+        }
 
 		// TokenSenderLogger.debug("signed quorumlist count is "+keys.toString());
 
 		
-		for(int ctr =0;ctr<quorumSignatureKeys.length();ctr++) {
-			JSONObject quroumSignatureObject = quorumSignatureKeys.getJSONObject(ctr);
-			keys = quroumSignatureObject.keys();
-		}
-		
-		int ctr = 0;
-
-		while (keys.hasNext()) {
-			ctr++;
-			signedQuorumList.put(keys.next());
-
-		}
-		DataCommitterLogger.debug("signed Quorum list count is " + ctr);
+		/*
+		 * for(int ctr =0;ctr<quorumSignatureKeys.length();ctr++) { JSONObject
+		 * quroumSignatureObject = quorumSignatureKeys.getJSONObject(ctr); keys =
+		 * quroumSignatureObject.keys(); }
+		 * 
+		 * int ctr = 0;
+		 * 
+		 * while (keys.hasNext()) { ctr++; signedQuorumList.put(keys.next());
+		 * 
+		 * }
+		 */
+		DataCommitterLogger.debug("signed Quorum list count is " + signedQuorumList.length());
 		DataCommitterLogger.debug("signed Quorum list is " + signedQuorumList.toString());
 
 		JSONObject blockHashObject = new JSONObject();
