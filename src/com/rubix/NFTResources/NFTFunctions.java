@@ -930,4 +930,22 @@ public class NFTFunctions {
     //return responseCodeSYNC;
 }
 
+
+public static boolean checkForQuorumKeyPassword(String password){
+
+    boolean flag= true;
+
+    PrivateKey privateKey = null;
+    privateKey = getPvtKey(password,2);
+
+    if(privateKey == null){
+        flag = false;
+    }
+    else {
+        privateKey = null;
+    }
+
+    return flag;
+}
+
 }
