@@ -118,7 +118,7 @@ public class QuorumConsensus implements Runnable {
                 listen(appName, port);
 
                 QuorumConsensusLogger.debug("Quorum Listening on " + port + " appname " + appName);
-                QuorumConsensusLogger.debug("Quorum's pvt key pass :" + pvtKeyPass);
+                
                 serverSocket = new ServerSocket(port);
                 socket = serverSocket.accept();
 
