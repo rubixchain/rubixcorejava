@@ -867,14 +867,17 @@ public class Functions {
         File tokensFolder = new File(TOKENS_PATH);
         File tokenChainsFolder = new File(TOKENCHAIN_PATH);
         File walletDataFolder = new File(WALLET_DATA_PATH);
+        File commitDataFolder = new File(DATUM_CHAIN_PATH);
+
 
         if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists()
-                || !walletDataFolder.exists()) {
+                || !walletDataFolder.exists() || !commitDataFolder.exists()) {
             dataFolder.delete();
             loggerFolder.delete();
             tokenChainsFolder.delete();
             tokensFolder.delete();
             walletDataFolder.delete();
+            commitDataFolder.delete();
             JSONObject result = new JSONObject();
             result.put("message", "User not registered, create your Decentralised Identity!");
             result.put("info", "Inner Folders Missing");

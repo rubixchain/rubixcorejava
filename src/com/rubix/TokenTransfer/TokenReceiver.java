@@ -1337,6 +1337,10 @@ public class TokenReceiver {
 			String comment = SenderDetails.getString("comment");
 			String Status = SenderDetails.getString("status");
 			String QuorumDetails = SenderDetails.getString("quorumsign");
+			String BlockHash = new String();
+			if(SenderDetails.toString().contains("blockHash")) {
+				BlockHash =  SenderDetails.getString("blockHash");
+			}
 
 			BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
 			SenWalletBin = PropImage.img2bin(senderWidImage);
@@ -1519,6 +1523,9 @@ public class TokenReceiver {
                         obj2.put("comment", comment);
                         obj2.put("tid", tid);
                         obj2.put("owner", ownerIdentityHash);
+                        if(!BlockHash.isEmpty()){
+							obj2.put("blockHash",BlockHash);
+						}
                         arrLastObjects.put(obj2);
 
                         arr.put(obj2);

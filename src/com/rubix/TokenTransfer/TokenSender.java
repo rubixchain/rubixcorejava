@@ -1268,6 +1268,7 @@ public class TokenSender {
                 JSONArray chainArray = new JSONArray(newTokenChain);
 
                 JSONObject newLastObject = new JSONObject();
+                
                 /* if (chainArray.length() == 0) {
                     newLastObject.put("previousHash", "");
 
