@@ -80,7 +80,7 @@ public class TokenSender {
     private static PrintStream output;
     private static BufferedReader input;
     private static Socket senderSocket;
-    private static boolean senderMutex = false;
+    public static boolean senderMutex = false;
 
     /**
      * A sender node to transfer tokens
