@@ -46,7 +46,7 @@ public class NftBuyer {
     private static PrintStream output;
     private static BufferedReader input;
     private static Socket buyerSocket;
-    private static boolean buyerMutex = false;
+    public static boolean buyerMutex = false;
     public static String sellerPeerID;
 
     public static JSONObject send(String data, IPFS ipfs, int port) {
