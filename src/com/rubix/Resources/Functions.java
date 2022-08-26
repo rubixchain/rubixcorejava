@@ -2208,7 +2208,7 @@ public class Functions {
         
         return result;
     }
-    
+
     public static boolean checkTxnMutex()
     {
         if(TokenSender.senderMutex == true)
@@ -2257,5 +2257,23 @@ public class Functions {
         }
         return sb.toString();
 
+    }
+
+    public static String getNodeDeatils()
+    {
+        String senderPeerID = getPeerID(DATA_PATH + "DID.json");
+        String did = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+
+        JSONObject s = new JSONObject();
+        try {
+            s.put("DID", did);
+            s.put("PeerID", senderPeerID);
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        
+
+        return s.toString();
     }
 }
