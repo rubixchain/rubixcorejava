@@ -623,14 +623,15 @@ public class TokenSender {
         writeToFile(signFile, "[]", false);
         //write sign details
         TokenSenderLogger.debug("writing hash authSenderByRecHash "+authSenderByRecHash+" to be signed with pvt share in to "+signFile);
-        JSONObject signDetailsObject = new JSONObject();
+        /* JSONObject signDetailsObject = new JSONObject();
         JSONArray signDetailsArray = new JSONArray();
         signDetailsObject.put("DID", senderDidIpfsHash);
         signDetailsObject.put("content", authSenderByRecHash);
-        signDetailsArray.put(signDetailsObject);
+        signDetailsArray.put(signDetailsObject); */
 
+        String signFileContent = createSignRequestArray(senderDidIpfsHash,receiverDidIpfsHash,comment,authSenderByRecHash,requestedAmount);
         TokenSenderLogger.debug("write signing data");
-        writeToFile(signFile, signDetailsArray.toString(), false);
+        writeToFile(signFile, signFileContent, false);
         //TokenSenderLogger.debug("starting wait of 5 minutes");
         TokenSenderLogger.debug("################################");
         TokenSenderLogger.debug("Please move file "+signFile+" to cold Wallet for Signature and return back to same location");
@@ -658,10 +659,10 @@ public class TokenSender {
         TokenSenderLogger.debug("read sign file");
         String signFiledata = readFile(signFile);
 
-        signDetailsArray = new JSONArray(signFiledata);
-        signDetailsObject = new JSONObject(signDetailsArray.getJSONObject(0));
+        /* signDetailsArray = new JSONArray(signFiledata);
+        signDetailsObject = new JSONObject(signDetailsArray.getJSONObject(0)); */
         //String senderSign = getSignFromShares(pvt, authSenderByRecHash);
-        String senderSign = signDetailsObject.getString("signature");
+        String senderSign = getSignatureFromFile(signFiledata);
         TokenSenderLogger.debug("senderSign "+senderSign);
 
         JSONObject senderDetails2Receiver = new JSONObject();
