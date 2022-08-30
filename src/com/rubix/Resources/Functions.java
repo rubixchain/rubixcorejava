@@ -45,6 +45,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -2262,6 +2263,46 @@ public class Functions {
         }
 
         return result;
+    }
+
+    public static JSONArray createSignRequestArray(String senDID,String recDID,String comment,String Data,Double rbtAmt)
+    {
+        JSONArray resultArray = new JSONArray();
+
+        JSONObject mainObj = new JSONObject();
+        JSONObject payloadObj = new JSONObject();
+        JSONObject requestObj = new JSONObject();
+        JSONObject themeObj = new JSONObject();
+
+
+        try {
+
+            requestObj.put("for_did", recDID);
+            requestObj.put("display_name", "MainNet");
+            requestObj.put("comment", comment);
+            requestObj.put("from_did", senDID);
+
+            payloadObj.put("data", Data);
+            payloadObj.put("amount", rbtAmt);
+
+            requestObj.put("payload", payloadObj.toString());
+            requestObj.put("signature_type", "default");
+            Instant now = Instant.now();
+            requestObj.put("timestamp", now.toString());
+
+            mainObj.put("type", "sync-v1");
+            mainObj.put("request", requestObj.toString());
+            mainObj.put("theme", themeObj.toString());
+
+            resultArray.put(mainObj.toString());
+
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        
+
+        return resultArray;
     }
 
 }
