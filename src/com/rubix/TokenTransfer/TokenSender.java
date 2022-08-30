@@ -83,6 +83,8 @@ public class TokenSender {
     private static BufferedReader input;
     private static Socket senderSocket;
     private static boolean senderMutex = false;
+    public static double requestedAmount;
+    public static String comment;
 
     /**
      * A sender node to transfer tokens
@@ -105,9 +107,9 @@ public class TokenSender {
         syncDataTableByDID(receiverDidIpfsHash);
         String receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", receiverDidIpfsHash);
         String pvt = detailsObject.getString("pvt");
-        double requestedAmount = detailsObject.getDouble("amount");
+        requestedAmount = detailsObject.getDouble("amount");
         int type = detailsObject.getInt("type");
-        String comment = detailsObject.getString("comment");
+        comment = detailsObject.getString("comment");
         APIResponse = new JSONObject();
 
         int intPart = (int) requestedAmount, wholeAmount;
@@ -629,7 +631,7 @@ public class TokenSender {
         signDetailsObject.put("content", authSenderByRecHash);
         signDetailsArray.put(signDetailsObject); */
 
-        String signFileContent = createSignRequestArray(senderDidIpfsHash,receiverDidIpfsHash,comment,authSenderByRecHash,requestedAmount);
+        String signFileContent = createSignRequestArray(senderDidIpfsHash,receiverDidIpfsHash,comment,authSenderByRecHash,0.0);
         TokenSenderLogger.debug("write signing data");
         writeToFile(signFile, signFileContent, false);
         //TokenSenderLogger.debug("starting wait of 5 minutes");

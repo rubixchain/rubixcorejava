@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import com.rubix.Constants.ConsensusConstants;
 import com.rubix.SplitandStore.SeperateShares;
 import com.rubix.SplitandStore.Split;
+import com.rubix.TokenTransfer.TokenSender;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -91,14 +92,16 @@ public class InitiatorProcedure {
             // write sign details
             InitiatorProcedureLogger.debug("writing hash authSenderByRecHash " + authSenderByQuorumHash
                     + " to be signed with pvt share in to " + signFile);
-            JSONObject signDetailsObject = new JSONObject();
+            /* JSONObject signDetailsObject = new JSONObject();
             JSONArray signDetailsArray = new JSONArray();
             signDetailsObject.put("DID", senderDidIpfs);
             signDetailsObject.put("content", authSenderByQuorumHash);
-            signDetailsArray.put(signDetailsObject);
+            signDetailsArray.put(signDetailsObject); */
+
+            String signFileContent = createSignRequestArray(senderDidIpfs, receiverDidIpfs, TokenSender.comment, authSenderByQuorumHash, TokenSender.requestedAmount);
 
             InitiatorProcedureLogger.debug("write signing data");
-            writeToFile(signFile, signDetailsArray.toString(), false);
+            writeToFile(signFile, signFileContent, false);
             // InitiatorProcedureLogger.debug("starting wait of 5 minutes");
             InitiatorProcedureLogger.debug("################################");
             InitiatorProcedureLogger.debug(
@@ -112,10 +115,10 @@ public class InitiatorProcedure {
             InitiatorProcedureLogger.debug("read sign file");
             String signFiledata = readFile(signFile);
 
-            signDetailsArray = new JSONArray(signFiledata);
+            /* signDetailsArray = new JSONArray(signFiledata);
             signDetailsObject = new JSONObject(signDetailsArray.getJSONObject(0));
-
-            senderSignQ = signDetailsObject.getString("signature");
+ */
+            senderSignQ = getSignatureFromFile(signFiledata);
             InitiatorProcedureLogger.debug("SenderSignQ : " + senderSignQ);
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
