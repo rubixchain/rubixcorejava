@@ -2203,7 +2203,7 @@ public class Functions {
             JSONObject fileObject = fileArray.getJSONObject(0);
             String content = fileObject.getString("content");
             String Did = fileObject.getString("DID");
-            String pvt = DATA_PATH +"/" +Did + "/PrivateShare.png";
+            String pvt = DATA_PATH + "/" + Did + "/PrivateShare.png";
 
             String signature = getSignFromShares(pvt, content);
 
@@ -2228,7 +2228,7 @@ public class Functions {
      */
 
     public static boolean checkFile(String filename, String path) {
-        FunctionsLogger.debug("Checking if "+filename+" in path "+path+" is modified");
+        FunctionsLogger.debug("Checking if " + filename + " in path " + path + " is modified");
         boolean result = false;
         try {
             WatchService ws = FileSystems.getDefault().newWatchService();
@@ -2265,15 +2265,14 @@ public class Functions {
         return result;
     }
 
-    public static JSONArray createSignRequestArray(String senDID,String recDID,String comment,String Data,Double rbtAmt)
-    {
+    public static String createSignRequestArray(String senDID, String recDID, String comment, String Data,
+            Double rbtAmt) {
         JSONArray resultArray = new JSONArray();
 
         JSONObject mainObj = new JSONObject();
         JSONObject payloadObj = new JSONObject();
         JSONObject requestObj = new JSONObject();
         JSONObject themeObj = new JSONObject();
-
 
         try {
 
@@ -2300,9 +2299,25 @@ public class Functions {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        
 
-        return resultArray;
+        return resultArray.toString();
     }
 
+    public static String getSignatureFromFile(String fileContent) {
+
+        String signature="";
+        try {
+            JSONArray array = new JSONArray(fileContent);
+
+            JSONObject mainObj= array.getJSONObject(0);
+            JSONObject requObj= mainObj.getJSONObject("request");
+            JSONObject signObj= requObj.getJSONObject("signature");
+            signature= signObj.getString("signature");
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        
+        return signature;
+    }
 }
