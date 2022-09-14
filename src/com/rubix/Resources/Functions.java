@@ -57,6 +57,7 @@ import javax.imageio.ImageIO;
 import javax.json.JsonArray;
 
 import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Datum.Dependency;
 import com.rubix.Ping.PingCheck;
 
 import org.apache.log4j.*;
@@ -167,9 +168,19 @@ public class Functions {
             TOKENCHAIN_PATH = pathsArray.getJSONObject(0).getString("TOKENCHAIN_PATH");
             WALLET_DATA_PATH = pathsArray.getJSONObject(0).getString("WALLET_DATA_PATH");
             PAYMENTS_PATH = pathsArray.getJSONObject(0).getString("PAYMENTS_PATH");
-            DATUM_CHAIN_PATH = pathsArray.getJSONObject(0).getString("DATUM_CHAIN_PATH");
+            if(pathsArray.getJSONObject(0).toString().contains("DATUM_CHAIN_PATH")) {
+            	//FunctionsLogger.debug("DATUM_CHAIN_PATH  found");
+                DATUM_CHAIN_PATH = pathsArray.getJSONObject(0).getString("DATUM_CHAIN_PATH");
+            }else {
+            	//FunctionsLogger.debug("DATUM_CHAIN_PATH not found");
 
-
+            	Dependency.checkDatumPath();
+            	try {
+					Dependency.checkDatumFolder();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+            }
             SEND_PORT = pathsArray.getJSONObject(1).getInt("SEND_PORT");
             RECEIVER_PORT = pathsArray.getJSONObject(1).getInt("RECEIVER_PORT");
             GOSSIP_RECEIVER = pathsArray.getJSONObject(1).getInt("GOSSIP_RECEIVER");

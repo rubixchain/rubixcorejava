@@ -123,12 +123,11 @@ public class Dependency {
 		try {
 			configContentArray = new JSONArray(configContentString);
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
 		if (!configContentString.contains("DATUM_CHAIN_PATH")) {
-			DependencyLogger.debug("Datum chain path is being appended");
+			//DependencyLogger.debug("Datum chain path is being appended");
 			try {
 				configContentArray.getJSONObject(0).put("DATUM_CHAIN_PATH", configPath + "DATUM/");
 			} catch (JSONException e) {
@@ -141,6 +140,7 @@ public class Dependency {
 		configContentString = readFile(configPath + "config.json");
 		if (configContentString.contains("DATUM_CHAIN_PATH")) {
 			status = true;
+		//	DependencyLogger.debug("DATUM_CHAIN_PATH is found in "+configPath);
 		}
 
 	}
