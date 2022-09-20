@@ -99,6 +99,7 @@ public class Functions {
     public static boolean CONSENSUS_STATUS;
     public static JSONObject QUORUM_MEMBERS;
     public static JSONArray BOOTSTRAPS;
+    public static String WALLET_TYPE="";
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
@@ -200,6 +201,8 @@ public class Functions {
             QUORUM_MEMBERS = pathsArray.getJSONObject(4);
 
             BOOTSTRAPS = pathsArray.getJSONArray(5);
+
+            WALLET_TYPE = pathsArray.getJSONObject(6).getString("WALLET_TYPE");
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -915,12 +918,24 @@ public class Functions {
         File didImage = new File(DATA_PATH + myDID + "/DID.png");
         File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
         File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
-        if (!didImage.exists() || !widImage.exists() || !pvtImage.exists()) {
+
+        if(WALLET_TYPE.equals("STANDARD") && (!didImage.exists() || !widImage.exists() || !pvtImage.exists()))
+        {
             didImage.delete();
-            didImage.delete();
-            didImage.delete();
+            widImage.delete();
+            pvtImage.delete();
             JSONObject result = new JSONObject();
-            result.put("message", "User not registered, create your Decentralised Identity!");
+            result.put("message", "This is a Standard Wallet/Node. User not registered, create your Decentralised Identity!");
+            result.put("info", "Shares Images Missing");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+        if(WALLET_TYPE.equals("HOTWALLET") && (!didImage.exists() || !widImage.exists()))
+        {
+            didImage.delete();
+            widImage.delete();
+            JSONObject result = new JSONObject();
+            result.put("message", "This is a Hot Wallet. User not registered, create your Decentralised Identity!");
             result.put("info", "Shares Images Missing");
             result.put("status", "Failed");
             return result.toString();
