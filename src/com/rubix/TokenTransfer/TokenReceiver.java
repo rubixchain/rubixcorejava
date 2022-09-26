@@ -300,6 +300,34 @@ public class TokenReceiver {
 
 			if (wholeTokens.length() > 0) {
 
+				boolean pledged = false;
+				JSONArray pledgedTokens = new JSONArray();
+				for(int i = 0; i < wholeTokens.length(); i++){
+					JSONArray chain = new JSONArray(wholeTokenChainContent.get(i));
+					JSONObject genesisBlock = chain.getJSONObject(0);
+					if(genesisBlock.has("pledgeToken")) {
+						pledged = true;
+						JSONObject pledgedTokenObject = new JSONObject();
+						pledgedTokenObject.put("tokenHash", wholeTokens.getString(i));
+						pledgedTokens.put(pledgedTokenObject);
+					}
+				}
+				if(pledged){
+					output.println("419");
+					output.println(pledgedTokens.toString());
+					APIResponse.put("did", senderDidIpfsHash);
+					APIResponse.put("tid", "null");
+					APIResponse.put("status", "Failed");
+					APIResponse.put("message", "Few Tokens are Pledged");
+					TokenReceiverLogger.info("Few Tokens are Pledged");
+					IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+					output.close();
+					input.close();
+					sk.close();
+					ss.close();
+					return APIResponse.toString();
+				}
+
 				if (!(ipfsGetFlag == intPart)) {
 					output.println("422");
 					APIResponse.put("did", senderDidIpfsHash);
