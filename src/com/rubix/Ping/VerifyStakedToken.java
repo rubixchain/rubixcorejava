@@ -116,4 +116,5 @@ public class VerifyStakedToken {
 
         return height > requiredMinedTokenHeight;
     }
+
 }

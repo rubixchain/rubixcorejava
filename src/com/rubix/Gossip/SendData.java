@@ -1,4 +1,4 @@
-//package com.rubix.Gossip;
+package com.rubix.Gossip;//package com.rubix.Gossip;
 //
 //import com.rubix.Resources.Functions;
 //import org.json.JSONArray;
