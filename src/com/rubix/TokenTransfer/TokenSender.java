@@ -659,8 +659,8 @@ public class TokenSender {
         TokenSenderLogger.debug("writing hash authSenderByRecHash "+authSenderByRecHash+" to be signed with pvt share");
         String signFileContent = createSignRequestArray(senderDidIpfsHash,receiverDidIpfsHash,comment,authSenderByRecHash,0.0);
 
-        String responseStr = initiateAPIEndpoint("POST", signFileContent.toString(), "");//<- enter /sign url
-
+        String responseStr = Functions.initiateAPIEndpoint("POST", signFileContent.toString(), "http://localhost:6942/signRequest");//<- enter /sign url
+        
         //extract response
         JSONObject apiResponse = new JSONObject(responseStr);
         int resCode = apiResponse.getInt("responseCode");
