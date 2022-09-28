@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import com.rubix.Constants.ConsensusConstants;
+import com.rubix.Resources.Functions;
 import com.rubix.SplitandStore.SeperateShares;
 import com.rubix.SplitandStore.Split;
 import com.rubix.TokenTransfer.TokenSender;
@@ -81,7 +82,8 @@ public class InitiatorProcedure {
         JSONObject data2 = new JSONObject();
         try {
 
-            // create json file to write data
+           /*  
+           // create json file to write data
             InitiatorProcedureLogger.debug("Creating file to write signing data");
             String signFile = DATA_PATH + "/SignFile.json";
             File f = new File(signFile);
@@ -92,17 +94,11 @@ public class InitiatorProcedure {
             // write sign details
             InitiatorProcedureLogger.debug("writing hash authSenderByRecHash " + authSenderByQuorumHash
                     + " to be signed with pvt share in to " + signFile);
-            /* JSONObject signDetailsObject = new JSONObject();
-            JSONArray signDetailsArray = new JSONArray();
-            signDetailsObject.put("DID", senderDidIpfs);
-            signDetailsObject.put("content", authSenderByQuorumHash);
-            signDetailsArray.put(signDetailsObject); */
 
             String signFileContent = createSignRequestArray(senderDidIpfs, receiverDidIpfs, TokenSender.comment, authSenderByQuorumHash, TokenSender.requestedAmount);
 
             InitiatorProcedureLogger.debug("write signing data");
             writeToFile(signFile, signFileContent, false);
-            // InitiatorProcedureLogger.debug("starting wait of 5 minutes");
             InitiatorProcedureLogger.debug("################################");
             InitiatorProcedureLogger.debug(
                     "Please move file " + signFile + " to cold Wallet for Signature and return back to same location");
@@ -115,10 +111,17 @@ public class InitiatorProcedure {
             InitiatorProcedureLogger.debug("read sign file");
             String signFiledata = readFile(signFile);
 
-            /* signDetailsArray = new JSONArray(signFiledata);
-            signDetailsObject = new JSONObject(signDetailsArray.getJSONObject(0));
- */
-            senderSignQ = getSignatureFromFile(signFiledata);
+            */
+
+            InitiatorProcedureLogger.debug("writing hash authSenderByRecHash " + authSenderByQuorumHash);
+            String signFileContent = createSignRequestArray(senderDidIpfs, receiverDidIpfs, TokenSender.comment, authSenderByQuorumHash, TokenSender.requestedAmount);
+            
+            String responseStr = Functions.initiateAPIEndpoint("POST", signFileContent.toString(), "http://localhost:6942/signRequest");//<- enter /sign url
+            
+
+            JSONObject apiResponse = new JSONObject(responseStr);
+
+            senderSignQ = getSignatureFromFile(apiResponse.getString("response"));
             InitiatorProcedureLogger.debug("SenderSignQ : " + senderSignQ);
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
@@ -133,9 +136,6 @@ public class InitiatorProcedure {
             data2.put("Share4", Q4Share);
         } catch (JSONException e) {
             InitiatorProcedureLogger.error("JSON Exception occurred", e);
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
