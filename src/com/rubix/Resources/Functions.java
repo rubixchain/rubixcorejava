@@ -63,6 +63,7 @@ import java.util.stream.*;
 
 import javax.imageio.ImageIO;
 import javax.json.JsonArray;
+import javax.net.ssl.HttpsURLConnection;
 
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Ping.PingCheck;
@@ -99,7 +100,7 @@ public class Functions {
     public static boolean CONSENSUS_STATUS;
     public static JSONObject QUORUM_MEMBERS;
     public static JSONArray BOOTSTRAPS;
-    public static String WALLET_TYPE="";
+    public static String WALLET_TYPE = "";
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
@@ -202,7 +203,9 @@ public class Functions {
 
             BOOTSTRAPS = pathsArray.getJSONArray(5);
 
-            WALLET_TYPE = pathsArray.getJSONObject(6).getString("WALLET_TYPE");
+            if (pathsArray.length() >= 6) {
+                WALLET_TYPE = pathsArray.getJSONObject(6).getString("WALLET_TYPE");
+            }
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -391,7 +394,7 @@ public class Functions {
      */
 
     public synchronized static void writeToFile(String filePath, String data, Boolean appendStatus) {
-        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+        // PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         try {
             File writeFile = new File(filePath);
             FileWriter fw;
@@ -919,19 +922,30 @@ public class Functions {
         File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
         File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
 
-        if(WALLET_TYPE.equals("STANDARD") && (!didImage.exists() || !widImage.exists() || !pvtImage.exists()))
-        {
+        if (WALLET_TYPE.isEmpty() && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
             didImage.delete();
             widImage.delete();
             pvtImage.delete();
             JSONObject result = new JSONObject();
-            result.put("message", "This is a Standard Wallet/Node. User not registered, create your Decentralised Identity!");
+            result.put("message",
+                    "This is a Standard Wallet/Node. User not registered, create your Decentralised Identity!");
             result.put("info", "Shares Images Missing");
             result.put("status", "Failed");
             return result.toString();
         }
-        if(WALLET_TYPE.equals("HOTWALLET") && (!didImage.exists() || !widImage.exists()))
-        {
+
+        if (WALLET_TYPE.equals("STANDARD") && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
+            didImage.delete();
+            widImage.delete();
+            pvtImage.delete();
+            JSONObject result = new JSONObject();
+            result.put("message",
+                    "This is a Standard Wallet/Node. User not registered, create your Decentralised Identity!");
+            result.put("info", "Shares Images Missing");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+        if (WALLET_TYPE.equals("HOTWALLET") && (!didImage.exists() || !widImage.exists())) {
             didImage.delete();
             widImage.delete();
             JSONObject result = new JSONObject();
@@ -2320,19 +2334,197 @@ public class Functions {
 
     public static String getSignatureFromFile(String fileContent) {
 
-        String signature="";
+        String signature = "";
         try {
             JSONArray array = new JSONArray(fileContent);
 
-            JSONObject mainObj= array.getJSONObject(0);
-            JSONObject requObj= mainObj.getJSONObject("request");
-            JSONObject signObj= requObj.getJSONObject("signature");
-            signature= signObj.getString("signature");
+            JSONObject mainObj = array.getJSONObject(0);
+            JSONObject requObj = mainObj.getJSONObject("request");
+            JSONObject signObj = requObj.getJSONObject("signature");
+            signature = signObj.getString("signature");
         } catch (JSONException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        
+
         return signature;
     }
+
+    public static boolean setWalletType(String WalletType) {
+        boolean status = false;
+        setConfig();
+        String configContentString = readFile(configPath);
+        JSONArray configContentArray = null;
+        JSONObject walletTypeObj = null;
+        try {
+            configContentArray = new JSONArray(configContentString);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        if (!configContentString.contains("WALLET_TYPE")) {
+            try {
+                walletTypeObj = new JSONObject();
+                walletTypeObj.put("WALLET_TYPE", WalletType);
+                configContentArray.put(walletTypeObj);
+            } catch (JSONException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            writeToFile(configPath, configContentArray.toString(), false);
+        } else {
+            if (configContentString.contains("STANDARD")) {
+                configContentArray.remove(6);
+                walletTypeObj = new JSONObject();
+                try {
+                    walletTypeObj.put("WALLET_TYPE", "HOT_WALLET");
+                    configContentArray.put(walletTypeObj);
+                } catch (JSONException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                writeToFile(configPath, configContentArray.toString(), false);
+            }
+        }
+        configContentString = readFile(configPath);
+        if (configContentString.contains("WALLET_TYPE")) {
+            status = true;
+        }
+
+        return status;
+    }
+
+    public static boolean exportShares() {
+        boolean result = false;
+        pathSet();
+        String filecontent = readFile(DATA_PATH + "DID.json");
+
+        String DID = "";
+        try {
+            JSONObject fileContentObj = new JSONObject(filecontent);
+            DID = fileContentObj.getString("DID");
+        } catch (JSONException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+        try {
+            BufferedImage didImage = ImageIO.read(new File(DATA_PATH + DID + "/DID.png"));
+            BufferedImage publiImage = ImageIO.read(new File(DATA_PATH + DID + "/PublicShare.png"));
+            BufferedImage pvtImage = ImageIO.read(new File(DATA_PATH + DID + "/PrivateShare.png"));
+
+            String url = ""; // <-- insert url
+            URL obj = new URL(url);
+            HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+
+            // Setting basic post request
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+            con.setRequestProperty("Accept", "application/json");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setRequestProperty("Authorization", "null");
+
+            // Serialization
+            JSONObject dataToSend = new JSONObject();
+            dataToSend.put("didImage", didImage.toString());
+            dataToSend.put("publicImage", publiImage.toString());
+            dataToSend.put("privateImage", pvtImage.toString());
+            String populate = dataToSend.toString();
+
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("inputString", populate);
+            String postJsonData = jsonObject.toString();
+
+            // Send post request
+            con.setDoOutput(true);
+            DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+            wr.writeBytes(postJsonData);
+            wr.flush();
+            wr.close();
+
+            int responseCode = con.getResponseCode();
+            FunctionsLogger.debug("Sending 'POST' request to URL : " + url);
+            FunctionsLogger.debug("Post Data : " + postJsonData);
+            FunctionsLogger.debug("Response Code : " + responseCode);
+
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(con.getInputStream()));
+            String output;
+            StringBuffer response = new StringBuffer();
+
+            while ((output = in.readLine()) != null) {
+                response.append(output);
+            }
+            in.close();
+
+            if (response.toString().contains("Success")) {
+                result = true;
+                deleteFile(DATA_PATH + DID + "/PrivateShare.png");
+            }
+            FunctionsLogger.debug(response.toString());
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+
+    public static String initiateAPIEndpoint(String requestMethod, String dataToSend, String URL) {
+        JSONObject result = new JSONObject();
+        int responseCode;
+
+        try {
+            URL obj = new URL(URL);
+            HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+
+            // Setting basic post request
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+            con.setRequestProperty("Accept", "application/json");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setRequestProperty("Authorization", "null");
+
+            // serialisation
+            String populate = dataToSend.toString();
+
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("inputString", populate);
+            String postJsonData = jsonObject.toString();
+
+            // Send post request
+            con.setDoOutput(true);
+            DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+            wr.writeBytes(postJsonData);
+            wr.flush();
+            wr.close();
+
+            responseCode = con.getResponseCode();
+            FunctionsLogger.debug("Sending 'POST' request to URL : " + URL);
+            FunctionsLogger.debug("Post Data : " + postJsonData);
+            FunctionsLogger.debug("Response Code : " + responseCode);
+
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(con.getInputStream()));
+            String output;
+            StringBuffer response = new StringBuffer();
+
+            while ((output = in.readLine()) != null) {
+                response.append(output);
+            }
+            in.close();
+
+            result.put("responseCode", responseCode);
+            result.put("response", response.toString());
+        } catch (JSONException e) {
+            // TODO: handle exception
+        } catch (IOException e) {
+            // TODO: handle exception
+        }
+
+        return result.toString();
+    }
+
 }
