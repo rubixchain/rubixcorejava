@@ -615,7 +615,7 @@ public class TokenSender {
 
         }
         //create json file to write data
-        TokenSenderLogger.debug("Creating file to write signing data");
+        /*TokenSenderLogger.debug("Creating file to write signing data");
         String signFile = DATA_PATH+"/SignFile.json";
         File f = new File(signFile);
         if(f.exists())
@@ -625,16 +625,10 @@ public class TokenSender {
         writeToFile(signFile, "[]", false);
         //write sign details
         TokenSenderLogger.debug("writing hash authSenderByRecHash "+authSenderByRecHash+" to be signed with pvt share in to "+signFile);
-        /* JSONObject signDetailsObject = new JSONObject();
-        JSONArray signDetailsArray = new JSONArray();
-        signDetailsObject.put("DID", senderDidIpfsHash);
-        signDetailsObject.put("content", authSenderByRecHash);
-        signDetailsArray.put(signDetailsObject); */
 
         String signFileContent = createSignRequestArray(senderDidIpfsHash,receiverDidIpfsHash,comment,authSenderByRecHash,0.0);
         TokenSenderLogger.debug("write signing data");
         writeToFile(signFile, signFileContent, false);
-        //TokenSenderLogger.debug("starting wait of 5 minutes");
         TokenSenderLogger.debug("################################");
         TokenSenderLogger.debug("Please move file "+signFile+" to cold Wallet for Signature and return back to same location");
         
@@ -659,12 +653,35 @@ public class TokenSender {
             return APIResponse;
         }
         TokenSenderLogger.debug("read sign file");
-        String signFiledata = readFile(signFile);
+        String signFiledata = readFile(signFile);*/
 
-        /* signDetailsArray = new JSONArray(signFiledata);
-        signDetailsObject = new JSONObject(signDetailsArray.getJSONObject(0)); */
-        //String senderSign = getSignFromShares(pvt, authSenderByRecHash);
-        String senderSign = getSignatureFromFile(signFiledata);
+
+        TokenSenderLogger.debug("writing hash authSenderByRecHash "+authSenderByRecHash+" to be signed with pvt share");
+        String signFileContent = createSignRequestArray(senderDidIpfsHash,receiverDidIpfsHash,comment,authSenderByRecHash,0.0);
+
+        String responseStr = initiateAPIEndpoint("POST", signFileContent.toString(), "");//<- enter /sign url
+
+        //extract response
+        JSONObject apiResponse = new JSONObject(responseStr);
+        int resCode = apiResponse.getInt("responseCode");
+        if(resCode!=200)
+        {
+            TokenSenderLogger.warn("Sender " + senderDidIpfsHash + " is unable to Sign");
+            executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+            output.close();
+            input.close();
+            senderSocket.close();
+            senderMutex = false;
+            updateQuorum(quorumArray, null, false, type);
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", "null");
+            APIResponse.put("status", "Failed");
+            APIResponse.put("message", "Sender " + senderDidIpfsHash + " is unable to Sign");
+
+            return APIResponse;
+        }
+        
+        String senderSign = getSignatureFromFile(apiResponse.getString("response"));
         TokenSenderLogger.debug("senderSign "+senderSign);
 
         JSONObject senderDetails2Receiver = new JSONObject();
