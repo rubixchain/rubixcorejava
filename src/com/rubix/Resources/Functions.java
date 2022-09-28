@@ -48,6 +48,7 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -2393,8 +2394,8 @@ public class Functions {
         return status;
     }
 
-    public static boolean exportShares() {
-        boolean result = false;
+    public static String exportShareImages() {
+        JSONObject result = new JSONObject();
         pathSet();
         String filecontent = readFile(DATA_PATH + "DID.json");
 
@@ -2412,64 +2413,26 @@ public class Functions {
             BufferedImage publiImage = ImageIO.read(new File(DATA_PATH + DID + "/PublicShare.png"));
             BufferedImage pvtImage = ImageIO.read(new File(DATA_PATH + DID + "/PrivateShare.png"));
 
-            String url = ""; // <-- insert url
-            URL obj = new URL(url);
-            HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+            String didBinStr= PropImage.img2bin(didImage);
+            String pubBinStr= PropImage.img2bin(publiImage);
+            String pvtBinStr= PropImage.img2bin(pvtImage);
 
-            // Setting basic post request
-            con.setRequestMethod("POST");
-            con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-            con.setRequestProperty("Accept", "application/json");
-            con.setRequestProperty("Content-Type", "application/json");
-            con.setRequestProperty("Authorization", "null");
+            String didEncode = Base64.getEncoder().encodeToString(didBinStr.getBytes());
+            String pubEncode = Base64.getEncoder().encodeToString(pubBinStr.getBytes());
+            String pvtEncode = Base64.getEncoder().encodeToString(pvtBinStr.getBytes());
 
-            // Serialization
-            JSONObject dataToSend = new JSONObject();
-            dataToSend.put("didImage", didImage.toString());
-            dataToSend.put("publicImage", publiImage.toString());
-            dataToSend.put("privateImage", pvtImage.toString());
-            String populate = dataToSend.toString();
 
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("inputString", populate);
-            String postJsonData = jsonObject.toString();
-
-            // Send post request
-            con.setDoOutput(true);
-            DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-            wr.writeBytes(postJsonData);
-            wr.flush();
-            wr.close();
-
-            int responseCode = con.getResponseCode();
-            FunctionsLogger.debug("Sending 'POST' request to URL : " + url);
-            FunctionsLogger.debug("Post Data : " + postJsonData);
-            FunctionsLogger.debug("Response Code : " + responseCode);
-
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(con.getInputStream()));
-            String output;
-            StringBuffer response = new StringBuffer();
-
-            while ((output = in.readLine()) != null) {
-                response.append(output);
-            }
-            in.close();
-
-            if (response.toString().contains("Success")) {
-                result = true;
-                deleteFile(DATA_PATH + DID + "/PrivateShare.png");
-            }
-            FunctionsLogger.debug(response.toString());
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            result.put("DID", didEncode);
+            result.put("PublicShare", pubEncode);
+            result.put("PrivateShare", pvtEncode);
+            result.put("didHash", filecontent);
         } catch (JSONException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            // TODO: handle exception
+        } catch (IOException e) {
+            // TODO: handle exception
         }
 
-        return result;
+        return result.toString();
     }
 
     public static String initiateAPIEndpoint(String requestMethod, String dataToSend, String URL) {
@@ -2526,5 +2489,4 @@ public class Functions {
 
         return result.toString();
     }
-
 }
