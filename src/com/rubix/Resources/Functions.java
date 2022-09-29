@@ -16,6 +16,7 @@ import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -2396,13 +2397,15 @@ public class Functions {
 
     public static String exportShareImages() {
         JSONObject result = new JSONObject();
+        JSONObject object= null;
         pathSet();
-        String filecontent = readFile(DATA_PATH + "DID.json");
+        String filecontent = readFile(DATA_PATH +"DID.json");
 
         String DID = "";
         try {
-            JSONObject fileContentObj = new JSONObject(filecontent);
-            DID = fileContentObj.getString("DID");
+            JSONArray fileContentArray = new JSONArray(filecontent);
+            object = fileContentArray.getJSONObject(0);
+            DID = object.getString("didHash");
         } catch (JSONException e1) {
             // TODO Auto-generated catch block
             e1.printStackTrace();
@@ -2410,22 +2413,36 @@ public class Functions {
 
         try {
             BufferedImage didImage = ImageIO.read(new File(DATA_PATH + DID + "/DID.png"));
-            BufferedImage publiImage = ImageIO.read(new File(DATA_PATH + DID + "/PublicShare.png"));
+            BufferedImage pubImage = ImageIO.read(new File(DATA_PATH + DID + "/PublicShare.png"));
             BufferedImage pvtImage = ImageIO.read(new File(DATA_PATH + DID + "/PrivateShare.png"));
 
-            String didBinStr= PropImage.img2bin(didImage);
-            String pubBinStr= PropImage.img2bin(publiImage);
-            String pvtBinStr= PropImage.img2bin(pvtImage);
+            ByteArrayOutputStream didBos = new ByteArrayOutputStream();
+            ByteArrayOutputStream pubBos = new ByteArrayOutputStream();
+            ByteArrayOutputStream pvtBos = new ByteArrayOutputStream();
 
-            String didEncode = Base64.getEncoder().encodeToString(didBinStr.getBytes());
-            String pubEncode = Base64.getEncoder().encodeToString(pubBinStr.getBytes());
-            String pvtEncode = Base64.getEncoder().encodeToString(pvtBinStr.getBytes());
+            ImageIO.write(didImage,"png",didBos);
+            ImageIO.write(pubImage,"png",pubBos);
+            ImageIO.write(pvtImage,"png",pvtBos);
+
+            byte[] didBytes = didBos.toByteArray();
+            byte[] pubBytes = pubBos.toByteArray();
+            byte[] pvtBytes = pvtBos.toByteArray();
+            
+
+            
+            String didEncode = Base64.getEncoder().encodeToString(didBytes);
+            String pubEncode = Base64.getEncoder().encodeToString(pubBytes);
+            String pvtEncode = Base64.getEncoder().encodeToString(pvtBytes);
 
 
             result.put("DID", didEncode);
             result.put("PublicShare", pubEncode);
             result.put("PrivateShare", pvtEncode);
-            result.put("didHash", filecontent);
+            result.put("didHash", object);
+
+            didBos.close();
+            pubBos.close();
+            pvtBos.close();
         } catch (JSONException e) {
             // TODO: handle exception
         } catch (IOException e) {
