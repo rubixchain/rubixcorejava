@@ -2584,4 +2584,12 @@ public class Functions {
 
         return DID;
     }
+
+    public static void deletePvtShare()
+    {
+        pathSet();
+        String DID = getNodeDID();
+        deleteFile(DATA_PATH+DID+"/PrivateShare.png");
+    }
+    
 }
