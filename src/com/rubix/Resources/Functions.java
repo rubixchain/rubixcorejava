@@ -947,7 +947,7 @@ public class Functions {
             result.put("status", "Failed");
             return result.toString();
         }
-        if (WALLET_TYPE.equals("HOTWALLET") && (!didImage.exists() || !widImage.exists())) {
+        if (WALLET_TYPE.equals("COLDWALLET") && (!didImage.exists() || !widImage.exists())) {
             didImage.delete();
             widImage.delete();
             JSONObject result = new JSONObject();
@@ -2505,5 +2505,83 @@ public class Functions {
         }
 
         return result.toString();
+    }
+
+    public static String getWalletType(){
+        setConfig();
+        String configContentString = readFile(configPath);
+        JSONArray configContentArray = null;
+        JSONObject walletTypeObj = null;
+        try {
+            configContentArray = new JSONArray(configContentString);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        if (!configContentString.contains("WALLET_TYPE")) {
+            return "WALLET_TYPE_NOT_SET";
+        }
+
+        if (configContentString.contains("WALLET_TYPE")&& configContentString.contains("STANDARD")){
+            return "STANDARD";
+        }else
+        {
+            return "COLDWALLET";
+        }
+    }
+
+    public static boolean checkSharesPresent()
+    {
+        boolean result = false;
+        pathSet();
+
+        String DID = getNodeDID();
+        File did = new File(DATA_PATH+DID+"/DID.png");
+        File pubShare = new File(DATA_PATH+DID+"/PublicShare.png");
+        File pvtShare = new File(DATA_PATH+DID+"/PrivateShare.png");
+
+        if(!did.exists() && !pubShare.exists() && !pvtShare.exists())
+        {
+            return result;
+        }
+        else
+        {
+            result= true;
+        }
+        return result;
+    }
+
+    public static boolean checkSharesExported()
+    {
+        boolean result = false;
+        pathSet();
+
+        String DID = getNodeDID();
+        File did = new File(DATA_PATH+DID+"/DID.png");
+        File pubShare = new File(DATA_PATH+DID+"/PublicShare.png");
+        File pvtShare = new File(DATA_PATH+DID+"/PrivateShare.png");
+
+        if(did.exists() && pubShare.exists() && !pvtShare.exists())
+        {
+            result= true;
+        }
+        return result;
+    }
+
+    public static String getNodeDID()
+    {
+        String filecontent = readFile(DATA_PATH +"DID.json");
+        JSONObject object= null;
+        String DID = "";
+        try {
+            JSONArray fileContentArray = new JSONArray(filecontent);
+            object = fileContentArray.getJSONObject(0);
+            DID = object.getString("didHash");
+        } catch (JSONException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+        return DID;
     }
 }
