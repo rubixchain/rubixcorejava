@@ -2352,7 +2352,7 @@ public class Functions {
         return signature;
     }
 
-    public static boolean setWalletType(String WalletType) {
+    public static boolean setWalletType(int WalletType){
         boolean status = false;
         setConfig();
         String configContentString = readFile(configPath);
@@ -2374,11 +2374,21 @@ public class Functions {
             }
             writeToFile(configPath, configContentArray.toString(), false);
         } else {
-            if (configContentString.contains("STANDARD")) {
+            JSONObject arrayObj;
+            int type=0;
+			try {
+				arrayObj = configContentArray.getJSONObject(6);
+                type = arrayObj.getInt("WALLET_TYPE");
+			} catch (JSONException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+            
+            if (type==1) {
                 configContentArray.remove(6);
                 walletTypeObj = new JSONObject();
                 try {
-                    walletTypeObj.put("WALLET_TYPE", "HOT_WALLET");
+                    walletTypeObj.put("WALLET_TYPE", WalletType);
                     configContentArray.put(walletTypeObj);
                 } catch (JSONException e) {
                     // TODO Auto-generated catch block
@@ -2507,26 +2517,29 @@ public class Functions {
         return result.toString();
     }
 
-    public static String getWalletType(){
+    public static int getWalletType(){
         setConfig();
         String configContentString = readFile(configPath);
         JSONArray configContentArray = null;
         JSONObject walletTypeObj = null;
+        int type=0;
         try {
             configContentArray = new JSONArray(configContentString);
+            walletTypeObj = configContentArray.getJSONObject(6);
+            type =walletTypeObj.getInt("WALLET_TYPE");
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
         if (!configContentString.contains("WALLET_TYPE")) {
-            return "WALLET_TYPE_NOT_SET";
+            return 0;
         }
 
-        if (configContentString.contains("WALLET_TYPE")&& configContentString.contains("STANDARD")){
-            return "STANDARD";
+        if (configContentString.contains("WALLET_TYPE")&& type==1){
+            return 1;
         }else
         {
-            return "COLDWALLET";
+            return 2;
         }
     }
 
@@ -2592,4 +2605,12 @@ public class Functions {
         deleteFile(DATA_PATH+DID+"/PrivateShare.png");
     }
     
+    public static void setBasicWalletType()
+    {
+        int type = getWalletType();
+        if(type==0)
+        {
+            setWalletType(1);
+        }
+    }
 }
