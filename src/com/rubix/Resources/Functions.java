@@ -2453,7 +2453,9 @@ public class Functions {
             result.put("DID", didEncode);
             result.put("PublicShare", pubEncode);
             result.put("PrivateShare", pvtEncode);
-            result.put("didHash", object);
+            result.put("cid", object);
+            result.put("challenge", getChallengeString());
+            
 
             didBos.close();
             pubBos.close();
