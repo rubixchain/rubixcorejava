@@ -60,6 +60,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.stream.*;
 
@@ -67,6 +68,7 @@ import javax.imageio.ImageIO;
 import javax.json.JsonArray;
 import javax.net.ssl.HttpsURLConnection;
 
+import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Ping.PingCheck;
 
@@ -79,6 +81,9 @@ import io.ipfs.api.IPFS;
 import io.ipfs.multiaddr.MultiAddress;
 
 public class Functions {
+
+    public static String IdentityToken="";
+    public static String challenge="";
 
     public static boolean mutex = false;
     public static String DATA_PATH = "";
@@ -2612,5 +2617,51 @@ public class Functions {
         {
             setWalletType(1);
         }
+    }
+
+    public static void tokenStringGen()
+    {
+        UUID uuid = UUID.randomUUID();
+
+        String hash = calculateHash(uuid.toString(), "SHA3-256");
+
+        IdentityToken= hash;
+
+        FunctionsLogger.info("<################################>");
+        FunctionsLogger.info("AuthToken : "+IdentityToken);
+        FunctionsLogger.info("Please save the token. Valid till Node session ends i.e. node service shutsdown");
+        FunctionsLogger.info("<################################>");
+        
+    }
+    public static String getChallengeString()
+    {
+        String DID = getNodeDID();
+        String hash = calculateHash(IdentityToken+DID, "SHA3-256");
+
+        challenge = hash;
+
+        return hash;
+    }
+
+    public static boolean verifyChallengeString(String sign)
+    {
+        boolean result= false;
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("signature", sign);
+            obj.put("hash", challenge);
+            obj.put("did", getNodeDID());
+
+            result = Authenticate.verifySignature(obj.toString());
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return result;
+        
     }
 }
