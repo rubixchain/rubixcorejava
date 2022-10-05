@@ -35,6 +35,7 @@ import java.util.List;
 import com.rubix.Datum.DataCommitter;
 import com.rubix.Mining.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
+import com.rubix.BulkStaking.BulkStakeInitiator;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -97,6 +98,39 @@ public class APIHandler {
         APILogger.info(sendMessage);
         return sendMessage;
     }
+
+
+    //Method that accepts a bulkstaking API call request.
+
+    public static void bulkStake(int bulkStakeAmount) throws JSONException, IOException{
+
+        Functions.pathSet();
+
+        String senderPeerID = getPeerID(DATA_PATH + "DID.json");
+        String senderDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+
+        String dataTableData = readFile(DATA_PATH + "DataTable.json");
+        boolean isObjectValid = false;
+        JSONArray dataTable = new JSONArray(dataTableData);
+        // check value matches any of the data in the data table
+        for (int i = 0; i < dataTable.length(); i++) {
+            JSONObject dataTableObject = dataTable.getJSONObject(i);
+            if (dataTableObject.getString("didHash").equals(senderDID)) {
+                isObjectValid = true;
+            }
+        }
+        if (!isObjectValid)
+            networkInfo();
+
+        
+        JSONObject detailsObject = new JSONObject();
+        detailsObject.put("receiverDidIpfsHash", senderDID);
+        detailsObject.put("pvt", DATA_PATH + senderDID + "/PrivateShare.png");
+        detailsObject.put("bulkStakeAmount", bulkStakeAmount);
+        BulkStakeInitiator.bulkStake(detailsObject.toString(), ipfs);
+
+    }
+
 
     /**
      * An API call to mine tokens
