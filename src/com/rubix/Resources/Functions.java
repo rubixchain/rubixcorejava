@@ -82,8 +82,8 @@ import io.ipfs.multiaddr.MultiAddress;
 
 public class Functions {
 
-    public static String IdentityToken="";
-    public static String challenge="";
+    public static String IdentityToken = "";
+    public static String challenge = "";
 
     public static boolean mutex = false;
     public static String DATA_PATH = "";
@@ -929,7 +929,7 @@ public class Functions {
         File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
         File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
 
-        if (WALLET_TYPE==0 && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
+        if (WALLET_TYPE == 0 && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
             didImage.delete();
             widImage.delete();
             pvtImage.delete();
@@ -941,7 +941,7 @@ public class Functions {
             return result.toString();
         }
 
-        if (WALLET_TYPE==1 && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
+        if (WALLET_TYPE == 1 && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
             didImage.delete();
             widImage.delete();
             pvtImage.delete();
@@ -952,7 +952,7 @@ public class Functions {
             result.put("status", "Failed");
             return result.toString();
         }
-        if (WALLET_TYPE==1 && (!didImage.exists() || !widImage.exists())) {
+        if (WALLET_TYPE == 1 && (!didImage.exists() || !widImage.exists())) {
             didImage.delete();
             widImage.delete();
             JSONObject result = new JSONObject();
@@ -2357,7 +2357,7 @@ public class Functions {
         return signature;
     }
 
-    public static boolean setWalletType(int WalletType){
+    public static boolean setWalletType(int WalletType) {
         boolean status = false;
         setConfig();
         String configContentString = readFile(configPath);
@@ -2380,16 +2380,16 @@ public class Functions {
             writeToFile(configPath, configContentArray.toString(), false);
         } else {
             JSONObject arrayObj;
-            int type=0;
-			try {
-				arrayObj = configContentArray.getJSONObject(6);
+            int type = 0;
+            try {
+                arrayObj = configContentArray.getJSONObject(6);
                 type = arrayObj.getInt("WALLET_TYPE");
-			} catch (JSONException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-            
-            if (type==1) {
+            } catch (JSONException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+
+            if (type == 1) {
                 configContentArray.remove(6);
                 walletTypeObj = new JSONObject();
                 try {
@@ -2412,50 +2412,48 @@ public class Functions {
 
     public static String exportShareImages() {
         JSONObject result = new JSONObject();
-        JSONObject object= null;
+        JSONObject object = null;
         pathSet();
-        String filecontent = readFile(DATA_PATH +"DID.json");
+        // String filecontent = readFile(DATA_PATH +"DID.json");
 
-        String DID = "";
-        try {
-            JSONArray fileContentArray = new JSONArray(filecontent);
-            object = fileContentArray.getJSONObject(0);
-            DID = object.getString("didHash");
-        } catch (JSONException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-        }
+        // String DID = "";
+        /*
+         * try {
+         * JSONArray fileContentArray = new JSONArray(filecontent);
+         * object = fileContentArray.getJSONObject(0);
+         * DID = object.getString("didHash");
+         * } catch (JSONException e1) {
+         * // TODO Auto-generated catch block
+         * e1.printStackTrace();
+         * }
+         */
 
         try {
-            BufferedImage didImage = ImageIO.read(new File(DATA_PATH + DID + "/DID.png"));
-            BufferedImage pubImage = ImageIO.read(new File(DATA_PATH + DID + "/PublicShare.png"));
-            BufferedImage pvtImage = ImageIO.read(new File(DATA_PATH + DID + "/PrivateShare.png"));
+            BufferedImage didImage = ImageIO.read(new File("/Users/rubix_1/Downloads/shares" + "/DID.png"));
+            BufferedImage pubImage = ImageIO.read(new File("/Users/rubix_1/Downloads/shares" + "/PublicShare.png"));
+            BufferedImage pvtImage = ImageIO.read(new File("/Users/rubix_1/Downloads/shares" + "/PrivateShare.png"));
 
             ByteArrayOutputStream didBos = new ByteArrayOutputStream();
             ByteArrayOutputStream pubBos = new ByteArrayOutputStream();
             ByteArrayOutputStream pvtBos = new ByteArrayOutputStream();
 
-            ImageIO.write(didImage,"png",didBos);
-            ImageIO.write(pubImage,"png",pubBos);
-            ImageIO.write(pvtImage,"png",pvtBos);
+            ImageIO.write(didImage, "png", didBos);
+            ImageIO.write(pubImage, "png", pubBos);
+            ImageIO.write(pvtImage, "png", pvtBos);
 
             byte[] didBytes = didBos.toByteArray();
             byte[] pubBytes = pubBos.toByteArray();
             byte[] pvtBytes = pvtBos.toByteArray();
-            
 
-            
             String didEncode = Base64.getEncoder().encodeToString(didBytes);
             String pubEncode = Base64.getEncoder().encodeToString(pubBytes);
             String pvtEncode = Base64.getEncoder().encodeToString(pvtBytes);
 
-
-            result.put("DID", didEncode);
+            // result.put("DID", didEncode);
             result.put("PublicShare", pubEncode);
-            result.put("PrivateShare", pvtEncode);
-            result.put("cid", object);
-            result.put("challenge", getChallengeString());
-            
+            // result.put("PrivateShare", pvtEncode);
+            // result.put("cid", object);
+            // result.put("challenge", getChallengeString());
 
             didBos.close();
             pubBos.close();
@@ -2524,16 +2522,16 @@ public class Functions {
         return result.toString();
     }
 
-    public static int getWalletType(){
+    public static int getWalletType() {
         setConfig();
         String configContentString = readFile(configPath);
         JSONArray configContentArray = null;
         JSONObject walletTypeObj = null;
-        int type=0;
+        int type = 0;
         try {
             configContentArray = new JSONArray(configContentString);
             walletTypeObj = configContentArray.getJSONObject(6);
-            type =walletTypeObj.getInt("WALLET_TYPE");
+            type = walletTypeObj.getInt("WALLET_TYPE");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -2542,56 +2540,48 @@ public class Functions {
             return 0;
         }
 
-        if (configContentString.contains("WALLET_TYPE")&& type==1){
+        if (configContentString.contains("WALLET_TYPE") && type == 1) {
             return 1;
-        }else
-        {
+        } else {
             return 2;
         }
     }
 
-    public static boolean checkSharesPresent()
-    {
+    public static boolean checkSharesPresent() {
         boolean result = false;
         pathSet();
 
         String DID = getNodeDID();
-        File did = new File(DATA_PATH+DID+"/DID.png");
-        File pubShare = new File(DATA_PATH+DID+"/PublicShare.png");
-        File pvtShare = new File(DATA_PATH+DID+"/PrivateShare.png");
+        File did = new File(DATA_PATH + DID + "/DID.png");
+        File pubShare = new File(DATA_PATH + DID + "/PublicShare.png");
+        File pvtShare = new File(DATA_PATH + DID + "/PrivateShare.png");
 
-        if(!did.exists() && !pubShare.exists() && !pvtShare.exists())
-        {
+        if (!did.exists() && !pubShare.exists() && !pvtShare.exists()) {
             return result;
-        }
-        else
-        {
-            result= true;
+        } else {
+            result = true;
         }
         return result;
     }
 
-    public static boolean checkSharesExported()
-    {
+    public static boolean checkSharesExported() {
         boolean result = false;
         pathSet();
 
         String DID = getNodeDID();
-        File did = new File(DATA_PATH+DID+"/DID.png");
-        File pubShare = new File(DATA_PATH+DID+"/PublicShare.png");
-        File pvtShare = new File(DATA_PATH+DID+"/PrivateShare.png");
+        File did = new File(DATA_PATH + DID + "/DID.png");
+        File pubShare = new File(DATA_PATH + DID + "/PublicShare.png");
+        File pvtShare = new File(DATA_PATH + DID + "/PrivateShare.png");
 
-        if(did.exists() && pubShare.exists() && !pvtShare.exists())
-        {
-            result= true;
+        if (did.exists() && pubShare.exists() && !pvtShare.exists()) {
+            result = true;
         }
         return result;
     }
 
-    public static String getNodeDID()
-    {
-        String filecontent = readFile(DATA_PATH +"DID.json");
-        JSONObject object= null;
+    public static String getNodeDID() {
+        String filecontent = readFile(DATA_PATH + "DID.json");
+        JSONObject object = null;
         String DID = "";
         try {
             JSONArray fileContentArray = new JSONArray(filecontent);
@@ -2605,51 +2595,51 @@ public class Functions {
         return DID;
     }
 
-    public static void deletePvtShare()
-    {
+    public static void deletePvtShare() {
         pathSet();
         String DID = getNodeDID();
-        deleteFile(DATA_PATH+DID+"/PrivateShare.png");
+        deleteFile(DATA_PATH + DID + "/PrivateShare.png");
     }
-    
-    public static void setBasicWalletType()
-    {
-        pathSet();
-        String configContentString = readFile(configPath);
 
-        if(!configContentString.contains("WALLET_TYPE"))
-        {
-            setWalletType(1);
+    public static void setBasicWalletType() {
+        setDir();
+        File mainDir = new File(dirPath);
+        if (mainDir.exists()) {
+            pathSet();
+            String configContentString = readFile(configPath);
+
+            if (!configContentString.contains("WALLET_TYPE")) {
+                setWalletType(1);
+            }
         }
+
     }
 
-    public static void tokenStringGen()
-    {
+    public static void tokenStringGen() {
         UUID uuid = UUID.randomUUID();
 
         String hash = calculateHash(uuid.toString(), "SHA3-256");
 
-        IdentityToken= hash;
+        IdentityToken = hash;
 
         FunctionsLogger.info("<################################>");
-        FunctionsLogger.info("AuthToken : "+IdentityToken);
+        FunctionsLogger.info("AuthToken : " + IdentityToken);
         FunctionsLogger.info("Please save the token. Valid till Node session ends i.e. node service shutsdown");
         FunctionsLogger.info("<################################>");
-        
+
     }
-    public static String getChallengeString()
-    {
+
+    public static String getChallengeString() {
         String DID = getNodeDID();
-        String hash = calculateHash(IdentityToken+DID, "SHA3-256");
+        String hash = calculateHash(IdentityToken + DID, "SHA3-256");
 
         challenge = hash;
 
         return hash;
     }
 
-    public static boolean verifyChallengeString(String sign)
-    {
-        boolean result= false;
+    public static boolean verifyChallengeString(String sign) {
+        boolean result = false;
         JSONObject obj = new JSONObject();
         try {
             obj.put("signature", sign);
@@ -2666,6 +2656,6 @@ public class Functions {
         }
 
         return result;
-        
+
     }
 }
