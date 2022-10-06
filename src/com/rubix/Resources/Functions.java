@@ -2614,8 +2614,9 @@ public class Functions {
     
     public static void setBasicWalletType()
     {
-        int type = getWalletType();
-        if(type==0)
+        String configContentString = readFile(configPath);
+
+        if(!configContentString.contains("WALLET_TYPE"))
         {
             setWalletType(1);
         }
