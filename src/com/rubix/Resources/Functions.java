@@ -107,7 +107,7 @@ public class Functions {
     public static boolean CONSENSUS_STATUS;
     public static JSONObject QUORUM_MEMBERS;
     public static JSONArray BOOTSTRAPS;
-    public static String WALLET_TYPE = "";
+    public static int WALLET_TYPE;
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
@@ -211,7 +211,7 @@ public class Functions {
             BOOTSTRAPS = pathsArray.getJSONArray(5);
 
             if (pathsArray.length() >= 6) {
-                WALLET_TYPE = pathsArray.getJSONObject(6).getString("WALLET_TYPE");
+                WALLET_TYPE = pathsArray.getJSONObject(6).getInt("WALLET_TYPE");
             }
 
         } catch (JSONException e) {
@@ -929,7 +929,7 @@ public class Functions {
         File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
         File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
 
-        if (WALLET_TYPE.isEmpty() && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
+        if (WALLET_TYPE==0 && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
             didImage.delete();
             widImage.delete();
             pvtImage.delete();
@@ -941,7 +941,7 @@ public class Functions {
             return result.toString();
         }
 
-        if (WALLET_TYPE.equals("STANDARD") && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
+        if (WALLET_TYPE==1 && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
             didImage.delete();
             widImage.delete();
             pvtImage.delete();
@@ -952,7 +952,7 @@ public class Functions {
             result.put("status", "Failed");
             return result.toString();
         }
-        if (WALLET_TYPE.equals("COLDWALLET") && (!didImage.exists() || !widImage.exists())) {
+        if (WALLET_TYPE==1 && (!didImage.exists() || !widImage.exists())) {
             didImage.delete();
             widImage.delete();
             JSONObject result = new JSONObject();
