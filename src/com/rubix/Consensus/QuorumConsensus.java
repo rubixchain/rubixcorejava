@@ -54,16 +54,17 @@ import java.util.Random;
 
 import javax.imageio.ImageIO;
 
-import com.rubix.AuthenticateNode.Authenticate;
-import com.rubix.AuthenticateNode.PropImage;
-import com.rubix.Resources.Functions;
-import com.rubix.Resources.IPFSNetwork;
-
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.rubix.AuthenticateNode.Authenticate;
+import com.rubix.AuthenticateNode.PropImage;
+import com.rubix.Datum.Dependency;
+import com.rubix.Resources.Functions;
+import com.rubix.Resources.IPFSNetwork;
 
 import io.ipfs.api.IPFS;
 
@@ -97,7 +98,7 @@ public class QuorumConsensus implements Runnable {
         while (true) {
             PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
             String peerID, transactionID, verifySenderHash, receiverDID, appName, senderPrivatePos,
-                    senderDidIpfsHash = "", senderPID = "", ownerHash = "", initHash = "",blockHashString="";
+                    senderDidIpfsHash = "", senderPID = "", ownerHash = "", initHash = "", blockHashString = "";
             ServerSocket serverSocket = null;
             Socket socket = null;
             try {
@@ -127,7 +128,6 @@ public class QuorumConsensus implements Runnable {
                     serverSocket.close();
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                 }
-                
 
                 // ? staking logic starts here
                 if (operation.equals("new-credits-mining")) {
@@ -221,7 +221,7 @@ public class QuorumConsensus implements Runnable {
                                 if (hashSet.size() == qstArray.length() * 15) {
                                     QuorumConsensusLogger.debug("Mining Verified");
                                     out.println("Verified");
-                                   
+
                                 } else {
                                     QuorumConsensusLogger
                                             .debug("HashSet: " + hashSet.size() + " QST Size " + qstArray.length());
@@ -249,8 +249,7 @@ public class QuorumConsensus implements Runnable {
                         serverSocket.close();
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     }
-                } 
-                else if (operation.equals("alpha-stake-token")) {
+                } else if (operation.equals("alpha-stake-token")) {
 
                     QuorumConsensusLogger.debug("Staking 1 RBT for incoming mining transaction...");
                     String response = null;
@@ -325,7 +324,8 @@ public class QuorumConsensus implements Runnable {
                             VerificationPick.put("did", signer);
                             VerificationPick.put("hash", genesisBlock.getString("tid"));
 
-                            QuorumConsensusLogger.debug("Verifying credit signature of new token: " + VerificationPick);
+                            // QuorumConsensusLogger.debug("Verifying credit signature of new token: " +
+                            // VerificationPick);
 
                             if (Authenticate.verifySignature(VerificationPick.toString())) {
 
@@ -377,32 +377,35 @@ public class QuorumConsensus implements Runnable {
 
                                     String tokenChain = readFile(TOKENCHAIN_PATH + stakedTokenHash + ".json");
                                     stakedTokenChainArray = new JSONArray(tokenChain);
-                                    
-                                    if(stakedTokenChainArray.length() > 0) {
-                                   	 // get last object of tokenchainarray
-                                       JSONObject lastTokenChainObject = stakedTokenChainArray
-                                               .getJSONObject(stakedTokenChainArray.length() - 1);
 
-                                       if (!lastTokenChainObject.has(MINE_ID)) {
-                                           // && stakedTokenChainArray.length() > tokenLevelValue
+                                    if (stakedTokenChainArray.length() > 0) {
+                                        // get last object of tokenchainarray
+                                        JSONObject lastTokenChainObject = stakedTokenChainArray
+                                                .getJSONObject(stakedTokenChainArray.length() - 1);
 
-                                           QuorumConsensusLogger.debug("Staking 1 RBT for incoming mining transaction...");
-                                           tokenToStake.put(stakedTokenHash);
-                                           tokenToStake.put(stakedTokenChainArray);
+                                        if (!lastTokenChainObject.has(MINE_ID)) {
+                                            // && stakedTokenChainArray.length() > tokenLevelValue
 
-                                           bankArray.remove(i);
-                                           bankArray.put(bankObject);
-                                           writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(), false);
+                                            QuorumConsensusLogger
+                                                    .debug("Staking 1 RBT for incoming mining transaction...");
+                                            tokenToStake.put(stakedTokenHash);
+                                            tokenToStake.put(stakedTokenChainArray);
 
-                                           tokenAvailableToStake = true;
+                                            bankArray.remove(i);
+                                            bankArray.put(bankObject);
+                                            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(),
+                                                    false);
 
-                                           break;
-                                       }
-                                     
-                                   } else {
-                                	  
-                                   		QuorumConsensusLogger.debug("Token Chain does not have enough height to pledge...Trying to pledge with another token!");
-                                   }
+                                            tokenAvailableToStake = true;
+
+                                            break;
+                                        }
+
+                                    } else {
+
+                                        QuorumConsensusLogger.debug(
+                                                "Token Chain does not have enough height to pledge...Trying to pledge with another token!");
+                                    }
                                 }
                             }
 
@@ -494,10 +497,9 @@ public class QuorumConsensus implements Runnable {
                                             stakedTokenChainArray.toString(),
                                             false);
 
-                                 
                                     out.println(stakingSigns.toString());
                                     QuorumConsensusLogger.debug("Staking Completed!");
-                                  
+
                                     socket.close();
                                     serverSocket.close();
                                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
@@ -532,225 +534,263 @@ public class QuorumConsensus implements Runnable {
                         serverSocket.close();
                         executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
                     }
-                }           
-                else 
+                } else if (operation.equals("CID-to-pin") && port == 15041) {
+
+                    QuorumConsensusLogger.debug("CID to pin request");
+                    QuorumConsensusLogger.debug("appname connected is " + appName);
+                    String cidString = null;
+                    try {
+                        cidString = in.readLine();
+                    } catch (SocketException e) {
+                        QuorumConsensusLogger.debug("Sender Input Stream Null - ContentID");
+                        socket.close();
+                        serverSocket.close();
+                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                    }
+                    QuorumConsensusLogger.debug(cidString + " data passed");
+
+                } else
                     QuorumConsensusLogger.debug("Old Credits Mining / Whole RBT Token Transfer");
 
-	                String getRecData = null;
-	                try {
-	                    getRecData = in.readLine();
-	                    
-	                    if (getRecData != null) {
-	                        if (getRecData.contains("ping check")) {
-	                            QuorumConsensusLogger.debug("Ping check from sender: " + getRecData);
-	                            out.println("pong response");
-	                        } else {
-	                        	if(getRecData.contains("blockHash")) {
-	                        		QuorumConsensusLogger.debug("inside getRecData contains Data");
-	                        		QuorumConsensusLogger.debug("Received Details from initiator: " + getRecData);
-	                                readSenderData = new JSONObject(getRecData);
-	                                senderPrivatePos = readSenderData.getString("sign");
-	                                senderDidIpfsHash = readSenderData.getString("senderDID");
-	                                transactionID = readSenderData.getString("Tid");
-	                                verifySenderHash = readSenderData.getString("Hash");
-	                                blockHashString = readSenderData.getString("blockHash");
-	                                // initHash = readSenderData.getString(INIT_HASH);
+                String getRecData = null;
+                try {
+                    getRecData = in.readLine();
 
-	                                syncDataTable(senderDidIpfsHash, null);
+                    if (getRecData != null) {
+                        if (getRecData.contains("ping check")) {
+                            QuorumConsensusLogger.debug("Ping check from sender: " + getRecData);
+                            out.println("pong response");
+                        } else {
+                            if (getRecData.contains("blockHash")) {
+                                QuorumConsensusLogger.debug("Port connected is " + port);
+                                QuorumConsensusLogger.debug("inside getRecData contains Data");
+                                QuorumConsensusLogger.debug("Received Details from initiator: " + getRecData);
+                                readSenderData = new JSONObject(getRecData);
+                                senderPrivatePos = readSenderData.getString("sign");
+                                senderDidIpfsHash = readSenderData.getString("senderDID");
+                                transactionID = readSenderData.getString("Tid");
+                                verifySenderHash = readSenderData.getString("Hash");
+                                blockHashString = readSenderData.getString("blockHash");
+                                // initHash = readSenderData.getString(INIT_HASH);
 
-	                                senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", senderDidIpfsHash);
-	                                String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
-	                                        senderDidIpfsHash);
+                                syncDataTable(senderDidIpfsHash, null);
 
-	                                nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
-	                                String quorumHash = calculateHash(verifySenderHash.concat(blockHashString), "SHA3-256");
+                                senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
+                                        senderDidIpfsHash);
+                                QuorumConsensusLogger.debug("PID from DID "
+                                        + Dependency.getPIDfromDID(senderDidIpfsHash, Dependency.dataTableHashMap()));
+                                //
+                                String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash",
+                                        "didHash", senderDidIpfsHash);
+                                // Dependency.getWIDfromPID(senderPID, Dependency.dataTableHashMap());
+                                QuorumConsensusLogger.debug("WID from PID "
+                                        + Dependency.getWIDfromPID(senderPID, Dependency.dataTableHashMap()));
 
-	                                QuorumConsensusLogger.debug("1: " + verifySenderHash);
-	                                QuorumConsensusLogger.debug("2: " + blockHashString);
-	                                QuorumConsensusLogger.debug("Quorum hash: " + quorumHash);
+                                nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
+                                String quorumHash = calculateHash(verifySenderHash.concat(blockHashString), "SHA3-256");
 
-	                                JSONObject detailsToVerify = new JSONObject();
-	                                detailsToVerify.put("did", senderDidIpfsHash);
-	                                detailsToVerify.put("hash", verifySenderHash);
-	                                detailsToVerify.put("signature", senderPrivatePos);
-	                                
-	                                QuorumConsensusLogger.debug("Details to verify "+detailsToVerify.toString());
+                                QuorumConsensusLogger.debug("1: " + verifySenderHash);
+                                QuorumConsensusLogger.debug("2: " + blockHashString);
+                                QuorumConsensusLogger.debug("Quorum hash: " + quorumHash);
 
-	                                writeToFile(LOGGER_PATH + "tempverifysenderhash", verifySenderHash, false);
-	                                String verifySenderIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "tempverifysenderhash",
-	                                        ipfs);
-	                                deleteFile(LOGGER_PATH + "tempverifysenderhash");
+                                JSONObject detailsToVerify = new JSONObject();
+                                detailsToVerify.put("did", senderDidIpfsHash);
+                                detailsToVerify.put("hash", verifySenderHash);
+                                detailsToVerify.put("signature", senderPrivatePos);
 
-	                                if (Authenticate.verifySignature(detailsToVerify.toString())) {
-	                                    QuorumConsensusLogger.debug("Quorum Authenticated Sender");
+                                QuorumConsensusLogger.debug("Details to verify " + detailsToVerify.toString());
 
-	                                    QuorumConsensusLogger.debug("ConsensusID pass");
-	                                    String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
-	                                            quorumHash);
-	                                    out.println(QuorumSignature);
+                                writeToFile(LOGGER_PATH + "tempverifysenderhash", verifySenderHash, false);
+                                String verifySenderIPFSHash = IPFSNetwork.addHashOnly(
+                                        LOGGER_PATH + "tempverifysenderhash",
+                                        ipfs);
+                                deleteFile(LOGGER_PATH + "tempverifysenderhash");
 
-	                                    String creditSignatures = null;
-	                                    try {
-	                                        creditSignatures = in.readLine();
-	                                        QuorumConsensusLogger.debug("Credit signature is "+creditSignatures);
-	                                    } catch (SocketException e) {
-	                                        QuorumConsensusLogger.debug("Sender Input Stream Null - Credits");
-	                                        socket.close();
-	                                        serverSocket.close();
-	                                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-	                                    }
-	                                    QuorumConsensusLogger.debug("credit Signature " + creditSignatures);
+                                if (Authenticate.verifySignature(detailsToVerify.toString())) {
+                                    QuorumConsensusLogger.debug("Quorum Authenticated Sender");
 
-	                                    if (!creditSignatures.equals("null")) { // commented as per test for multiple consensus
-	                                                                            // threads
-	                                    	QuorumConsensusLogger.debug("inside creditsignature not equal to null");
-	                                        FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
-	                                        shareWriter.write(creditSignatures);
-	                                        shareWriter.close();
-	                                        File readCredit = new File(LOGGER_PATH + "mycredit.txt");
-	                                        String credit = add(readCredit.toString(), ipfs);
+                                    QuorumConsensusLogger.debug("ConsensusID pass");
+                                    String QuorumSignature = getSignFromShares(
+                                            DATA_PATH + didHash + "/PrivateShare.png",
+                                            quorumHash);
+                                    out.println(QuorumSignature);
 
-	                                        File creditFile = new File(
-	                                                WALLET_DATA_PATH.concat("/Credits/").concat(credit).concat(".json"));
-	                                        if (!creditFile.exists())
-	                                            creditFile.createNewFile();
-	                                        writeToFile(creditFile.toString(), creditSignatures, false);
+                                    String creditSignatures = null;
+                                    try {
+                                        creditSignatures = in.readLine();
+                                        // QuorumConsensusLogger.debug("Credit signature is "+creditSignatures);
+                                    } catch (SocketException e) {
+                                        QuorumConsensusLogger.debug("Sender Input Stream Null - Credits");
+                                        socket.close();
+                                        serverSocket.close();
+                                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                                    }
+                                    // QuorumConsensusLogger.debug("credit Signature " + creditSignatures);
 
-	                                        QuorumConsensusLogger.debug("Credit object: " + credit);
-	                                        QuorumConsensusLogger.debug("Credit Hash: " + calculateHash(credit, "SHA3-256"));
-	                                        JSONObject storeDetailsQuorum = new JSONObject();
-	                                        storeDetailsQuorum.put("tid", transactionID);
-	                                        storeDetailsQuorum.put("consensusID", verifySenderHash);
-	                                        storeDetailsQuorum.put("sign", senderPrivatePos);
-	                                        storeDetailsQuorum.put("credits", credit);
-	                                        storeDetailsQuorum.put("creditHash", calculateHash(credit, "SHA3-256"));
-	                                        storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
-	                                        storeDetailsQuorum.put("Date", Functions.getCurrentUtcTime());
-	                                        storeDetailsQuorum.put("recdid", blockHashString);
-	                                        JSONArray data = new JSONArray();
-	                                        data.put(storeDetailsQuorum);
-	                                        QuorumConsensusLogger.debug("Quorum Share: " + credit);
-	                                        updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
-	                                        deleteFile(LOGGER_PATH + "mycredit.txt");
-	                                        writeToFile(LOGGER_PATH + "consenusIDhash", verifySenderHash, false);
-	                                        String consenusIDhash = IPFSNetwork.add(LOGGER_PATH + "consenusIDhash", ipfs);
-	                                        deleteFile(LOGGER_PATH + "consenusIDhash");
-	                                        QuorumConsensusLogger.debug("added consensus ID " + consenusIDhash);
-	                                    }
+                                    if (!creditSignatures.equals("null")) { // commented as per test for multiple
+                                                                            // consensus
+                                                                            // threads
+                                        QuorumConsensusLogger.debug("inside creditsignature not equal to null");
+                                        FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"),
+                                                true);
+                                        shareWriter.write(creditSignatures);
+                                        shareWriter.close();
+                                        File readCredit = new File(LOGGER_PATH + "mycredit.txt");
+                                        String credit = add(readCredit.toString(), ipfs);
 
-	                                } else {
-	                                    QuorumConsensusLogger.debug("Sender Authentication Failure - Quorum");
-	                                    out.println("Auth_Failed");
-	                                }
-	                        		
-	                        	}else {
-	                        		QuorumConsensusLogger.debug("Received Details from initiator: " + getRecData);
-		                            readSenderData = new JSONObject(getRecData);
-		                            senderPrivatePos = readSenderData.getString("sign");
-		                            senderDidIpfsHash = readSenderData.getString("senderDID");
-		                            transactionID = readSenderData.getString("Tid");
-		                            verifySenderHash = readSenderData.getString("Hash");
-		                            receiverDID = readSenderData.getString("RID");
-		                            // initHash = readSenderData.getString(INIT_HASH);
-		
-		                            syncDataTable(senderDidIpfsHash, null);
-		
-		                            senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash", senderDidIpfsHash);
-		                            String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
-		                                    senderDidIpfsHash);
-		
-		                            nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
-		                            String quorumHash = calculateHash(verifySenderHash.concat(receiverDID), "SHA3-256");
-		
-		                            QuorumConsensusLogger.debug("1: " + senderPrivatePos);
-		                            QuorumConsensusLogger.debug("2: " + senderDidIpfsHash);
-		                            QuorumConsensusLogger.debug("3: " + transactionID);
-		                            QuorumConsensusLogger.debug("4: " + verifySenderHash);
-		
-		                            JSONObject detailsToVerify = new JSONObject();
-		                            detailsToVerify.put("did", senderDidIpfsHash);
-		                            detailsToVerify.put("hash", verifySenderHash);
-		                            detailsToVerify.put("signature", senderPrivatePos);
-		
-		                            writeToFile(LOGGER_PATH + "tempverifysenderhash", verifySenderHash, false);
-		                            String verifySenderIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "tempverifysenderhash",
-		                                    ipfs);
-		                            deleteFile(LOGGER_PATH + "tempverifysenderhash");
-		                            
-		                            if (Authenticate.verifySignature(detailsToVerify.toString())) {
-		                                QuorumConsensusLogger.debug("Quorum Authenticated Sender");
-		
-		                                QuorumConsensusLogger.debug("ConsensusID pass");
-		                                String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
-		                                        quorumHash);
-		                                
-		                                QuorumConsensusLogger.debug(QuorumSignature);
-		                                out.println(QuorumSignature);
-		
-		                                String creditSignatures = null;
-		                                try {
-		                                    creditSignatures = in.readLine();
-		                                } catch (SocketException e) {
-		                                    QuorumConsensusLogger.debug("Sender Input Stream Null - Credits");
-		                                    socket.close();
-		                                    serverSocket.close();
-		                                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-		                                }
-		                                QuorumConsensusLogger.debug("credit Signature " + creditSignatures);
-		
-		                                if (!creditSignatures.equals("null")) { // commented as per test for multiple consensus
-		                                                                        // threads
-		                                    FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
-		                                    shareWriter.write(creditSignatures);
-		                                    shareWriter.close();
-		                                    File readCredit = new File(LOGGER_PATH + "mycredit.txt");
-		                                    String credit = add(readCredit.toString(), ipfs);
-		
-		                                    File creditFile = new File(
-		                                            WALLET_DATA_PATH.concat("/Credits/").concat(credit).concat(".json"));
-		                                    if (!creditFile.exists())
-		                                        creditFile.createNewFile();
-		                                    writeToFile(creditFile.toString(), creditSignatures, false);
-		
-		                                    QuorumConsensusLogger.debug("Credit object: " + credit);
-		                                    QuorumConsensusLogger.debug("Credit Hash: " + calculateHash(credit, "SHA3-256"));
-		                                    JSONObject storeDetailsQuorum = new JSONObject();
-		                                    storeDetailsQuorum.put("tid", transactionID);
-		                                    storeDetailsQuorum.put("consensusID", verifySenderHash);
-		                                    storeDetailsQuorum.put("sign", senderPrivatePos);
-		                                    storeDetailsQuorum.put("credits", credit);
-		                                    storeDetailsQuorum.put("creditHash", calculateHash(credit, "SHA3-256"));
-		                                    storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
-		                                    storeDetailsQuorum.put("Date", Functions.getCurrentUtcTime());
-		                                    storeDetailsQuorum.put("recdid", receiverDID);
-		                                    JSONArray data = new JSONArray();
-		                                    data.put(storeDetailsQuorum);
-		                                    QuorumConsensusLogger.debug("Quorum Share: " + credit);
-		                                    updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json", data.toString());
-		                                    deleteFile(LOGGER_PATH + "mycredit.txt");
-		                                    writeToFile(LOGGER_PATH + "consenusIDhash", verifySenderHash, false);
-		                                    String consenusIDhash = IPFSNetwork.add(LOGGER_PATH + "consenusIDhash", ipfs);
-		                                    deleteFile(LOGGER_PATH + "consenusIDhash");
-		                                    QuorumConsensusLogger.debug("added consensus ID " + consenusIDhash);
-		                                }
-		
-		                            } else {
-		                                QuorumConsensusLogger.debug("Sender Authentication Failure - Quorum");
-		                                out.println("Auth_Failed");
-		                            }
-								}
-	                        }
-	                    } else {
-	                        QuorumConsensusLogger.debug("Quorum - " + didHash + " is unable to respond!" + getRecData);
-	                        out.println(getRecData);
-	                    }
-	                } catch (SocketException e) {
-	                    QuorumConsensusLogger.debug("Sender Input Stream Null - Ping Check / Receiver Details");
-	                    socket.close();
-	                    serverSocket.close();
-	                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
-	                }
-	           
+                                        File creditFile = new File(
+                                                WALLET_DATA_PATH.concat("/Credits/").concat(credit).concat(".json"));
+                                        if (!creditFile.exists())
+                                            creditFile.createNewFile();
+                                        writeToFile(creditFile.toString(), creditSignatures, false);
+
+                                        // QuorumConsensusLogger.debug("Credit object: " + credit);
+                                        // QuorumConsensusLogger.debug("Credit Hash: " + calculateHash(credit,
+                                        // "SHA3-256"));
+                                        JSONObject storeDetailsQuorum = new JSONObject();
+                                        storeDetailsQuorum.put("tid", transactionID);
+                                        storeDetailsQuorum.put("consensusID", verifySenderHash);
+                                        storeDetailsQuorum.put("sign", senderPrivatePos);
+                                        storeDetailsQuorum.put("credits", credit);
+                                        storeDetailsQuorum.put("creditHash", calculateHash(credit, "SHA3-256"));
+                                        storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
+                                        storeDetailsQuorum.put("Date", Functions.getCurrentUtcTime());
+                                        storeDetailsQuorum.put("recdid", blockHashString);
+                                        JSONArray data = new JSONArray();
+                                        data.put(storeDetailsQuorum);
+                                        QuorumConsensusLogger.debug("Quorum Share: " + credit);
+                                        updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json",
+                                                data.toString());
+                                        deleteFile(LOGGER_PATH + "mycredit.txt");
+                                        writeToFile(LOGGER_PATH + "consenusIDhash", verifySenderHash, false);
+                                        String consenusIDhash = IPFSNetwork.add(LOGGER_PATH + "consenusIDhash", ipfs);
+                                        deleteFile(LOGGER_PATH + "consenusIDhash");
+                                        QuorumConsensusLogger.debug("added consensus ID " + consenusIDhash);
+
+                                       // Dependency.subscribe(transactionID);
+
+                                    }
+                                } else {
+                                    QuorumConsensusLogger.debug("Sender Authentication Failure - Quorum");
+                                    out.println("Auth_Failed");
+                                }
+
+                            } else {
+                                QuorumConsensusLogger.debug("Received Details from initiator: " + getRecData);
+                                readSenderData = new JSONObject(getRecData);
+                                senderPrivatePos = readSenderData.getString("sign");
+                                senderDidIpfsHash = readSenderData.getString("senderDID");
+                                transactionID = readSenderData.getString("Tid");
+                                verifySenderHash = readSenderData.getString("Hash");
+                                receiverDID = readSenderData.getString("RID");
+                                // initHash = readSenderData.getString(INIT_HASH);
+
+                                syncDataTable(senderDidIpfsHash, null);
+
+                                senderPID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
+                                        senderDidIpfsHash);
+                                String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash",
+                                        "didHash",
+                                        senderDidIpfsHash);
+
+                                nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
+                                String quorumHash = calculateHash(verifySenderHash.concat(receiverDID), "SHA3-256");
+
+                                QuorumConsensusLogger.debug("1: " + senderPrivatePos);
+                                QuorumConsensusLogger.debug("2: " + senderDidIpfsHash);
+                                QuorumConsensusLogger.debug("3: " + transactionID);
+                                QuorumConsensusLogger.debug("4: " + verifySenderHash);
+
+                                JSONObject detailsToVerify = new JSONObject();
+                                detailsToVerify.put("did", senderDidIpfsHash);
+                                detailsToVerify.put("hash", verifySenderHash);
+                                detailsToVerify.put("signature", senderPrivatePos);
+
+                                writeToFile(LOGGER_PATH + "tempverifysenderhash", verifySenderHash, false);
+                                String verifySenderIPFSHash = IPFSNetwork.addHashOnly(
+                                        LOGGER_PATH + "tempverifysenderhash",
+                                        ipfs);
+                                deleteFile(LOGGER_PATH + "tempverifysenderhash");
+
+                                if (Authenticate.verifySignature(detailsToVerify.toString())) {
+                                    QuorumConsensusLogger.debug("Quorum Authenticated Sender");
+
+                                    QuorumConsensusLogger.debug("ConsensusID pass");
+                                    String QuorumSignature = getSignFromShares(
+                                            DATA_PATH + didHash + "/PrivateShare.png",
+                                            quorumHash);
+
+                                    QuorumConsensusLogger.debug(QuorumSignature);
+                                    out.println(QuorumSignature);
+
+                                    String creditSignatures = null;
+                                    try {
+                                        creditSignatures = in.readLine();
+                                    } catch (SocketException e) {
+                                        QuorumConsensusLogger.debug("Sender Input Stream Null - Credits");
+                                        socket.close();
+                                        serverSocket.close();
+                                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                                    }
+                                    // QuorumConsensusLogger.debug("credit Signature " + creditSignatures);
+
+                                    if (!creditSignatures.equals("null")) { // commented as per test for multiple
+                                                                            // consensus
+                                                                            // threads
+                                        FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"),
+                                                true);
+                                        shareWriter.write(creditSignatures);
+                                        shareWriter.close();
+                                        File readCredit = new File(LOGGER_PATH + "mycredit.txt");
+                                        String credit = add(readCredit.toString(), ipfs);
+
+                                        File creditFile = new File(
+                                                WALLET_DATA_PATH.concat("/Credits/").concat(credit).concat(".json"));
+                                        if (!creditFile.exists())
+                                            creditFile.createNewFile();
+                                        writeToFile(creditFile.toString(), creditSignatures, false);
+
+                                        QuorumConsensusLogger.debug("Credit object: " + credit);
+                                        QuorumConsensusLogger
+                                                .debug("Credit Hash: " + calculateHash(credit, "SHA3-256"));
+                                        JSONObject storeDetailsQuorum = new JSONObject();
+                                        storeDetailsQuorum.put("tid", transactionID);
+                                        storeDetailsQuorum.put("consensusID", verifySenderHash);
+                                        storeDetailsQuorum.put("sign", senderPrivatePos);
+                                        storeDetailsQuorum.put("credits", credit);
+                                        storeDetailsQuorum.put("creditHash", calculateHash(credit, "SHA3-256"));
+                                        storeDetailsQuorum.put("senderdid", senderDidIpfsHash);
+                                        storeDetailsQuorum.put("Date", Functions.getCurrentUtcTime());
+                                        storeDetailsQuorum.put("recdid", receiverDID);
+                                        JSONArray data = new JSONArray();
+                                        data.put(storeDetailsQuorum);
+                                        QuorumConsensusLogger.debug("Quorum Share: " + credit);
+                                        updateJSON("add", WALLET_DATA_PATH + "QuorumSignedTransactions.json",
+                                                data.toString());
+                                        deleteFile(LOGGER_PATH + "mycredit.txt");
+                                        writeToFile(LOGGER_PATH + "consenusIDhash", verifySenderHash, false);
+                                        String consenusIDhash = IPFSNetwork.add(LOGGER_PATH + "consenusIDhash", ipfs);
+                                        deleteFile(LOGGER_PATH + "consenusIDhash");
+                                        QuorumConsensusLogger.debug("added consensus ID " + consenusIDhash);
+                                    }
+
+                                } else {
+                                    QuorumConsensusLogger.debug("Sender Authentication Failure - Quorum");
+                                    out.println("Auth_Failed");
+                                }
+                            }
+                        }
+                    } else {
+                        QuorumConsensusLogger.debug("Quorum - " + didHash + " is unable to respond!" + getRecData);
+                        out.println(getRecData);
+                    }
+                } catch (SocketException e) {
+                    QuorumConsensusLogger.debug("Sender Input Stream Null - Ping Check / Receiver Details");
+                    socket.close();
+                    serverSocket.close();
+                    executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                }
+
             } catch (IOException e) {
                 QuorumConsensusLogger.error("IOException Occurred", e);
             } catch (JSONException e) {
@@ -761,6 +801,7 @@ public class QuorumConsensus implements Runnable {
                 QuorumConsensusLogger.error("ParseException Occurred ", e);
             } finally {
                 try {
+                    QuorumConsensusLogger.debug("disconnecting connection from " + port);
                     socket.close();
                     serverSocket.close();
                     executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);

@@ -16,6 +16,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.rubix.Resources.IPFSNetwork;
+
 import io.ipfs.api.IPFS;
 
 public class QuorumPingReceive {
@@ -124,10 +126,38 @@ public class QuorumPingReceive {
                 QuorumPingReceiverLogger.info("Pong Sent");
 
             }
-            else {
+            else
+            if (pingRequest!=null && pingRequest.contains("CID-to-pin")) {
+            	QuorumPingReceiverLogger.debug("received cid to pin");
+            	String cIDString = null;
+            	try {
+					cIDString = input.readLine();
+					QuorumPingReceiverLogger.debug("CID to be pinned is "+ cIDString);
+					}
+					catch (SocketException e) {
+	                    QuorumPingReceiverLogger.warn("Sender Stream Null - tokenHash");
+	                    APIResponse.put("did", "");
+	                    APIResponse.put("tid", "null");
+	                    APIResponse.put("status", "Failed");
+	                    APIResponse.put("message", "Sender Stream Null - tokenHash");
+
+	                    output.close();
+	                    input.close();
+	                    sk.close();
+	                    ss.close();
+	                    return APIResponse.toString();
+
+	                }
+            	
+            	if (cIDString != null && cIDString.startsWith("Qm") && cIDString.length() == 46) {
+            		QuorumPingReceiverLogger.debug("CID is "+ cIDString);
+            		IPFSNetwork.pin(cIDString, ipfs);
+                }
+				
+			}else{
                 APIResponse.put("status", "Failed");
-                APIResponse.put("message", "Pong Failed");
-                QuorumPingReceiverLogger.info("Pong Failed");
+                APIResponse.put("message", "Quorum Pin Failed");
+                QuorumPingReceiverLogger.info("Quorum Pin Failed");
             }
             executeIPFSCommands(" ipfs p2p close -t /p2p/" + pingRequest);
             output.close();

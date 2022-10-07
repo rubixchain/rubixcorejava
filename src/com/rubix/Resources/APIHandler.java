@@ -487,10 +487,16 @@ public class APIHandler {
                 } else if (transactionObject.has("amount"))
                     transactionObject.put("amount", transactionObject.getDouble("amount"));
                 else {
-                    JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
-                    transactionObject.put("amount", tokensArray.length());
+                	if (!transactionObject.get("tokens").toString().contains("[")) {
+                        JSONArray tokensArray = new JSONArray("[" + transactionObject.get("tokens").toString() + "]");
+                        if (transactionObject.has("tokens")) {
+                            transactionObject.put("tokens", tokensArray);
+                        }
+                    } else {
+                        JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
+                        transactionObject.put("amount", tokensArray.length());
+                    }
                 }
-
                 resultArray.put(transactionObject);
             }
 

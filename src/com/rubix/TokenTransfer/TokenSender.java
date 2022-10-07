@@ -52,6 +52,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -61,7 +62,7 @@ import javax.net.ssl.HttpsURLConnection;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
-import com.rubix.Constants.ConsensusConstants;
+import com.rubix.Constants.*;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
@@ -195,14 +196,24 @@ public class TokenSender {
             String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
             JSONArray tokenChainFileArray = new JSONArray(tokenChainFileContent);
             JSONArray previousSenderArray = new JSONArray();
+            
+            TokenSenderLogger.debug("tokenChainFileArray is " + tokenChainFileArray);
+            TokenSenderLogger.debug("tokenChainFileArray length is " + tokenChainFileArray.length());
 
+            
             if (tokenChainFileArray.length() > 0) {
                 // JSONObject lastObject =
                 // tokenChainFileArray.getJSONObject(tokenChainFileArray.length() - 1);
+            	
+            	//for(int k=0;k<tokenChainFileArray.length();k++) {
+                //    TokenSenderLogger.debug("Token sender info "+k+"  "+tokenChainFileArray.getJSONObject(k).toString());
+            	//}
 
                 for (int j = 0; j < tokenChainFileArray.length(); j++) {
+                  //  TokenSenderLogger.debug("Token sender info is "+tokenChainFileArray.getJSONObject(j).getString("sender"));
                     String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
                             tokenChainFileArray.getJSONObject(j).getString("sender"));
+                   // TokenSenderLogger.debug("sender peerid is "+ peerID);
                     previousSenderArray.put(peerID);
                 }
             }

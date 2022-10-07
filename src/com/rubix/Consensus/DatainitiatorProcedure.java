@@ -115,8 +115,8 @@ public class DatainitiatorProcedure {
         
         Thread alphaThread = new Thread(() -> {
             try {
-            //	InitiatorProcedureLogger.debug("sending data to alphaThread dataSend JSON: "+dataSend.toString()+ "alpha is "+ alphaList + "alpha size is "+ alphaSize
-            //          +" Operation is "+ operation);
+            	DataInitiatorProcedureLogger.debug("sending data to alphaThread dataSend alpha is "+ alphaList + "alpha size is "+ alphaSize
+                      +" port is "+ PORT);
                 alphaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT, 0, "alpha", alphaList, alphaSize,
                         alphaSize, operation);
             } catch (JSONException e) {
@@ -126,8 +126,8 @@ public class DatainitiatorProcedure {
 
         Thread betaThread = new Thread(() -> {
             try {
-            //	InitiatorProcedureLogger.debug("sending data to betaThread dataSend JSON: "+dataSend.toString()+ "beta is "+ betaList + "beta size is "+ alphaSize
-            //            +" Operation is "+ operation);
+            DataInitiatorProcedureLogger.debug("sending data to betaThread dataSend beta is "+ betaList + "beta size is "+ alphaSize
+                        +" port is "+ (PORT + 100));
                 betaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 100, 1, "beta", betaList,
                         alphaSize, 7, operation);
             } catch (JSONException e) {
@@ -137,8 +137,8 @@ public class DatainitiatorProcedure {
 
         Thread gammaThread = new Thread(() -> {
             try {
-            //	InitiatorProcedureLogger.debug("sending data to gammaThread dataSend JSON: "+dataSend.toString()+ "gamma is "+ gammaList + "alpha size is "+ alphaSize
-            //            +" Operation is "+ operation);
+            	DataInitiatorProcedureLogger.debug("sending data to gammaThread dataSend JSON gamma is "+ gammaList + "alpha size is "+ alphaSize
+                  +" port is "+ (PORT + 107));
                 gammaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 107, 2, "gamma", gammaList,
                         alphaSize, 7, operation);
             } catch (JSONException e) {

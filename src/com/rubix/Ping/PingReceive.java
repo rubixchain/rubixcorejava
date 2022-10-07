@@ -16,6 +16,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.rubix.Resources.IPFSNetwork;
+
 import io.ipfs.api.IPFS;
 
 public class PingReceive {
@@ -71,7 +73,7 @@ public class PingReceive {
                 return APIResponse.toString();
 
             }
-            PingReceiverLogger.debug("Ping Request Received: " + pingRequest);
+            PingReceiverLogger.debug("Ping Request Received: " + pingRequest+" in port "+port);
             if (pingRequest != null) {
             	if(pingRequest.contains("PingCheck")) {
             		PingReceiverLogger.debug(userType + " Sending version "+currentVersion);
@@ -117,6 +119,34 @@ public class PingReceive {
                         }
             			
             		}
+            	if (pingRequest!=null && pingRequest.contains("CID-to-pin")) {
+            		PingReceiverLogger.debug("received cid to pin");
+                	String cIDString = null;
+                	try {
+    					cIDString = input.readLine();
+    					PingReceiverLogger.debug("CID to be pinned is "+ cIDString);
+    					}
+    					catch (SocketException e) {
+    						PingReceiverLogger.warn("Sender Stream Null - tokenHash");
+    	                    APIResponse.put("did", "");
+    	                    APIResponse.put("tid", "null");
+    	                    APIResponse.put("status", "Failed");
+    	                    APIResponse.put("message", "Sender Stream Null - tokenHash");
+
+    	                    output.close();
+    	                    input.close();
+    	                    sk.close();
+    	                    ss.close();
+    	                    return APIResponse.toString();
+
+    	                }
+                	
+                	if (cIDString != null && cIDString.startsWith("Qm") && cIDString.length() == 46) {
+                		PingReceiverLogger.debug("CID is "+ cIDString);
+                		IPFSNetwork.pin(cIDString, ipfs);
+                    }
+    				
+    			}
                 else{
                     APIResponse.put("status", "Failed");
                     APIResponse.put("message", "Request Failed");
