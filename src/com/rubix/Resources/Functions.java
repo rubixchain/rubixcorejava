@@ -210,7 +210,7 @@ public class Functions {
 
             BOOTSTRAPS = pathsArray.getJSONArray(5);
 
-            if (pathsArray.length() >= 6) {
+            if (pathsArray.length() > 5) {
                 WALLET_TYPE = pathsArray.getJSONObject(6).getInt("WALLET_TYPE");
             }
 
