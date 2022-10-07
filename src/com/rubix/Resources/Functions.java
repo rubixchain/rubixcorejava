@@ -2414,19 +2414,18 @@ public class Functions {
         JSONObject result = new JSONObject();
         JSONObject object = null;
         pathSet();
-        // String filecontent = readFile(DATA_PATH +"DID.json");
+        String filecontent = readFile(DATA_PATH + "DID.json");
 
-        // String DID = "";
-        /*
-         * try {
-         * JSONArray fileContentArray = new JSONArray(filecontent);
-         * object = fileContentArray.getJSONObject(0);
-         * DID = object.getString("didHash");
-         * } catch (JSONException e1) {
-         * // TODO Auto-generated catch block
-         * e1.printStackTrace();
-         * }
-         */
+        String DID = "";
+
+        try {
+            JSONArray fileContentArray = new JSONArray(filecontent);
+            object = fileContentArray.getJSONObject(0);
+            DID = object.getString("didHash");
+        } catch (JSONException e1) {
+
+            e1.printStackTrace();
+        }
 
         try {
             BufferedImage didImage = ImageIO.read(new File("/Users/rubix_1/Downloads/shares" + "/DID.png"));
@@ -2449,11 +2448,11 @@ public class Functions {
             String pubEncode = Base64.getEncoder().encodeToString(pubBytes);
             String pvtEncode = Base64.getEncoder().encodeToString(pvtBytes);
 
-            // result.put("DID", didEncode);
+            result.put("DID", didEncode);
             result.put("PublicShare", pubEncode);
-            // result.put("PrivateShare", pvtEncode);
-            // result.put("cid", object);
-            // result.put("challenge", getChallengeString());
+            result.put("PrivateShare", pvtEncode);
+            result.put("cid", object);
+            result.put("challenge", getChallengeString());
 
             didBos.close();
             pubBos.close();
@@ -2606,7 +2605,7 @@ public class Functions {
         setConfig();
         File mainDir = new File(dirPath);
         if (mainDir.exists()) {
-            //pathSet();
+            // pathSet();
             String configContentString = readFile(configPath);
 
             if (!configContentString.contains("WALLET_TYPE")) {
