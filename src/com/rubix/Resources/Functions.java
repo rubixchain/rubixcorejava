@@ -210,7 +210,7 @@ public class Functions {
 
             BOOTSTRAPS = pathsArray.getJSONArray(5);
 
-            if (pathsArray.length() > 5) {
+            if (pathsArray.length() >= 6) {
                 WALLET_TYPE = pathsArray.getJSONObject(6).getInt("WALLET_TYPE");
             }
 
@@ -2603,9 +2603,10 @@ public class Functions {
 
     public static void setBasicWalletType() {
         setDir();
+        setConfig();
         File mainDir = new File(dirPath);
         if (mainDir.exists()) {
-            pathSet();
+            //pathSet();
             String configContentString = readFile(configPath);
 
             if (!configContentString.contains("WALLET_TYPE")) {
