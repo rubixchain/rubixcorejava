@@ -1,11 +1,6 @@
 package com.rubix.Resources;
 
 import static com.rubix.Resources.APIHandler.addPublicData;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.calculateHash;
-import static com.rubix.Resources.Functions.deleteFile;
-import static com.rubix.Resources.Functions.formatAmount;
-import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.IPFSNetworkLogger;
 import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
@@ -23,13 +18,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.RandomAccessFile;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -40,30 +32,23 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.*;
-import java.util.stream.*;
 
 import javax.imageio.ImageIO;
-import javax.json.JsonArray;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Datum.Dependency;
 import com.rubix.Ping.PingCheck;
-
-import org.apache.log4j.*;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import io.ipfs.api.IPFS;
 import io.ipfs.multiaddr.MultiAddress;
@@ -93,7 +78,6 @@ public class Functions {
     public static JSONObject QUORUM_MEMBERS;
     public static JSONArray BOOTSTRAPS;
     public static String DATUM_CHAIN_PATH = "";
-
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
@@ -168,18 +152,18 @@ public class Functions {
             TOKENCHAIN_PATH = pathsArray.getJSONObject(0).getString("TOKENCHAIN_PATH");
             WALLET_DATA_PATH = pathsArray.getJSONObject(0).getString("WALLET_DATA_PATH");
             PAYMENTS_PATH = pathsArray.getJSONObject(0).getString("PAYMENTS_PATH");
-            if(pathsArray.getJSONObject(0).toString().contains("DATUM_CHAIN_PATH")) {
-            	//FunctionsLogger.debug("DATUM_CHAIN_PATH  found");
+            if (pathsArray.getJSONObject(0).toString().contains("DATUM_CHAIN_PATH")) {
                 DATUM_CHAIN_PATH = pathsArray.getJSONObject(0).getString("DATUM_CHAIN_PATH");
-            }else {
-            	//FunctionsLogger.debug("DATUM_CHAIN_PATH not found");
-
-            	Dependency.checkDatumPath();
-            	try {
-					Dependency.checkDatumFolder();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+            } else {
+                Dependency.checkDatumPath();
+                try {
+                	configFileContent = readFile(configPath);
+                	pathsArray = new JSONArray(configFileContent);
+                    DATUM_CHAIN_PATH = pathsArray.getJSONObject(0).getString("DATUM_CHAIN_PATH");
+                    Dependency.checkDatumFolder();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
             SEND_PORT = pathsArray.getJSONObject(1).getInt("SEND_PORT");
             RECEIVER_PORT = pathsArray.getJSONObject(1).getInt("RECEIVER_PORT");
@@ -879,7 +863,6 @@ public class Functions {
         File tokenChainsFolder = new File(TOKENCHAIN_PATH);
         File walletDataFolder = new File(WALLET_DATA_PATH);
         File commitDataFolder = new File(DATUM_CHAIN_PATH);
-
 
         if (!dataFolder.exists() || !loggerFolder.exists() || !tokenChainsFolder.exists() || !tokensFolder.exists()
                 || !walletDataFolder.exists() || !commitDataFolder.exists()) {
@@ -1884,16 +1867,17 @@ public class Functions {
 
     }
 
-    public static void ownerIdentity(JSONArray tokens, String receiverDidIpfsHash)  {
+    public static void ownerIdentity(JSONArray tokens, String receiverDidIpfsHash) {
         Functions.pathSet();
-         
+
         try {
             for (int i = 0; i < tokens.length(); i++) {
-            
+
                 String tokenHash = tokens.getString(i);
                 String hashString = tokenHash.concat(receiverDidIpfsHash);
                 String hashForPositions = calculateHash(hashString, "SHA3-256");
-                BufferedImage pvt = ImageIO.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
+                BufferedImage pvt = ImageIO
+                        .read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
                 String firstPrivate = PropImage.img2bin(pvt);
                 int[] privateIntegerArray1 = strToIntArray(firstPrivate);
                 String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
@@ -1912,37 +1896,37 @@ public class Functions {
                     tokenChainArray.remove(tokenChainArray.length() - 1);
                     tokenChainArray.put(tokenChainObject);
                     writeToFile(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"), tokenChainArray.toString(), false);
-                    
+
                 } else {
                     File partChainFile = new File(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
                     if (partChainFile.exists()) {
-                        String tokenChainFile = readFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
+                        String tokenChainFile = readFile(
+                                TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"));
                         JSONArray tokenChainArray = new JSONArray(tokenChainFile);
                         JSONObject tokenChainObject = tokenChainArray.getJSONObject(tokenChainArray.length() - 1);
                         tokenChainObject.put("owner", ownerIdentityHash);
                         tokenChainArray.remove(tokenChainArray.length() - 1);
                         tokenChainArray.put(tokenChainObject);
-                        writeToFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"), tokenChainArray.toString(), false);
-                    
+                        writeToFile(TOKENCHAIN_PATH.concat("PARTS/").concat(tokenHash).concat(".json"),
+                                tokenChainArray.toString(), false);
+
                     } else {
                         FunctionsLogger.info("Token chain file not found for token " + tokenHash);
                     }
 
-                } 
-             
-    
+                }
+
             }
         } catch (Exception e) {
             FunctionsLogger.error("Exception occured at ownerIdentity", e);
         }
-        
-        
 
     }
-    
-    public static int multiplePinCheck(String senderDidIpfsHash,JSONObject tokenObject, IPFS ipfs) throws JSONException, InterruptedException {
-    	int statusCode = 200;
-    	FunctionsLogger.debug("Input tokenObject is "+tokenObject.toString());
+
+    public static int multiplePinCheck(String senderDidIpfsHash, JSONObject tokenObject, IPFS ipfs)
+            throws JSONException, InterruptedException {
+        int statusCode = 200;
+        FunctionsLogger.debug("Input tokenObject is " + tokenObject.toString());
         JSONObject TokenDetails = tokenObject.getJSONObject("tokenDetails");
         JSONArray wholeTokens = TokenDetails.getJSONArray("whole-tokens");
         JSONArray wholeTokenChains = TokenDetails.getJSONArray("whole-tokenChains");
@@ -1965,11 +1949,11 @@ public class Functions {
         ArrayList pinOwnersArray = new ArrayList();
         ArrayList previousSender = new ArrayList();
         JSONArray ownersReceived = new JSONArray();
-    	
+
         ArrayList ownersArray = new ArrayList();
         for (int i = 0; i < wholeTokens.length(); ++i) {
             try {
-            	FunctionsLogger.debug("Checking owners for " + wholeTokens.getString(i) +
+                FunctionsLogger.debug("Checking owners for " + wholeTokens.getString(i) +
                         " Please wait...");
                 pinOwnersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
 
@@ -1993,7 +1977,7 @@ public class Functions {
                 }
             } catch (IOException e) {
 
-            	FunctionsLogger.debug("Ipfs dht find did not execute");
+                FunctionsLogger.debug("Ipfs dht find did not execute");
             }
         }
         if (!tokenOwners) {
@@ -2003,29 +1987,29 @@ public class Functions {
             FunctionsLogger.debug("Multiple Owners for " + doubleSpentToken);
             FunctionsLogger.debug("Owners: " + owners);
             statusCode = 420;
-            
+
             return statusCode;
         }
-      
-    	return statusCode;
+
+        return statusCode;
     }
-    
+
     public static boolean generateMultiLoopWithHashMap(String path) throws InterruptedException {
         FunctionsLogger.debug("path is " + path);
-        FunctionsLogger.debug("path with file" + path+"/DH00.json");
+        FunctionsLogger.debug("path with file" + path + "/DH00.json");
         File dataHashPath = new File(path);
         if (!dataHashPath.exists())
-        	dataHashPath.mkdir();
+            dataHashPath.mkdir();
         boolean status = false;
         FunctionsLogger.debug("Main thread started at" + java.time.LocalTime.now());
 
         long tStart = System.currentTimeMillis();
         Thread generateHashMapThread1 = new Thread(() -> {
-        	FunctionsLogger.debug("T1 started at" + java.time.LocalTime.now());
+            FunctionsLogger.debug("T1 started at" + java.time.LocalTime.now());
             HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
             JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
 
-            File tokenHashTable = new File(path+"/DH00.json");
+            File tokenHashTable = new File(path + "/DH00.json");
             long start = System.currentTimeMillis();
             for (int i = 1; i <= 1250000; i++) {
                 tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
@@ -2045,7 +2029,7 @@ public class Functions {
             HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
             JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
             long start = System.currentTimeMillis();
-            File tokenHashTable = new File(path+"/DH01.json");
+            File tokenHashTable = new File(path + "/DH01.json");
 
             for (int i = 1250001; i < 2500000; i++) {
                 tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
@@ -2066,7 +2050,7 @@ public class Functions {
             HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
             JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
             long start = System.currentTimeMillis();
-            File tokenHashTable = new File(path+"/DH02.json");
+            File tokenHashTable = new File(path + "/DH02.json");
             for (int i = 2500001; i <= 3750000; i++) {
                 tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
             }
@@ -2087,7 +2071,7 @@ public class Functions {
             HashMap<String, Integer> tokenHashMap = new HashMap<String, Integer>();
             JSONObject tokenHashTableJSON = new JSONObject(tokenHashMap);
             long start = System.currentTimeMillis();
-            File tokenHashTable = new File(path+"/DH03.json");
+            File tokenHashTable = new File(path + "/DH03.json");
             for (int i = 3750001; i <= 5000000; i++) {
                 tokenHashMap.put(calculateHash(String.valueOf(i), "SHA-256"), i);
             }
@@ -2105,15 +2089,13 @@ public class Functions {
         generateHashMapThread2.start();
         generateHashMapThread3.start();
         generateHashMapThread4.start();
-        
-        
 
         FunctionsLogger.debug("Main ended at" + java.time.LocalTime.now());
 
         long end = System.currentTimeMillis();
         FunctionsLogger.debug("Main thread" +
                 (end - tStart) + "ms");
-        
+
         generateHashMapThread1.join();
         generateHashMapThread2.join();
         generateHashMapThread3.join();
@@ -2121,25 +2103,24 @@ public class Functions {
 
         File filepath = new File(path);
         if ((filepath.length() == 4)) {
-        	FunctionsLogger.debug("DataHashTable size is"+filepath.length());
+            FunctionsLogger.debug("DataHashTable size is" + filepath.length());
             status = true;
-        }else{
+        } else {
             status = false;
         }
 
         return status;
     }
-    
-    
-    public static int readTokenHashTable(String path,String tokenContent) throws JSONException {
+
+    public static int readTokenHashTable(String path, String tokenContent) throws JSONException {
         File filePath = new File(path);
-        FunctionsLogger.debug("File path to add is "+path);
+        FunctionsLogger.debug("File path to add is " + path);
         File[] tokenHashTable = filePath.listFiles();
         Arrays.sort(tokenHashTable);
         int tokenNumber = -1;
 
         for (File tokenHashTableFile : tokenHashTable) {
-        	FunctionsLogger.debug(tokenHashTableFile.getName());
+            FunctionsLogger.debug(tokenHashTableFile.getName());
             JSONObject tokenHashTableJSON = new JSONObject(readFile(tokenHashTableFile.toString()));
             if (tokenHashTableJSON.has(tokenContent)) {
                 tokenNumber = tokenHashTableJSON.getInt(tokenContent);
@@ -2150,48 +2131,47 @@ public class Functions {
         return tokenNumber;
 
     }
-    
-    public static HashMap<String, Integer> checkTokenHash(HashMap<String,Integer> tokenDetailMap, int tokenLimit) throws InterruptedException {
-    	  HashMap<String,Integer> tokenHashWithNumber = new HashMap<>();
-    	  
-    	        int tokenNumber = -1;
-    	        try {
-    	        long start = System.currentTimeMillis();
-    	        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-    	        
-    	        int flag = -1;
-    	        for(int i=1;i<=tokenLimit;i++) {
-    	            String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
-    	            for(String tokenHash : tokenDetailMap.keySet()) {
-    	             if(tokenHash.equals(tokenHashStr)) {
-    	                 tokenNumber = i;
-    	                 flag++;
-    	                 tokenHashWithNumber.put(tokenHash, i);
-    	                 FunctionsLogger.debug("TokenHash is "+ tokenHash + " and token number is "+i);
-    	            }
-    	            
-    	            }
-    	        }
-    	        
-    	        FunctionsLogger.debug("final tokenHashMap is "+tokenHashWithNumber.toString());
-    	        
-    	       
-    	      }catch (NoSuchAlgorithmException e) {
-    	            e.printStackTrace();
-    	        }catch (Exception e) {
-    	   e.printStackTrace();
-    	  }
-    	      
+
+    public static HashMap<String, Integer> checkTokenHash(HashMap<String, Integer> tokenDetailMap, int tokenLimit)
+            throws InterruptedException {
+        HashMap<String, Integer> tokenHashWithNumber = new HashMap<>();
+
+        int tokenNumber = -1;
+        try {
+            long start = System.currentTimeMillis();
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+
+            int flag = -1;
+            for (int i = 1; i <= tokenLimit; i++) {
+                String tokenHashStr = calculateSHA256Hash(digest, String.valueOf(i));
+                for (String tokenHash : tokenDetailMap.keySet()) {
+                    if (tokenHash.equals(tokenHashStr)) {
+                        tokenNumber = i;
+                        flag++;
+                        tokenHashWithNumber.put(tokenHash, i);
+                        FunctionsLogger.debug("TokenHash is " + tokenHash + " and token number is " + i);
+                    }
+
+                }
+            }
+
+            FunctionsLogger.debug("final tokenHashMap is " + tokenHashWithNumber.toString());
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return tokenHashWithNumber;
     }
-    
 
     /**
      * This method calculates different types of hashes as mentioned in the passed
      * parameters for the mentioned message
      *
-     * @param message   Input string to be hashed
-     * @param 
+     * @param message Input string to be hashed
+     * @param
      * @return (String) hash
      */
 
@@ -2202,8 +2182,5 @@ public class Functions {
         final byte[] hashBytes = digest.digest(messageBytes);
         return bytesToHex(hashBytes);
     }
-
-    
-    
 
 }

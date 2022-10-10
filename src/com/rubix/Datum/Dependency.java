@@ -90,7 +90,6 @@ public class Dependency {
 		for (Entry<String, String> entry : dataTable.entrySet()) {
 			if (entry.getValue().equals(pid)) {
 				didString = entry.getKey();
-				System.out.println("The key for value " + pid + " is " + entry.getKey());
 				break;
 			}
 		}
@@ -127,7 +126,7 @@ public class Dependency {
 		}
 
 		if (!configContentString.contains("DATUM_CHAIN_PATH")) {
-			//DependencyLogger.debug("Datum chain path is being appended");
+			// DependencyLogger.debug("Datum chain path is being appended");
 			try {
 				configContentArray.getJSONObject(0).put("DATUM_CHAIN_PATH", configPath + "DATUM/");
 			} catch (JSONException e) {
@@ -140,35 +139,37 @@ public class Dependency {
 		configContentString = readFile(configPath + "config.json");
 		if (configContentString.contains("DATUM_CHAIN_PATH")) {
 			status = true;
-		//	DependencyLogger.debug("DATUM_CHAIN_PATH is found in "+configPath);
+			// DependencyLogger.debug("DATUM_CHAIN_PATH is found in "+configPath);
 		}
 
 	}
-	
+
 	public static String tokenToCommit() throws JSONException {
 		String tokenResult = "Insufficent token to commit data";
 		String bankFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
 		JSONArray bankArray = new JSONArray(bankFile);
-		DependencyLogger.debug("bank array length "+bankArray.length());
-		if(bankArray.length()<1) {
+		DependencyLogger.debug("bank array length " + bankArray.length());
+		if (bankArray.length() < 1) {
 			tokenResult = "Insufficent Balance";
 			DependencyLogger.debug(tokenResult);
 			return tokenResult;
-		}else {
-			for(int i =0; i<bankArray.length();i++) {
-				DependencyLogger.debug(i+ " is " + bankArray.getJSONObject(i).getString("tokenHash"));
+		} else {
+			for (int i = 0; i < bankArray.length(); i++) {
+				DependencyLogger.debug(i + " is " + bankArray.getJSONObject(i).getString("tokenHash"));
 				File token = new File(TOKENS_PATH + bankArray.getJSONObject(i).getString("tokenHash"));
-				File tokenchain = new File(TOKENCHAIN_PATH + bankArray.getJSONObject(i).getString("tokenHash") + ".json");
+				File tokenchain = new File(
+						TOKENCHAIN_PATH + bankArray.getJSONObject(i).getString("tokenHash") + ".json");
 				if (!(token.exists() && tokenchain.exists())) {
-					tokenResult ="Tokens Not Verified "+bankArray.getJSONObject(i).getString("tokenHash") ;
+					tokenResult = "Tokens Not Verified " + bankArray.getJSONObject(i).getString("tokenHash");
 					DependencyLogger.debug(tokenResult);
 					return tokenResult;
 				}
-				
-				String tokenChainFileContent = readFile(TOKENCHAIN_PATH + bankArray.getJSONObject(i).getString("tokenHash") + ".json");
+
+				String tokenChainFileContent = readFile(
+						TOKENCHAIN_PATH + bankArray.getJSONObject(i).getString("tokenHash") + ".json");
 				JSONArray tokenChainFileArray = new JSONArray(tokenChainFileContent);
 				JSONObject lastObject = tokenChainFileArray.getJSONObject(tokenChainFileArray.length() - 1);
-				
+
 				if (!lastObject.has("mineID")) {
 					tokenResult = bankArray.getJSONObject(i).getString("tokenHash");
 					DependencyLogger.debug(tokenResult);
@@ -182,30 +183,28 @@ public class Dependency {
 
 	public static void checkDatumFolder() throws IOException {
 		String datumFolderPath = DATUM_CHAIN_PATH;
+		if(datumFolderPath.length()>0) {
+			checkDatumPath();
+		}
+		datumFolderPath = DATUM_CHAIN_PATH;
 		File datumFolder = new File(datumFolderPath);
 		File datumCommitHistory = new File(datumFolderPath.concat("datumCommitHistory.json"));
 		File datumCommitToken = new File(PAYMENTS_PATH.concat("dataToken.json"));
 		File datumTokenFolder = new File(datumFolderPath + "DatumTokens/");
+
+
 		// File datumCommitChain =
 		if (!datumFolder.exists()) {
-			DependencyLogger.debug("datum Folder is missing");
 			datumFolder.mkdir();
-			DependencyLogger.debug("datum Folder created");
-
 		}
 		if (!datumTokenFolder.exists()) {
-			DependencyLogger.debug("datum token Folder is missing");
 			datumTokenFolder.mkdir();
-			DependencyLogger.debug("datum token Folder created");
 		}
 		if (!datumCommitHistory.exists()) {
-			DependencyLogger.debug("datumCommitHistory is missing");
 			datumCommitHistory.createNewFile();
 			writeToFile(datumCommitHistory.toString(), "[]", false);
-			DependencyLogger.debug("datumCommitHistory is created");
 		}
 		if (!datumCommitToken.exists()) {
-			DependencyLogger.debug("datumCommitToken is missing");
 			datumCommitToken.createNewFile();
 			writeToFile(datumCommitToken.toString(), "[]", false);
 		}
