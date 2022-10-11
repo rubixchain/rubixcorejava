@@ -43,7 +43,9 @@ public class BulkStakeConsensus {
             tokenDetails = new JSONArray(details.toString());
             JSONObject detailsToken = tokenDetails.getJSONObject(0);
             JSONObject sharesToken = tokenDetails.getJSONObject(1);
-        }catch
+       }catch{
+       }
     }
 
 }
+

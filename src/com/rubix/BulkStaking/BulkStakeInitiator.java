@@ -21,6 +21,7 @@ public class BulkStakeInitiator {
     private static ArrayList gammaPeersList;
     public static JSONArray alphaReply, betaReply, gammaReply;
     public static String operation = "Bulk Staking";
+    public static int PORT = 1080; //temp
 
     
 
@@ -124,7 +125,9 @@ public class BulkStakeInitiator {
         }
 
         alphaPeersList = QuorumCheck(alphaQuorum, alphaSize);
+
         betaPeersList = QuorumCheck(betaQuorum, 7);
+
         gammaPeersList = QuorumCheck(gammaQuorum, 7);
 
 
