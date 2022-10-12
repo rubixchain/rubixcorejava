@@ -113,15 +113,21 @@ public class InitiatorProcedure {
 
             */
 
-            InitiatorProcedureLogger.debug("writing hash authSenderByRecHash " + authSenderByQuorumHash);
-            String signFileContent = createSignRequestArray(senderDidIpfs, receiverDidIpfs, TokenSender.comment, authSenderByQuorumHash, TokenSender.requestedAmount);
-            
-            String responseStr = Functions.initiateAPIEndpoint("POST", signFileContent.toString(), "http://localhost:6942/signRequest");//<- enter /sign url
-            
-
-            JSONObject apiResponse = new JSONObject(responseStr);
-
-            senderSignQ = getSignatureFromFile(apiResponse.getString("response"));
+            if(WALLET_TYPE==1)
+            {
+                InitiatorProcedureLogger.debug("writing hash authSenderByRecHash " + authSenderByQuorumHash);
+                String signFileContent = createSignRequestArray(senderDidIpfs, receiverDidIpfs, TokenSender.comment, authSenderByQuorumHash, TokenSender.requestedAmount);
+                
+                String responseStr = Functions.initiateAPIEndpoint("POST", signFileContent.toString(), "http://localhost:6942/signRequest");//<- enter /sign url
+                
+    
+                JSONObject apiResponse = new JSONObject(responseStr);
+    
+                senderSignQ = getSignatureFromFile(apiResponse.getString("response"));
+            }
+            else{
+                senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
+            }
             InitiatorProcedureLogger.debug("SenderSignQ : " + senderSignQ);
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
@@ -134,7 +140,7 @@ public class InitiatorProcedure {
             data2.put("Share2", Q2Share);
             data2.put("Share3", Q3Share);
             data2.put("Share4", Q4Share);
-        } catch (JSONException e) {
+        } catch (JSONException | IOException e) {
             InitiatorProcedureLogger.error("JSON Exception occurred", e);
             e.printStackTrace();
         }
