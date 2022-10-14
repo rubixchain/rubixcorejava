@@ -2521,6 +2521,36 @@ public class Functions {
         return result.toString();
     }
 
+    public static String initiateAPIEndpointGET(String URL) {
+        String result="";
+        try {
+            URL obj = new URL(URL);
+            HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+            con.setRequestMethod("GET");
+            int responseCode = con.getResponseCode();
+
+            if (responseCode == HttpURLConnection.HTTP_OK) { // success
+                BufferedReader in = new BufferedReader(new InputStreamReader(
+                        con.getInputStream()));
+                String inputLine;
+                StringBuffer response = new StringBuffer();
+    
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+    
+                // print result
+                result = response.toString();
+            } else {
+                System.out.println("GET request not worked");
+            }
+        } catch (IOException e) {
+            FunctionsLogger.debug("EXception occured " + e.toString());
+        }
+        return result;
+    }
+
     public static int getWalletType() {
         setConfig();
         String configContentString = readFile(configPath);
