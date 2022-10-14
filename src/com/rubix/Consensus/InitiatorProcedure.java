@@ -113,7 +113,7 @@ public class InitiatorProcedure {
 
             */
 
-            if(WALLET_TYPE==1)
+            if(WALLET_TYPE==2)
             {
                 InitiatorProcedureLogger.debug("writing hash authSenderByRecHash " + authSenderByQuorumHash);
                 String signFileContent = createSignRequestArray(senderDidIpfs, receiverDidIpfs, TokenSender.comment, authSenderByQuorumHash, TokenSender.requestedAmount);
