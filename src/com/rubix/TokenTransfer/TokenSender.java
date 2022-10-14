@@ -366,20 +366,27 @@ public class TokenSender {
             allTokens.put(partTokens.getString(i));
 
         JSONArray positionsArray = new JSONArray();
-        for (int i = 0; i < allTokens.length(); i++) {
-            String tokens = allTokens.getString(i);
-            String hashString = tokens.concat(senderDidIpfsHash);
-            String hashForPositions = calculateHash(hashString, "SHA3-256");
+        String positions = "";
+        if(WALLET_TYPE ==1)
+        {
             BufferedImage privateShare = ImageIO
                     .read(new File(DATA_PATH.concat(senderDidIpfsHash).concat("/PrivateShare.png")));
             String firstPrivate = PropImage.img2bin(privateShare);
             int[] privateIntegerArray1 = strToIntArray(firstPrivate);
             String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-            String positions = "";
+            
             for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
                 positions += privateBinary.charAt(j);
             }
             positionsArray.put(positions);
+        }
+        else{
+            positions = Functions.initiateAPIEndpointGET("http://localhost:6942/getPvtPositions");
+        }
+        for (int i = 0; i < allTokens.length(); i++) {
+            String tokens = allTokens.getString(i);
+            String hashString = tokens.concat(senderDidIpfsHash);
+            String hashForPositions = calculateHash(hashString, "SHA3-256");
 
             TokenSenderLogger.debug("Ownership Here Sender Calculation");
             TokenSenderLogger.debug("tokens: " + tokens);
