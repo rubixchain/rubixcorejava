@@ -621,54 +621,7 @@ public class TokenSender {
             return APIResponse;
 
         }
-        // create json file to write data
-        /*
-         * TokenSenderLogger.debug("Creating file to write signing data");
-         * String signFile = DATA_PATH+"/SignFile.json";
-         * File f = new File(signFile);
-         * if(f.exists())
-         * {
-         * f.delete();
-         * }
-         * writeToFile(signFile, "[]", false);
-         * //write sign details
-         * TokenSenderLogger.debug("writing hash authSenderByRecHash "
-         * +authSenderByRecHash+" to be signed with pvt share in to "+signFile);
-         * 
-         * String signFileContent =
-         * createSignRequestArray(senderDidIpfsHash,receiverDidIpfsHash,comment,
-         * authSenderByRecHash,0.0);
-         * TokenSenderLogger.debug("write signing data");
-         * writeToFile(signFile, signFileContent, false);
-         * TokenSenderLogger.debug("################################");
-         * TokenSenderLogger.debug("Please move file "
-         * +signFile+" to cold Wallet for Signature and return back to same location");
-         * 
-         * TimeUnit.MINUTES.sleep(1);
-         * 
-         * TokenSenderLogger.debug("Waiting for File with Signature from cold wallet");
-         * boolean fileModify = checkFile("SignFile.json",DATA_PATH);
-         * if(!fileModify)
-         * {
-         * TokenSenderLogger.warn("Sender " + senderDidIpfsHash + " is unable to Sign");
-         * executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
-         * output.close();
-         * input.close();
-         * senderSocket.close();
-         * senderMutex = false;
-         * updateQuorum(quorumArray, null, false, type);
-         * APIResponse.put("did", senderDidIpfsHash);
-         * APIResponse.put("tid", "null");
-         * APIResponse.put("status", "Failed");
-         * APIResponse.put("message", "Sender " + senderDidIpfsHash +
-         * " is unable to Sign");
-         * 
-         * return APIResponse;
-         * }
-         * TokenSenderLogger.debug("read sign file");
-         * String signFiledata = readFile(signFile);
-         */
-
+      
         String senderSign = "";
 
         /*

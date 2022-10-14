@@ -82,36 +82,6 @@ public class InitiatorProcedure {
         JSONObject data2 = new JSONObject();
         try {
 
-           /*  
-           // create json file to write data
-            InitiatorProcedureLogger.debug("Creating file to write signing data");
-            String signFile = DATA_PATH + "/SignFile.json";
-            File f = new File(signFile);
-            if (f.exists()) {
-                f.delete();
-            }
-            writeToFile(signFile, "[]", false);
-            // write sign details
-            InitiatorProcedureLogger.debug("writing hash authSenderByRecHash " + authSenderByQuorumHash
-                    + " to be signed with pvt share in to " + signFile);
-
-            String signFileContent = createSignRequestArray(senderDidIpfs, receiverDidIpfs, TokenSender.comment, authSenderByQuorumHash, TokenSender.requestedAmount);
-
-            InitiatorProcedureLogger.debug("write signing data");
-            writeToFile(signFile, signFileContent, false);
-            InitiatorProcedureLogger.debug("################################");
-            InitiatorProcedureLogger.debug(
-                    "Please move file " + signFile + " to cold Wallet for Signature and return back to same location");
-
-            TimeUnit.MINUTES.sleep(1);
-
-            InitiatorProcedureLogger.debug("Waiting for File with Signature from cold wallet");
-
-            boolean fileModify = checkFile("SignFile.json", DATA_PATH);
-            InitiatorProcedureLogger.debug("read sign file");
-            String signFiledata = readFile(signFile);
-
-            */
 
             if(WALLET_TYPE==2)
             {
