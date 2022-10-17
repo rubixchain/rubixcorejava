@@ -67,6 +67,7 @@ import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 
 import java.security.PrivateKey;
+import com.rubix.TokenTransfer.TransferPledge.Initiator;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -219,7 +220,7 @@ public class TokenSender {
                 TokenSenderLogger.debug("Reading TokenChain file : " + TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
                 for (int j = 0; j < tokenChainFileArray.length(); j++) {
 
-                    TokenSenderLogger.debug("Reading token chain block = "+j);
+//                    TokenSenderLogger.debug("Reading token chain block = "+j);
                     String peerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
                             tokenChainFileArray.getJSONObject(j).getString("sender"));
                     previousSenderArray.put(peerID);
@@ -438,7 +439,25 @@ public class TokenSender {
             }
 
             case 2: {
-                quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                File quorumFile = new File(DATA_PATH.concat("quorumlist.json"));
+                if(!quorumFile.exists()){
+                    TokenSenderLogger.error("Quorum List for Subnet not found");
+                    APIResponse.put("status", "Failed");
+                    APIResponse.put("message", "Quorum List for Subnet not found");
+                    return APIResponse;
+                }else{
+                    String quorumList = readFile(DATA_PATH + "quorumlist.json");
+                    if(quorumList != null){
+                        quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                    }else{
+                        TokenSenderLogger.error("File for Quorum List for Subnet is empty");
+                        APIResponse.put("status", "Failed");
+                        APIResponse.put("message", "File for Quorum List for Subnet is empty");
+                        return APIResponse;
+                    }
+
+                }
+
                 break;
             }
             case 3: {
@@ -484,7 +503,7 @@ public class TokenSender {
         
         TokenSenderLogger.debug("Updated quorumlist is "+quorumArray.toString());
         
-        //sanity check for Quorum - starts 
+//        //sanity check for Quorum - starts
         int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
         JSONArray sanityFailedQuorum = new JSONArray();
         for (int i = 0; i < quorumArray.length(); i++) {
@@ -512,7 +531,7 @@ public class TokenSender {
             TokenSenderLogger.warn("Quorum: ".concat(message.concat(sanityMessage)));
             return APIResponse;
         }
-        //sanity check for Quorum - Ends
+//        //sanity check for Quorum - Ends
         long startTime, endTime, totalTime;
 
         QuorumSwarmConnect(quorumArray, ipfs);
@@ -547,9 +566,39 @@ public class TokenSender {
             return APIResponse;
         }
 
+        TokenSenderLogger.debug("Final Selected Alpha Members: " + alphaPeersList);
+        JSONArray alphaList = new JSONArray();
+        for(int i = 0; i < alphaPeersList.size(); i++){
+            alphaList.put(alphaPeersList.get(i));
+        }
+        JSONObject dataToSendToInitiator = new JSONObject();
+        dataToSendToInitiator.put("alphaList", alphaList);
+        dataToSendToInitiator.put("tokenList", wholeTokens);
+        dataToSendToInitiator.put("amount", wholeTokens.length()+partTokens.length());
+
+        TokenSenderLogger.debug("Details being sent to Initiator: " + dataToSendToInitiator);
+
+        boolean abort = Initiator.pledgeSetUp(dataToSendToInitiator.toString(), ipfs, 22143);
+        if(abort){
+            Initiator.abort = false;
+            updateQuorum(quorumArray, null, false, type);
+            APIResponse.put("did", senderDidIpfsHash);
+            APIResponse.put("tid", "null");
+            APIResponse.put("status", "Failed");
+            if(Initiator.abortReason.has("Quorum"))
+                APIResponse.put("message", "Alpha Node " + Initiator.abortReason.getString("Quorum") + " " + Initiator.abortReason.getString("Reason"));
+            else
+                APIResponse.put("message", Initiator.abortReason.getString("Reason"));
+            TokenSenderLogger.warn("Quorum Members with insufficient Tokens/Credits");
+            senderMutex = false;
+            Initiator.abortReason = new JSONObject();
+            return APIResponse;
+        }
+
+        TokenSenderLogger.debug("Nodes that pledged tokens: " + Initiator.pledgedNodes);
+
         syncDataTable(receiverDidIpfsHash, null);
-        // receiverPeerId = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
-        // receiverDidIpfsHash);
+
 
         if (!receiverPeerId.equals("")) {
             TokenSenderLogger.debug("Swarm connecting to " + receiverPeerId);
@@ -757,6 +806,25 @@ public class TokenSender {
             return APIResponse;
         }else if (tokenAuth != null && (tokenAuth.startsWith("4"))) {
             switch (tokenAuth) {
+                case "419":
+                    String pledgedTokens = input.readLine();
+                    JSONArray pledgedTokensArray = new JSONArray(pledgedTokens);
+                    TokenSenderLogger.info("These tokens are pledged " + pledgedTokensArray);
+                    TokenSenderLogger.info("Kindly re-initiate transaction");
+                    APIResponse.put("message", "Pledged Tokens " + pledgedTokensArray + ". Kindly re-initiate transaction");
+                    File pledgeFile = new File(PAYMENTS_PATH.concat("PledgedTokens.json"));
+                    if(!pledgeFile.exists()) {
+                        pledgeFile.createNewFile();
+                        writeToFile(PAYMENTS_PATH.concat("PledgedTokens.json"), pledgedTokensArray.toString(), false);
+                    }else{
+                        String pledgedContent = readFile(PAYMENTS_PATH.concat("PledgedTokens.json"));
+                        JSONArray pledgedArray = new JSONArray(pledgedContent);
+                        for(int i = 0; i < pledgedTokensArray.length(); i++){
+                            pledgedArray.put(pledgedTokensArray.getJSONObject(i));
+                        }
+                        writeToFile(PAYMENTS_PATH.concat("PledgedTokens.json"), pledgedArray.toString(), false);
+                    }
+                    break;
                 case "420":
                     String doubleSpent = input.readLine();
                     String owners = input.readLine();
