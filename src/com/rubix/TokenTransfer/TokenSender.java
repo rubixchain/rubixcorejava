@@ -673,8 +673,64 @@ public class TokenSender {
             return APIResponse;
 
         }
+
+        String senderSign = "";
+        if (WALLET_TYPE == 1) {
+            senderSign = getSignFromShares(pvt, authSenderByRecHash);
+        } else if (WALLET_TYPE == 2) {
+            // API call to fexr
+        } else {
+            // create json file to write data
+            TokenSenderLogger.debug("Creating file to write signing data");
+            String signFile = DATA_PATH + "/SignFile.json";
+            File f = new File(signFile);
+            if (f.exists()) {
+                f.delete();
+            }
+            writeToFile(signFile, "[]", false);
+            // write sign details
+            TokenSenderLogger.debug("writing hash authSenderByRecHash " + authSenderByRecHash
+                    + " to be signed with pvt share in to " + signFile);
+
+            JSONObject signDetailsObject = new JSONObject();
+            JSONArray signDetailsArray = new JSONArray();
+            signDetailsObject.put("DID", senderDidIpfsHash);
+            signDetailsObject.put("content", authSenderByRecHash);
+            signDetailsArray.put(signDetailsObject);
+
+            TokenSenderLogger.debug("write signing data");
+            writeToFile(signFile, signDetailsArray.toString(), false);
+            TokenSenderLogger.debug("################################");
+            TokenSenderLogger.debug(
+                    "Please move file " + signFile + " to cold Wallet for Signature and return back to same location");
+
+            TokenSenderLogger.debug("Waiting for File with Signature from cold wallet");
+            boolean fileModify = checkFile("SignFile.json", DATA_PATH);
+            if (!fileModify) {
+                TokenSenderLogger.warn("Sender " + senderDidIpfsHash + " is unable to Sign");
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+                output.close();
+                input.close();
+                senderSocket.close();
+                senderMutex = false;
+                updateQuorum(quorumArray, null, false, type);
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Sender " + senderDidIpfsHash + " is unable to Sign");
+
+                return APIResponse;
+            }
+            TokenSenderLogger.debug("read sign file");
+            String signFiledata = readFile(signFile);
+
+            signDetailsArray = new JSONArray(signFiledata);
+            signDetailsObject = new JSONObject(signDetailsArray.getJSONObject(0));
+            senderSign = signDetailsObject.getString("signature");
+            TokenSenderLogger.debug("senderSign " + senderSign);
+        }
         
-        String senderSign = getSignFromShares(pvt, authSenderByRecHash);
+        
         String pvtKeyType = privateKeyAlgorithm(1);
         String senderSignWithPvtKey = pvtKeySign(senderSign,pvtKey,pvtKeyType);
 
