@@ -1,12 +1,15 @@
 package com.rubix.Consensus;
 
+import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
 import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.getSignFromShares;
 import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.minQuorum;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import com.rubix.Constants.ConsensusConstants;
 import com.rubix.SplitandStore.SeperateShares;
@@ -76,7 +79,56 @@ public class InitiatorProcedure {
         JSONObject data1 = new JSONObject();
         JSONObject data2 = new JSONObject();
         try {
-            senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
+
+            if (WALLET_TYPE == 1) {
+                senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
+            } else if (WALLET_TYPE == 2) {
+                // API call to fexr
+            } else {
+                // create json file to write data
+                InitiatorProcedureLogger.debug("Creating file to write signing data");
+                String signFile = DATA_PATH + "/SignFile.json";
+                File f = new File(signFile);
+                if (f.exists()) {
+                    f.delete();
+                }
+                writeToFile(signFile, "[]", false);
+                // write sign details
+                InitiatorProcedureLogger.debug("writing hash authSenderByRecHash " + authSenderByQuorumHash
+                        + " to be signed with pvt share in to " + signFile);
+                JSONObject signDetailsObject = new JSONObject();
+                JSONArray signDetailsArray = new JSONArray();
+                signDetailsObject.put("DID", senderDidIpfs);
+                signDetailsObject.put("content", authSenderByQuorumHash);
+                signDetailsArray.put(signDetailsObject);
+
+                InitiatorProcedureLogger.debug("write signing data");
+                writeToFile(signFile, signDetailsArray.toString(), false);
+                InitiatorProcedureLogger.debug("################################");
+                InitiatorProcedureLogger.debug(
+                        "Please move file " + signFile
+                                + " to cold Wallet for Signature and return back to same location");
+
+                TimeUnit.MINUTES.sleep(1);
+
+                InitiatorProcedureLogger.debug("Waiting for File with Signature from cold wallet");
+
+                boolean fileModify = checkFile("SignFile.json", DATA_PATH);
+                InitiatorProcedureLogger.debug("read sign file");
+
+                String signFiledata ="";
+                if(fileModify){
+                    signFiledata = readFile(signFile);
+                }
+                
+
+                signDetailsArray = new JSONArray(signFiledata);
+                signDetailsObject = new JSONObject(signDetailsArray.getJSONObject(0));
+
+                senderSignQ = signDetailsObject.getString("signature");
+                InitiatorProcedureLogger.debug("SenderSignQ : " + senderSignQ);
+            }
+
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
             data1.put(ConsensusConstants.TRANSACTION_ID, tid);
@@ -90,6 +142,9 @@ public class InitiatorProcedure {
             data2.put("Share4", Q4Share);
         } catch (JSONException | IOException e) {
             InitiatorProcedureLogger.error("JSON Exception occurred", e);
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
