@@ -1,6 +1,11 @@
 package com.rubix.Resources;
 
 import static com.rubix.Resources.APIHandler.addPublicData;
+import static com.rubix.Resources.Functions.LOGGER_PATH;
+import static com.rubix.Resources.Functions.calculateHash;
+import static com.rubix.Resources.Functions.deleteFile;
+import static com.rubix.Resources.Functions.formatAmount;
+import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.IPFSNetworkLogger;
 import static com.rubix.Resources.IPFSNetwork.checkSwarmConnect;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
@@ -11,6 +16,7 @@ import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,42 +24,68 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.*;
+import java.util.stream.*;
 
 import javax.imageio.ImageIO;
+import javax.json.JsonArray;
+import javax.net.ssl.HttpsURLConnection;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Datum.Dependency;
 import com.rubix.Ping.PingCheck;
+
+import org.apache.log4j.*;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import io.ipfs.api.IPFS;
 import io.ipfs.multiaddr.MultiAddress;
 
 public class Functions {
+
+    public static String IdentityToken = "";
+    public static String challenge = "";
+    public static int WALLET_TYPE;
 
     public static boolean mutex = false;
     public static String DATA_PATH = "";
@@ -191,6 +223,10 @@ public class Functions {
             QUORUM_MEMBERS = pathsArray.getJSONObject(4);
 
             BOOTSTRAPS = pathsArray.getJSONArray(5);
+
+            if (pathsArray.length() >= 6) {
+                WALLET_TYPE = pathsArray.getJSONObject(6).getInt("WALLET_TYPE");
+            }
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -2181,6 +2217,494 @@ public class Functions {
         System.arraycopy(messageBytes, 0, c, 0, messageBytes.length);
         final byte[] hashBytes = digest.digest(messageBytes);
         return bytesToHex(hashBytes);
+    }
+
+    
+    /*
+     * This method calculates Pvtshare signature in cold wallet by content from file
+     */
+
+    public static String getSign() {
+        JSONObject result = new JSONObject();
+        pathSet();
+        try {
+            String fileData = readFile(DATA_PATH + "/SignFile.json");
+            JSONArray fileArray = new JSONArray(fileData);
+            JSONObject fileObject = fileArray.getJSONObject(0);
+            String content = fileObject.getString("content");
+            String Did = fileObject.getString("DID");
+            String pvt = DATA_PATH + "/" + Did + "/PrivateShare.png";
+
+            String signature = getSignFromShares(pvt, content);
+
+            if (signature.isBlank()) {
+                result.put("status", "false");
+            } else {
+                fileObject.put("signature", signature);
+                JSONArray resArray = new JSONArray();
+                resArray.put(fileObject);
+                writeToFile(DATA_PATH + "/SignFile.json", resArray.toString(), false);
+                result.put("status", "true");
+            }
+
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+        return result.toString();
+    }
+
+    /*
+     * This method checks if specfied file has been modified in the given path
+     */
+
+    public static boolean checkFile(String filename, String path) {
+        FunctionsLogger.debug("Checking if " + filename + " in path " + path + " is modified");
+        boolean result = false;
+        try {
+            WatchService ws = FileSystems.getDefault().newWatchService();
+            Path dir = Paths.get(path);
+            dir.register(ws, StandardWatchEventKinds.ENTRY_MODIFY);
+            while (!result) {
+                WatchKey wKey = ws.take();
+                for (WatchEvent<?> event : wKey.pollEvents()) {
+                    WatchEvent.Kind<?> kind = event.kind();
+
+                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                    Path fileName = ev.context();
+
+                    System.out.println(kind.name() + ": " + fileName);
+
+                    if (kind == StandardWatchEventKinds.ENTRY_MODIFY &&
+                            fileName.toString().equals(filename)) {
+                        FunctionsLogger.debug(path + "/" + filename + " modified");
+                        result = true;
+                    } else {
+                        result = false;
+                    }
+                }
+
+                boolean valid = wKey.reset();
+                if (!valid) {
+                    break;
+                }
+            }
+            ws.close();
+        } catch (Exception e) {
+        }
+
+        return result;
+    }
+
+    public static String createSignRequestArray(String senDID, String recDID, String comment, String Data,
+            Double rbtAmt) {
+        JSONArray resultArray = new JSONArray();
+
+        JSONObject mainObj = new JSONObject();
+        JSONObject payloadObj = new JSONObject();
+        JSONObject requestObj = new JSONObject();
+        JSONObject themeObj = new JSONObject();
+
+        try {
+
+            requestObj.put("for_did", recDID);
+            requestObj.put("display_name", "MainNet");
+            requestObj.put("comment", comment);
+            requestObj.put("from_did", senDID);
+
+            payloadObj.put("data", Data);
+            payloadObj.put("amount", rbtAmt);
+
+            requestObj.put("payload", payloadObj.toString());
+            requestObj.put("signature_type", "default");
+            Instant now = Instant.now();
+            requestObj.put("timestamp", now.toString());
+
+            mainObj.put("type", "sync-v1");
+            mainObj.put("request", requestObj.toString());
+            mainObj.put("theme", themeObj.toString());
+
+            resultArray.put(mainObj.toString());
+
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return resultArray.toString();
+    }
+
+    public static String getSignatureFromFile(String fileContent) {
+
+        String signature = "";
+        try {
+            JSONArray array = new JSONArray(fileContent);
+
+            JSONObject mainObj = array.getJSONObject(0);
+            JSONObject requObj = mainObj.getJSONObject("request");
+            JSONObject signObj = requObj.getJSONObject("signature");
+            signature = signObj.getString("signature");
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return signature;
+    }
+
+    public static boolean setWalletType(int WalletType) {
+        boolean status = false;
+        setConfig();
+        String configContentString = readFile(configPath);
+        JSONArray configContentArray = null;
+        JSONObject walletTypeObj = null;
+        try {
+            configContentArray = new JSONArray(configContentString);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        if (!configContentString.contains("WALLET_TYPE")) {
+            try {
+                walletTypeObj = new JSONObject();
+                walletTypeObj.put("WALLET_TYPE", WalletType);
+                configContentArray.put(walletTypeObj);
+            } catch (JSONException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            writeToFile(configPath, configContentArray.toString(), false);
+        } else {
+            JSONObject arrayObj;
+            int type = 0;
+            try {
+                arrayObj = configContentArray.getJSONObject(6);
+                type = arrayObj.getInt("WALLET_TYPE");
+            } catch (JSONException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+
+            if (type == 1) {
+                configContentArray.remove(6);
+                walletTypeObj = new JSONObject();
+                try {
+                    walletTypeObj.put("WALLET_TYPE", WalletType);
+                    configContentArray.put(walletTypeObj);
+                } catch (JSONException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                writeToFile(configPath, configContentArray.toString(), false);
+            }
+        }
+        configContentString = readFile(configPath);
+        if (configContentString.contains("WALLET_TYPE")) {
+            status = true;
+        }
+
+        return status;
+    }
+
+    public static String exportShareImages() {
+        JSONObject result = new JSONObject();
+        JSONObject object = null;
+        pathSet();
+        String filecontent = readFile(DATA_PATH + "DID.json");
+
+        String DID = "";
+
+        try {
+            JSONArray fileContentArray = new JSONArray(filecontent);
+            object = fileContentArray.getJSONObject(0);
+            DID = object.getString("didHash");
+        } catch (JSONException e1) {
+
+            e1.printStackTrace();
+        }
+
+        try {
+            BufferedImage didImage = ImageIO.read(new File("/Users/rubix_1/Downloads/shares" + "/DID.png"));
+            BufferedImage pubImage = ImageIO.read(new File("/Users/rubix_1/Downloads/shares" + "/PublicShare.png"));
+            BufferedImage pvtImage = ImageIO.read(new File("/Users/rubix_1/Downloads/shares" + "/PrivateShare.png"));
+
+            ByteArrayOutputStream didBos = new ByteArrayOutputStream();
+            ByteArrayOutputStream pubBos = new ByteArrayOutputStream();
+            ByteArrayOutputStream pvtBos = new ByteArrayOutputStream();
+
+            ImageIO.write(didImage, "png", didBos);
+            ImageIO.write(pubImage, "png", pubBos);
+            ImageIO.write(pvtImage, "png", pvtBos);
+
+            byte[] didBytes = didBos.toByteArray();
+            byte[] pubBytes = pubBos.toByteArray();
+            byte[] pvtBytes = pvtBos.toByteArray();
+
+            String didEncode = Base64.getEncoder().encodeToString(didBytes);
+            String pubEncode = Base64.getEncoder().encodeToString(pubBytes);
+            String pvtEncode = Base64.getEncoder().encodeToString(pvtBytes);
+
+            result.put("DID", didEncode);
+            result.put("PublicShare", pubEncode);
+            result.put("PrivateShare", pvtEncode);
+            result.put("cid", object);
+            result.put("challenge", getChallengeString());
+
+            didBos.close();
+            pubBos.close();
+            pvtBos.close();
+        } catch (JSONException e) {
+            // TODO: handle exception
+        } catch (IOException e) {
+            // TODO: handle exception
+        }
+
+        return result.toString();
+    }
+
+    public static String initiateAPIEndpoint(String requestMethod, String dataToSend, String URL) {
+        JSONObject result = new JSONObject();
+        int responseCode;
+
+        try {
+            URL obj = new URL(URL);
+            HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+
+            // Setting basic post request
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+            con.setRequestProperty("Accept", "application/json");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setRequestProperty("Authorization", "null");
+
+            // serialisation
+            String populate = dataToSend.toString();
+
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("inputString", populate);
+            String postJsonData = jsonObject.toString();
+
+            // Send post request
+            con.setDoOutput(true);
+            DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+            wr.writeBytes(postJsonData);
+            wr.flush();
+            wr.close();
+
+            responseCode = con.getResponseCode();
+            FunctionsLogger.debug("Sending 'POST' request to URL : " + URL);
+            FunctionsLogger.debug("Post Data : " + postJsonData);
+            FunctionsLogger.debug("Response Code : " + responseCode);
+
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(con.getInputStream()));
+            String output;
+            StringBuffer response = new StringBuffer();
+
+            while ((output = in.readLine()) != null) {
+                response.append(output);
+            }
+            in.close();
+
+            result.put("responseCode", responseCode);
+            result.put("response", response.toString());
+        } catch (JSONException e) {
+            // TODO: handle exception
+        } catch (IOException e) {
+            // TODO: handle exception
+        }
+
+        return result.toString();
+    }
+
+    public static String initiateAPIEndpointGET(String URL) {
+        String result="";
+        try {
+            URL obj = new URL(URL);
+            HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+            con.setRequestMethod("GET");
+            int responseCode = con.getResponseCode();
+
+            if (responseCode == HttpURLConnection.HTTP_OK) { // success
+                BufferedReader in = new BufferedReader(new InputStreamReader(
+                        con.getInputStream()));
+                String inputLine;
+                StringBuffer response = new StringBuffer();
+    
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+    
+                // print result
+                result = response.toString();
+            } else {
+                System.out.println("GET request not worked");
+            }
+        } catch (IOException e) {
+            FunctionsLogger.debug("EXception occured " + e.toString());
+        }
+        return result;
+    }
+
+    public static int getWalletType() {
+        setConfig();
+        String configContentString = readFile(configPath);
+        JSONArray configContentArray = null;
+        JSONObject walletTypeObj = null;
+        int type = 0;
+        try {
+            configContentArray = new JSONArray(configContentString);
+            walletTypeObj = configContentArray.getJSONObject(6);
+            type = walletTypeObj.getInt("WALLET_TYPE");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        if (!configContentString.contains("WALLET_TYPE")) {
+            return 0;
+        }
+
+        if (configContentString.contains("WALLET_TYPE") && type == 1) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
+    public static boolean checkSharesPresent() {
+        boolean result = false;
+        pathSet();
+
+        String DID = getNodeDID();
+        File did = new File(DATA_PATH + DID + "/DID.png");
+        File pubShare = new File(DATA_PATH + DID + "/PublicShare.png");
+        File pvtShare = new File(DATA_PATH + DID + "/PrivateShare.png");
+
+        if (!did.exists() && !pubShare.exists() && !pvtShare.exists()) {
+            return result;
+        } else {
+            result = true;
+        }
+        return result;
+    }
+
+    public static boolean checkSharesExported() {
+        boolean result = false;
+        pathSet();
+
+        String DID = getNodeDID();
+        File did = new File(DATA_PATH + DID + "/DID.png");
+        File pubShare = new File(DATA_PATH + DID + "/PublicShare.png");
+        File pvtShare = new File(DATA_PATH + DID + "/PrivateShare.png");
+
+        if (did.exists() && pubShare.exists() && !pvtShare.exists()) {
+            result = true;
+        }
+        return result;
+    }
+
+    public static String getNodeDID() {
+        String filecontent = readFile(DATA_PATH + "DID.json");
+        JSONObject object = null;
+        String DID = "";
+        try {
+            JSONArray fileContentArray = new JSONArray(filecontent);
+            object = fileContentArray.getJSONObject(0);
+            DID = object.getString("didHash");
+        } catch (JSONException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+        return DID;
+    }
+
+    public static void deletePvtShare() {
+        pathSet();
+        String DID = getNodeDID();
+        deleteFile(DATA_PATH + DID + "/PrivateShare.png");
+    }
+
+    public static void setBasicWalletType() {
+        setDir();
+        setConfig();
+        File mainDir = new File(dirPath);
+        if (mainDir.exists()) {
+            // pathSet();
+            String configContentString = readFile(configPath);
+
+            if (!configContentString.contains("WALLET_TYPE")) {
+                setWalletType(1);
+            }
+        }
+
+    }
+
+    public static void tokenStringGen() {
+        setDir();
+        setConfig();
+        File mainDir = new File(dirPath);
+        if (mainDir.exists()) {
+            UUID uuid = UUID.randomUUID();
+
+            String hash = calculateHash(uuid.toString(), "SHA3-256");
+
+            IdentityToken = hash;
+
+            FunctionsLogger.info("<################################>");
+            FunctionsLogger.info("AuthToken : " + IdentityToken);
+            FunctionsLogger.info("Please save the token. Valid till Node session ends i.e. node service shutsdown");
+            FunctionsLogger.info("<################################>");
+        }
+
+    }
+
+    public static String getChallengeString() {
+        String DID = getNodeDID();
+        String hash = calculateHash(IdentityToken + DID, "SHA3-256");
+
+        challenge = hash;
+
+        return hash;
+    }
+
+    public static boolean verifyChallengeString(String sign) {
+        boolean result = false;
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("signature", sign);
+            obj.put("hash", challenge);
+            obj.put("did", getNodeDID());
+
+            result = Authenticate.verifySignature(obj.toString());
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return result;
+
+    }
+
+    public static String getPvtPositions(String DID)
+    {
+        String positions ="";
+        BufferedImage privateShare;
+        try {
+            privateShare = ImageIO
+                    .read(new File(DATA_PATH.concat(DID).concat("/PrivateShare.png")));
+            String firstPrivate = PropImage.img2bin(privateShare);
+            int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+            String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+            for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                positions += privateBinary.charAt(j);
+            }
+        } catch (IOException e) {
+            // TODO: handle exception
+        }
+        return positions;
     }
 
 }
