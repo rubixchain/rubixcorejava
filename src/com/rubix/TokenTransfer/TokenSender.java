@@ -413,6 +413,8 @@ public class TokenSender {
 
             writeToFile(dirPath+"PvtPos.json","[]" , false);
 
+            TimeUnit.MINUTES.sleep(1);
+
             boolean fileModify = checkFile("PvtPos.json", dirPath);
 
             if (!fileModify) {

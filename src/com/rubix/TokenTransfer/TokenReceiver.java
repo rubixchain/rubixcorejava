@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 
@@ -1342,9 +1343,6 @@ public class TokenReceiver {
 				BlockHash =  SenderDetails.getString("blockHash");
 			}
 
-			BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
-			SenWalletBin = PropImage.img2bin(senderWidImage);
-
 			TokenReceiverLogger.debug("Verifying Quorum ...  ");
 			TokenReceiverLogger.debug("Please wait, this might take a few seconds");
 
@@ -1474,6 +1472,41 @@ public class TokenReceiver {
 
                 }
 
+				String positions = "";
+				if (WALLET_TYPE == 1) {
+					positions = getPvtPositions(receiverDidIpfsHash);
+				} else if (WALLET_TYPE == 2) {
+					// aPI call to fesxr
+				} else {
+					TokenReceiverLogger.debug("WALLET_TYPE: "+WALLET_TYPE+" Hot Wallet ");
+					setDir();
+		
+					writeToFile(dirPath+"PvtPos.json","[]" , false);
+		
+					TimeUnit.MINUTES.sleep(1);
+		
+					boolean fileModify = checkFile("PvtPos.json", dirPath);
+		
+					if (!fileModify) {
+						TokenReceiverLogger.warn("Sender " + senderDidIpfsHash + " is unable to Sign");
+						executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerID);
+						output.close();
+						input.close();
+						
+						APIResponse.put("did", receiverDidIpfsHash);
+						APIResponse.put("tid", "null");
+						APIResponse.put("status", "Failed");
+						APIResponse.put("message", "Receiver " + receiverDidIpfsHash + " is unable to Sign");
+		
+						return APIResponse.toString();
+					}
+		
+					String pvtPosFile = readFile(dirPath+"PvtPos.json");
+					JSONArray pvtPosFileArray = new JSONArray(pvtPosFile);
+					JSONObject pvtPosObj = pvtPosFileArray.getJSONObject(0);
+					positions = pvtPosObj.getString("positions"); 
+				}
+
                 JSONArray arrLastObjects = new JSONArray();
                 if(request.equals("Request for new blocks being added to the Token Chains")){
 
@@ -1483,15 +1516,6 @@ public class TokenReceiver {
                         String hashString = tokens.concat(receiverDidIpfsHash);
                         String hashForPositions = calculateHash(hashString, "SHA3-256");
 
-                        BufferedImage pvt1 = ImageIO
-                                .read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
-                        String firstPrivate = PropImage.img2bin(pvt1);
-                        int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-                        String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-                        String positions = "";
-                        for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
-                            positions += privateBinary.charAt(j);
-                        }
                         String ownerIdentity = hashForPositions.concat(positions);
                         String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
 
@@ -1597,15 +1621,6 @@ public class TokenReceiver {
 						String tokens = partTokens.getString(i);
 						String hashString = tokens.concat(receiverDidIpfsHash);
 						String hashForPositions = calculateHash(hashString, "SHA3-256");
-						BufferedImage pvt1 = ImageIO
-								.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
-						String firstPrivate = PropImage.img2bin(pvt1);
-						int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-						String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-						String positions = "";
-						for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
-							positions += privateBinary.charAt(j);
-						}
 
 						String ownerIdentity = hashForPositions.concat(positions);
 						String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
