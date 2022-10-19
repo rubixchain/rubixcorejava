@@ -2707,4 +2707,70 @@ public class Functions {
         return positions;
     }
 
+    public static String pvtPosInColdWallet()
+    {
+        String OSName = getOsName();
+        String sharesPath ="";
+        if (OSName.contains("Windows")) {
+            sharesPath = "C:\\RubixShares\\";
+        }else if (OSName.contains("Mac")) {
+            sharesPath = "/Applications/RubixShares/";
+        }else if (OSName.contains("Linux")) {
+            sharesPath = "/home/" + getSystemUser() + "/RubixShares/";
+        }
+        String positions ="";
+        BufferedImage privateShare;
+        try {
+            privateShare = ImageIO
+                    .read(new File(sharesPath.concat("PrivateShare.png")));
+            String firstPrivate = PropImage.img2bin(privateShare);
+            int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+            String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+            for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                positions += privateBinary.charAt(j);
+            }
+        } catch (IOException e) {
+            // TODO: handle exception
+        }
+        return positions;
+    }
+
+    public static void putSignUsingShares()
+    {
+        String OSName = getOsName();
+        String sharesPath ="";
+        if (OSName.contains("Windows")) {
+            sharesPath = "C:\\RubixShares\\";
+        }else if (OSName.contains("Mac")) {
+            sharesPath = "/Applications/RubixShares/";
+        }else if (OSName.contains("Linux")) {
+            sharesPath = "/home/" + getSystemUser() + "/RubixShares/";
+        }
+
+        String filecontent = readFile(sharesPath+"SignFile.json");
+
+        try {
+            JSONArray fileContentArray = new JSONArray(filecontent);
+            JSONArray resultArray = new JSONArray();
+            for(int i=0;i<fileContentArray.length();i++)
+            {
+                JSONObject obj = fileContentArray.getJSONObject(i);
+                String sign = getSignFromShares(sharesPath+"PrivateShare.png", obj.getString("content"));
+
+                JSONObject resultObj = new JSONObject();
+                resultObj.put("content", obj.getString("content"));
+                resultObj.put("signature", sign);
+
+                resultArray.put(resultObj);
+            }
+            writeToFile(sharesPath+"SignFile.json", resultArray.toString(), false);
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
 }
