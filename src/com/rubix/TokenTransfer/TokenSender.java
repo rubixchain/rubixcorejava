@@ -1,5 +1,6 @@
 package com.rubix.TokenTransfer;
 
+import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.EXPLORER_IP;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -396,20 +397,48 @@ public class TokenSender {
             allTokens.put(partTokens.getString(i));
 
         JSONArray positionsArray = new JSONArray();
+        String positions="";
+        if (WALLET_TYPE ==1)
+        {
+            positions = getPvtPositions(senderDidIpfsHash);
+        } else if(WALLET_TYPE ==2)
+        {
+            //API call to fexr to get pvctpositions
+        } else 
+        {
+            //create a file and write pvt positiosn to that file
+            TokenSenderLogger.debug("WALLET_TYPE: "+WALLET_TYPE+" Hot Wallet ");
+            setDir();
+
+            writeToFile(dirPath+"PvtPos.json","[]" , false);
+
+            boolean fileModify = checkFile("PvtPos.json", dirPath);
+
+            if (!fileModify) {
+                TokenSenderLogger.warn("Sender " + senderDidIpfsHash + " is unable to Sign");
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+                output.close();
+                input.close();
+                senderSocket.close();
+                senderMutex = false;
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Sender " + senderDidIpfsHash + " is unable to Sign");
+
+                return APIResponse;
+            }
+
+            String pvtPosFile = readFile(dirPath+"PvtPos.json");
+            JSONArray pvtPosFileArray = new JSONArray(pvtPosFile);
+            JSONObject pvtPosObj = pvtPosFileArray.getJSONObject(0);
+            positions = pvtPosObj.getString("positions"); 
+        }
+        positionsArray.put(positions);
         for (int i = 0; i < allTokens.length(); i++) {
             String tokens = allTokens.getString(i);
             String hashString = tokens.concat(senderDidIpfsHash);
             String hashForPositions = calculateHash(hashString, "SHA3-256");
-            BufferedImage privateShare = ImageIO
-                    .read(new File(DATA_PATH.concat(senderDidIpfsHash).concat("/PrivateShare.png")));
-            String firstPrivate = PropImage.img2bin(privateShare);
-            int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-            String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-            String positions = "";
-            for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
-                positions += privateBinary.charAt(j);
-            }
-            positionsArray.put(positions);
 
             TokenSenderLogger.debug("Ownership Here Sender Calculation");
             TokenSenderLogger.debug("tokens: " + tokens);
