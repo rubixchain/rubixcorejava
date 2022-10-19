@@ -57,6 +57,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 import javax.net.ssl.HttpsURLConnection;
@@ -757,7 +758,7 @@ public class TokenSender {
 
             Double amount = formatAmount(amountLedger.getDouble(partTokens.getString(i)));
 
-            newLastObject.put("senderSign", senderSign);
+            newLastObject.put("senderSign", senderSign );
             newLastObject.put("sender", senderDidIpfsHash);
             newLastObject.put("receiver", receiverDidIpfsHash);
             newLastObject.put("comment", comment);
@@ -1026,24 +1027,82 @@ public class TokenSender {
         JSONArray newTokenChainBlocks= new JSONArray(newBlocksForTokenChains);
 
         JSONArray hashAndSigns = new JSONArray();
-    
-        for (int i = 0; i < intPart; i++){
+        JSONArray signFileContent = new JSONArray();
 
+        for(int i=0; i<intPart;i++)
+        {
             String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
             JSONArray tokenChain = new JSONArray(tokenChainFileContent);
             tokenChain.put(newTokenChainBlocks.getJSONObject(i));
             String hashForTokenChain = calculateHash(tokenChain.toString(), "SHA3-256");
 
-            String hashSignedwithPvtShare = getSignFromShares(pvt, hashForTokenChain);
-            String PvtKeySign = pvtKeySign(hashSignedwithPvtShare, pvtKey, privateKeyAlgorithm(1));
+            JSONObject signObj = new JSONObject();
+            signObj.put("content", hashForTokenChain);
+            signFileContent.put(signObj);
+        }
+
+        if(WALLET_TYPE == 1)
+        {
+            for(int i=0; i<signFileContent.length();i++)
+            {
+                String hashSignedwithPvtShare = getSignFromShares(pvt, signFileContent.getJSONObject(i).getString("content"));
+                String PvtKeySign = pvtKeySign(hashSignedwithPvtShare, pvtKey, privateKeyAlgorithm(1));
 
             JSONObject obj = new JSONObject();
-            obj.put("hash", hashForTokenChain);
+            obj.put("hash", signFileContent.getJSONObject(i).getString("content"));
             obj.put("pvtShareBits", hashSignedwithPvtShare);
             obj.put("pvtKeySign", PvtKeySign);
 
             hashAndSigns.put(obj);
+            }
         }
+        else if(WALLET_TYPE == 2)
+        {
+            //API call to fexr
+        }else{
+            writeToFile(DATA_PATH+"SignFile.json", signFileContent.toString(), false);
+
+            TimeUnit.MINUTES.sleep(1);
+
+            boolean fileModify = checkFile("SignFile.json", DATA_PATH);
+
+            if(!fileModify)
+            {
+                TokenSenderLogger.warn("Sender " + senderDidIpfsHash + " is unable to Sign");
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+                output.close();
+                input.close();
+                senderSocket.close();
+                senderMutex = false;
+                updateQuorum(quorumArray, null, false, type);
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Sender " + senderDidIpfsHash + " is unable to Sign");
+
+                return APIResponse;
+            }
+
+            String signFile = readFile(DATA_PATH+"SignFile.json");
+            JSONArray signFileArray = new JSONArray(signFile);
+
+            for(int i=0;i<signFileArray.length();i++)
+            {
+                String signature = signFileArray.getJSONObject(i).getString("signature");
+                String PvtKeySign = pvtKeySign(signature, pvtKey, privateKeyAlgorithm(1));
+
+            JSONObject obj = new JSONObject();
+            obj.put("hash", signFileArray.getJSONObject(i).getString("content"));
+            obj.put("pvtShareBits", signature);
+            obj.put("pvtKeySign", PvtKeySign);
+
+            hashAndSigns.put(obj);
+
+            }
+
+        }
+
+
 
         output.println(hashAndSigns.toString());
 
@@ -1076,24 +1135,73 @@ public class TokenSender {
         JSONObject newPartTokenChains= new JSONObject(req_newPartTokenChains);
 
         JSONArray hashesAndSigns_partTokenChains = new JSONArray();
-
-        for (int i = 0; i < partTokens.length(); i++){
-
+        JSONArray partSignFile = new JSONArray();
+        for(int i =0;i<partTokens.length();i++)
+        {
             JSONArray parttokenChain = newPartTokenChains.getJSONArray(partTokens.getString(i));
 
             String hashForChain = calculateHash(parttokenChain.toString(), "SHA3-256");
-            String hashSignedwithPvtShare = getSignFromShares(pvt, hashForChain);
-            //String PvtKeySign = pvtKeySign(hashSignedwithPvtShare, pvtKey, privateKeyAlgorithm());
 
-
-           JSONObject obj = new JSONObject();
-           obj.put("hash", hashForChain);
-           obj.put("pvtShareBits", hashSignedwithPvtShare);
-           //obj.put("pvtKeySign", PvtKeySign);
-
-            hashesAndSigns_partTokenChains.put(obj);
+            JSONObject signObj = new JSONObject();
+            signObj.put("content", hashForChain);
+            partSignFile.put(signObj);
         }
 
+        if (WALLET_TYPE == 1) {
+            for (int i = 0; i < partSignFile.length(); i++) {
+                String hashSignedwithPvtShare = getSignFromShares(pvt,
+                        partSignFile.getJSONObject(i).getString("content"));
+                JSONObject obj = new JSONObject();
+                obj.put("hash", partSignFile.getJSONObject(i).getString("content"));
+                obj.put("pvtShareBits", hashSignedwithPvtShare);
+                hashesAndSigns_partTokenChains.put(obj);
+            }
+        } else if(WALLET_TYPE ==2)
+        {
+            //api call to fexr
+        } else 
+        {
+            writeToFile(DATA_PATH+"SignFile.json", partSignFile.toString(), false);
+
+            TimeUnit.MINUTES.sleep(1);
+
+            boolean fileModify = checkFile("SignFile.json", DATA_PATH);
+
+            if(!fileModify)
+            {
+                TokenSenderLogger.warn("Sender " + senderDidIpfsHash + " is unable to Sign");
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+                output.close();
+                input.close();
+                senderSocket.close();
+                senderMutex = false;
+                updateQuorum(quorumArray, null, false, type);
+                APIResponse.put("did", senderDidIpfsHash);
+                APIResponse.put("tid", "null");
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Sender " + senderDidIpfsHash + " is unable to Sign");
+
+                return APIResponse;
+            }
+
+            String signFile = readFile(DATA_PATH+"SignFile.json");
+            JSONArray signFileArray = new JSONArray(signFile);
+
+            for(int i=0;i<signFileArray.length();i++)
+            {
+                String signature = signFileArray.getJSONObject(i).getString("signature");
+
+            JSONObject obj = new JSONObject();
+            obj.put("hash", signFileArray.getJSONObject(i).getString("content"));
+            obj.put("pvtShareBits", signature);
+
+            hashesAndSigns_partTokenChains.put(obj);
+
+            }
+
+        }
+
+        
         output.println(hashesAndSigns_partTokenChains.toString()); //Sending the hashes and signs for the part token chains sent by receiver.
     
 
