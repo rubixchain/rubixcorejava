@@ -430,7 +430,7 @@ public class TokenSender {
         for (int i = 0; i < quorumArray.length(); i++) {
             String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
                     quorumArray.getString(i));
-            boolean quorumSanityCheck = sanityCheck("Quorum", quorumPeerID, ipfs, port + 11);
+            boolean quorumSanityCheck = sanityCheck("Quorum", quorumPeerID, ipfs, port + 10);
 
             if (!quorumSanityCheck) {
                 sanityFailedQuorum.put(quorumPeerID);
