@@ -15,8 +15,6 @@ import java.io.PrintStream;
 import java.net.Socket;
 import java.net.SocketException;
 
-import static com.rubix.NFTResources.NFTFunctions.privateKeyAlgorithm;
-import static com.rubix.NFTResources.NFTFunctions.pvtKeySign;
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.forward;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
@@ -61,7 +59,6 @@ public class Initiator {
 
             JSONObject dataArray = new JSONObject();
             dataArray.put("amount", tokensCount);
-            dataArray.put("tokenList", dataObject.getJSONArray("tokenList"));
             dataArray.put("senderPID", getPeerID(DATA_PATH.concat("DID.json")));
             qOut.println(dataArray.toString());
             PledgeInitiatorLogger.debug("Sent request to alpha node: " + quorumID);
@@ -189,7 +186,7 @@ public class Initiator {
                             qSocket1.close();
                             return abort;
                         } else {
-                            genesisObject.put("pledgeToken", dataObject.getJSONArray("tokenList").getString(k));
+                            genesisObject.put("pledgeToken", dataObject.getString("tid"));
 
                             tokenChain.remove(0);
                             JSONArray newTokenChain = new JSONArray();

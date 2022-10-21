@@ -571,21 +571,33 @@ public class TokenSender {
         for(int i = 0; i < alphaPeersList.size(); i++){
             alphaList.put(alphaPeersList.get(i));
         }
+
+        int numberOfTokensToPledge = 0;
+        if (wholeAmount > 0) {
+            numberOfTokensToPledge += wholeAmount;
+            if (decimalAmount > 0)
+                numberOfTokensToPledge += 1;
+        }else
+            numberOfTokensToPledge = 1;
+
+        TokenSenderLogger.debug("Amount being transferred: " + requestedAmount + " and number of tokens required to be pledged: " + numberOfTokensToPledge);
+
         JSONObject dataToSendToInitiator = new JSONObject();
         dataToSendToInitiator.put("alphaList", alphaList);
         dataToSendToInitiator.put("tokenList", wholeTokens);
-        dataToSendToInitiator.put("amount", wholeTokens.length()+partTokens.length());
+        dataToSendToInitiator.put("amount", numberOfTokensToPledge);
+        dataToSendToInitiator.put("tid", tid);
 
         TokenSenderLogger.debug("Details being sent to Initiator: " + dataToSendToInitiator);
 
         boolean abort = Initiator.pledgeSetUp(dataToSendToInitiator.toString(), ipfs, 22143);
-        if(abort){
+        if (abort) {
             Initiator.abort = false;
             updateQuorum(quorumArray, null, false, type);
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
-            if(Initiator.abortReason.has("Quorum"))
+            if (Initiator.abortReason.has("Quorum"))
                 APIResponse.put("message", "Alpha Node " + Initiator.abortReason.getString("Quorum") + " " + Initiator.abortReason.getString("Reason"));
             else
                 APIResponse.put("message", Initiator.abortReason.getString("Reason"));

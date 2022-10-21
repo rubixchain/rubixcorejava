@@ -1,6 +1,5 @@
 package com.rubix.TokenTransfer.TransferPledge;
 
-import com.rubix.Resources.Functions;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -11,6 +10,7 @@ import org.json.JSONObject;
 import java.io.*;
 import java.net.*;
 
+import static com.rubix.Resources.APIHandler.getAvailableBalance;
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.*;
 
@@ -177,11 +177,22 @@ public class Pledger implements Runnable {
                         PledgerLogger.debug("Number of tokens required: " + amountOfTokens);
                         JSONObject pledgeObject = new JSONObject();
 
+                        double balance = getAvailableBalance();
                         int tokensToPledge = 0;
-                        if (numberOfTokens >= amountOfTokens)
-                            tokensToPledge = amountOfTokens;
-                        else if(numberOfTokens != 0)
-                            tokensToPledge = numberOfTokens;
+                        if(balance > 0) {
+                            if (numberOfTokens >= amountOfTokens)
+                                tokensToPledge = amountOfTokens;
+                            else if (numberOfTokens != 0)
+                                tokensToPledge = numberOfTokens;
+                            else{
+                                pledgeObject.put("pledge", "Abort");
+                                out.println(pledgeObject.toString());
+                                socket.close();
+                                serverSocket.close();
+                                executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
+                            }
+                        }
+
 
                         if (tokensToPledge > 0) {
                             pledgeObject.put("pledge", "Tokens");
