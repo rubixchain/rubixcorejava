@@ -526,6 +526,8 @@ public class TokenSender {
             senderMutex = false;
             Initiator.abortReason = new JSONObject();
             return APIResponse;
+        }else {
+        	updateQuorum(quorumArray, Initiator.pledgedNodes, true, type);
         }
 
         TokenSenderLogger.debug("Nodes that pledged tokens: " + Initiator.pledgedNodes);
