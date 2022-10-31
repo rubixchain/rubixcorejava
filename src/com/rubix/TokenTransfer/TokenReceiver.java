@@ -417,6 +417,11 @@ public class TokenReceiver {
             int chainAutheticityFlag = 0;
             boolean flag=false;
 			TokenReceiverLogger.debug("Verifying whole token chains.. ");
+
+			if(intPart==0){
+				TokenReceiverLogger.debug("No whole token chains are a part of this transaction.");
+			}
+
             for (int i = 0; i < intPart; i++) {
                 
 				TokenReceiverLogger.debug("Verifying whole Token Chain : "+wholeTokenChains.getString(i));
@@ -597,7 +602,7 @@ public class TokenReceiver {
             }
 
             if(flag){
-                TokenReceiverLogger.debug("Whole Token Chains successfully verified !");
+                TokenReceiverLogger.debug("Whole Token Chains successfully verified.");
             }
 
 
@@ -607,6 +612,11 @@ public class TokenReceiver {
 			int chainAutheticityFlag2 = 0;
             boolean flag2=false;
 			TokenReceiverLogger.debug("Verifying part token chains.. ");
+
+			if(partTokens.length()==0){
+				TokenReceiverLogger.debug("No part token chains are a part of this transaction.");
+			}
+
 			for (int i = 0; i < partTokens.length(); i++){
 
 				JSONObject forNLSScheck =new JSONObject();
@@ -792,7 +802,7 @@ public class TokenReceiver {
                                 break;
                             }else{
 								TokenReceiverLogger.debug("Previous sender's sign also authenticated.");
-								TokenReceiverLogger.debug("Token chain "+wholeTokenChains.getString(i)+ "verified");
+								TokenReceiverLogger.debug("Token chain "+partTokens.getString(i)+ "verified");
 							}
                         
                         } else {
@@ -894,8 +904,10 @@ public class TokenReceiver {
             }
 
             if(flag2){
-                TokenReceiverLogger.debug("Part Token Chains verified !");
+                TokenReceiverLogger.debug("All part token chains verified.");
             }
+
+			TokenReceiverLogger.debug("TOKENCHAIN VERIFICATION SUCCESSFUL.");
 
 			//Token Chain authenticity check ends.
 
@@ -1505,7 +1517,7 @@ public class TokenReceiver {
                 if(request.equals("Request for new blocks being added to the Token Chains")){
 
                     
-                    for (int i = 0; i < intPart; i++) {
+                    for (int i = 0; i < wholeTokens.length(); i++) {
                         String tokens = wholeTokens.getString(i);
                         String hashString = tokens.concat(receiverDidIpfsHash);
                         String hashForPositions = calculateHash(hashString, "SHA3-256");
