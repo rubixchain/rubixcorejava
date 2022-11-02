@@ -587,6 +587,8 @@ public class TokenSender {
         dataToSendToInitiator.put("tokenList", wholeTokens);
         dataToSendToInitiator.put("amount", numberOfTokensToPledge);
         dataToSendToInitiator.put("tid", tid);
+        dataToSendToInitiator.put("pvt", pvt);
+        dataToSendToInitiator.put("pvtKeyPass", keyPass);
 
         TokenSenderLogger.debug("Details being sent to Initiator: " + dataToSendToInitiator);
 
@@ -1022,7 +1024,7 @@ public class TokenSender {
 
         JSONArray hashAndSigns = new JSONArray();
     
-        for (int i = 0; i < wholeTokens.length(); i++) {
+        for (int i = 0; i < intPart; i++){
 
             String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
             JSONArray tokenChain = new JSONArray(tokenChainFileContent);
@@ -1326,11 +1328,6 @@ public class TokenSender {
             File chainFile = new File(TOKENCHAIN_PATH.concat(partTokens.getString(0)).concat(".json"));
             chainFile.renameTo(new File(PART_TOKEN_CHAIN_PATH.concat(partTokens.getString(0)).concat(".json")));
 
-            File fileCheck = new File(TOKENCHAIN_PATH + partTokens.getString(0) + ".json");
-            if(fileCheck.exists()){
-                fileCheck.delete();
-            }
-
             File shiftedFile = new File(PAYMENTS_PATH.concat("ShiftedTokens.json"));
             if (!shiftedFile.exists()) {
                 shiftedFile.createNewFile();
@@ -1460,11 +1457,6 @@ public class TokenSender {
             List<String> tokenList = new ArrayList<>();
             for (int i = 0; i < allTokens.length(); i++)
                 tokenList.add(allTokens.getString(i));
-
-            List<String> quorumlist = new ArrayList<>();
-            for (int i = 0; i < signedQuorumList.length(); i++)
-                quorumlist.add(signedQuorumList.getString(i));
-            
             String url = EXPLORER_IP + "/CreateOrUpdateRubixTransaction";
             URL obj = new URL(url);
             HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
@@ -1482,7 +1474,6 @@ public class TokenSender {
             dataToSend.put("sender_did", senderDidIpfsHash);
             dataToSend.put("receiver_did", receiverDidIpfsHash);
             dataToSend.put("token_id", tokenList);
-            dataToSend.put("quorum_list", quorumlist);
             dataToSend.put("token_time", (int) totalTime);
             dataToSend.put("amount", requestedAmount);
             String populate = dataToSend.toString();
