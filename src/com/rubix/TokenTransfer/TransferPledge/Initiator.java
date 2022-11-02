@@ -14,7 +14,9 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.PrivateKey;
 
+import static com.rubix.NFTResources.NFTFunctions.*;
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.forward;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
@@ -34,6 +36,8 @@ public class Initiator {
         JSONArray nodesToPledgeTokens = new JSONArray();
         JSONObject dataObject = new JSONObject(data);
         JSONArray alphaList = dataObject.getJSONArray("alphaList");
+        String pvt = dataObject.getString("pvt");
+        String keyPass = dataObject.getString("pvtKeyPass");
 
         Socket qSocket = null;
         int tokensCount = dataObject.getInt("amount");
@@ -194,6 +198,21 @@ public class Initiator {
                             for (int l = 0; l < tokenChain.length(); l++) {
                                 newTokenChain.put(tokenChain.getJSONObject(l));
                             }
+                            PrivateKey pvtKey = getPvtKey(keyPass,1);
+
+                            String hashForTokenChain = calculateHash(tokenChain.toString(), "SHA3-256");
+
+                            String hashSignedwithPvtShare = getSignFromShares(pvt, hashForTokenChain);
+                            String PvtKeySign = pvtKeySign(hashSignedwithPvtShare, pvtKey, privateKeyAlgorithm(1));
+
+                            JSONObject lastObject = newTokenChain.getJSONObject(newTokenChain.length()-1);
+                            newTokenChain.remove(newTokenChain.length() - 1);
+                            lastObject.put("hash", hashForTokenChain);
+                            lastObject.put("pvtShareBits",hashSignedwithPvtShare);
+                            lastObject.put("pvtKeySign", PvtKeySign);
+
+                            newTokenChain.put(lastObject);
+
                             newChains.put(newTokenChain);
                             tokensPledged -= nodesToPledgeTokens.getJSONObject(j).getInt("count");
                         }
