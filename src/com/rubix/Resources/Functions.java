@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -2175,12 +2176,47 @@ public class Functions {
      * @return (String) hash
      */
 
-    private static String calculateSHA256Hash(MessageDigest digest, String message) {
+    public static String calculateSHA256Hash(MessageDigest digest, String message) {
         byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
         byte[] c = new byte[messageBytes.length];
         System.arraycopy(messageBytes, 0, c, 0, messageBytes.length);
         final byte[] hashBytes = digest.digest(messageBytes);
         return bytesToHex(hashBytes);
     }
+    
+    private static int getCurrentLevel() throws IOException, JSONException {
+    	int difficulty = -1;
+    	String GET_URL_level = SYNC_IP + "/getCurrentLevel";
+        URL URLobj_level = new URL(GET_URL_level);
+        HttpURLConnection con_level = (HttpURLConnection) URLobj_level.openConnection();
+        con_level.setRequestMethod("GET");
+        int responseCode_credit = con_level.getResponseCode();
+        System.out.println("GET Response Code :: " + responseCode_credit);
+        if (responseCode_credit == HttpURLConnection.HTTP_OK) {
+            BufferedReader in_level = new BufferedReader(
+                    new InputStreamReader(con_level.getInputStream()));
+            String inputLine_level;
+            StringBuffer response_level = new StringBuffer();
+            while ((inputLine_level = in_level.readLine()) != null) {
+                response_level.append(inputLine_level);
+            }
+            in_level.close();
+            
+            JSONObject resJsonData = new JSONObject(response_level.toString());
+            int level = resJsonData.getInt("level");
 
+          }
+		return difficulty;
+
+}
+    private static int calculatePoW() throws IOException, JSONException {
+    	int workLevel = -1;
+    	int currentLevel = getCurrentLevel();
+    	
+    	switch (currentLevel) {
+    	case 4:
+    		workLevel = currentLevel;
+    	}
+    	return workLevel;
+    }
 }
