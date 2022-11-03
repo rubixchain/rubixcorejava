@@ -16,6 +16,7 @@ import static com.rubix.Resources.IPFSNetwork.swarmConnectProcess;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,6 +41,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -50,12 +52,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.stream.*;
 
 import javax.imageio.ImageIO;
 import javax.json.JsonArray;
+import javax.net.ssl.HttpsURLConnection;
 
+import com.rubix.AuthenticateNode.Authenticate;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Ping.PingCheck;
 
@@ -91,6 +96,11 @@ public class Functions {
     public static boolean CONSENSUS_STATUS;
     public static JSONObject QUORUM_MEMBERS;
     public static JSONArray BOOTSTRAPS;
+
+    public static int WALLET_TYPE;
+    public static String IdentityToken="";
+    public static String challenge="";
+
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
@@ -192,6 +202,10 @@ public class Functions {
             QUORUM_MEMBERS = pathsArray.getJSONObject(4);
 
             BOOTSTRAPS = pathsArray.getJSONArray(5);
+
+            if (pathsArray.length() > 6) {
+                WALLET_TYPE = pathsArray.getJSONObject(6).getInt("WALLET_TYPE");
+            }
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -907,12 +921,24 @@ public class Functions {
         File didImage = new File(DATA_PATH + myDID + "/DID.png");
         File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
         File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
-        if (!didImage.exists() || !widImage.exists() || !pvtImage.exists()) {
+
+        if (WALLET_TYPE == 1 && (!didImage.exists() || !widImage.exists() || !pvtImage.exists())) {
             didImage.delete();
-            didImage.delete();
-            didImage.delete();
+            widImage.delete();
+            pvtImage.delete();
             JSONObject result = new JSONObject();
-            result.put("message", "User not registered, create your Decentralised Identity!");
+            result.put("message",
+                    "This is a Standard Wallet/Node. User not registered, create your Decentralised Identity!");
+            result.put("info", "Shares Images Missing");
+            result.put("status", "Failed");
+            return result.toString();
+        }
+
+        if ((WALLET_TYPE == 2 || WALLET_TYPE == 3) && (!didImage.exists() || !widImage.exists())) {
+            didImage.delete();
+            widImage.delete();
+            JSONObject result = new JSONObject();
+            result.put("message", "This is a Hot Wallet. User not registered, create your Decentralised Identity!");
             result.put("info", "Shares Images Missing");
             result.put("status", "Failed");
             return result.toString();
@@ -922,6 +948,7 @@ public class Functions {
         returnObject.put("status", "Success");
         return returnObject.toString();
     }
+
 
     /**
      * This method is used generate new token given level and tokenNumber
@@ -2185,7 +2212,454 @@ public class Functions {
         return bytesToHex(hashBytes);
     }
 
+    public static boolean setWalletType(int WalletType) {
+        boolean status = false;
+        setConfig();
+        String configContentString = readFile(configPath);
+        JSONArray configContentArray = null;
+        JSONObject walletTypeObj = null;
+        try {
+            configContentArray = new JSONArray(configContentString);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        if (!configContentString.contains("WALLET_TYPE")) {
+            try {
+                walletTypeObj = new JSONObject();
+                walletTypeObj.put("WALLET_TYPE", WalletType);
+                configContentArray.put(walletTypeObj);
+            } catch (JSONException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            writeToFile(configPath, configContentArray.toString(), false);
+        } else {
+            JSONObject arrayObj;
+            int type = 0;
+            try {
+                arrayObj = configContentArray.getJSONObject(6);
+                type = arrayObj.getInt("WALLET_TYPE");
+            } catch (JSONException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+
+            if (type == 1) {
+                configContentArray.remove(6);
+                walletTypeObj = new JSONObject();
+                try {
+                    walletTypeObj.put("WALLET_TYPE", WalletType);
+                    configContentArray.put(walletTypeObj);
+                } catch (JSONException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                writeToFile(configPath, configContentArray.toString(), false);
+            }
+        }
+        configContentString = readFile(configPath);
+        if (configContentString.contains("WALLET_TYPE")) {
+            status = true;
+        }
+
+        return status;
+    }
+
+    public static String exportShareImages() {
+        JSONObject result = new JSONObject();
+        JSONObject object = null;
+        pathSet();
+        String filecontent = readFile(DATA_PATH + "DID.json");
+
+        String DID = "";
+
+        try {
+            JSONArray fileContentArray = new JSONArray(filecontent);
+            object = fileContentArray.getJSONObject(0);
+            DID = object.getString("didHash");
+        } catch (JSONException e1) {
+
+            e1.printStackTrace();
+        }
+
+        try {
+            BufferedImage didImage = ImageIO.read(new File("/Users/rubix_1/Downloads/shares" + "/DID.png"));
+            BufferedImage pubImage = ImageIO.read(new File("/Users/rubix_1/Downloads/shares" + "/PublicShare.png"));
+            BufferedImage pvtImage = ImageIO.read(new File("/Users/rubix_1/Downloads/shares" + "/PrivateShare.png"));
+
+            ByteArrayOutputStream didBos = new ByteArrayOutputStream();
+            ByteArrayOutputStream pubBos = new ByteArrayOutputStream();
+            ByteArrayOutputStream pvtBos = new ByteArrayOutputStream();
+
+            ImageIO.write(didImage, "png", didBos);
+            ImageIO.write(pubImage, "png", pubBos);
+            ImageIO.write(pvtImage, "png", pvtBos);
+
+            byte[] didBytes = didBos.toByteArray();
+            byte[] pubBytes = pubBos.toByteArray();
+            byte[] pvtBytes = pvtBos.toByteArray();
+
+            String didEncode = Base64.getEncoder().encodeToString(didBytes);
+            String pubEncode = Base64.getEncoder().encodeToString(pubBytes);
+            String pvtEncode = Base64.getEncoder().encodeToString(pvtBytes);
+
+            result.put("DID", didEncode);
+            result.put("PublicShare", pubEncode);
+            result.put("PrivateShare", pvtEncode);
+            result.put("cid", object);
+            result.put("challenge", getChallengeString());
+
+            didBos.close();
+            pubBos.close();
+            pvtBos.close();
+        } catch (JSONException e) {
+            // TODO: handle exception
+        } catch (IOException e) {
+            // TODO: handle exception
+        }
+
+        return result.toString();
+    }
+
+    public static String initiateAPIEndpoint(String requestMethod, String dataToSend, String URL) {
+        JSONObject result = new JSONObject();
+        int responseCode;
+
+        try {
+            URL obj = new URL(URL);
+            HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+
+            // Setting basic post request
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+            con.setRequestProperty("Accept", "application/json");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setRequestProperty("Authorization", "null");
+
+            // serialisation
+            String populate = dataToSend.toString();
+
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("inputString", populate);
+            String postJsonData = jsonObject.toString();
+
+            // Send post request
+            con.setDoOutput(true);
+            DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+            wr.writeBytes(postJsonData);
+            wr.flush();
+            wr.close();
+
+            responseCode = con.getResponseCode();
+            FunctionsLogger.debug("Sending 'POST' request to URL : " + URL);
+            FunctionsLogger.debug("Post Data : " + postJsonData);
+            FunctionsLogger.debug("Response Code : " + responseCode);
+
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(con.getInputStream()));
+            String output;
+            StringBuffer response = new StringBuffer();
+
+            while ((output = in.readLine()) != null) {
+                response.append(output);
+            }
+            in.close();
+
+            result.put("responseCode", responseCode);
+            result.put("response", response.toString());
+        } catch (JSONException e) {
+            // TODO: handle exception
+        } catch (IOException e) {
+            // TODO: handle exception
+        }
+
+        return result.toString();
+    }
+
+    public static String initiateAPIEndpointGET(String URL) {
+        String result="";
+        try {
+            URL obj = new URL(URL);
+            HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+            con.setRequestMethod("GET");
+            int responseCode = con.getResponseCode();
+
+            if (responseCode == HttpURLConnection.HTTP_OK) { // success
+                BufferedReader in = new BufferedReader(new InputStreamReader(
+                        con.getInputStream()));
+                String inputLine;
+                StringBuffer response = new StringBuffer();
     
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
     
+                // print result
+                result = response.toString();
+            } else {
+                System.out.println("GET request not worked");
+            }
+        } catch (IOException e) {
+            FunctionsLogger.debug("EXception occured " + e.toString());
+        }
+        return result;
+    }
+
+    public static int getWalletType() {
+        setConfig();
+        String configContentString = readFile(configPath);
+        JSONArray configContentArray = null;
+        JSONObject walletTypeObj = null;
+        int type = 0;
+        try {
+            configContentArray = new JSONArray(configContentString);
+            walletTypeObj = configContentArray.getJSONObject(6);
+            type = walletTypeObj.getInt("WALLET_TYPE");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        if (!configContentString.contains("WALLET_TYPE")) {
+            return 0;
+        }
+
+        if (configContentString.contains("WALLET_TYPE") && type == 1) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
+    public static boolean checkSharesPresent() {
+        boolean result = false;
+        pathSet();
+
+        String DID = getNodeDID();
+        File did = new File(DATA_PATH + DID + "/DID.png");
+        File pubShare = new File(DATA_PATH + DID + "/PublicShare.png");
+        File pvtShare = new File(DATA_PATH + DID + "/PrivateShare.png");
+
+        if (!did.exists() && !pubShare.exists() && !pvtShare.exists()) {
+            return result;
+        } else {
+            result = true;
+        }
+        return result;
+    }
+
+    public static boolean checkSharesExported() {
+        boolean result = false;
+        pathSet();
+
+        String DID = getNodeDID();
+        File did = new File(DATA_PATH + DID + "/DID.png");
+        File pubShare = new File(DATA_PATH + DID + "/PublicShare.png");
+        File pvtShare = new File(DATA_PATH + DID + "/PrivateShare.png");
+
+        if (did.exists() && pubShare.exists() && !pvtShare.exists()) {
+            result = true;
+        }
+        return result;
+    }
+
+    public static String getNodeDID() {
+        String filecontent = readFile(DATA_PATH + "DID.json");
+        JSONObject object = null;
+        String DID = "";
+        try {
+            JSONArray fileContentArray = new JSONArray(filecontent);
+            object = fileContentArray.getJSONObject(0);
+            DID = object.getString("didHash");
+        } catch (JSONException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+        return DID;
+    }
+
+    public static void deletePvtShare() {
+        pathSet();
+        String DID = getNodeDID();
+        deleteFile(DATA_PATH + DID + "/PrivateShare.png");
+    }
+
+    public static void setBasicWalletType() {
+        setDir();
+        setConfig();
+        File mainDir = new File(dirPath);
+        if (mainDir.exists()) {
+            String configContentString = readFile(configPath);
+
+            if (!configContentString.contains("WALLET_TYPE")) {
+                setWalletType(1);
+            }
+        }
+        pathSet();
+    }
+
+    public static void tokenStringGen() {
+        setDir();
+        setConfig();
+        File mainDir = new File(dirPath);
+        if (mainDir.exists()) {
+            UUID uuid = UUID.randomUUID();
+
+            String hash = calculateHash(uuid.toString(), "SHA3-256");
+
+            IdentityToken = hash;
+
+            FunctionsLogger.info("<################################>");
+            FunctionsLogger.info("AuthToken : " + IdentityToken);
+            FunctionsLogger.info("Please save the token. Valid till Node session ends i.e. node service shutsdown");
+            FunctionsLogger.info("<################################>");
+        }
+
+    }
+
+    public static String getChallengeString() {
+        String DID = getNodeDID();
+        String hash = calculateHash(IdentityToken + DID, "SHA3-256");
+
+        challenge = hash;
+
+        return hash;
+    }
+
+    public static boolean verifyChallengeString(String sign) {
+        boolean result = false;
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("signature", sign);
+            obj.put("hash", challenge);
+            obj.put("did", getNodeDID());
+
+            result = Authenticate.verifySignature(obj.toString());
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return result;
+
+    }
+
+    public static String getPvtPositions(String DID)
+    {
+        String positions ="";
+        BufferedImage privateShare;
+        try {
+            privateShare = ImageIO
+                    .read(new File(DATA_PATH.concat(DID).concat("/PrivateShare.png")));
+            String firstPrivate = PropImage.img2bin(privateShare);
+            int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+            String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+            for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                positions += privateBinary.charAt(j);
+            }
+        } catch (IOException e) {
+            // TODO: handle exception
+        }
+        return positions;
+    }
+
+    public static boolean pvtPosInColdWallet()
+    {
+        boolean result = true;
+        String OSName = getOsName();
+        String sharesPath ="";
+        if (OSName.contains("Windows")) {
+            sharesPath = "C:\\RubixShares\\";
+        }else if (OSName.contains("Mac")) {
+            sharesPath = "/Applications/RubixShares/";
+        }else if (OSName.contains("Linux")) {
+            sharesPath = "/home/" + getSystemUser() + "/RubixShares/";
+        }
+        String positions ="";
+        BufferedImage privateShare;
+        JSONArray array = new JSONArray();
+        try {
+            privateShare = ImageIO
+                    .read(new File(sharesPath.concat("PrivateShare.png")));
+            String firstPrivate = PropImage.img2bin(privateShare);
+            int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+            String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+            for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+                positions += privateBinary.charAt(j);
+            }
+            
+            JSONObject posObj = new JSONObject();
+
+            posObj.put("Positions", positions.toString());
+
+            array.put(posObj);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        writeToFile(sharesPath+"PvtPos.json", array.toString(), false);
+
+        if(positions.isBlank())
+        {
+            result = false;
+        }
+
+        return result;
+    }
+
+    /*
+     * The method Reads the SignFile.json moved from Hot Wallet in to the RubixShares
+     * folder in ColdWallet .
+     * After calculating sign for corrsponding content result is written back in to SignFile.json
+     */
+    public static boolean putSignUsingShares()
+    {
+        boolean result = false;
+        String OSName = getOsName();
+        String sharesPath ="";
+        if (OSName.contains("Windows")) {
+            sharesPath = "C:\\RubixShares\\";
+        }else if (OSName.contains("Mac")) {
+            sharesPath = "/Applications/RubixShares/";
+        }else if (OSName.contains("Linux")) {
+            sharesPath = "/home/" + getSystemUser() + "/RubixShares/";
+        }
+
+        String filecontent = readFile(sharesPath+"SignFile.json");
+        JSONArray resultArray = new JSONArray();
+        try {
+            JSONArray fileContentArray = new JSONArray(filecontent);
+            for(int i=0;i<fileContentArray.length();i++)
+            {
+                JSONObject obj = fileContentArray.getJSONObject(i);
+                String sign = getSignFromShares(sharesPath+"PrivateShare.png", obj.getString("content"));
+
+                JSONObject resultObj = new JSONObject();
+                resultObj.put("content", obj.getString("content"));
+                resultObj.put("signature", sign);
+
+                resultArray.put(resultObj);
+            }
+            writeToFile(sharesPath+"SignFile.json", resultArray.toString(), false);
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        if(resultArray.length()>0)
+        {
+            result = true;
+        }
+        return result;
+    }
 
 }
