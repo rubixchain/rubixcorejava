@@ -1,5 +1,6 @@
 package com.rubix.Resources;
 
+import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -91,7 +92,15 @@ public class APIHandler {
         }
 
         dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-        sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+
+        if(WALLET_TYPE == 2)
+        {
+
+        }
+        else{
+            sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+        }
+        
 
         APILogger.info(sendMessage);
         return sendMessage;
