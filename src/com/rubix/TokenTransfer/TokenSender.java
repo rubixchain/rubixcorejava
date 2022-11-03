@@ -609,7 +609,7 @@ public class TokenSender {
             return APIResponse;
         }
 
-        TokenSenderLogger.debug("Nodes that pledged tokens: " + Initiator.pledgedNodes);
+        TokenSenderLogger.debug("Nodes that pledged tokens: " + Initiator.pledgeDetails);
 
         syncDataTable(receiverDidIpfsHash, null);
 
@@ -747,7 +747,17 @@ public class TokenSender {
             partTokenChainArrays.put(partTokens.getString(i), chainArray);
 
         }
-        
+        JSONArray proofOfWork = new JSONArray();
+        for(int i = 0; i < wholeTokens.length(); i++){
+            File proofFile = new File(TOKENCHAIN_PATH+"Proof/"+wholeTokens.getString(i)+".proof");
+            if(proofFile.exists()){
+                String proofCID = add(TOKENCHAIN_PATH+"Proof/"+wholeTokens.getString(i)+".proof", ipfs);
+                JSONObject proofObject = new JSONObject();
+                proofObject.put("token", wholeTokens.getString(i));
+                proofObject.put("cid", proofCID);
+                proofOfWork.put(proofObject);
+            }
+        }
         JSONObject tokenDetails = new JSONObject();
         tokenDetails.put("whole-tokens", wholeTokens);
         tokenDetails.put("whole-tokenChains", wholeTokenChainHash);
@@ -756,6 +766,7 @@ public class TokenSender {
         tokenDetails.put("part-tokenChains", partTokenChainArrays);
         tokenDetails.put("part-tokenChains-PrevState",partTokenChainsPrevState);
         tokenDetails.put("sender", senderDidIpfsHash);
+        tokenDetails.put("proof", proofOfWork);
         String doubleSpendString = tokenDetails.toString();
         
         String doubleSpend = calculateHash(doubleSpendString, "SHA3-256");
@@ -941,6 +952,7 @@ public class TokenSender {
          TokenSenderLogger.debug("Consensus Reached");
          senderDetails2Receiver.put("status", "Consensus Reached");
          senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
+         senderDetails2Receiver.put("pledgeDetails", Initiator.pledgeDetails);
 
          output.println(senderDetails2Receiver);
          TokenSenderLogger.debug("Quorum Signatures length " + InitiatorConsensus.quorumSignature.length());
@@ -1015,7 +1027,7 @@ public class TokenSender {
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
-            APIResponse.put("message", "Receiver " + receiverDidIpfsHash + "could'nt send token chain blocks for hashing and signing");
+            APIResponse.put("message", "Receiver " + receiverDidIpfsHash + "couldn't send token chain blocks for hashing and signing");
 
             return APIResponse;
         }
