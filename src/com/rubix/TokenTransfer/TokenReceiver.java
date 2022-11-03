@@ -33,6 +33,7 @@ import com.rubix.Constants.MiningConstants.*;
 
 import static com.rubix.Resources.APIHandler.getPubKeyIpfsHash_DIDserver;
 import static com.rubix.NFTResources.NFTFunctions.*;
+import static com.rubix.TokenTransfer.TransferPledge.Unpledge.verifyProof;
 
 import java.lang.reflect.Field;
 import java.util.LinkedHashMap;
@@ -198,6 +199,17 @@ public class TokenReceiver {
 			JSONObject partTokenChains = TokenDetails.getJSONObject("part-tokenChains");
 			JSONObject partTokenChainsForVerification = TokenDetails.getJSONObject("part-tokenChains-PrevState");
 			JSONArray partTokenChainsHash = TokenDetails.getJSONArray("hashSender");
+			JSONArray proofArray = TokenDetails.getJSONArray("proof");
+			for(int i = 0; i < proofArray.length(); i++){
+				String token = proofArray.getJSONObject(i).getString("token");
+				String cid = proofArray.getJSONObject(i).getString("cid");
+				String proof = get(cid, ipfs);
+				File proofFile = new File(TOKENCHAIN_PATH+"Proof/"+token+".proof");
+				if(!proofFile.exists()){
+					proofFile.mkdirs();
+				}
+				writeToFile(TOKENCHAIN_PATH+"Proof/"+token+".proof", proof, false);
+			}
 
 			JSONArray previousSendersArray = tokenObject.getJSONArray("previousSender");
 			JSONArray positionsArray = tokenObject.getJSONArray("positions");
@@ -314,19 +326,25 @@ public class TokenReceiver {
 				tokenDetailMap.put(tokenNumberHash, -1);
 			}
 			repo(ipfs);
-
+			String pledgeErrorMessage = "";
 			if (wholeTokens.length() > 0) {
 				boolean pledged = false;
 				JSONArray pledgedTokens = new JSONArray();
 				for(int i = 0; i < wholeTokens.length(); i++){
 					JSONArray chain = new JSONArray(wholeTokenChainContent.get(i));
 					if(chain.length() > 0) {
-						JSONObject genesisBlock = chain.getJSONObject(0);
-						if (genesisBlock.has("pledgeToken")) {
-							pledged = true;
+						JSONObject pledgeBlock = chain.getJSONObject(chain.length() - 1);
+						if (pledgeBlock.has("pledgeToken") && !pledgeBlock.getString("pledgeToken").isEmpty()) {
+							String tokenName = chain.getJSONObject(chain.length() - 1).getString("pledgeToken");
+							String did = chain.getJSONObject(chain.length() - 1).getString("receiver");
+							pledged = verifyProof(tokenName, did);
 							JSONObject pledgedTokenObject = new JSONObject();
 							pledgedTokenObject.put("tokenHash", wholeTokens.getString(i));
 							pledgedTokens.put(pledgedTokenObject);
+						}
+						else {
+							pledged = true;
+							pledgeErrorMessage = "Token ".concat(chain.getJSONObject(chain.length() - 1).getString("pledgeToken")).concat(" is missing pledge information");
 						}
 					}
 				}
@@ -336,8 +354,8 @@ public class TokenReceiver {
 					APIResponse.put("did", senderDidIpfsHash);
 					APIResponse.put("tid", "null");
 					APIResponse.put("status", "Failed");
-					APIResponse.put("message", "Few Tokens are Pledged");
-					TokenReceiverLogger.info("Few Tokens are Pledged");
+					APIResponse.put("message", pledgeErrorMessage);
+					TokenReceiverLogger.info(pledgeErrorMessage);
 					IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
 					output.close();
 					input.close();
@@ -1370,6 +1388,7 @@ public class TokenReceiver {
 			String comment = SenderDetails.getString("comment");
 			String Status = SenderDetails.getString("status");
 			String QuorumDetails = SenderDetails.getString("quorumsign");
+			JSONArray pledgedDetails = SenderDetails.getJSONArray("pledgeDetails");
 			String BlockHash = new String();
 			if(SenderDetails.toString().contains("blockHash")) {
 				BlockHash =  SenderDetails.getString("blockHash");
@@ -1549,19 +1568,23 @@ public class TokenReceiver {
                         
                         JSONArray arr = new JSONArray(wholeTokenChainContent.get(i));
                         
-                        JSONObject obj2 = new JSONObject();
-                        obj2.put("senderSign", senderPvtShareBits);
-                        obj2.put("sender", senderDidIpfsHash);
-                        obj2.put("group", groupTokens);
-                        obj2.put("comment", comment);
-                        obj2.put("tid", tid);
-                        obj2.put("owner", ownerIdentityHash);
-                        if(!BlockHash.isEmpty()){
-							obj2.put("blockHash",BlockHash);
-						}
-                        arrLastObjects.put(obj2);
+                        JSONObject lastObject = new JSONObject();
+                        lastObject.put("senderSign", senderPvtShareBits);
+                        lastObject.put("sender", senderDidIpfsHash);
+                        lastObject.put("group", allTokens);
+                        lastObject.put("comment", comment);
+                        lastObject.put("tid", tid);
+                        lastObject.put("owner", ownerIdentityHash);
+						lastObject.put("receiver", receiverDidIpfsHash);
+						lastObject.put("pledgeToken", pledgedDetails);
+						lastObject.put("tokensPledgedFor", allTokens);
 
-                        arr.put(obj2);
+                        if(!BlockHash.isEmpty()){
+							lastObject.put("blockHash",BlockHash);
+						}
+                        arrLastObjects.put(lastObject);
+
+                        arr.put(lastObject);
                         WholeTokenChainsWithAppendedBlock.add(arr.toString());
 
                     }
