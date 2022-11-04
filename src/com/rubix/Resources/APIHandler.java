@@ -100,13 +100,13 @@ public class APIHandler {
             operation = dataObject.getString("operation");
         }
 
-        if(WALLET_TYPE == 2 && operation.equals("preProcess"))
+        if(WALLET_TYPE == 2 && operation.equals("PreProcess"))
         {
             sendMessage = NCTokenSender.preProcess(dataTableData, ipfs);
         }
-        else if(WALLET_TYPE ==2 && operation.equals("Transfer"))
+        else if(WALLET_TYPE ==2 && operation.equals("continueTransfer"))
         {
-            
+            sendMessage = NCTokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
         }
         else{
             sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
