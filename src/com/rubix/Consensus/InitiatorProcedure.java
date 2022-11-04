@@ -46,7 +46,7 @@ public class InitiatorProcedure {
         String message = dataObject.getString("message");
         String receiverDidIpfs = dataObject.getString("receiverDidIpfs");
         String pvt = "";
-        if (WALLET_TYPE == 2) {
+        if (WALLET_TYPE == 1) {
             pvt = dataObject.getString("pvt");
         }
         String senderDidIpfs = dataObject.getString("senderDidIpfs");
