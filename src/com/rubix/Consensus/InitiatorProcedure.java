@@ -5,6 +5,7 @@ import static com.rubix.Resources.Functions.calculateHash;
 import static com.rubix.Resources.Functions.getSignFromShares;
 import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.minQuorum;
+import static com.rubix.Resources.Functions.*;
 
 import java.io.IOException;
 
@@ -44,14 +45,22 @@ public class InitiatorProcedure {
         String tid = dataObject.getString("tid");
         String message = dataObject.getString("message");
         String receiverDidIpfs = dataObject.getString("receiverDidIpfs");
-        String pvt = dataObject.getString("pvt");
+        String pvt = "";
+        if (WALLET_TYPE == 1) {
+            pvt = dataObject.getString("pvt");
+        }
         String senderDidIpfs = dataObject.getString("senderDidIpfs");
         String token = dataObject.getString("token");
         JSONArray alphaList = dataObject.getJSONArray("alphaList");
         JSONArray betaList = dataObject.getJSONArray("betaList");
         JSONArray gammaList = dataObject.getJSONArray("gammaList");
 
-        String authSenderByQuorumHash = calculateHash(message, "SHA3-256");
+        String authSenderByQuorumHash = "";
+        if (WALLET_TYPE == 2) {
+            authSenderByQuorumHash = dataObject.getString("authSenderByQuorumHash");
+        } else {
+            authSenderByQuorumHash = calculateHash(message, "SHA3-256");
+        }
         String authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
 
         try {
@@ -76,7 +85,13 @@ public class InitiatorProcedure {
         JSONObject data1 = new JSONObject();
         JSONObject data2 = new JSONObject();
         try {
-            senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
+
+            if (WALLET_TYPE == 2) {
+                senderSignQ = dataObject.getString("senderSignQ");
+            } else {
+                senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
+            }
+
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
             data1.put(ConsensusConstants.TRANSACTION_ID, tid);
@@ -102,9 +117,9 @@ public class InitiatorProcedure {
         JSONObject dataSend = new JSONObject();
         dataSend.put("hash", authQuorumHash);
         dataSend.put("details", detailsForQuorum);
-        
-        InitiatorProcedureLogger.debug("hash"+authQuorumHash);
-        InitiatorProcedureLogger.debug("data1"+data1.toString());
+
+        InitiatorProcedureLogger.debug("hash" + authQuorumHash);
+        InitiatorProcedureLogger.debug("data1" + data1.toString());
 
         if (operation.equals("new-credits-mining")) {
             JSONObject qstDetails = dataObject.getJSONObject("qstDetails");

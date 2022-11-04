@@ -1,5 +1,6 @@
 package com.rubix.Resources;
 
+import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.Functions.DATA_PATH;
 import static com.rubix.Resources.Functions.IPFS_PORT;
 import static com.rubix.Resources.Functions.LOGGER_PATH;
@@ -33,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.rubix.Mining.ProofCredits;
+import com.rubix.NCTokenTransfer.NCTokenSender;
 import com.rubix.TokenTransfer.TokenSender;
 
 import org.apache.log4j.Logger;
@@ -91,7 +93,25 @@ public class APIHandler {
         }
 
         dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-        sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+
+        String operation = "";
+        if(dataObject.has("operation"))
+        {
+            operation = dataObject.getString("operation");
+        }
+
+        if(WALLET_TYPE == 2 && operation.equals("PreProcess"))
+        {
+            sendMessage = NCTokenSender.preProcess(dataTableData, ipfs);
+        }
+        else if(WALLET_TYPE ==2 && operation.equals("continueTransfer"))
+        {
+            sendMessage = NCTokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+        }
+        else{
+            sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+        }
+        
 
         APILogger.info(sendMessage);
         return sendMessage;
