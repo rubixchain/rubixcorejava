@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.rubix.Mining.ProofCredits;
+import com.rubix.NCTokenTransfer.NCTokenSender;
 import com.rubix.TokenTransfer.TokenSender;
 
 import org.apache.log4j.Logger;
@@ -93,9 +94,19 @@ public class APIHandler {
 
         dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
 
-        if(WALLET_TYPE == 2)
+        String operation = "";
+        if(dataObject.has("operation"))
         {
+            operation = dataObject.getString("operation");
+        }
 
+        if(WALLET_TYPE == 2 && operation.equals("preProcess"))
+        {
+            sendMessage = NCTokenSender.preProcess(dataTableData, ipfs);
+        }
+        else if(WALLET_TYPE ==2 && operation.equals("Transfer"))
+        {
+            
         }
         else{
             sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
