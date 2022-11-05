@@ -104,7 +104,7 @@ public class APIHandler {
         {
             sendMessage = NCTokenSender.preProcess(dataTableData, ipfs);
         }
-        else if(WALLET_TYPE ==2 && operation.equals("continueTransfer"))
+        else if(WALLET_TYPE ==2 && operation.equals("ContinueTxn"))
         {
             sendMessage = NCTokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
         }
