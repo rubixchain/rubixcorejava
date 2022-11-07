@@ -2184,7 +2184,7 @@ public class Functions {
         return bytesToHex(hashBytes);
     }
     
-    private static int getCurrentLevel() throws IOException, JSONException {
+    public static int getCurrentLevel() throws IOException, JSONException {
     	int difficulty = -1;
     	String GET_URL_level = SYNC_IP + "/getCurrentLevel";
         URL URLobj_level = new URL(GET_URL_level);

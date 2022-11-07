@@ -509,7 +509,7 @@ public class TokenSender {
         for (int i = 0; i < quorumArray.length(); i++) {
             String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
                     quorumArray.getString(i));
-            boolean quorumSanityCheck = sanityCheck("Quorum",quorumPeerID, ipfs, port + 11);
+            boolean quorumSanityCheck = sanityCheck("Quorum",quorumPeerID, ipfs, port + 10);
 
             if (!quorumSanityCheck) {
                 sanityFailedQuorum.put(quorumPeerID);
@@ -589,6 +589,9 @@ public class TokenSender {
         dataToSendToInitiator.put("tid", tid);
         dataToSendToInitiator.put("pvt", pvt);
         dataToSendToInitiator.put("pvtKeyPass", keyPass);
+        dataToSendToInitiator.put("receiver", receiverDidIpfsHash);
+        dataToSendToInitiator.put("sender", senderDidIpfsHash);
+
 
         TokenSenderLogger.debug("Details being sent to Initiator: " + dataToSendToInitiator);
 
@@ -752,9 +755,11 @@ public class TokenSender {
             File proofFile = new File(TOKENCHAIN_PATH+"Proof/"+wholeTokens.getString(i)+".proof");
             if(proofFile.exists()){
                 String proofCID = add(TOKENCHAIN_PATH+"Proof/"+wholeTokens.getString(i)+".proof", ipfs);
+                TokenSenderLogger.debug("proofCID is "+proofCID);
                 JSONObject proofObject = new JSONObject();
                 proofObject.put("token", wholeTokens.getString(i));
                 proofObject.put("cid", proofCID);
+                proofObject.put("level", Functions.getCurrentLevel());
                 proofOfWork.put(proofObject);
             }
         }

@@ -332,12 +332,14 @@ public class TokenReceiver {
 				JSONArray pledgedTokens = new JSONArray();
 				for(int i = 0; i < wholeTokens.length(); i++){
 					JSONArray chain = new JSONArray(wholeTokenChainContent.get(i));
+					TokenReceiverLogger.debug(chain.toString());
 					if(chain.length() > 0) {
 						JSONObject pledgeBlock = chain.getJSONObject(chain.length() - 1);
 						if (pledgeBlock.has("pledgeToken") && !pledgeBlock.getString("pledgeToken").isEmpty()) {
 							String tokenName = chain.getJSONObject(chain.length() - 1).getString("pledgeToken");
 							String did = chain.getJSONObject(chain.length() - 1).getString("receiver");
-							pledged = verifyProof(tokenName, did);
+							String trnxID = chain.getJSONObject(chain.length()-1).getString("tid");
+							pledged = verifyProof(tokenName, did,trnxID);
 							JSONObject pledgedTokenObject = new JSONObject();
 							pledgedTokenObject.put("tokenHash", wholeTokens.getString(i));
 							pledgedTokens.put(pledgedTokenObject);
