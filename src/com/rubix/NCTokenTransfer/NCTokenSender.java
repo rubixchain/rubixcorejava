@@ -352,34 +352,35 @@ public class NCTokenSender {
         payloadObj.put("senderSign", senderSignContentObj);
 
         JSONObject senderSignQContentObj = new JSONObject();
-        senderSignQContentObj.put("content", calculateFileHash(doubleSpendString, "SHA3-256"));
+        String contentHash = Functions.calculateHash(doubleSpendString, "SHA3-256");
+        senderSignQContentObj.put("content", contentHash);
 
         payloadObj.put("senderSignQ", senderSignQContentObj);
 
         JSONObject txnDetailsContentObject = new JSONObject();
-        txnDetailsContentObject.put("wholeTokens", wholeTokens.toString());
-        txnDetailsContentObject.put("wholeTokenChainHash", wholeTokenChainHash.toString());
-        txnDetailsContentObject.put("partTokenChainHash", partTokenChainHash.toString());
-        txnDetailsContentObject.put("partTokens", partTokens.toString());
-        txnDetailsContentObject.put("partTokenChainArrays", partTokenChainArrays.toString());
-        txnDetailsContentObject.put("amountLedger", amountLedger.toString());
-        txnDetailsContentObject.put("tokenPreviousSender", tokenPreviousSender.toString());
+        txnDetailsContentObject.put("wholeTokens", wholeTokens);
+        txnDetailsContentObject.put("wholeTokenChainHash", wholeTokenChainHash);
+        txnDetailsContentObject.put("partTokenChainHash", partTokenChainHash);
+        txnDetailsContentObject.put("partTokens", partTokens);
+        txnDetailsContentObject.put("partTokenChainArrays", partTokenChainArrays);
+        txnDetailsContentObject.put("amountLedger", amountLedger);
+        txnDetailsContentObject.put("tokenPreviousSender", tokenPreviousSender);
         txnDetailsContentObject.put("doubleSpendString", doubleSpendString);
         txnDetailsContentObject.put("receiverDidIpfsHash", receiverDidIpfsHash);
         txnDetailsContentObject.put("requestedAmount", requestedAmount);
         txnDetailsContentObject.put("comment", comment);
         txnDetailsContentObject.put("tid", tid);
-        txnDetailsContentObject.put("allTokens", allTokens.toString());
+        txnDetailsContentObject.put("allTokens", allTokens);
         txnDetailsContentObject.put("newPart", newPart);
         txnDetailsContentObject.put("oldNew", oldNew);
 
-        payloadObj.put("txnDetails", txnDetailsContentObject);
+        payloadObj.put("txnDetails", txnDetailsContentObject.toString());
 
         APIResponse.put("did", senderDidIpfsHash);
         APIResponse.put("tid", tid);
         APIResponse.put("status", "Success");
         APIResponse.put("message", "Payload for Txn with id " + tid + " generated");
-        APIResponse.put("payload", payloadObj.toString());
+        APIResponse.put("payload", payloadObj);
         return APIResponse;
 
     }
@@ -417,22 +418,22 @@ public class NCTokenSender {
 
             String positions = payloadSigned.getString("positions");
 
-            JSONObject senderSignObject = new JSONObject(payloadSigned.getJSONObject("senderSign"));
+            JSONObject senderSignObject = payloadSigned.getJSONObject("senderSign");
             String senderSign = senderSignObject.getString("signature");
             String authSenderByRecHash = senderSignObject.getString("content");
 
-            JSONObject senderSignQObject = new JSONObject(payloadSigned.getJSONObject("senderSignQ"));
+            JSONObject senderSignQObject = payloadSigned.getJSONObject("senderSignQ");
             String senderSignQ = senderSignQObject.getString("signature");
             String authSenderByQuorumHash = senderSignQObject.getString("content");
 
             JSONObject txnDetailsObject = new JSONObject(payloadSigned.getJSONObject("txnDetails"));
-            JSONArray wholeTokens = new JSONArray(txnDetailsObject.getString("wholeTokens"));
-            JSONArray wholeTokenChainHash = new JSONArray(txnDetailsObject.getString("wholeTokenChainHash"));
-            JSONArray partTokenChainHash = new JSONArray(txnDetailsObject.getString("partTokenChainHash"));
-            JSONArray partTokens = new JSONArray(txnDetailsObject.getString("partTokens"));
-            JSONObject partTokenChainArrays = new JSONObject(txnDetailsObject.getString("partTokenChainArrays"));
-            JSONObject amountLedger = new JSONObject(txnDetailsObject.getString("amountLedger"));
-            JSONArray tokenPreviousSender = new JSONArray(txnDetailsObject.getString("tokenPreviousSender"));
+            JSONArray wholeTokens = new JSONArray(txnDetailsObject.getJSONArray("wholeTokens"));
+            JSONArray wholeTokenChainHash = txnDetailsObject.getJSONArray("wholeTokenChainHash");
+            JSONArray partTokenChainHash = txnDetailsObject.getJSONArray("partTokenChainHash");
+            JSONArray partTokens = txnDetailsObject.getJSONArray("partTokens");
+            JSONObject partTokenChainArrays = txnDetailsObject.getJSONObject("partTokenChainArrays");
+            JSONObject amountLedger = txnDetailsObject.getJSONObject("amountLedger");
+            JSONArray tokenPreviousSender = txnDetailsObject.getJSONArray("tokenPreviousSender");
             String doubleSpendString = txnDetailsObject.getString("doubleSpendString");
             String tid = txnDetailsObject.getString("tid");
             JSONArray allTokens = new JSONArray(txnDetailsObject.getString("allTokens"));
