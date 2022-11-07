@@ -988,21 +988,25 @@ public class TokenReceiver {
 							return APIResponse.toString();
 
 						}
+
+						String positions = "";
+						if(WALLET_TYPE ==2)
+						{
+							positions = pvtPositions;
+						}
+						else
+						{
+							positions = getPvtPositions(receiverDidIpfsHash);
+						}
+
+
 						long endTime = System.currentTimeMillis();
 						for (int i = 0; i < intPart; i++) {
 							String wholeToken = wholeTokens.getString(i);
 							String hashString = wholeToken.concat(receiverDidIpfsHash);
 							String hashForPositions = calculateHash(hashString, "SHA3-256");
 
-							BufferedImage pvt = ImageIO
-									.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
-							String firstPrivate = PropImage.img2bin(pvt);
-							int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-							String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-							String positions = "";
-							for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
-								positions += privateBinary.charAt(j);
-							}
+							
 							String ownerIdentity = hashForPositions.concat(positions);
 							String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
 
@@ -1055,16 +1059,7 @@ public class TokenReceiver {
 							String partsTokens = partTokens.getString(i);
 							String hashString = partsTokens.concat(receiverDidIpfsHash);
 							String hashForPositions = calculateHash(hashString, "SHA3-256");
-							BufferedImage pvt = ImageIO
-									.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
-							String firstPrivate = PropImage.img2bin(pvt);
-							int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-							String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-							String positions = "";
-							for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
-								positions += privateBinary.charAt(j);
-							}
-
+					
 							String ownerIdentity = hashForPositions.concat(positions);
 							String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
 

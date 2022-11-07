@@ -101,6 +101,8 @@ public class Functions {
     public static String IdentityToken="";
     public static String challenge="";
 
+    public static String pvtPositions="";
+
 
     public static Logger FunctionsLogger = Logger.getLogger(Functions.class);
 
@@ -2660,6 +2662,20 @@ public class Functions {
             result = true;
         }
         return result;
+    }
+
+    public static boolean setPvtPositiions(String positions)
+    {
+        boolean response = true;
+        if(!positions.isBlank())
+        {
+            pvtPositions = positions;
+        }
+        else
+        {
+            response = false;
+        }
+        return response;
     }
 
 }
