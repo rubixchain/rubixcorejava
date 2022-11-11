@@ -730,6 +730,9 @@ public class QuorumConsensus implements Runnable {
 	                                    String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
 	                                            quorumHash);
 
+	                                    Authenticate.verifySignature(quorumHash);
+	                                    
+	                                    
                                                 PrivateKey pvtKey = null;
                                                 pvtKey = getPvtKey(pvtKeyPass,2);
                                                 String pvtKeyType = privateKeyAlgorithm(2);
@@ -816,7 +819,8 @@ public class QuorumConsensus implements Runnable {
 
 									nodeData(senderDidIpfsHash, senderWidIpfsHash, ipfs);
 									String quorumHash = calculateHash(verifySenderHash.concat(receiverDID), "SHA3-256");
-
+									QuorumConsensusLogger.debug("quourmHash "+quorumHash);
+									
 									QuorumConsensusLogger.debug("1: " + senderPrivatePos);
 									QuorumConsensusLogger.debug("2: " + senderDidIpfsHash);
 									QuorumConsensusLogger.debug("3: " + transactionID);
@@ -831,6 +835,10 @@ public class QuorumConsensus implements Runnable {
 									String verifySenderIPFSHash = IPFSNetwork
 											.addHashOnly(LOGGER_PATH + "tempverifysenderhash", ipfs);
 									deleteFile(LOGGER_PATH + "tempverifysenderhash");
+									
+									FileWriter payloadfile = new FileWriter(WALLET_DATA_PATH.concat("/detailsToVerify").concat(".json"));
+                                    payloadfile.write(detailsToVerify.toString());
+                                    payloadfile.close();
 
 									if (Authenticate.verifySignature(detailsToVerify.toString())) {
 										QuorumConsensusLogger.debug("Quorum Authenticated Sender");
@@ -851,6 +859,8 @@ public class QuorumConsensus implements Runnable {
 										JSONObject quorum_sign = new JSONObject();
 										quorum_sign.put("privateShareSign", QuorumSignature);
 										quorum_sign.put("privateKeySign", PvtKeySign);
+										
+										QuorumConsensusLogger.info("!!! quorumsign "+quorum_sign.toString());
 
 										out.println(quorum_sign.toString());
 

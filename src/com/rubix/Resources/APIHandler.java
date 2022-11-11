@@ -35,6 +35,7 @@ import java.util.List;
 import com.rubix.Datum.DataCommitter;
 import com.rubix.Mining.ProofCredits;
 import com.rubix.TokenTransfer.TokenSender;
+import com.rubix.TokenTransfer.TransferPledge.Unpledge;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -90,11 +91,25 @@ public class APIHandler {
             sendMessage.put("message", "Invalid Receiver Did Entered");
             return sendMessage;
         }
-
+        //***-----------------****
+        //PVT Share here
+        //***-----------------****
         dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
-        sendMessage = TokenSender.Send(dataObject.toString(), ipfs, SEND_PORT);
+        sendMessage = TokenSender.SendPartA(dataObject.toString(), ipfs, SEND_PORT);
 
-        APILogger.info(sendMessage);
+       // APILogger.info(sendMessage);
+        return sendMessage;
+    }
+    
+    
+    public static JSONObject sendB(JSONObject data) throws Exception {
+        Functions.pathSet();
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+
+    
+        JSONObject sendMessage = TokenSender.SendPartB(data, ipfs, SEND_PORT);
+
+       // APILogger.info(sendMessage);
         return sendMessage;
     }
 
@@ -923,6 +938,54 @@ public class APIHandler {
       
     	return availablebalance;
       
+    }
+    
+    public static boolean proofGeneration(List<String> tokenList) throws NoSuchAlgorithmException, IOException, JSONException {
+    	boolean status = false;
+    	
+    	String pledgedTokenPath = Functions.PAYMENTS_PATH.concat("PledgedTokens.json");
+    	String pledgedTokenContentString = readFile(pledgedTokenPath);
+    	APILogger.debug(pledgedTokenContentString);
+    	JSONArray pledgedTokenArray = new JSONArray(pledgedTokenContentString);
+    	
+    	List<String> pledgedTokenList = new ArrayList<String>();
+    	
+    	if(pledgedTokenArray.length()<1) {
+    		APILogger.debug("No pledged token");
+    		return status;
+    	}else {
+    		//to be continued
+    		for(int i=0;i<pledgedTokenArray.length();i++) {
+       		 pledgedTokenList.add(pledgedTokenArray.getJSONObject(i).getString("tokenHash"));
+       	}
+		}
+    	
+    	APILogger.debug("pledgedTokenList "+pledgedTokenList);
+    	APILogger.debug("tokenList "+tokenList);
+    	APILogger.debug(pledgedTokenList.contains(tokenList)+" is the status");
+    	String receiverString = "";
+    	
+    	for(String tempString:pledgedTokenList) {
+    		if(tokenList.contains(tempString)) {
+        		String tokenChainContentString = readFile(Functions.TOKENCHAIN_PATH.concat(tokenList.get(0).concat(".json")));
+        	
+        		APILogger.debug(tokenChainContentString);
+        		JSONArray tokenChainJsonContentArray = new JSONArray(tokenChainContentString);
+        		JSONObject lastObject = new JSONObject(tokenChainJsonContentArray.getJSONObject(tokenChainJsonContentArray.length()-1));
+        		List<String> hashMatchList = new ArrayList<>();
+        		APILogger.debug("receiver status "+lastObject.optString("Receiver"));
+        		if(lastObject.optString("Receiver") != null) {
+            		receiverString = lastObject.optString("Receiver");
+        		}
+        		//String receiverString = lastObject.optString("Receiver");
+        		hashMatchList.add(tokenList.get(0)+receiverString);
+            	status = Unpledge.generateProof(lastObject.optString("tid"), hashMatchList, tokenList);
+        	}else {
+        		APILogger.debug(tokenList.get(0)+"is not found in staked token list");
+        	}
+    	}
+    	
+    	return status;
     }
 
 }

@@ -236,7 +236,7 @@ public class Initiator {
                             pledgeObject.put("pvtShareBits",hashSignedwithPvtShare);
                             pledgeObject.put("pvtKeySign", PvtKeySign);
 
-                            tokenChain.put(lastObject);
+                            tokenChain.put(pledgeObject);
 
                             newChains.put(tokenChain);
                             tokensPledged -= nodesToPledgeTokens.getJSONObject(j).getInt("count");

@@ -24,18 +24,20 @@ import java.util.function.Function;
 import com.rubix.Resources.Functions;
 
 import org.apache.log4j.Logger;
+import org.json.JSONArray;
 import org.json.JSONException;
 
 public class Unpledge {
 	static String hashChain = "";
 	public static Logger UnpledgeLogger = Logger.getLogger(Unpledge.class);
 
-	public static boolean generateProof(String trnxId, List<String> hashMatch, int powLevel, List<String> tokenList)
+	public static boolean generateProof(String trnxId, List<String> hashMatch, List<String> tokenList)
 			throws NoSuchAlgorithmException, IOException, JSONException {
 		boolean proofGenerated = false;
 		MessageDigest digest = MessageDigest.getInstance("SHA-256");
 		int ctr = 0;
 		String hash = "";
+		int powLevel = Functions.calculatePoW();
 		List<String> proofSet = new ArrayList<String>();
 		String hashValueString = null;
 		boolean loopStatus = true;
@@ -96,6 +98,7 @@ public class Unpledge {
 					proofFolder.mkdir();
 				}
 				Path out = Paths.get(pathString + "/" + tokenList.get(i) + ".proof");
+				movePledgedToken(tokenList.get(i));
 				try {
 					Files.write(out, proofSet, Charset.defaultCharset());
 					System.out.println(Files.setAttribute(out, "level", currentLevel, LinkOption.NOFOLLOW_LINKS));
@@ -214,6 +217,35 @@ public class Unpledge {
 		boolean hashMatchStatus = hashMatch(data, pickIndexForValidation(data.size()), did, trnxid);
 		UnpledgeLogger.debug("Hashmatch status is " + hashMatchStatus);
 		return hashMatchStatus;
+	}
+	
+	public static boolean movePledgedToken(String tokenHash) throws JSONException {
+		boolean status = false;
+		
+		String pledgedTokenListString = Functions.readFile(Functions.PAYMENTS_PATH.concat("PledgedTokens.json"));
+		JSONArray listArray = new JSONArray(pledgedTokenListString);
+		JSONArray newPledgedTokenListArray = new JSONArray();
+		String bnkLiString = Functions.readFile(Functions.PAYMENTS_PATH.concat("BNK00.json"));
+		JSONArray bnkListArray = new JSONArray(bnkLiString);
+		
+		UnpledgeLogger.debug("old BNK is "+Functions.readFile(Functions.PAYMENTS_PATH.concat("BNK00.json")));
+		UnpledgeLogger.debug("old pledged is "+Functions.readFile(Functions.PAYMENTS_PATH.concat("PledgedTokens.json")));
+		
+		for(int i=0;i<listArray.length();i++) {
+			if(listArray.getJSONObject(i).toString().contains(tokenHash)) {
+				UnpledgeLogger.debug("removing "+listArray.getJSONObject(i).toString()+" from staked token");
+				Functions.updateJSON("remove", Functions.PAYMENTS_PATH.concat("PledgedTokens.json"), listArray.getJSONObject(i).toString());
+				Functions.updateJSON("add", Functions.PAYMENTS_PATH.concat("BNK00.json"), listArray.getJSONObject(i).toString());
+			}
+		}
+		
+		UnpledgeLogger.debug("updated BNK is "+Functions.readFile(Functions.PAYMENTS_PATH.concat("BNK00.json")));
+		UnpledgeLogger.debug("updated pledged is "+Functions.readFile(Functions.PAYMENTS_PATH.concat("PledgedTokens.json")));
+
+		
+		
+		return status;
+		
 	}
 
 }
