@@ -515,12 +515,18 @@ public class ProofCredits {
                         }
                     });
                     stakingThread.start();
-
+                    /** Commented for 1/5 staking 
                     while ((StakeConsensus.STAKE_SUCCESS < 3 && StakeConsensus.STAKE_FAILED < 3)) {
 
                     }
+                    */
+                    do {
+                    } while (StakeConsensus.STAKE_SUCCESS < 1 && StakeConsensus.STAKE_FAILED < 5);
+                    
                     ProofCreditsLogger.debug("Stake consensus stake details is "+ StakeConsensus.stakeDetails.toString());
-                    if (StakeConsensus.STAKE_SUCCESS == 3 && StakeConsensus.stakeDetails.length() > 0) {
+                    
+                    /** Modifying the STAKE_SUCCESS condition from 3 to 0 to accomodate 1/5 staking */
+                    if (StakeConsensus.STAKE_SUCCESS == 1 && StakeConsensus.stakeDetails.length() > 0) {
                         tokenChainGenesisObject.put(MiningConstants.MINE_ID, StakeConsensus.stakeDetails);
                         tokenChainArray.put(tokenChainGenesisObject);
 

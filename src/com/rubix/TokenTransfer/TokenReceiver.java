@@ -1103,8 +1103,12 @@ public class TokenReceiver {
 								// invalidTokens.put(tokens);
 								// }
 
-								if (stakeDataArray.length() == 3) {
-
+								
+								
+								/** Modifying the changes to accomodate 1/5 staking; */
+								if (stakeDataArray.length() > 0 && stakeDataArray.length() <= 3 ) {
+									
+									/* 
 									if(stakeDataArray.length() > 0) {
 										JSONObject oneOfThreeStake = stakeDataArray.getJSONObject(0);
 										JSONObject twoOfThreeStake = stakeDataArray.getJSONObject(1);
@@ -1133,6 +1137,25 @@ public class TokenReceiver {
 										stakerDIDTC[2] = threeOfThreeStake.getString(MiningConstants.STAKED_QUORUM_DID);
 										mineIDTC[2] = threeOfThreeStake.getString(MiningConstants.MINE_ID);
 										mineIDSignTC[2] = threeOfThreeStake.getString(MiningConstants.MINE_ID_SIGN);
+								*/
+									
+									String[] stakedTokenTC = new String[stakeDataArray.length()];
+									String[] stakedTokenSignTC = new String[stakeDataArray.length()];
+									String[] stakerDIDTC = new String[stakeDataArray.length()];
+									String[] mineIDTC = new String[stakeDataArray.length()];
+									String[] mineIDSignTC = new String[stakeDataArray.length()]; 
+									
+									for(int i=0;i < stakeDataArray.length(); i++){
+										
+										JSONObject oneOfThreeStake = stakeDataArray.getJSONObject(i);
+																			
+										stakedTokenTC[i] = oneOfThreeStake.getString(MiningConstants.STAKED_TOKEN);
+										stakedTokenSignTC[i] = oneOfThreeStake.getString(MiningConstants.STAKED_TOKEN_SIGN);
+										stakerDIDTC[i] = oneOfThreeStake.getString(MiningConstants.STAKED_QUORUM_DID);
+										mineIDTC[i] = oneOfThreeStake.getString(MiningConstants.MINE_ID);
+										mineIDSignTC[i] = oneOfThreeStake.getString(MiningConstants.MINE_ID_SIGN);
+									}
+								
 										TokenReceiverLogger.debug("mineIDTC length is " + mineIDTC.length);
 
 										for (int stakeCount = 0; stakeCount < mineIDTC.length; stakeCount++) {
@@ -1210,7 +1233,7 @@ public class TokenReceiver {
 											// invalidTokens.put(tokens);
 											// }
 										}
-									}
+								//	}
 
 								} else {
 //									ownerCheck = false;
