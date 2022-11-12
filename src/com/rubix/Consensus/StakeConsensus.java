@@ -173,7 +173,11 @@ public class StakeConsensus {
                                                         .executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumPID[j]);
                                             }
 
-                                            if (ownerCheck && !(STAKE_LOCKED > 2)) {
+                                            /**  Modified for 1/5 staking  
+                                        	 * 	if (ownerCheck && !(STAKE_LOCKED > 2)) { 
+                                        	 */
+                                                                                  
+                                        	  if (ownerCheck && !(STAKE_LOCKED > 0)) {
                                                 StakeConsensusLogger
                                                         .debug("Ownership Check Success for Peer: " + quorumPID[j]);
                                                 STAKE_LOCKED++;
@@ -329,8 +333,12 @@ public class StakeConsensus {
 
             }
 
+            /** Commented for 1/5 staking 
             do {
             } while (STAKE_SUCCESS < 3 && STAKE_FAILED < 3);
+            */
+            do {
+            } while (STAKE_SUCCESS < 1 && STAKE_FAILED < 5);
 
         } catch (Exception e) {
             StakeConsensusLogger.error("Error in getStakeConsensus: " + e);
