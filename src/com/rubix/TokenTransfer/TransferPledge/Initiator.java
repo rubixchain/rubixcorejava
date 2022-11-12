@@ -24,6 +24,8 @@ import static com.rubix.Resources.IPFSNetwork.forward;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 
 public class Initiator {
+	
+	
     public static Logger PledgeInitiatorLogger = Logger.getLogger(Initiator.class);
     public static JSONArray pledgedNodes  = new JSONArray();
     public static JSONObject abortReason = new JSONObject();
@@ -95,8 +97,8 @@ public class Initiator {
 
                         JSONObject tokenObject = tokenDetails.getJSONObject(k);
                         JSONArray tokenChain = tokenObject.getJSONArray("chain");
-                        JSONObject genesisObject = tokenChain.getJSONObject(0);
-                        if (genesisObject.has("pledgeToken")) {
+                        JSONObject lasObject = tokenChain.getJSONObject(tokenChain.length()-1);
+                        if (lasObject.has("pledgeToken")) {
                             PledgeInitiatorLogger.debug("This token has already been pledged - Aborting");
                             PledgeInitiatorLogger.debug("4. Setting abort to true");
                             abortReason.put("Quorum", quorumID);
@@ -186,15 +188,23 @@ public class Initiator {
                 JSONArray tokens = new JSONArray();
                 if (qResponse != null) {
                     JSONArray tokenDetails = new JSONArray(qResponse);
+                    PledgeInitiatorLogger.debug("TokenDetails is "+tokenDetails.toString());
                     JSONArray newChains = new JSONArray();
                     for (int k = 0; k < tokenDetails.length(); k++) {
                         JSONObject tokenObject = tokenDetails.getJSONObject(k);
                         JSONArray tokenChain = tokenObject.getJSONArray("chain");
+                        String tokenHash = tokenObject.getString("tokenHash");
+                        PledgeInitiatorLogger.debug(tokenHash);
+                        PledgeInitiatorLogger.debug("in json "+tokenObject.getString("tokenHash"));
+
                         JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
+                        PledgeInitiatorLogger.debug("tokenHash is "+tokenHash);
+                        
+                        
                         if (lastObject.has("pledgeToken")) {
                             PledgeInitiatorLogger.debug("Quorum " + quorumID + " sent a token which is already pledged");
                             abortReason.put("Quorum", quorumID);
-                            abortReason.put("Reason", "Token " + tokenObject.getJSONArray("tokenHash") + " has been already pledged");
+                            abortReason.put("Reason", "Token " + tokenHash + " has been already pledged");
 //                            abort = true;
                             qSocket1.close();
 //                            return abort;
@@ -203,9 +213,8 @@ public class Initiator {
                             pledgeObject.put("sender", sender);
                             pledgeObject.put("receiver", receiver);
                             pledgeObject.put("tid", tid);
-                            pledgeObject.put("pledgeToken", tokenObject.getJSONArray("tokenHash"));
+                            pledgeObject.put("pledgeToken", tokenHash);
                             pledgeObject.put("tokensPledgedFor", tokenList);
-
                             tokenChain.put(pledgeObject);
 //                            lastObject.put("pledgeToken", dataObject.getString("tid"));
 //
@@ -227,11 +236,11 @@ public class Initiator {
                             pledgeObject.put("pvtShareBits",hashSignedwithPvtShare);
                             pledgeObject.put("pvtKeySign", PvtKeySign);
 
-                            tokenChain.put(lastObject);
+                            tokenChain.put(pledgeObject);
 
                             newChains.put(tokenChain);
                             tokensPledged -= nodesToPledgeTokens.getJSONObject(j).getInt("count");
-                            tokens.put(tokenObject.getJSONArray("tokenHash"));
+                            tokens.put(tokenHash);
 
                         }
                     }

@@ -29,6 +29,7 @@ import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Ping.VerifyStakedToken;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
+import com.rubix.TokenTransfer.TransferPledge.Unpledge;
 import com.rubix.Constants.MiningConstants.*;
 
 import static com.rubix.Resources.APIHandler.getPubKeyIpfsHash_DIDserver;
@@ -212,7 +213,7 @@ public class TokenReceiver {
 			}
 
 			JSONArray previousSendersArray = tokenObject.getJSONArray("previousSender");
-			JSONArray positionsArray = tokenObject.getJSONArray("positions");
+//			 JSONArray positionsArray = tokenObject.getJSONArray("positions");
 
 			Double amount = tokenObject.getDouble("amount");
 			JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
@@ -282,6 +283,7 @@ public class TokenReceiver {
 			// ? multiple pin check ends
 			String senderToken = TokenDetails.toString();
 			String consensusID = calculateHash(senderToken, "SHA3-256");
+			TokenReceiverLogger.debug("consensusID is "+consensusID);
 			writeToFile(LOGGER_PATH + "consensusID", consensusID, false);
 			String consensusIDIPFSHash = IPFSNetwork.addHashOnly(LOGGER_PATH + "consensusID", ipfs);
 			deleteFile(LOGGER_PATH + "consensusID");
@@ -337,14 +339,11 @@ public class TokenReceiver {
 						if (pledgeBlock.has("pledgeToken") && !pledgeBlock.getString("pledgeToken").isEmpty()) {
 							String tokenName = chain.getJSONObject(chain.length() - 1).getString("pledgeToken");
 							String did = chain.getJSONObject(chain.length() - 1).getString("receiver");
-							pledged = verifyProof(tokenName, did);
+							String tid = chain.getJSONObject(chain.length() - 1).getString("tid");
+							pledged = Unpledge.verifyProof(tokenName, did,tid);
 							JSONObject pledgedTokenObject = new JSONObject();
 							pledgedTokenObject.put("tokenHash", wholeTokens.getString(i));
 							pledgedTokens.put(pledgedTokenObject);
-						}
-						else {
-							pledged = true;
-							pledgeErrorMessage = "Token ".concat(chain.getJSONObject(chain.length() - 1).getString("pledgeToken")).concat(" is missing pledge information");
 						}
 					}
 				}
@@ -454,7 +453,7 @@ public class TokenReceiver {
 				if(lastValueOnChain.has("hash") && lastValueOnChain.has("pvtShareBits") && lastValueOnChain.has("pvtKeySign")){
 										
 					String hash= lastValueOnChain.getString("hash");
-					//TokenReceiverLogger.debug("Hash to check  : "+ hash);
+					TokenReceiverLogger.debug("Hash to check(hash)  : "+ hash);
 					String pvtShareBits = lastValueOnChain.getString("pvtShareBits");
 					String pvtKeySign = lastValueOnChain.getString("pvtKeySign");
 					String prevSenderDID = lastValueOnChain.getString("sender");
@@ -474,8 +473,9 @@ public class TokenReceiver {
 					//TokenReceiverLogger.debug("Token Chain Content that is to be hashed : "+TokenChainArray);
 
 					String hashToCheck = calculateHash(TokenChainArray.toString(), "SHA3-256");
+					TokenReceiverLogger.debug("hashtocheck is "+hashToCheck);
 
-					TokenReceiverLogger.debug("Calculated Hash : "+ hashToCheck);
+					TokenReceiverLogger.debug("Calculated Hash(hashtocheck) : "+ hashToCheck);
 
                     //Check 1 : Hash comaprison check
 					if(hashToCheck.equals(hash)){
@@ -541,7 +541,7 @@ public class TokenReceiver {
 
 			// Returning responses after chain verification
             if(chainAutheticityFlag == 1){
-                
+
                 TokenReceiverLogger.debug("Token Transfer continuing without TokenChain authentication check. (Bootstrap purpose)");
                 //if condition needs to be removed after bootstrapping.
             }
@@ -665,10 +665,10 @@ public class TokenReceiver {
 							TokenReceiverLogger.debug("Token Chain to be hashed : "+ partTokenChainToVerify);
 		
 							String hashToCheck = calculateHash(partTokenChainToVerify.toString(), "SHA3-256");
-							//TokenReceiverLogger.debug("Calculated Hash : "+ hashToCheck);
+							TokenReceiverLogger.debug("Calculated Hash(hashToCheck) : "+ hashToCheck);
 				
 							if(hashToCheck.equals(hash)){
-							//TokenReceiverLogger.debug("Hash values match.");
+							TokenReceiverLogger.debug("Hash values match.");
 		
 								forNLSScheck.put("did", requiredDID);
 								forNLSScheck.put("hash", hashToCheck);
@@ -777,6 +777,7 @@ public class TokenReceiver {
 					//TokenReceiverLogger.debug("Token Chain Content that is to be hashed : "+TokenChainArray);
 
 					String hashToCheck = calculateHash(partTokenChainToVerify.toString(), "SHA3-256");
+					TokenReceiverLogger.debug("hashToCheck(partTokenChainToVerify.toString()) is "+hashToCheck);
 
 					if(hashToCheck.equals(hash)){
 
@@ -989,7 +990,7 @@ public class TokenReceiver {
 				return APIResponse.toString();
 			} */
 
-			boolean ownerCheck = true;
+//			boolean ownerCheck = true;
 
 			JSONArray allTokens = new JSONArray();
 			for (int i = 0; i < wholeTokens.length(); i++)
@@ -1008,6 +1009,7 @@ public class TokenReceiver {
 			
 			JSONArray invalidTokens = new JSONArray();
 
+			//TODO
 			for (int count = 0; count < wholeTokens.length(); count++) {
 				String tokens = null;
 				TokenReceiverLogger.debug("Json array tokenChain value is " + wholeTokens.get(count).toString());
@@ -1036,31 +1038,34 @@ public class TokenReceiver {
 				TokenReceiverLogger.debug("Last Object = " + lastObject.toString());
 				
 				
-				if (tokenChain.length() > 0 && lastObject.has("owner") && !lastObject.has(MiningConstants.STAKED_TOKEN) &&  
+//				if (tokenChain.length() > 0 && lastObject.has("owner") && !lastObject.has(MiningConstants.STAKED_TOKEN) &&
+//							( (tokenLevelInt == 4 && (tokenDetailMap.get(tokenNumberHash) >= 1204400)) || (tokenLevelInt >= 5)) ) {
+					if (tokenChain.length() > 0 && !lastObject.has(MiningConstants.STAKED_TOKEN) &&
 							( (tokenLevelInt == 4 && (tokenDetailMap.get(tokenNumberHash) >= 1204400)) || (tokenLevelInt >= 5)) ) {
 
-						TokenReceiverLogger.debug("Checking ownership");
-						String owner = lastObject.getString("owner");
-						tokens = allTokens.getString(count);
-						String hashString = tokens.concat(senderDidIpfsHash);
-						String hashForPositions = calculateHash(hashString, "SHA3-256");
-						String ownerIdentity = hashForPositions.concat(positionsArray.getString(count));
-						String ownerRecalculated = calculateHash(ownerIdentity, "SHA3-256");
+//						TokenReceiverLogger.debug("Checking ownership");
+//						String owner = lastObject.getString("owner");
+//						tokens = allTokens.getString(count);
+//						String hashString = tokens.concat(senderDidIpfsHash);
+//						String hashForPositions = calculateHash(hashString, "SHA3-256");
+//						String ownerIdentity = hashForPositions.concat(positionsArray.getString(count));
+//						String ownerRecalculated = calculateHash(ownerIdentity, "SHA3-256");
+//
+//						TokenReceiverLogger.debug("Ownership Here Sender Calculation");
+//						TokenReceiverLogger.debug("tokens: " + tokens);
+//						TokenReceiverLogger.debug("hashString: " + hashString);
+//						TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
+//						TokenReceiverLogger.debug("p1: " + positionsArray.getString(count));
+//						TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
+//						TokenReceiverLogger.debug("ownerIdentityHash: " + ownerRecalculated);
+//
+//						if (!owner.equals(ownerRecalculated)) {
+//							ownerCheck = false;
+//							invalidTokens.put(tokens);
+//						}
 
-						TokenReceiverLogger.debug("Ownership Here Sender Calculation");
-						TokenReceiverLogger.debug("tokens: " + tokens);
-						TokenReceiverLogger.debug("hashString: " + hashString);
-						TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
-						TokenReceiverLogger.debug("p1: " + positionsArray.getString(count));
-						TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
-						TokenReceiverLogger.debug("ownerIdentityHash: " + ownerRecalculated);
-
-						if (!owner.equals(ownerRecalculated)) {
-							ownerCheck = false;
-							invalidTokens.put(tokens);
-						}
-
-						if (ownerCheck && (tokenChain.length() < minumumStakeHeight)) {
+//						if (ownerCheck && (tokenChain.length() < minumumStakeHeight)) {
+						if (tokenChain.length() < minumumStakeHeight) {
 							// && (tokenNumber > 1204400)
 							if(tokenChain.length() > 0) {
 								JSONObject genesiObject = tokenChain.getJSONObject(0);
@@ -1177,7 +1182,7 @@ public class TokenReceiver {
 													if (!minedTokenStatus) {
 														TokenReceiverLogger.debug("Staked token is not found with staker DID: "
 																+ stakerDIDTC[stakeCount]);
-														ownerCheck = false;
+//														ownerCheck = false;
 														invalidTokens.put(tokens);
 													}
 
@@ -1185,7 +1190,7 @@ public class TokenReceiver {
 													TokenReceiverLogger.debug(
 															"Staking check (2) failed - unable to verify mine ID signature by staker: "
 																	+ stakerDIDTC[stakeCount]);
-													ownerCheck = false;
+//													ownerCheck = false;
 													invalidTokens.put(tokens);
 												}
 
@@ -1193,7 +1198,7 @@ public class TokenReceiver {
 														+ stakerDIDTC[stakeCount]);
 											} else {
 												TokenReceiverLogger.debug("Staking check (2) failed");
-												ownerCheck = false;
+//												ownerCheck = false;
 												invalidTokens.put(tokens);
 											}
 
@@ -1208,7 +1213,7 @@ public class TokenReceiver {
 									}
 
 								} else {
-									ownerCheck = false;
+//									ownerCheck = false;
 									TokenReceiverLogger.debug("Staked Token is not available!");
 
 								}
@@ -1238,13 +1243,13 @@ public class TokenReceiver {
 						}
 						if (!minedTokenStatus) {
 							TokenReceiverLogger.debug("Staking check failed: Found staked token but token height < 46");
-							ownerCheck = false;
+//							ownerCheck = false;
 							invalidTokens.put(tokens);
 						}
 
 						TokenReceiverLogger.debug(
 								"Staking check failed: Found staked token but unable to transfer while mined token height is not satisfied for the network");
-						ownerCheck = false;
+//						ownerCheck = false;
 						invalidTokens.put(tokens);
 
 						// JSONObject tokenToVerify = new JSONObject();
@@ -1295,24 +1300,24 @@ public class TokenReceiver {
 				
 			}
 
-			if (!ownerCheck) {
-				TokenReceiverLogger.debug("Ownership Check Failed");
-				String errorMessage = "Ownership Check Failed";
-				output.println("424");
-				output.println(invalidTokens.toString());
-				APIResponse.put("did", senderDidIpfsHash);
-				APIResponse.put("tid", "null");
-				APIResponse.put("status", "Failed");
-				APIResponse.put("message", errorMessage);
-				TokenReceiverLogger.debug(errorMessage);
-				executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-				output.close();
-				input.close();
-				sk.close();
-				ss.close();
-				return APIResponse.toString();
-			} else
-				TokenReceiverLogger.debug("Ownership Check Passed");
+//			if (!ownerCheck) {
+//				TokenReceiverLogger.debug("Ownership Check Failed");
+//				String errorMessage = "Ownership Check Failed";
+//				output.println("424");
+//				output.println(invalidTokens.toString());
+//				APIResponse.put("did", senderDidIpfsHash);
+//				APIResponse.put("tid", "null");
+//				APIResponse.put("status", "Failed");
+//				APIResponse.put("message", errorMessage);
+//				TokenReceiverLogger.debug(errorMessage);
+//				executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+//				output.close();
+//				input.close();
+//				sk.close();
+//				ss.close();
+//				return APIResponse.toString();
+//			} else
+//				TokenReceiverLogger.debug("Ownership Check Passed");
 
 			// -------------------------------------------------------
 
@@ -1397,6 +1402,20 @@ public class TokenReceiver {
 			BufferedImage senderWidImage = ImageIO.read(new File(DATA_PATH + senderDidIpfsHash + "/PublicShare.png"));
 			SenWalletBin = PropImage.img2bin(senderWidImage);
 
+			
+			
+			JSONArray wholeTokenChainHash = new JSONArray();
+			for (int i = 0; i < intPart; i++)
+				wholeTokenChainHash.put(wholeTokenChains.getString(i));
+			
+			String hash = calculateHash(
+					wholeTokens.toString() + wholeTokenChainHash.toString() + partTokens.toString()
+							+ partTokenChainsHash.toString() + receiverDidIpfsHash + senderDidIpfsHash + comment,
+					"SHA3-256");
+			
+			TokenReceiverLogger.debug("hash is "+hash);
+			
+			
 			TokenReceiverLogger.debug("Verifying Quorum ...  ");
 			TokenReceiverLogger.debug("Please wait, this might take a few seconds");
 
@@ -1404,8 +1423,16 @@ public class TokenReceiver {
 				boolean yesQuorum = false;
 				if (Status.equals("Consensus Reached")) {
 					quorumSignatures = new JSONArray(QuorumDetails);
-					String selectQuorumHash = calculateHash(senderToken, "SHA3-256");
-					String verifyQuorumHash = calculateHash(selectQuorumHash.concat(receiverDidIpfsHash), "SHA3-256");
+					
+				//	String selectQuorumHash = calculateHash(senderToken, "SHA3-256");
+					String verifyQuorumHash = hash;
+					TokenReceiverLogger.debug("verifyQuorumHash is "+verifyQuorumHash);
+
+					String quorumHash = calculateHash(verifyQuorumHash.concat(receiverDidIpfsHash), "SHA3-256");
+					TokenReceiverLogger.debug("quorumHash is "+quorumHash);
+					TokenReceiverLogger.debug("quorumHash is (verifyQuorumHash)concat(receiverDidIpfsHash)");
+
+
 /* 
 					Iterator<String> keys = quorumSignatures.keys();
 					while (keys.hasNext()) {
@@ -1420,12 +1447,19 @@ public class TokenReceiver {
 
 						nodeData(quorumDidIpfsHash, quorumWidIpfsHash, ipfs);
 					} */
+					
+					
+					
 
 					for (int i = 0; i < quorumSignatures.length(); i++) {
+						
 						JSONObject QuorumMember = quorumSignatures.getJSONObject(i);
 						syncDataTable(QuorumMember.getString("quorum_did"), null);
 						String quorumWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash",
 						QuorumMember.getString("quorum_did"));
+						String quorumPid = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
+								QuorumMember.getString("quorum_did"));
+						bootstrapConnect(quorumPid, ipfs);
 
 						nodeData((QuorumMember.getString("quorum_did")), quorumWidIpfsHash, ipfs);
 					}
@@ -1445,7 +1479,7 @@ public class TokenReceiver {
 
 						JSONObject detailsForVerify = new JSONObject();
 						detailsForVerify.put("did",quorumMember.getString("quorum_did") );
-						detailsForVerify.put("hash", verifyQuorumHash);
+						detailsForVerify.put("hash", quorumHash);
 						detailsForVerify.put("signature",quorumMember.getString("quorumPrivateShareSign"));
 
 						boolean val = ((verifySignature(quorumsPrivateShareSign,getPubKeyFromStr(quorumPubKeyStr,pubKeyAlgo),quorumsPrivateKeySign,pubKeyAlgo)) && (Authenticate.verifySignature(detailsForVerify.toString())));
@@ -1457,14 +1491,9 @@ public class TokenReceiver {
 					TokenReceiverLogger.debug("Verified Quorum Count " + quorumSignVerifyCount);
 					yesQuorum = quorumSignVerifyCount >= quorumSignatures.length();
 				}
-				JSONArray wholeTokenChainHash = new JSONArray();
-				for (int i = 0; i < intPart; i++)
-					wholeTokenChainHash.put(wholeTokenChains.getString(i));
+				
 
-				String hash = calculateHash(
-						wholeTokens.toString() + wholeTokenChainHash.toString() + partTokens.toString()
-								+ partTokenChainsHash.toString() + receiverDidIpfsHash + senderDidIpfsHash + comment,
-						"SHA3-256");
+				
 				TokenReceiverLogger.debug("Hash to verify Sender: " + hash);
 				JSONObject detailsForVerify = new JSONObject();
 				detailsForVerify.put("did", senderDidIpfsHash);
@@ -1528,32 +1557,34 @@ public class TokenReceiver {
 
                 JSONArray arrLastObjects = new JSONArray();
                 if(request.equals("Request for new blocks being added to the Token Chains")){
+                	
+                	TokenReceiverLogger.debug("Request for new blocks being added to the Token Chains");
 
-                    
+                    //TODO
                     for (int i = 0; i < intPart; i++) {
-                        String tokens = wholeTokens.getString(i);
-                        String hashString = tokens.concat(receiverDidIpfsHash);
-                        String hashForPositions = calculateHash(hashString, "SHA3-256");
-
-                        BufferedImage pvt1 = ImageIO
-                                .read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
-                        String firstPrivate = PropImage.img2bin(pvt1);
-                        int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-                        String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-                        String positions = "";
-                        for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
-                            positions += privateBinary.charAt(j);
-                        }
-                        String ownerIdentity = hashForPositions.concat(positions);
-                        String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
-
-                        TokenReceiverLogger.debug("Ownership Here");
-                        TokenReceiverLogger.debug("tokens: " + wholeTokens.getString(i));
-                        TokenReceiverLogger.debug("hashString: " + hashString);
-                        TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
-                        TokenReceiverLogger.debug("p1: " + positions);
-                        TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
-                        TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
+//                        String tokens = wholeTokens.getString(i);
+//                        String hashString = tokens.concat(receiverDidIpfsHash);
+//                        String hashForPositions = calculateHash(hashString, "SHA3-256");
+//
+//                        BufferedImage pvt1 = ImageIO
+//                                .read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
+//                        String firstPrivate = PropImage.img2bin(pvt1);
+//                        int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+//                        String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+//                        String positions = "";
+//                        for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+//                            positions += privateBinary.charAt(j);
+//                        }
+//                        String ownerIdentity = hashForPositions.concat(positions);
+//                        String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+//
+//                        TokenReceiverLogger.debug("Ownership Here");
+//                        TokenReceiverLogger.debug("tokens: " + wholeTokens.getString(i));
+//                        TokenReceiverLogger.debug("hashString: " + hashString);
+//                        TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
+//                        TokenReceiverLogger.debug("p1: " + positions);
+//                        TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
+//                        TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
 
                         ArrayList<String> groupTokens = new ArrayList<>();
                         for (int k = 0; k < intPart; k++) {
@@ -1569,12 +1600,12 @@ public class TokenReceiver {
                         JSONArray arr = new JSONArray(wholeTokenChainContent.get(i));
                         
                         JSONObject lastObject = new JSONObject();
-                        lastObject.put("senderSign", senderPvtShareBits);
+                        //lastObject.put("senderSign", senderPvtShareBits);
                         lastObject.put("sender", senderDidIpfsHash);
                         lastObject.put("group", allTokens);
                         lastObject.put("comment", comment);
                         lastObject.put("tid", tid);
-                        lastObject.put("owner", ownerIdentityHash);
+                        //lastObject.put("owner", ownerIdentityHash);
 						lastObject.put("receiver", receiverDidIpfsHash);
 						lastObject.put("pledgeToken", pledgedDetails);
 						lastObject.put("tokensPledgedFor", allTokens);
@@ -1597,6 +1628,25 @@ public class TokenReceiver {
 				String hashAndSignsforTokenChains;
                 try {
                     hashAndSignsforTokenChains = input.readLine();
+                    
+                    
+                    
+                    TokenReceiverLogger.info("!!!"+hashAndSignsforTokenChains);
+                    
+                    if(hashAndSignsforTokenChains.contains("Token chains Not Matching")) {
+                    	TokenReceiverLogger.warn("Token chains Not Matching");
+                        APIResponse.put("did", "");
+                        APIResponse.put("tid", "null");
+                        APIResponse.put("status", "Failed");
+                        APIResponse.put("message", "Token chains Not Matching");
+                       
+                        output.close();
+                        input.close();
+                        sk.close();
+                        ss.close();
+                        return APIResponse.toString();
+                    }
+                    
                     hash_Signs_ForTokenChains = new JSONArray(hashAndSignsforTokenChains);
                 } catch (SocketException e) {
                     TokenReceiverLogger.warn("Sender Stream Null - Token Chain Updation status");
@@ -1614,28 +1664,32 @@ public class TokenReceiver {
                 }
 
 
-				//To accecpt sender req for new Part Token chain blocks, and provide the same
-                String request_parttokenchains;
-                try {
-                    request_parttokenchains = input.readLine();
-                } catch (SocketException e) {
-                    TokenReceiverLogger.warn("Sender Stream Null, receiver unable to accept senders request to get new part Token chain block for hashing");
-                    APIResponse.put("did", "");
-                    APIResponse.put("tid", "null");
-                    APIResponse.put("status", "Failed");
-                    APIResponse.put("message", "Sender Stream Null, receiver unable to accept senders request to get new part Token chain block for hashing");
+//				//To accecpt sender req for new Part Token chain blocks, and provide the same
+//                String request_parttokenchains;
+//                try {
+//                    request_parttokenchains = input.readLine();
+//                } catch (SocketException e) {
+//                    TokenReceiverLogger.warn("Sender Stream Null, receiver unable to accept senders request to get new part Token chain block for hashing");
+//                    APIResponse.put("did", "");
+//                    APIResponse.put("tid", "null");
+//                    APIResponse.put("status", "Failed");
+//                    APIResponse.put("message", "Sender Stream Null, receiver unable to accept senders request to get new part Token chain block for hashing");
+//
+//                    output.close();
+//                    input.close();
+//                    sk.close();
+//                    ss.close();
+//                    return APIResponse.toString();
+//
+//                }
 
-                    output.close();
-                    input.close();
-                    sk.close();
-                    ss.close();
-                    return APIResponse.toString();
-
-                }
-
+             
+                
+                
 				JSONObject parttokenchainsToBeHashed = new JSONObject();
-                if(request_parttokenchains.equals("Request for Part Token Chains to be hashed")){
+//                if(request_parttokenchains.equals("Request for Part Token Chains to be hashed")){
 
+					//TODO
 					for (int i = 0; i < partTokens.length(); i++) {
 						JSONObject chequeObject = new JSONObject();
 						chequeObject.put("sender", senderDidIpfsHash);
@@ -1653,35 +1707,36 @@ public class TokenReceiver {
 						String tokens = partTokens.getString(i);
 						String hashString = tokens.concat(receiverDidIpfsHash);
 						String hashForPositions = calculateHash(hashString, "SHA3-256");
-						BufferedImage pvt1 = ImageIO
-								.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
-						String firstPrivate = PropImage.img2bin(pvt1);
-						int[] privateIntegerArray1 = strToIntArray(firstPrivate);
-						String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
-						String positions = "";
-						for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
-							positions += privateBinary.charAt(j);
-						}
-
-						String ownerIdentity = hashForPositions.concat(positions);
-						String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
-
-						TokenReceiverLogger.debug("Ownership Here");
-						TokenReceiverLogger.debug("tokens: " + partTokens.getString(i));
-						TokenReceiverLogger.debug("hashString: " + hashString);
-						TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
-						TokenReceiverLogger.debug("p1: " + positions);
-						TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
-						TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
+						
+//						BufferedImage pvt1 = ImageIO
+//								.read(new File(DATA_PATH.concat(receiverDidIpfsHash).concat("/PrivateShare.png")));
+//						String firstPrivate = PropImage.img2bin(pvt1);
+//						int[] privateIntegerArray1 = strToIntArray(firstPrivate);
+//						String privateBinary = Functions.intArrayToStr(privateIntegerArray1);
+//						String positions = "";
+//						for (int j = 0; j < privateIntegerArray1.length; j += 49152) {
+//							positions += privateBinary.charAt(j);
+//						}
+//
+//						String ownerIdentity = hashForPositions.concat(positions);
+//						String ownerIdentityHash = calculateHash(ownerIdentity, "SHA3-256");
+//
+//						TokenReceiverLogger.debug("Ownership Here");
+//						TokenReceiverLogger.debug("tokens: " + partTokens.getString(i));
+//						TokenReceiverLogger.debug("hashString: " + hashString);
+//						TokenReceiverLogger.debug("hashForPositions: " + hashForPositions);
+//						TokenReceiverLogger.debug("p1: " + positions);
+//						TokenReceiverLogger.debug("ownerIdentity: " + ownerIdentity);
+//						TokenReceiverLogger.debug("ownerIdentityHash: " + ownerIdentityHash);
 
 						JSONObject newPartObject = new JSONObject();
-						newPartObject.put("senderSign", senderSignature);
+						//newPartObject.put("senderSign", senderSignature);
 						newPartObject.put("sender", senderDidIpfsHash);
 						newPartObject.put("receiver", receiverDidIpfsHash);
 						newPartObject.put("comment", comment);
 						newPartObject.put("tid", tid);
 						//newPartObject.put("nextHash", "");
-						newPartObject.put("owner", ownerIdentityHash);
+//						newPartObject.put("owner", ownerIdentityHash);
 						/* if (partTokenChainContent.getJSONArray(i).length() == 0)
 							newPartObject.put("previousHash", "");
 						else
@@ -1732,32 +1787,32 @@ public class TokenReceiver {
 
 							}
 					}
-				}
+//				}
 				
-				output.println(parttokenchainsToBeHashed.toString());
+//				output.println(parttokenchainsToBeHashed.toString());
 
 				
 
-				String req_hashesAndSignsPartTokenChains;
-				try {
-					req_hashesAndSignsPartTokenChains = input.readLine();
-					hashes_Signs_PartTokenChains = new JSONArray(req_hashesAndSignsPartTokenChains);
-
-					
-					}catch (SocketException e) {
-						TokenReceiverLogger.warn("Sender Stream Null - Token Chain Updation status");
-						APIResponse.put("did", "");
-						APIResponse.put("tid", "null");
-						APIResponse.put("status", "Failed");
-						APIResponse.put("message", "Sender Stream Null - Token Chain Updation Status");
-	
-						output.close();
-						input.close();
-						sk.close();
-						ss.close();
-						return APIResponse.toString();
-	
-					}
+//				String req_hashesAndSignsPartTokenChains;
+//				try {
+//					req_hashesAndSignsPartTokenChains = input.readLine();
+//					hashes_Signs_PartTokenChains = new JSONArray(req_hashesAndSignsPartTokenChains);
+//
+//
+//					}catch (SocketException e) {
+//						TokenReceiverLogger.warn("Sender Stream Null - Token Chain Updation status");
+//						APIResponse.put("did", "");
+//						APIResponse.put("tid", "null");
+//						APIResponse.put("status", "Failed");
+//						APIResponse.put("message", "Sender Stream Null - Token Chain Updation Status");
+//
+//						output.close();
+//						input.close();
+//						sk.close();
+//						ss.close();
+//						return APIResponse.toString();
+//
+//					}
 
 
 				String pinDetails;
@@ -1916,110 +1971,110 @@ public class TokenReceiver {
 
 
 
-						//Updating the sender's part token chains with the chains hash and receivers sign.
-						String parttokenchains_req;
-						try {
-                			parttokenchains_req = input.readLine();
+//						//Updating the sender's part token chains with the chains hash and receivers sign.
+//						String parttokenchains_req;
+//						try {
+//                			parttokenchains_req = input.readLine();
+//
+//            			}catch (SocketException e) {
+//
+//							APIResponse.put("did", "");
+//							APIResponse.put("tid", "null");
+//							APIResponse.put("status", "Failed");
+//							APIResponse.put("message", "Part token chain hashing req not received.");
+//
+//							output.close();
+//							input.close();
+//							sk.close();
+//							ss.close();
+//							return APIResponse.toString();
+//
+//            			}
+//
+//						if(parttokenchains_req.equals("New part token chain to be hashed")) {
+//							String PartTokenChainToBeHashed_1_string;
+//
+//							try {
+//								PartTokenChainToBeHashed_1_string = input.readLine();
+//
+//							}catch (SocketException e) {
+//
+//								APIResponse.put("did", "");
+//								APIResponse.put("tid", "null");
+//								APIResponse.put("status", "Failed");
+//								APIResponse.put("message", "Receiver not ale to hash part token chains for the sender.");
+//
+//								output.close();
+//								input.close();
+//								sk.close();
+//								ss.close();
+//								return APIResponse.toString();
+//
+//							}
+//
+//							JSONArray partTokenChainToBeHashed = new JSONArray(PartTokenChainToBeHashed_1_string);
+//
+//							String hashForChain = calculateHash(partTokenChainToBeHashed.toString(), "SHA3-256");
+//
+//							String hashSignedwithPvtShare = getSignFromShares(pvt, hashForChain);
+//
+//							JSONObject obj = partTokenChainToBeHashed.getJSONObject(partTokenChainToBeHashed.length() - 1);
+//							partTokenChainToBeHashed.remove(partTokenChainToBeHashed.length() - 1);
+//							obj.put("hash", hashForChain);
+//							obj.put("pvtShareBits", hashSignedwithPvtShare);
+//
+//							partTokenChainToBeHashed.put(obj);
+//
+//							output.println(partTokenChainToBeHashed.toString());
+//						}
+//
+//
+//						if(parttokenchains_req.equals("Old part token chains to be hashed")){
+//
+//							String PartTokenChainToBeHashed_2_string;
+//
+//							try {
+//								PartTokenChainToBeHashed_2_string = input.readLine();
+//
+//							}catch (SocketException e) {
+//
+//								APIResponse.put("did", "");
+//								APIResponse.put("tid", "null");
+//								APIResponse.put("status", "Failed");
+//								APIResponse.put("message", "Receiver not ale to hash part token chains for the sender.");
+//
+//								output.close();
+//								input.close();
+//								sk.close();
+//								ss.close();
+//								return APIResponse.toString();
+//
+//							}
+//
+//							JSONObject PartTokenChainsToBeHashed= new JSONObject(PartTokenChainToBeHashed_2_string);
+//
+//							JSONObject hashedAndSigned_partTokenChains = new JSONObject();
 
-            			}catch (SocketException e) {
+//							for (int i = 0; i < partTokens.length(); i++){
+//
+//								JSONArray parttokenChain = PartTokenChainsToBeHashed.getJSONArray(partTokens.getString(i));
+//
+//								String hashForChain2 = calculateHash(parttokenChain.toString(), "SHA3-256");
+//
+//								String hashSignedwithPvtShare2 = getSignFromShares(pvt, hashForChain2);
+//
+//								JSONObject obj2 = parttokenChain.getJSONObject(parttokenChain.length() - 1);
+//								parttokenChain.remove(parttokenChain.length() - 1);
+//								obj2.put("hash", hashForChain2);
+//								obj2.put("pvtShareBits", hashSignedwithPvtShare2);
+//
+//								parttokenChain.put(obj2);
+//
+//								hashedAndSigned_partTokenChains.put(partTokens.getString(i),parttokenChain);
+//							}
 
-							APIResponse.put("did", "");
-							APIResponse.put("tid", "null");
-							APIResponse.put("status", "Failed");
-							APIResponse.put("message", "Part token chain hashing req not received.");
-
-							output.close();
-							input.close();
-							sk.close();
-							ss.close();
-							return APIResponse.toString();
-            				
-            			} 
-
-						if(parttokenchains_req.equals("New part token chain to be hashed")) {
-							String PartTokenChainToBeHashed_1_string;
-						
-							try {
-								PartTokenChainToBeHashed_1_string = input.readLine();
-
-							}catch (SocketException e) {
-
-								APIResponse.put("did", "");
-								APIResponse.put("tid", "null");
-								APIResponse.put("status", "Failed");
-								APIResponse.put("message", "Receiver not ale to hash part token chains for the sender.");
-
-								output.close();
-								input.close();
-								sk.close();
-								ss.close();
-								return APIResponse.toString();
-								
-							} 
-
-							JSONArray partTokenChainToBeHashed = new JSONArray(PartTokenChainToBeHashed_1_string);
-
-							String hashForChain = calculateHash(partTokenChainToBeHashed.toString(), "SHA3-256");
-
-							String hashSignedwithPvtShare = getSignFromShares(pvt, hashForChain);
-
-							JSONObject obj = partTokenChainToBeHashed.getJSONObject(partTokenChainToBeHashed.length() - 1);
-							partTokenChainToBeHashed.remove(partTokenChainToBeHashed.length() - 1);
-							obj.put("hash", hashForChain);
-							obj.put("pvtShareBits", hashSignedwithPvtShare);
-							
-							partTokenChainToBeHashed.put(obj);
-
-							output.println(partTokenChainToBeHashed.toString());
-						}
-
-
-						if(parttokenchains_req.equals("Old part token chains to be hashed")){
-
-							String PartTokenChainToBeHashed_2_string;
-						
-							try {
-								PartTokenChainToBeHashed_2_string = input.readLine();
-
-							}catch (SocketException e) {
-
-								APIResponse.put("did", "");
-								APIResponse.put("tid", "null");
-								APIResponse.put("status", "Failed");
-								APIResponse.put("message", "Receiver not ale to hash part token chains for the sender.");
-
-								output.close();
-								input.close();
-								sk.close();
-								ss.close();
-								return APIResponse.toString();
-								
-							} 
-
-							JSONObject PartTokenChainsToBeHashed= new JSONObject(PartTokenChainToBeHashed_2_string);
-
-							JSONObject hashedAndSigned_partTokenChains = new JSONObject();
-
-							for (int i = 0; i < partTokens.length(); i++){
-
-								JSONArray parttokenChain = PartTokenChainsToBeHashed.getJSONArray(partTokens.getString(i));
-								
-								String hashForChain2 = calculateHash(parttokenChain.toString(), "SHA3-256");
-
-								String hashSignedwithPvtShare2 = getSignFromShares(pvt, hashForChain2);
-
-								JSONObject obj2 = parttokenChain.getJSONObject(parttokenChain.length() - 1);
-								parttokenChain.remove(parttokenChain.length() - 1);
-								obj2.put("hash", hashForChain2);
-								obj2.put("pvtShareBits", hashSignedwithPvtShare2);
-								
-								parttokenChain.put(obj2);
-
-								hashedAndSigned_partTokenChains.put(partTokens.getString(i),parttokenChain);
-							}
-
-							output.println(hashedAndSigned_partTokenChains.toString());
-						}
+//							output.println(hashedAndSigned_partTokenChains.toString());
+//						}
 						
 
 

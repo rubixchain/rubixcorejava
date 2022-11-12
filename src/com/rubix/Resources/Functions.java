@@ -403,7 +403,7 @@ public class Functions {
      * @return Signature for the data
      * @throws IOException Handles IO Exceptions
      */
-
+    										
     public static String getSignFromShares(String filePath, String hash) throws IOException, JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         BufferedImage pvt = ImageIO.read(new File(filePath));
@@ -909,16 +909,16 @@ public class Functions {
         File didImage = new File(DATA_PATH + myDID + "/DID.png");
         File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
         File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
-        if (!didImage.exists() || !widImage.exists() || !pvtImage.exists()) {
-            didImage.delete();
-            didImage.delete();
-            didImage.delete();
-            JSONObject result = new JSONObject();
-            result.put("message", "User not registered, create your Decentralised Identity!");
-            result.put("info", "Shares Images Missing");
-            result.put("status", "Failed");
-            return result.toString();
-        }
+      //  if (!didImage.exists() || !widImage.exists() || !pvtImage.exists()) {
+      //      didImage.delete();
+        //    didImage.delete();
+        //    didImage.delete();
+         //   JSONObject result = new JSONObject();
+        //    result.put("message", "User not registered, create your Decentralised Identity!");
+        //    result.put("info", "Shares Images Missing");
+        //    result.put("status", "Failed");
+        //    return result.toString();
+       // }
         JSONObject returnObject = new JSONObject();
         returnObject.put("message", "User successfully registered!");
         returnObject.put("status", "Success");
@@ -1937,7 +1937,7 @@ public class Functions {
         JSONArray partTokenChainsHash = TokenDetails.getJSONArray("hashSender");
 
         JSONArray previousSendersArray = tokenObject.getJSONArray("previousSender");
-        JSONArray positionsArray = tokenObject.getJSONArray("positions");
+        //JSONArray positionsArray = tokenObject.getJSONArray("positions");
 
         Double amount = tokenObject.getDouble("amount");
         JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
@@ -2184,7 +2184,7 @@ public class Functions {
         return bytesToHex(hashBytes);
     }
     
-    private static int getCurrentLevel() throws IOException, JSONException {
+    public static int getCurrentLevel() throws IOException, JSONException {
     	int difficulty = -1;
     	String GET_URL_level = SYNC_IP + "/getCurrentLevel";
         URL URLobj_level = new URL(GET_URL_level);
@@ -2209,14 +2209,17 @@ public class Functions {
 		return difficulty;
 
 }
-    private static int calculatePoW() throws IOException, JSONException {
+    public static int calculatePoW() throws IOException, JSONException {
     	int workLevel = -1;
     	int currentLevel = getCurrentLevel();
     	
     	switch (currentLevel) {
     	case 4:
-    		workLevel = currentLevel;
+    		workLevel = 6;
     	}
     	return workLevel;
     }
+    
+    
+    
 }

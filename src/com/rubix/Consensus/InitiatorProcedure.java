@@ -11,6 +11,7 @@ import java.io.IOException;
 import com.rubix.Constants.ConsensusConstants;
 import com.rubix.SplitandStore.SeperateShares;
 import com.rubix.SplitandStore.Split;
+import com.rubix.TokenTransfer.TokenSender;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -36,13 +37,14 @@ public class InitiatorProcedure {
      * @param PORT port for forwarding to quorum
      * @throws IOException
      */
-    public static void consensusSetUp(String data, IPFS ipfs, int PORT, int alphaSize, String operation)
+	public static void consensusSetUp(
+			String data, IPFS ipfs, int PORT, int alphaSize, String operation)
             throws JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         JSONObject dataObject = new JSONObject(data);
         String tid = dataObject.getString("tid");
-        String message = dataObject.getString("message");
+        String senderPayloadHash = dataObject.getString("senderPayloadHash");
         String receiverDidIpfs = dataObject.getString("receiverDidIpfs");
         String pvt = dataObject.getString("pvt");
         String senderDidIpfs = dataObject.getString("senderDidIpfs");
@@ -50,9 +52,10 @@ public class InitiatorProcedure {
         JSONArray alphaList = dataObject.getJSONArray("alphaList");
         JSONArray betaList = dataObject.getJSONArray("betaList");
         JSONArray gammaList = dataObject.getJSONArray("gammaList");
-
-        String authSenderByQuorumHash = calculateHash(message, "SHA3-256");
-        String authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
+        String senderPayloadSign = dataObject.getString("senderPayloadSign");
+        senderSignQ = dataObject.getString("sign");
+        
+        String authQuorumHash = calculateHash(TokenSender.authSenderByRecHash.concat(receiverDidIpfs), "SHA3-256");
 
         try {
             payload.put("sender", senderDidIpfs);
@@ -76,11 +79,10 @@ public class InitiatorProcedure {
         JSONObject data1 = new JSONObject();
         JSONObject data2 = new JSONObject();
         try {
-            senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
             data1.put(ConsensusConstants.TRANSACTION_ID, tid);
-            data1.put(ConsensusConstants.HASH, authSenderByQuorumHash);
+            data1.put(ConsensusConstants.HASH, TokenSender.authSenderByRecHash);
             data1.put(ConsensusConstants.RECEIVERID, receiverDidIpfs);
             data1.put(ConsensusConstants.INIT_HASH, initHash());
 
@@ -88,7 +90,7 @@ public class InitiatorProcedure {
             data2.put("Share2", Q2Share);
             data2.put("Share3", Q3Share);
             data2.put("Share4", Q4Share);
-        } catch (JSONException | IOException e) {
+        } catch (JSONException e) {
             InitiatorProcedureLogger.error("JSON Exception occurred", e);
             e.printStackTrace();
         }
@@ -104,7 +106,7 @@ public class InitiatorProcedure {
         dataSend.put("details", detailsForQuorum);
         
         InitiatorProcedureLogger.debug("hash"+authQuorumHash);
-        InitiatorProcedureLogger.debug("data1"+data1.toString());
+        InitiatorProcedureLogger.debug("details"+detailsForQuorum.toString());
 
         if (operation.equals("new-credits-mining")) {
             JSONObject qstDetails = dataObject.getJSONObject("qstDetails");
