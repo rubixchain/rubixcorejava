@@ -77,11 +77,10 @@ public class Pledger implements Runnable {
                         JSONArray tokensArray = new JSONArray(bankFileContent);
                         JSONObject token = new JSONObject();
                         JSONArray tokenDetails = new JSONArray();
-
                         JSONArray tokens = new JSONArray();
                         JSONArray pledgingTokens = new JSONArray();
                         for (int i = 0; i < amountOfTokens; i++) {
-                            String chainFile = readFile(TOKENCHAIN_PATH.concat(tokensArray.getJSONObject(i).getString("tokenHash")).concat(".json"));
+                        	String chainFile = readFile(TOKENCHAIN_PATH.concat(tokensArray.getJSONObject(i).getString("tokenHash")).concat(".json"));
                             JSONArray chainArray = new JSONArray(chainFile);
 
                             token.put("tokenHash", tokensArray.getJSONObject(i).getString("tokenHash"));
@@ -93,8 +92,8 @@ public class Pledger implements Runnable {
                             pledgingTokens.put(newObject);
                             tokens.put(tokensArray.getJSONObject(i).getString("tokenHash"));
                         }
-
                         out.println(tokenDetails.toString());
+                        PledgerLogger.debug("Data for pledging "+tokenDetails.toString());
                         PledgerLogger.debug("Sent Tokens for Pledging");
 
                         String newChains = null;
