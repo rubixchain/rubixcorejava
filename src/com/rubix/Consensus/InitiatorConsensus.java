@@ -1,14 +1,6 @@
 package com.rubix.Consensus;
 
 import static com.rubix.Constants.ConsensusConstants.INIT_HASH;
-import static com.rubix.Resources.Functions.DATA_PATH;
-import static com.rubix.Resources.Functions.LOGGER_PATH;
-import static com.rubix.Resources.Functions.QUORUM_COUNT;
-import static com.rubix.Resources.Functions.getValues;
-import static com.rubix.Resources.Functions.initHash;
-import static com.rubix.Resources.Functions.minQuorum;
-import static com.rubix.Resources.Functions.nodeData;
-import static com.rubix.Resources.Functions.syncDataTable;
 import static com.rubix.Resources.IPFSNetwork.forward;
 import static com.rubix.Resources.IPFSNetwork.repo;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
@@ -18,6 +10,7 @@ import static com.rubix.NFTResources.NFTFunctions.*;
 import static com.rubix.Resources.APIHandler.getPubKeyIpfsHash_DIDserver;
 
 import java.io.BufferedReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -199,8 +192,8 @@ public class InitiatorConsensus {
         JSONArray tokenDetails;
         try {
             tokenDetails = new JSONArray(details.toString());
-            JSONObject detailsToken = tokenDetails.getJSONObject(0);
-            JSONObject sharesToken = tokenDetails.getJSONObject(1);
+            JSONObject detailsToken = tokenDetails.optJSONObject(0);
+            JSONObject sharesToken = tokenDetails.optJSONObject(1);
 
             String[] shares = new String[minQuorum(7) - 1];
             for (int i = 0; i < shares.length; i++) {
@@ -274,6 +267,9 @@ public class InitiatorConsensus {
                                                 detailsToVerify.put("did", didHash);
                                                 detailsToVerify.put("hash", hash);
                                                 detailsToVerify.put("signature", qResponse[j]);
+                                               InitiatorConsensusLogger.debug("Hash to check "+detailsToVerify.toString());
+                                               InitiatorConsensusLogger.debug(" ");
+
                                                 if (Authenticate.verifySignature(detailsToVerify.toString())) {
                                                     InitiatorConsensusLogger
                                                             .debug(role + " node authenticated at index " + index);
@@ -478,6 +474,14 @@ public class InitiatorConsensus {
                                         detailsToVerify.put("did", didHash);
                                         detailsToVerify.put("hash", hash);
                                         detailsToVerify.put("signature", quorumsPrivateShareSign);
+                                        
+                                        FileWriter payloadfile = new FileWriter(WALLET_DATA_PATH.concat("/detailsToVerify").concat(".json"));
+                                        payloadfile.write(detailsToVerify.toString());
+                                        payloadfile.close();
+                                        
+                                        
+                                        InitiatorConsensusLogger.debug("Hash to check "+detailsToVerify.toString());
+                                        InitiatorConsensusLogger.debug(" ");
                                         
                                         if ((verifySignature(quorumsPrivateShareSign,getPubKeyFromStr(quorumPubKeyStr,pubKeyAlgo),quorumsPrivateKeySign,pubKeyAlgo))){ 
 

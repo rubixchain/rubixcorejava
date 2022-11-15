@@ -43,19 +43,31 @@ public class InitiatorProcedure {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         JSONObject dataObject = new JSONObject(data);
-        String tid = dataObject.getString("tid");
-        String senderPayloadHash = dataObject.getString("senderPayloadHash");
-        String receiverDidIpfs = dataObject.getString("receiverDidIpfs");
-        String pvt = dataObject.getString("pvt");
-        String senderDidIpfs = dataObject.getString("senderDidIpfs");
-        String token = dataObject.getString("token");
-        JSONArray alphaList = dataObject.getJSONArray("alphaList");
-        JSONArray betaList = dataObject.getJSONArray("betaList");
-        JSONArray gammaList = dataObject.getJSONArray("gammaList");
-        String senderPayloadSign = dataObject.getString("senderPayloadSign");
-        senderSignQ = dataObject.getString("sign");
+        String tid = dataObject.optString("tid");
+        String senderPayloadHash = dataObject.optString("senderPayloadHash");
+        String receiverDidIpfs = dataObject.optString("receiverDidIpfs");
+        String pvt = dataObject.optString("pvt");
+        String senderDidIpfs = dataObject.optString("senderDidIpfs");
+        String token = dataObject.optString("token");
+        JSONArray alphaList = dataObject.optJSONArray("alphaList");
+        JSONArray betaList = dataObject.optJSONArray("betaList");
+        JSONArray gammaList = dataObject.optJSONArray("gammaList");
+        String senderPayloadSign = dataObject.optString("senderPayloadSign");
+        senderSignQ = dataObject.optString("sign");
+        String authQuorumHash = "";
         
-        String authQuorumHash = calculateHash(TokenSender.authSenderByRecHash.concat(receiverDidIpfs), "SHA3-256");
+ 
+        if(operation.equals("new-credits-mining")) {
+        	
+            String message = dataObject.getString("message");
+        		String authSenderByQuorumHash = calculateHash(message, "SHA3-256");
+             authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
+        	
+        }else {
+			
+            authQuorumHash = calculateHash(TokenSender.authSenderByRecHash.concat(receiverDidIpfs), "SHA3-256");
+
+		}
 
         try {
             payload.put("sender", senderDidIpfs);
