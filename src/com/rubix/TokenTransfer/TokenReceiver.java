@@ -449,13 +449,14 @@ public class TokenReceiver {
 				            
                 JSONObject forNLSScheck =new JSONObject();
 				
+//				if(lastValueOnChain.has("hash") && lastValueOnChain.has("pvtShareBits") && lastValueOnChain.has("pvtKeySign")){
 
-				if(lastValueOnChain.has("hash") && lastValueOnChain.has("pvtShareBits") && lastValueOnChain.has("pvtKeySign")){
+				if(lastValueOnChain.has("hash") && lastValueOnChain.has("pvtShareBits")){
 										
 					String hash= lastValueOnChain.getString("hash");
 					TokenReceiverLogger.debug("Hash to check(hash)  : "+ hash);
 					String pvtShareBits = lastValueOnChain.getString("pvtShareBits");
-					String pvtKeySign = lastValueOnChain.getString("pvtKeySign");
+			//		String pvtKeySign = lastValueOnChain.getString("pvtKeySign");
 					String prevSenderDID = lastValueOnChain.getString("sender");
 
 
@@ -466,7 +467,7 @@ public class TokenReceiver {
 					TokenChainArray.remove(TokenChainArray.length()-1);
 					lastObj.remove("hash");
 					lastObj.remove("pvtShareBits");
-					lastObj.remove("pvtKeySign");
+				//	lastObj.remove("pvtKeySign");
 
 					TokenChainArray.put(lastObj);
 
@@ -502,8 +503,19 @@ public class TokenReceiver {
                         //Need to handle the case when ipfs isn't avaialble.
 
 						String pubKeyAlgo = publicKeyAlgStr(prevSenderPubKeyStr);
+						
+						flag = Authenticate.verifySignature(forNLSScheck.toString());
+                        if(!flag){
+
+                            chainAutheticityFlag = 5;
+                            break;
+                        }else{
+							TokenReceiverLogger.debug("Previous sender's sign also authenticated.");
+							TokenReceiverLogger.debug("Token chain "+wholeTokenChains.getString(i)+ "verified");
+						}
 
                         //Check 2: prev Sender authenticity check (Signature)
+                        /*
                         if(verifySignature(pvtShareBits,getPubKeyFromStr(prevSenderPubKeyStr,pubKeyAlgo),pvtKeySign,pubKeyAlgo)==true){
 
                             flag = Authenticate.verifySignature(forNLSScheck.toString());
@@ -522,7 +534,7 @@ public class TokenReceiver {
                             chainAutheticityFlag = 4;
                             break; 
                         }
-                        
+                        */
 
 					}else { 
                         
@@ -754,12 +766,14 @@ public class TokenReceiver {
 					}
 
 				}
-				else if (lastValueOnChain2.has("hash") && lastValueOnChain2.has("pvtShareBits") && lastValueOnChain2.has("pvtKeySign")){
+				else if (lastValueOnChain2.has("hash") && lastValueOnChain2.has("pvtShareBits")){
+
+		//		else if (lastValueOnChain2.has("hash") && lastValueOnChain2.has("pvtShareBits") && lastValueOnChain2.has("pvtKeySign")){
 					
 					String hash= lastValueOnChain2.getString("hash");
 					//TokenReceiverLogger.debug("Hash to check  : "+ hash);
 					String pvtShareBits = lastValueOnChain2.getString("pvtShareBits");
-					String pvtKeySign = lastValueOnChain2.getString("pvtKeySign");
+				//	String pvtKeySign = lastValueOnChain2.getString("pvtKeySign");
 					String prevSenderDID = lastValueOnChain2.getString("sender");
 
 
@@ -770,7 +784,7 @@ public class TokenReceiver {
 					partTokenChainToVerify.remove(partTokenChainToVerify.length()-1);
 					lastObj4.remove("hash");
 					lastObj4.remove("pvtShareBits");
-					lastObj4.remove("pvtKeySign");
+				//	lastObj4.remove("pvtKeySign");
 
 					partTokenChainToVerify.put(lastObj4);
 
@@ -803,6 +817,17 @@ public class TokenReceiver {
 
 						String pubKeyAlgo = publicKeyAlgStr(prevSenderPubKeyStr);
 
+						flag = Authenticate.verifySignature(forNLSScheck.toString());
+                        if(!flag){
+
+                            chainAutheticityFlag = 5;
+                            break;
+                        }else{
+							TokenReceiverLogger.debug("Previous sender's sign also authenticated.");
+							TokenReceiverLogger.debug("Token chain "+wholeTokenChains.getString(i)+ "verified");
+						}
+						
+                        /*
                         //Check 2: prev Sender authenticity check (Signature)
                         if(verifySignature(pvtShareBits,getPubKeyFromStr(prevSenderPubKeyStr,pubKeyAlgo),pvtKeySign,pubKeyAlgo)==true){
 
@@ -821,7 +846,7 @@ public class TokenReceiver {
                             //If private key signature verification of prev sender doesn't complete.
                             chainAutheticityFlag = 4;
                             break; 
-                        }
+                        }*/
                         
 
 					}else { 
@@ -1409,7 +1434,7 @@ public class TokenReceiver {
 			}
 			JSONObject SenderDetails = new JSONObject(senderDetails);
 
-			String senderSignature = SenderDetails.getString("pvtKeySign");
+		//	String senderSignature = SenderDetails.getString("pvtKeySign");
 			String senderPvtShareBits = SenderDetails.getString("pvtShareBits");
 
 			String tid = SenderDetails.getString("tid");
@@ -1532,11 +1557,11 @@ public class TokenReceiver {
 				String pubKeyAlgo = publicKeyAlgStr(senderPubKeyStr);
 
                 //verifySignature uses sender's public key to verify the private key signature. 
-                if(verifySignature(senderPvtShareBits,getPubKeyFromStr(senderPubKeyStr,pubKeyAlgo),senderSignature,pubKeyAlgo)==true)
+      //          if(verifySignature(senderPvtShareBits,getPubKeyFromStr(senderPubKeyStr,pubKeyAlgo),senderSignature,pubKeyAlgo)==true)
                 
-                {
+       //         {
                     yesSender = Authenticate.verifySignature(detailsForVerify.toString());
-                }
+        //        }
 
 				TokenReceiverLogger.debug("Quorum Auth : " + yesQuorum + " Sender Auth : " + yesSender);
 				if (!(yesSender && yesQuorum)) {
@@ -1578,9 +1603,11 @@ public class TokenReceiver {
 
                 }
 
-                JSONArray arrLastObjects = new JSONArray();
+            //    JSONArray arrLastObjects = new JSONArray();
+                JSONObject lastObject = new JSONObject();
+
                 if(request.equals("Request for new blocks being added to the Token Chains")){
-                	
+
                 	TokenReceiverLogger.debug("Request for new blocks being added to the Token Chains");
 
                     //TODO
@@ -1622,7 +1649,6 @@ public class TokenReceiver {
                         
                         JSONArray arr = new JSONArray(wholeTokenChainContent.get(i));
                         
-                        JSONObject lastObject = new JSONObject();
                         //lastObject.put("senderSign", senderPvtShareBits);
                         lastObject.put("sender", senderDidIpfsHash);
                         lastObject.put("group", allTokens);
@@ -1636,7 +1662,7 @@ public class TokenReceiver {
                         if(!BlockHash.isEmpty()){
 							lastObject.put("blockHash",BlockHash);
 						}
-                        arrLastObjects.put(lastObject);
+                  //      arrLastObjects.put(lastObject);
 
                         arr.put(lastObject);
                         WholeTokenChainsWithAppendedBlock.add(arr.toString());
@@ -1644,7 +1670,10 @@ public class TokenReceiver {
                     }
                 }
 
-                output.println(arrLastObjects.toString());
+                JSONArray array = new JSONArray();
+                array.put(lastObject);
+                TokenReceiverLogger.debug("Last object for sender is "+array.toString());
+                output.println(array.toString());
 
 
 
@@ -1914,7 +1943,7 @@ public class TokenReceiver {
 							tokenChain.remove(tokenChain.length() - 1);
 							lastObj.put("hash", hash_Signs_ForTokenChains.getJSONObject(i).getString("hash"));
 							lastObj.put("pvtShareBits", hash_Signs_ForTokenChains.getJSONObject(i).getString("pvtShareBits"));
-							lastObj.put("pvtKeySign", hash_Signs_ForTokenChains.getJSONObject(i).getString("pvtKeySign"));
+					//		lastObj.put("pvtKeySign", hash_Signs_ForTokenChains.getJSONObject(i).getString("pvtKeySign"));
 							
 							tokenChain.put(lastObj);
 

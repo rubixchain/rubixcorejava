@@ -649,6 +649,7 @@ public class TokenSender {
 				quorumWithSignsArray.put(signObject);
 
 			}
+			
 
 //			for (int i = 0; i < intPart; i++) {
 //				JSONObject jsonObject = new JSONObject(Initiator.quorumWithHashesArray);
@@ -697,7 +698,7 @@ public class TokenSender {
 			throws JSONException, IOException, InterruptedException, ParseException {
 
 		TokenSenderLogger.debug("PartB - signPayload " + signPayload);
-
+		
 		String senderSign = signPayload.getString("authSenderByRecHash");
 		JSONObject APIResponse = new JSONObject();
 		String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
@@ -711,6 +712,9 @@ public class TokenSender {
 		String senderPeerID = getPeerID(DATA_PATH + "DID.json");
 		String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
 		JSONArray quorumWithSignsArray = signPayload.getJSONArray("pledgeDetails");
+		JSONArray signedChains = signPayload.getJSONArray("lastObject");
+
+		
 
 		// If user enters wrong pvt key password
 		if (pvtKey == null) {
@@ -840,10 +844,10 @@ public class TokenSender {
 		}
 
 		String pvtKeyType = privateKeyAlgorithm(1);
-		String senderSignWithPvtKey = pvtKeySign(senderSign, pvtKey, pvtKeyType);
+	//	String senderSignWithPvtKey = pvtKeySign(senderSign, pvtKey, pvtKeyType);
 
 		JSONObject senderDetails2Receiver = new JSONObject();
-		senderDetails2Receiver.put("pvtKeySign", senderSignWithPvtKey);
+	//	senderDetails2Receiver.put("pvtKeySign", senderSignWithPvtKey);
 		senderDetails2Receiver.put("pvtShareBits", senderSign);
 		senderDetails2Receiver.put("tid", tid);
 		senderDetails2Receiver.put("comment", comment);
@@ -1133,7 +1137,6 @@ public class TokenSender {
 		// (For Token chain auth)
 		output.println("Request for new blocks being added to the Token Chains");
 
-		JSONArray signedChains = signPayload.getJSONArray("lastObject");
 		String newBlocksForTokenChains;
 		try {
 			newBlocksForTokenChains = input.readLine();
@@ -1155,6 +1158,12 @@ public class TokenSender {
 			return APIResponse;
 		}
 
+		TokenSenderLogger.debug("newBlocksForTokenChains is "+newBlocksForTokenChains);
+		TokenSenderLogger.debug("");
+
+		TokenSenderLogger.debug("lastObJsonArray is "+lastObJsonArray.toString());
+
+		
 		JSONArray newTokenChainBlocks = new JSONArray(newBlocksForTokenChains);
 		JSONArray hashAndSigns = new JSONArray();
 
@@ -1164,6 +1173,9 @@ public class TokenSender {
 
 			Map<String, Object> senderChainMap = lastObject.toMap();
 			Map<String, Object> receiverChainMap = receiverLastObject.toMap();
+			senderChainMap.remove("pledgeToken");
+			receiverChainMap.remove("pledgeToken");
+
 			TokenSenderLogger.debug("--------");
 			TokenSenderLogger.debug("senderChainMap   " + senderChainMap.keySet().toString());
 			TokenSenderLogger.debug("senderChainMap   " + senderChainMap.values().toString());
@@ -1175,15 +1187,17 @@ public class TokenSender {
 			TokenSenderLogger.debug("--------");
 
 			TokenSenderLogger.debug(senderChainMap.equals(receiverChainMap) + " is the chainmap status");
+			
+			TokenSenderLogger.debug("signedChains is "+signedChains.toString());
 			if (senderChainMap.equals(receiverChainMap)) {
 
-				String PvtKeySign = pvtKeySign(signedChains.getJSONObject(i).getString("chainSign"), pvtKey,
-						privateKeyAlgorithm(1));
+			//	String PvtKeySign = pvtKeySign(signedChains.getJSONObject(i).getString("chainSign"), pvtKey,
+			//			privateKeyAlgorithm(1));
 
 				JSONObject obj = new JSONObject();
 				obj.put("hash", signedChains.getJSONObject(i).getString("hash"));
 				obj.put("pvtShareBits", signedChains.getJSONObject(i).getString("chainSign"));
-				obj.put("pvtKeySign", PvtKeySign);
+			//	obj.put("pvtKeySign", PvtKeySign);
 
 				hashAndSigns.put(obj);
 			} else {
@@ -1590,7 +1604,7 @@ public class TokenSender {
 
 		// Populating data to explorer
 		if (!EXPLORER_IP.contains("127.0.0.1")) {
-
+			
 			List<String> tokenList = new ArrayList<>();
 			for (int i = 0; i < allTokens.length(); i++)
 				tokenList.add(allTokens.getString(i));

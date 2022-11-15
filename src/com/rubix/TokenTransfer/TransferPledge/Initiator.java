@@ -41,6 +41,8 @@ public class Initiator {
     public static String pvt;
     public static String tid;
     public static String keyPass;
+    public static JSONObject quorumHashObject = new JSONObject();
+
 
 
 
@@ -49,10 +51,13 @@ public class Initiator {
 
     public static boolean pledgeSetUp(String data, IPFS ipfs, int PORT) throws JSONException, IOException {
         PledgeInitiatorLogger.debug("Initiator Calling");
+        
         abortReason = new JSONObject();
         abort = false;
         pledgedNodes = new JSONArray();
         JSONObject dataObject = new JSONObject(data);
+    //    PledgeInitiatorLogger.debug("pledgeSetUp dataObject is "+dataObject.toString());
+        
         JSONArray alphaList = dataObject.getJSONArray("alphaList");
          pvt = dataObject.getString("pvt");
          tid = dataObject.getString("tid");
@@ -101,7 +106,6 @@ public class Initiator {
             }
 
 
-
             if (qResponse != null) {
                 JSONObject pledgeObject = new JSONObject(qResponse);
                 if (pledgeObject.getString("pledge").equals("Tokens")) {
@@ -131,6 +135,7 @@ public class Initiator {
 	                       	 pledgeNewObject.put("pledgeToken", tokenObject.getString("tokenHash"));
 	                       	 pledgeNewObject.put("tokensPledgedFor", tokenList);
 	                       	 tokenChain.put(pledgeNewObject);
+	                       	 PledgeInitiatorLogger.debug("pledgeNewObject is "+pledgeNewObject);
 	                       	 String chainHashString = calculateHash(tokenChain.toString(), "SHA3-256");
 	                       	 hashesArray.put(chainHashString);
                         	
@@ -138,18 +143,25 @@ public class Initiator {
                        
                        
                     }
-                    JSONObject quorumHashObject = new JSONObject();
-                    quorumHashObject.put("quorum", quorumID);
-                    quorumHashObject.put("hashes", hashesArray);
+                    quorumHashObject.put(quorumID, hashesArray);
                     quorumWithHashesArray.put(quorumHashObject);
                     quorumDetails.put("tokenDetails", tokenDetails);
+                    
+                    PledgeInitiatorLogger.debug("quorumHashObject: " + quorumHashObject.toString());
+                    PledgeInitiatorLogger.debug("quorumWithHashesArray is "+quorumWithHashesArray.toString());
+            //      PledgeInitiatorLogger.debug("quorumDetails: " + quorumDetails.toString());
+
+                    
+
                     
                     
                     PledgeInitiatorLogger.debug("tokensCount: " + tokensCount);
                     quorumDetails.put("ID", quorumID);
                     quorumDetails.put("count", tokenDetails.length());
                     nodesToPledgeTokens.put(quorumDetails);
-                    PledgeInitiatorLogger.debug("tokensSentToPledge: " + tokenDetails.length());
+                 //   PledgeInitiatorLogger.debug("tokensSentToPledge count" + tokenDetails.length());
+                 //   PledgeInitiatorLogger.debug("tokensSentToPledge: " + tokenDetails.toString());
+
                     tokensCount -= tokenDetails.length();
                     PledgeInitiatorLogger.debug("Contacted Node "+ quorumID + "  for Pledging  - Over with abort status: " + abort);
                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID);
@@ -197,9 +209,11 @@ public class Initiator {
     public static boolean pledge(JSONArray pledgeDetails, double amount, int PORT) throws JSONException, UnknownHostException, IOException {
 
         Double tokensPledged = amount;
+        PledgeInitiatorLogger.debug("pledgeDetails in pledge is "+pledgeDetails.toString());
         
         if (!abort) {
-            PledgeInitiatorLogger.debug("Tokens can be pledged from " + nodesToPledgeTokens);
+        	PledgeInitiatorLogger.debug("Initating pledging");
+           // PledgeInitiatorLogger.debug("Tokens can be pledged from " + nodesToPledgeTokens);
             for (int j = 0; j < nodesToPledgeTokens.length(); j++) {
                 String quorumID = nodesToPledgeTokens.getJSONObject(j).getString("ID");
                 String appName = quorumID.concat("alphaPledge");
@@ -232,7 +246,7 @@ public class Initiator {
                 JSONArray tokens = new JSONArray();
                 if (qResponse != null) {
                     JSONArray tokenDetails = new JSONArray(qResponse);
-                    PledgeInitiatorLogger.debug("TokenDetails is "+tokenDetails.toString());
+                 //   PledgeInitiatorLogger.debug("TokenDetails is "+tokenDetails.toString());
                     JSONArray newChains = new JSONArray();
                     for (int k = 0; k < tokenDetails.length(); k++) {
                         JSONObject tokenObject = tokenDetails.getJSONObject(k);
@@ -272,14 +286,31 @@ public class Initiator {
                             PrivateKey pvtKey = getPvtKey(keyPass,1);
 
 //                            String hashForTokenChain = calculateHash(tokenChain.toString(), "SHA3-256");
+                            String signString ="";
+                            String hashString ="";
+                            
+                            for(int i=0;i<pledgeDetails.length();i++) {
+                            	PledgeInitiatorLogger.debug("pledgeDetails is "+pledgeDetails.getJSONObject(i));
+                            	
+                            	JSONObject senderSignPayload = pledgeDetails.getJSONObject(i).getJSONObject(quorumID);
+                            	
+                            	PledgeInitiatorLogger.debug("senderSignPayload is "+senderSignPayload.toString());
 
-                            String hashSignedwithPvtShare = pledgeDetails.getJSONObject(k).getString("hash");
-                            String PvtKeySign = pvtKeySign(hashSignedwithPvtShare, pvtKey, privateKeyAlgorithm(1));
+                            	
+                            	 signString = senderSignPayload.getString("sign");
+                            	 hashString = senderSignPayload.getString("hash");
+                            }
+                            PledgeInitiatorLogger.debug("signString is "+signString);
+                            PledgeInitiatorLogger.debug("hashString is "+hashString);
 
+                          //  String hashSignedwithPvtShare = signString;
+                       //     String PvtKeySign = pvtKeySign(signString, pvtKey, privateKeyAlgorithm(1));
+
+                            //TODO
                             tokenChain.remove(tokenChain.length() - 1);
-                            pledgeObject.put("hash", pledgeDetails.getJSONObject(k).getString("hash"));
-                            pledgeObject.put("pvtShareBits",hashSignedwithPvtShare);
-                            pledgeObject.put("pvtKeySign", PvtKeySign);
+                            pledgeObject.put("hash", hashString);
+                            pledgeObject.put("pvtShareBits",signString);
+                          //  pledgeObject.put("pvtKeySign", PvtKeySign);
 
                             tokenChain.put(pledgeObject);
 
@@ -293,6 +324,9 @@ public class Initiator {
                     pledgeObjectDetails.put("tokens", tokens);
                     pledgeDetails.put(pledgeObjectDetails);
                     pledgedNodes = nodesToPledgeTokens;
+                    
+              //      PledgeInitiatorLogger.debug("pledgedNodes is "+pledgedNodes.toString());
+                    
                     if (abort) {
                         qOut.println("Abort");
                         PledgeInitiatorLogger.debug("Quorum " + quorumID + " Aborted as already Pledged");

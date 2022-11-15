@@ -1927,7 +1927,7 @@ public class Functions {
     public static int multiplePinCheck(String senderDidIpfsHash, JSONObject tokenObject, IPFS ipfs)
             throws JSONException, InterruptedException {
         int statusCode = 200;
-        FunctionsLogger.debug("Input tokenObject is " + tokenObject.toString());
+     //   FunctionsLogger.debug("Input tokenObject is " + tokenObject.toString());
         JSONObject TokenDetails = tokenObject.getJSONObject("tokenDetails");
         JSONArray wholeTokens = TokenDetails.getJSONArray("whole-tokens");
         JSONArray wholeTokenChains = TokenDetails.getJSONArray("whole-tokenChains");
