@@ -9,14 +9,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import javax.json.JsonArray;
+import javax.net.ssl.HttpsURLConnection;
 
 import java.security.*;
 
@@ -129,6 +127,60 @@ public class NFTFunctions {
                 IPFSNetwork.pin(nftToken, ipfs);
                 apiData.remove("pvtKeySign");
                 apiData.remove("tokenCount");
+
+                if (!EXPLORER_IP.contains("127.0.0.1")) {
+                    String url = EXPLORER_IP + "/newMint";
+                    URL obj = new URL(url);
+                    HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+        
+                    // Setting basic post request
+                    con.setRequestMethod("POST");
+                    con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+                    con.setRequestProperty("Accept", "application/json");
+                    con.setRequestProperty("Content-Type", "application/json");
+                    con.setRequestProperty("Authorization", "null");
+        
+                    // Serialization
+                    JSONObject dataToSend = new JSONObject();
+                    
+                    dataToSend.put("type", "NFT");
+                    dataToSend.put("creatorId", creatorDID);
+                    dataToSend.put("nftToken", nftToken);
+                    dataToSend.put("createdOn", getCurrentUtcTime());
+                    dataToSend.put("creatorPubKeyIpfsHash", creatorPubKeyIpfsHash);
+                    dataToSend.put("totalSupply",totalSupply);
+                    dataToSend.put("edition", i);
+                    dataToSend.put("url", apiData.getString("url"));
+                    dataToSend.put("creatorInput", apiData.get("creatorInput"));
+                    String populate = dataToSend.toString();
+        
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("inputString", populate);
+                    String postJsonData = jsonObject.toString();
+        
+                    // Send post request
+                    con.setDoOutput(true);
+                    DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+                    wr.writeBytes(postJsonData);
+                    wr.flush();
+                    wr.close();
+        
+                    int responseCode = con.getResponseCode();
+                    NftFunctionsLogger.debug("Sending 'POST' request to URL : " + url);
+                    NftFunctionsLogger.debug("Post Data : " + postJsonData);
+                    NftFunctionsLogger.debug("Response Code : " + responseCode);
+        
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    String output;
+                    StringBuffer response = new StringBuffer();
+        
+                    while ((output = in.readLine()) != null) {
+                        response.append(output);
+                    }
+                    in.close();
+        
+                    NftFunctionsLogger.debug(response.toString());
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
