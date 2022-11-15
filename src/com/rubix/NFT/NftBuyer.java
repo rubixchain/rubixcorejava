@@ -588,12 +588,6 @@ public class NftBuyer {
             reConObj.remove("sign");
 
 
-            /* JSONObject reConObj = new JSONObject();
-            reConObj.put("sellerDID", sellerDid);
-            reConObj.put("nftToken", nftDetailsObject.getString("nftToken"));
-            reConObj.put("rbtAmount", requestedAmount); */
-
-
             PublicKey sellerPubKey = getPubKeyFromStr(sellerPubKeyStr,sellerPubKeyAlg);
             String saleSignature = saleConObj.getString("sign");
 
