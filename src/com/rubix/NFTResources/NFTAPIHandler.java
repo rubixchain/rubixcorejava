@@ -32,12 +32,6 @@ public class NFTAPIHandler {
         pathSet();
         nftPathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        // networkInfo();
-        /*
-         * String sellerPeerID = getPeerID(DATA_PATH + "DID.json");
-         * String sellerDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid",
-         * sellerPeerID);
-         */
         JSONObject sendMessage = new JSONObject();
         try {
             JSONObject dataObject = new JSONObject(data);
@@ -78,7 +72,6 @@ public class NFTAPIHandler {
                 sendMessage.put("nfttoken", nftTokenIpfsHash);
                 return sendMessage;
             }
-            // dataObject.put("pvt", DATA_PATH + sellerDID + "/PrivateShare.png");
             sendMessage = send(dataObject.toString(), ipfs, BUYER_PORT);
             APILogger.info(sendMessage);
         } catch (JSONException e) {

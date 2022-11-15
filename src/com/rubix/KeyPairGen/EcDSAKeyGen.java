@@ -140,9 +140,6 @@ public class EcDSAKeyGen {
         } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
             System.out.println(e.toString());
         }
-        /* catch (NoSuchAlgorithmException e) {
-            System.out.println(e.toString());
-        } */
 
         return keyPair;
     }
