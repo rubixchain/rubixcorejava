@@ -1405,6 +1405,7 @@ public class TokenSender {
 			deleteFile(TOKENS_PATH.concat(wholeTokens.getString(i)));
 			Functions.updateJSON("remove", PAYMENTS_PATH.concat("BNK00.json"), wholeTokens.getString(i));
 		}
+		if(decimalAmount != 0.0) {
 
 		if (newPart) {
 			TokenSenderLogger.debug("Updating files for new parts");
@@ -1594,6 +1595,7 @@ public class TokenSender {
 
 			}
 		}
+	}
 		TokenSenderLogger.info("Transaction Successful");
 		executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
 		updateQuorum(quorumArray, signedQuorumList, true, type);
