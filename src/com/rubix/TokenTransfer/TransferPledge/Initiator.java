@@ -284,19 +284,23 @@ public class Initiator {
 							FileWriter spfile = new FileWriter(WALLET_DATA_PATH.concat("/partBPlegeTest").concat(tid).concat(".json"));
                             spfile.write(pledgeDetails.toString());
                             spfile.close();
+                            
+                            for(int i=0;i<pledgeDetails.length();i++) {
+                            	PledgeInitiatorLogger.debug("pledgeDetails is "+pledgeDetails.getJSONObject(i));
+                            	
+								JSONObject object1 = pledgeDetails.getJSONObject(i);
+                                JSONArray senderSignPayloadArray = object1.getJSONArray(quorumID);
 
-							for (int i = 0; i < pledgeDetails.length(); i++) {
-								PledgeInitiatorLogger.debug("pledgeDetails is " + pledgeDetails.getJSONObject(i));
+                                JSONObject senderSignPayload = senderSignPayloadArray.getJSONObject(i);   
+								                         	
+                            	PledgeInitiatorLogger.debug("senderSignPayload is "+senderSignPayload.toString());
 
-								JSONObject senderSignPayload = pledgeDetails.getJSONObject(i).getJSONObject(quorumID);
-
-								PledgeInitiatorLogger.debug("senderSignPayload is " + senderSignPayload.toString());
-
-								signString = senderSignPayload.getString("sign");
-								hashString = senderSignPayload.getString("hash");
-							}
-							PledgeInitiatorLogger.debug("signString is " + signString);
-							PledgeInitiatorLogger.debug("hashString is " + hashString);
+                            	
+                            	 signString = senderSignPayload.getString("sign");
+                            	 hashString = senderSignPayload.getString("hash");
+                            }
+                            PledgeInitiatorLogger.debug("signString is "+signString);
+                            PledgeInitiatorLogger.debug("hashString is "+hashString);
 
 							// TODO
 							tokenChain.remove(tokenChain.length() - 1);
