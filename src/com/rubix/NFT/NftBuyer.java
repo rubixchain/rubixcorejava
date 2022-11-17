@@ -3,6 +3,7 @@ package com.rubix.NFT;
 import com.rubix.Consensus.InitiatorConsensus;
 import com.rubix.Consensus.InitiatorProcedure;
 import com.rubix.PasswordMasking.PasswordField;
+import com.rubix.Resources.APIHandler;
 import com.rubix.Resources.Functions;
 import static com.rubix.Resources.IPFSNetwork.*;
 import io.ipfs.api.IPFS;
@@ -335,11 +336,11 @@ public class NftBuyer {
 
             PrivateKey pvtKey = null;
             String keyPass = null;
-            String buyerPvtKeyAlg=null;
+            String buyerPvtKeyAlg = null;
             if (detailsObject.getInt("p2pFlag") == 0) {
                 if (detailsObject.has("buyerPvtKey") && detailsObject.getString("buyerPvtKey") != null) {
                     keyPass = detailsObject.getString("buyerPvtKeyPass");
-                    buyerPvtKeyAlg=privateKeyAlgStr(detailsObject.getString("buyerPvtKey"));
+                    buyerPvtKeyAlg = privateKeyAlgStr(detailsObject.getString("buyerPvtKey"));
                     pvtKey = getPvtKeyFromStr(detailsObject.getString("buyerPvtKey"), keyPass);
                     detailsObject.remove("buyerPvtKey");
 
@@ -371,8 +372,8 @@ public class NftBuyer {
 
                 keyPass = String.valueOf(privateKeyPass);
 
-                buyerPvtKeyAlg=privateKeyAlgorithm(1);
-                pvtKey = getPvtKey(keyPass,1);
+                buyerPvtKeyAlg = privateKeyAlgorithm(1);
+                pvtKey = getPvtKey(keyPass, 1);
                 if (pvtKey == null || pvtKey.equals("")) {
                     output.println("421");
                     nftBuyerLogger.warn("Buyer entered wrong private key password");
@@ -425,10 +426,10 @@ public class NftBuyer {
             String creatorPublicKeyIpfsHash = creatorInputObj.getString("creatorPubKeyIpfsHash");
 
             String creatorPubKeyStr = get(creatorPublicKeyIpfsHash, ipfs);
-            //get the algorithm of the public key
+            // get the algorithm of the public key
             String creatorPubKeyAlg = publicKeyAlgStr(creatorPubKeyStr);
-            nftBuyerLogger.debug("creator pubkey algorithm "+creatorPubKeyAlg);
-            PublicKey creatorPublicKey = getPubKeyFromStr(creatorPubKeyStr,creatorPubKeyAlg);
+            nftBuyerLogger.debug("creator pubkey algorithm " + creatorPubKeyAlg);
+            PublicKey creatorPublicKey = getPubKeyFromStr(creatorPubKeyStr, creatorPubKeyAlg);
 
             /*
              * Check if NFT Token is of RAC type =1
@@ -452,7 +453,7 @@ public class NftBuyer {
                 return APIResponse;
             }
 
-            if (!verifySignature(verifyNftTokenString, creatorPublicKey, nftPvtSignature,creatorPubKeyAlg)) {
+            if (!verifySignature(verifyNftTokenString, creatorPublicKey, nftPvtSignature, creatorPubKeyAlg)) {
                 output.println("420");
                 APIResponse.put("did", sellerDid);
                 APIResponse.put("tid", "null");
@@ -495,8 +496,8 @@ public class NftBuyer {
              * NFT token owner ship check/auth
              */
             String nftTokenChain = get(nftDetailsObject.getString("nftTokenChain"), ipfs);
-            String sellerPubKeyStr=get(sellerPubKeyIpfsHash, ipfs);
-            String sellerPubKeyAlg=publicKeyAlgStr(sellerPubKeyStr);
+            String sellerPubKeyStr = get(sellerPubKeyIpfsHash, ipfs);
+            String sellerPubKeyAlg = publicKeyAlgStr(sellerPubKeyStr);
             if (nftTokenChain != null && nftTokenChain.length() != 0) {
                 JSONArray nftTokenChainCont = new JSONArray(nftTokenChain);
                 JSONObject nftlastObject = nftTokenChainCont.getJSONObject(nftTokenChainCont.length() - 1);
@@ -510,11 +511,11 @@ public class NftBuyer {
                     String nftHashString = firstHash.concat(sellerPubKeyIpfsHash);
                     String ownerRecalculated = calculateHash(nftHashString, "SHA3-256");
 
-                    //modified ownership verification get seller pubkey algotithm
-                    
-                    PublicKey sellerPubKey = getPubKeyFromStr(sellerPubKeyStr,sellerPubKeyAlg);
+                    // modified ownership verification get seller pubkey algotithm
 
-                    if (!verifySignature(ownerRecalculated, sellerPubKey, owner,sellerPubKeyAlg)) {
+                    PublicKey sellerPubKey = getPubKeyFromStr(sellerPubKeyStr, sellerPubKeyAlg);
+
+                    if (!verifySignature(ownerRecalculated, sellerPubKey, owner, sellerPubKeyAlg)) {
                         nftOwnerCheck = false;
                     }
                 }
@@ -583,23 +584,17 @@ public class NftBuyer {
             String saleContractContent = get(saleContractIpfsHash, ipfs);
             nftBuyerLogger.debug("saleContract contetn : " + saleContractContent);
             JSONObject saleConObj = new JSONObject(saleContractContent);
-            //created temp json object to fetch original data used to make sale comtact sign
+            // created temp json object to fetch original data used to make sale comtact
+            // sign
             JSONObject reConObj = new JSONObject(saleContractContent);
             reConObj.remove("sign");
 
-
-            /* JSONObject reConObj = new JSONObject();
-            reConObj.put("sellerDID", sellerDid);
-            reConObj.put("nftToken", nftDetailsObject.getString("nftToken"));
-            reConObj.put("rbtAmount", requestedAmount); */
-
-
-            PublicKey sellerPubKey = getPubKeyFromStr(sellerPubKeyStr,sellerPubKeyAlg);
+            PublicKey sellerPubKey = getPubKeyFromStr(sellerPubKeyStr, sellerPubKeyAlg);
             String saleSignature = saleConObj.getString("sign");
 
             nftBuyerLogger.debug("reconobj for sale contract verification " + reConObj.toString());
 
-            if (!verifySignature(reConObj.toString(), sellerPubKey, saleSignature,sellerPubKeyAlg)) {
+            if (!verifySignature(reConObj.toString(), sellerPubKey, saleSignature, sellerPubKeyAlg)) {
                 output.println("420");
                 APIResponse.put("did", sellerDid);
                 APIResponse.put("tid", "null");
@@ -846,56 +841,24 @@ public class NftBuyer {
              */
 
             nftBuyerLogger.info("Starting RBT Token transfer for NFT");
-            URL rbtTransferApi = new URL("http://localhost:1898/initiateTransaction");
-            HttpURLConnection rbtCon = (HttpURLConnection) rbtTransferApi.openConnection();
-
-            // Setting basic post request
-            rbtCon.setRequestMethod("POST");
-            rbtCon.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-            rbtCon.setRequestProperty("Accept", "application/json");
-            rbtCon.setRequestProperty("Content-Type", "application/json");
-            rbtCon.setRequestProperty("Authorization", "null");
-
-            // Serialization
+           
+            String rbtTxnComment = comment.concat("-"+tid);
             JSONObject rbtApiPayload = new JSONObject();
             rbtApiPayload.put("receiver", sellerDid);
             rbtApiPayload.put("tokenCount", requestedAmount);
-            rbtApiPayload.put("comment", comment);
-            rbtApiPayload.put("type", 2);
+            rbtApiPayload.put("comment", rbtTxnComment);
+            rbtApiPayload.put("type", type);
+            rbtApiPayload.put("pvtKeyPass", keyPass);
 
-            // Send post request
-            rbtCon.setDoOutput(true);
-            DataOutputStream wrRbtAPI = new DataOutputStream(rbtCon.getOutputStream());
-            wrRbtAPI.writeBytes(rbtApiPayload.toString());
-            wrRbtAPI.flush();
-            wrRbtAPI.close();
-
-            int rbtApiResponseCode = rbtCon.getResponseCode();
-            nftBuyerLogger.debug("Sending 'POST' request to URL : " + "http://localhost:1898/initiateTransaction");
-            nftBuyerLogger.debug("Post Data : " + rbtApiPayload);
-            nftBuyerLogger.debug("Response Code : " + rbtApiResponseCode);
-
-            if (rbtApiResponseCode != 200) {
-                throw new RuntimeException("Failed : HTTP error code : "
-                        + rbtCon.getResponseCode());
-            }
-
-            BufferedReader rbtResInp = new BufferedReader(new InputStreamReader(rbtCon.getInputStream()));
-
-            String rbtApiOut;
-            StringBuffer rbtApiResstr = new StringBuffer();
-
-            while ((rbtApiOut = rbtResInp.readLine()) != null) {
-                rbtApiResstr.append(rbtApiOut);
-            }
-            rbtResInp.close();
+            JSONObject rbtApiResstr = APIHandler.send(rbtApiPayload.toString());
+            
 
             nftBuyerLogger.info(
                     "Response of RBT transfer API to nft Seller " + sellerDid + " is : " + rbtApiResstr.toString());
 
             // converting API response back to JSON Object
-            JSONObject rbtAPIresponse = new JSONObject(rbtApiResstr.toString());
-            String statusStr = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("status");
+            
+            String statusStr = rbtApiResstr.getString("status");
 
             if (statusStr != null && !statusStr.equals("Success")) {
                 output.println("420");
@@ -904,9 +867,9 @@ public class NftBuyer {
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");
                 APIResponse.put("message",
-                        rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
+                        rbtApiResstr.getString("message"));
                 nftBuyerLogger
-                        .info(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
+                        .info(rbtApiResstr.getString("message"));
                 executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
                 output.close();
                 input.close();
@@ -917,9 +880,9 @@ public class NftBuyer {
             }
 
             output.println("200");
-            output.println(rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("message"));
+            output.println(rbtApiResstr.getString("message"));
 
-            String rbtTxnId = rbtAPIresponse.getJSONObject("data").getJSONObject("response").getString("tid");
+            String rbtTxnId = rbtApiResstr.getString("tid");
 
             nftBuyerLogger.debug("Sending RBT Txn ID to Seller to confirm ");
             output.println(rbtTxnId);
@@ -1133,7 +1096,7 @@ public class NftBuyer {
             String nftHashString = nftFirstHash.concat(buyerPubKeyIpfsHash);
             String nftSignString = calculateHash(nftHashString, "SHA3-256");
 
-            String nftOwnerIdentity = pvtKeySign(nftSignString, pvtKey,buyerPvtKeyAlg);
+            String nftOwnerIdentity = pvtKeySign(nftSignString, pvtKey, buyerPvtKeyAlg);
             nftBuyerLogger.info("NFT new Owner Identitiy : " + nftOwnerIdentity);
 
             // update recived nfttokenchain
@@ -1234,6 +1197,9 @@ public class NftBuyer {
             // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (ParseException e) {
+        } catch (Exception e2) {
+            // TODO Auto-generated catch block
+            e2.printStackTrace();
         }
         nftBuyerLogger.info("NFT Transaction Successful");
         executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);

@@ -10,7 +10,6 @@ import java.util.Calendar;
 import java.util.Date;
 
 import com.rubix.KeyPairGen.EcDSAKeyGen;
-import com.rubix.KeyPairGen.RsaKeyGen;
 import com.rubix.Resources.IPFSNetwork;
 
 import static com.rubix.NFTResources.NFTFunctions.*;
@@ -33,12 +32,6 @@ public class NFTAPIHandler {
         pathSet();
         nftPathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        // networkInfo();
-        /*
-         * String sellerPeerID = getPeerID(DATA_PATH + "DID.json");
-         * String sellerDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid",
-         * sellerPeerID);
-         */
         JSONObject sendMessage = new JSONObject();
         try {
             JSONObject dataObject = new JSONObject(data);
@@ -79,7 +72,6 @@ public class NFTAPIHandler {
                 sendMessage.put("nfttoken", nftTokenIpfsHash);
                 return sendMessage;
             }
-            // dataObject.put("pvt", DATA_PATH + sellerDID + "/PrivateShare.png");
             sendMessage = send(dataObject.toString(), ipfs, BUYER_PORT);
             APILogger.info(sendMessage);
         } catch (JSONException e) {
@@ -253,20 +245,6 @@ public class NFTAPIHandler {
                     if (dateTH.after(startDate) && dateTH.before(endDate)) {
                         nftTransactionObject.remove("essentialShare");
 
-                        /*
-                         * if (transactionObject.has("amount-received")) {
-                         * transactionObject.put("amount",
-                         * transactionObject.getDouble("amount-received"));
-                         * } else if (transactionObject.has("amount-spent")) {
-                         * transactionObject.put("amount", transactionObject.getDouble("amount-spent"));
-                         * } else if (transactionObject.has("amount"))
-                         * transactionObject.put("amount", transactionObject.getDouble("amount"));
-                         * else {
-                         * JSONArray tokensArray = (JSONArray) transactionObject.get("tokens");
-                         * transactionObject.put("amount", tokensArray.length());
-                         * }
-                         */
-
                         if (nftTransactionObject.has("quorumList")) {
                             nftTransactionObject.remove("quorumList");
                         }
@@ -282,82 +260,6 @@ public class NFTAPIHandler {
 
         return resultArray;
     }
-
-   /*  public static JSONObject sendNftP2p(String data) {
-        pathSet();
-        nftPathSet();
-        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-        JSONObject sendMessage = new JSONObject();
-        try {
-            JSONObject dataObject = new JSONObject(data);
-            String buyerDID = dataObject.getString("buyerDidIpfsHash");
-            String nftTokenIpfsHash = dataObject.getString("nftToken");
-            String sellerDID = dataObject.getString("sellerDidIpfsHash");
-
-            boolean isObjectValid = false;
-
-            String datatable = readFile(DATA_PATH + "DataTable.json");
-            JSONArray dataTable = new JSONArray(datatable);
-            for (int i = 0; i < dataTable.length(); i++) {
-                JSONObject dataTableObject = dataTable.getJSONObject(i);
-                if (dataTableObject.getString("didHash").equals(sellerDID)) {
-                    isObjectValid = true;
-                }
-            }
-
-            if (!isObjectValid) {
-                networkInfo();
-            }
-
-            if (sellerDID.length() != 46) {
-                sendMessage.put("did", buyerDID);
-                sendMessage.put("tid", "null");
-                sendMessage.put("status", "Failed");
-                sendMessage.put("message", "Invalid Seller Did Entered");
-                sendMessage.put("comment", "");
-                sendMessage.put("nfttoken", nftTokenIpfsHash);
-                return sendMessage;
-            }
-            if (nftTokenIpfsHash.length() != 46) {
-                sendMessage.put("did", buyerDID);
-                sendMessage.put("tid", "null");
-                sendMessage.put("status", "Failed");
-                sendMessage.put("message", "Invalid NFT Token Entered");
-                sendMessage.put("comment", "");
-                sendMessage.put("nfttoken", nftTokenIpfsHash);
-                return sendMessage;
-            }
-            // dataObject.put("pvt", DATA_PATH + sellerDID + "/PrivateShare.png");
-            sendMessage = send(dataObject.toString(), ipfs, BUYER_PORT);
-            APILogger.info(sendMessage);
-        } catch (JSONException e) {
-            // TODO: handle exception
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return sendMessage;
-    } */
-
-    /* public static String testsalevery(String reconObj, String saleContracthash, String pubkeyipfs) {
-        PublicKey publicKey = getPubKeyFromStr(IPFSNetwork.get(pubkeyipfs, ipfs));
-        APILogger.debug("Public key " + publicKey.toString());
-        String saleContractContent = IPFSNetwork.get(saleContracthash, ipfs);
-        String result = "fail";
-        try {
-            JSONObject saleConObj = new JSONObject(saleContractContent);
-            String saleSignature = saleConObj.getString("sign");
-            boolean b = verifySignature(reconObj, publicKey, saleSignature);
-            if (b) {
-                result = "pass";
-            }
-
-        } catch (JSONException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return result;
-    } */
 
     public static String generateCryptoKeys(String password, String keyType, int returnKey) throws JSONException {
         String result = null;
@@ -379,25 +281,6 @@ public class NFTAPIHandler {
                 }
             } else {
                 result = EcDSAKeyGen.genAndRetKey(password);
-            }
-        } else {
-            if (returnKey == 0) {
-                RsaKeyGen.generateKeyPair(password);
-                if (checkKeyFiles()) {
-                    JSONObject temp = new JSONObject();
-                    try {
-                        temp.put("privateKey", "RSA key saved to Rubix/DATA/privatekey.pem");
-                        temp.put("publicKey", "RSA key saved to Rubix/DATA/publickey.pub");
-                        temp.put("publicKeyIpfsHash", "saved to Rubix/DATA/PulicKeyIpfsHash");
-                    } catch (JSONException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                    result = temp.toString();
-
-                }
-            } else {
-                result = RsaKeyGen.genAndRetKey(password);
             }
         }
 

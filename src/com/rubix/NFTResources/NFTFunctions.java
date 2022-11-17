@@ -9,14 +9,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import javax.json.JsonArray;
+import javax.net.ssl.HttpsURLConnection;
 
 import java.security.*;
 
@@ -129,6 +127,60 @@ public class NFTFunctions {
                 IPFSNetwork.pin(nftToken, ipfs);
                 apiData.remove("pvtKeySign");
                 apiData.remove("tokenCount");
+
+                if (!EXPLORER_IP.contains("127.0.0.1")) {
+                    String url = EXPLORER_IP + "/newMint";
+                    URL obj = new URL(url);
+                    HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+        
+                    // Setting basic post request
+                    con.setRequestMethod("POST");
+                    con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+                    con.setRequestProperty("Accept", "application/json");
+                    con.setRequestProperty("Content-Type", "application/json");
+                    con.setRequestProperty("Authorization", "null");
+        
+                    // Serialization
+                    JSONObject dataToSend = new JSONObject();
+                    
+                    dataToSend.put("type", "NFT");
+                    dataToSend.put("creatorId", creatorDID);
+                    dataToSend.put("nftToken", nftToken);
+                    dataToSend.put("createdOn", getCurrentUtcTime());
+                    dataToSend.put("creatorPubKeyIpfsHash", creatorPubKeyIpfsHash);
+                    dataToSend.put("totalSupply",totalSupply);
+                    dataToSend.put("edition", i);
+                    dataToSend.put("url", apiData.getString("url"));
+                    dataToSend.put("creatorInput", apiData.get("creatorInput"));
+                    String populate = dataToSend.toString();
+        
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("inputString", populate);
+                    String postJsonData = jsonObject.toString();
+        
+                    // Send post request
+                    con.setDoOutput(true);
+                    DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+                    wr.writeBytes(postJsonData);
+                    wr.flush();
+                    wr.close();
+        
+                    int responseCode = con.getResponseCode();
+                    NftFunctionsLogger.debug("Sending 'POST' request to URL : " + url);
+                    NftFunctionsLogger.debug("Post Data : " + postJsonData);
+                    NftFunctionsLogger.debug("Response Code : " + responseCode);
+        
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    String output;
+                    StringBuffer response = new StringBuffer();
+        
+                    while ((output = in.readLine()) != null) {
+                        response.append(output);
+                    }
+                    in.close();
+        
+                    NftFunctionsLogger.debug(response.toString());
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -152,71 +204,6 @@ public class NFTFunctions {
 
     }
 
-    /**
-     * This method is used to create RAC tokens
-     *
-     * @param racType,DID,totalsupply,contenthash,url,comment,privatkeypass as
-     *                                                                      String
-     * @return JSONArray of RAC tokens
-     */
-    /* public static String createRacToken(String data) {
-        pathSet();
-        nftPathSet();
-        JSONArray resultTokenArray = new JSONArray();
-        JSONObject resultObject = new JSONObject();
-        try {
-            JSONObject apiData = new JSONObject(data);
-            String keyPass = apiData.getString("pvtKeyPass");
-            String DID = apiData.getString("creatorDid");
-            PrivateKey pvtKey;
-
-            if (apiData.has("pvtKeyStr") && apiData.getString("pvtKeyStr") != null) {
-                pvtKey = getPvtKeyFromStr(apiData.getString("pvtKeyStr"), keyPass);
-                apiData.remove("pvtKeyStr");
-            } else {
-                pvtKey = getPvtKey(keyPass);
-            }
-            apiData.remove("pvtKeyPass");
-            
-
-            long totalSupply = apiData.getLong("totalSupply");
-            for (long i = 1; i <= totalSupply; i++) {
-                apiData.put("tokenCount", i);
-                String pvtKeySign = pvtKeySign(apiData.toString(), pvtKey);
-                apiData.put("pvtKeySign", pvtKeySign);
-
-                writeToFile(LOGGER_PATH + "TempRACFile", apiData.toString(), false);
-                String racToken = IPFSNetwork.add(LOGGER_PATH + "TempRACFile", ipfs);
-
-                writeToFile(NFT_TOKENS_PATH + racToken, apiData.toString(), false);
-
-                writeToFile(NFT_TOKENCHAIN_PATH + racToken + ".json", "[]", false);
-
-                deleteFile(LOGGER_PATH + "TempRACFile");
-
-                resultTokenArray.put(racToken);
-
-                IPFSNetwork.pin(racToken, ipfs);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        try {
-            if (resultTokenArray.length() == 0) {
-                resultObject.put("Status", "Failed");
-                resultObject.put("Tokens", resultTokenArray);
-                resultObject.put("Message", "RAC tokens not created");
-
-            } else {
-                resultObject.put("Status", "Success");
-                resultObject.put("Tokens", resultTokenArray);
-                resultObject.put("Message", "RAC tokens created");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return resultObject.toString();
-    } */
 
     /**
      * This method is used to get decoded private key from .pem file
@@ -567,14 +554,12 @@ public class NFTFunctions {
             temp.put("sellerDID", dataObject.getString("sellerDID"));
             temp.put("nftToken", dataObject.getString("nftToken"));
             temp.put("rbtAmount", dataObject.getDouble("rbtAmount"));
-            //NftFunctionsLogger.debug(key);
 
             //pvtKeySign using keyalg
             contractSign=pvtKeySign(dataObject.toString(), key,pvtKeyAlg);
 
             contractDataObject.put("sign", contractSign);
 
-            //NftFunctionsLogger.debug("sale contract content **************\n"+contractDataObject.toString());
             
 
             writeToFile(LOGGER_PATH+"nftContract",contractDataObject.toString(), false);
@@ -584,12 +569,7 @@ public class NFTFunctions {
             IPFSNetwork.pin(saleContractIpfsHash, ipfs);
             deleteFile(LOGGER_PATH+"nftContract");
 
-            /* NftFunctionsLogger.debug("##############################");
-            String temppubipfs=getPubKeyIpfsHash();
-            PublicKey tPkey=getPublicKey();
-            boolean verification = verifySignature(temp.toString(), tPkey, contractSign);
-            NftFunctionsLogger.debug("Sale contract verification value @ "+ verification);
-            NftFunctionsLogger.debug("##############################"); */
+           
 
             resultObj.put("status", "Success");
             resultObj.put("message", "Sale contract created");
@@ -659,15 +639,6 @@ public class NFTFunctions {
         return result;
     }
 
-    /**
-     * this method calculates the royalty amount in RBT based on the percentage 
-     */
-    public static double calculateRoyaltyAmount(double requestedAmount,double previousAmount, double royalty)
-    {
-        double result=0.0;
-
-        return 0.0;
-    }
 
     public static boolean checkNftExist(String nfttokenipfshash)
     {
@@ -680,20 +651,6 @@ public class NFTFunctions {
         }
 
         return result;
-    }
-
-    public static void getLastTokenChainObject(String nftTokenIpfsHash)
-    {
-        if(!checkNftExist(nftTokenIpfsHash))
-        {
-            //return null;
-        }
-        IPFSNetwork.add(NFT_TOKENS_PATH + nftTokenIpfsHash, ipfs);
-        String nftTokenChainIpfsHash = IPFSNetwork.add(NFT_TOKENCHAIN_PATH + nftTokenIpfsHash + ".json", ipfs);
-
-
-
-        //JSONArray nftTokenChainArray= new JSONArray(nftTokenChain);
     }
 
     public static Date formatDate(String date) {
@@ -900,8 +857,6 @@ public class NFTFunctions {
 
     }
     
-    //int responseCodeSYNC=0;
-
    
     record.put(obj);
 
@@ -927,7 +882,6 @@ public class NFTFunctions {
         e.printStackTrace();
     }
     
-    //return responseCodeSYNC;
 }
 
 
