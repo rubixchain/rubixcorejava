@@ -24,6 +24,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -535,7 +536,7 @@ public class TokenSender {
 			senderMutex = false;
 			Initiator.abortReason = new JSONObject();
 			return APIResponse;
-		}else {
+		} else {
 			JSONArray array = Initiator.quorumWithHashesArray;
 			challengeObject.put("pledgeDetails", array);
 
@@ -581,6 +582,7 @@ public class TokenSender {
 		JSONArray signedChains = new JSONArray();
 		JSONObject payloadSigned = new JSONObject();
 		File privateShareFile = new File(DATA_PATH.concat(senderDidIpfsHash).concat("/PrivateShare.png"));
+
 		if (privateShareFile.exists()) {
 			payloadSigned.put("authSenderByRecHash", getSignFromShares(pvt, authSenderByRecHash));
 			payloadSigned.put("senderPayloadSign", getSignFromShares(pvt, senderPayloadHash));
@@ -605,10 +607,10 @@ public class TokenSender {
 					WALLET_DATA_PATH.concat("/SignPayload").concat(tid).concat(".json"));
 			payloadfile.write(payloadSigned.toString());
 			payloadfile.close();
-			
+
 			JSONArray quorumWithSignsArray = new JSONArray();
 			JSONArray pledgeArray = Initiator.quorumWithHashesArray;
-			if(pledgeArray.length()==0) {
+			if (pledgeArray.length() == 0) {
 				APIResponse.put("did", senderDidIpfsHash);
 				APIResponse.put("tid", "null");
 				APIResponse.put("status", "Failed");
@@ -616,20 +618,75 @@ public class TokenSender {
 				TokenSenderLogger.warn("Pledging failed");
 				return APIResponse;
 			}
-			for(int i = 0; i < Initiator.quorumWithHashesArray.length(); i++) {
-				JSONArray hashArray = pledgeArray.getJSONArray(i);
-				JSONArray signsArray = new JSONArray();
-				for(int j = 0; j < hashArray.length(); j++) {
-					String sign = getSignFromShares(pvt, hashArray.getString(j));
-					signsArray.put(sign);
+
+			TokenSenderLogger.debug("pledge object is " + pledgeArray.toString());
+
+			JSONObject finalSignObject = new JSONObject();
+			JSONArray signsArray = new JSONArray();
+
+			for (int i = 0; i < Initiator.quorumWithHashesArray.length(); i++) {
+				JSONObject jsonObject = Initiator.quorumWithHashesArray.getJSONObject(i);
+				Iterator<String> keys = jsonObject.keys();
+				TokenSenderLogger.debug("jsonObject  is " + jsonObject.toString());
+				JSONObject pledgeSignedObject = new JSONObject();
+				String key = "";
+				while (keys.hasNext()) {
+					key = keys.next();
+					TokenSenderLogger.debug("key of quorumn is " + key);
+					if (jsonObject.get(key) instanceof JSONArray) {
+						// do something with jsonObject here
+						JSONArray hashArray = new JSONArray(jsonObject.get(key).toString());
+						for (int j = 0; j < hashArray.length(); j++) {
+							String sign = getSignFromShares(pvt, hashArray.get(j).toString());
+							pledgeSignedObject.put("hash", hashArray.get(j));
+							pledgeSignedObject.put("sign", sign);
+						}
+					}
 				}
 				JSONObject signObject = new JSONObject();
-				signObject.put("quorum", pledgeArray.getJSONObject(i).getString("quorum"));
-				signObject.put("sign", signsArray);
+				signObject.put(key, pledgeSignedObject);
+				TokenSenderLogger.debug("signObject is "+signObject);
 				quorumWithSignsArray.put(signObject);
+
 			}
-			payloadSigned.put("pledgeDetails", quorumWithSignsArray);
 			
+
+//			for (int i = 0; i < intPart; i++) {
+//				JSONObject jsonObject = new JSONObject(Initiator.quorumWithHashesArray);
+//				TokenSenderLogger.debug("jsonObject " + jsonObject.toString());
+//				Iterator<String> keys = jsonObject.keys();
+//
+//				TokenSenderLogger.debug("iteratir keys is " + keys.next().toString());
+//
+//				String key = "";
+//				while (keys.hasNext()) {
+//					key = keys.next();
+//					TokenSenderLogger.debug("key of quorumn is " + key);
+//					if (jsonObject.get(key) instanceof JSONObject) {
+//						// do something with jsonObject here
+//						JSONArray hashArray = jsonObject.getJSONArray(key);
+//						for (int j = 0; j < hashArray.length(); j++) {
+//							String sign = getSignFromShares(pvt, hashArray.getString(j));
+//							signsArray.put(sign);
+//						}
+//
+//					}
+//				}
+//
+//				TokenSenderLogger.debug("sign array is " + signsArray.toString());
+//
+//				JSONObject signObject = new JSONObject();
+//				signObject.put("quorum", key);
+//				signObject.put("sign", signsArray);
+//				quorumWithSignsArray.put(signObject);
+//			}
+			
+			payloadSigned.put("pledgeDetails", quorumWithSignsArray);
+
+			FileWriter spfile = new FileWriter(WALLET_DATA_PATH.concat("/signedPayload").concat(tid).concat(".json"));
+			spfile.write(payloadSigned.toString());
+			spfile.close();
+
 			senderMutex = false;
 			return SendPartB(payloadSigned, ipfs, port);
 		}
@@ -640,6 +697,8 @@ public class TokenSender {
 	public static JSONObject SendPartB(JSONObject signPayload, IPFS ipfs, int port)
 			throws JSONException, IOException, InterruptedException, ParseException {
 
+		TokenSenderLogger.debug("PartB - signPayload " + signPayload);
+		
 		String senderSign = signPayload.getString("authSenderByRecHash");
 		JSONObject APIResponse = new JSONObject();
 		String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
@@ -653,7 +712,8 @@ public class TokenSender {
 		String senderPeerID = getPeerID(DATA_PATH + "DID.json");
 		String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
 		JSONArray quorumWithSignsArray = signPayload.getJSONArray("pledgeDetails");
-		
+		JSONArray signedChains = signPayload.getJSONArray("lastObject");
+
 		
 
 		// If user enters wrong pvt key password
@@ -675,7 +735,7 @@ public class TokenSender {
 		}
 
 		senderMutex = true;
-		Initiator.pledge(quorumWithSignsArray, requestedAmount,port);
+		Initiator.pledge(quorumWithSignsArray, requestedAmount, port);
 
 		boolean sanityCheck = sanityCheck("Receiver", receiverPeerId, ipfs, port + 10);
 		if (!sanityCheck) {
@@ -784,10 +844,10 @@ public class TokenSender {
 		}
 
 		String pvtKeyType = privateKeyAlgorithm(1);
-		String senderSignWithPvtKey = pvtKeySign(senderSign, pvtKey, pvtKeyType);
+	//	String senderSignWithPvtKey = pvtKeySign(senderSign, pvtKey, pvtKeyType);
 
 		JSONObject senderDetails2Receiver = new JSONObject();
-		senderDetails2Receiver.put("pvtKeySign", senderSignWithPvtKey);
+	//	senderDetails2Receiver.put("pvtKeySign", senderSignWithPvtKey);
 		senderDetails2Receiver.put("pvtShareBits", senderSign);
 		senderDetails2Receiver.put("tid", tid);
 		senderDetails2Receiver.put("comment", comment);
@@ -1077,7 +1137,6 @@ public class TokenSender {
 		// (For Token chain auth)
 		output.println("Request for new blocks being added to the Token Chains");
 
-		JSONArray signedChains = signPayload.getJSONArray("lastObject");
 		String newBlocksForTokenChains;
 		try {
 			newBlocksForTokenChains = input.readLine();
@@ -1099,6 +1158,12 @@ public class TokenSender {
 			return APIResponse;
 		}
 
+		TokenSenderLogger.debug("newBlocksForTokenChains is "+newBlocksForTokenChains);
+		TokenSenderLogger.debug("");
+
+		TokenSenderLogger.debug("lastObJsonArray is "+lastObJsonArray.toString());
+
+		
 		JSONArray newTokenChainBlocks = new JSONArray(newBlocksForTokenChains);
 		JSONArray hashAndSigns = new JSONArray();
 
@@ -1108,6 +1173,9 @@ public class TokenSender {
 
 			Map<String, Object> senderChainMap = lastObject.toMap();
 			Map<String, Object> receiverChainMap = receiverLastObject.toMap();
+			senderChainMap.remove("pledgeToken");
+			receiverChainMap.remove("pledgeToken");
+
 			TokenSenderLogger.debug("--------");
 			TokenSenderLogger.debug("senderChainMap   " + senderChainMap.keySet().toString());
 			TokenSenderLogger.debug("senderChainMap   " + senderChainMap.values().toString());
@@ -1119,15 +1187,17 @@ public class TokenSender {
 			TokenSenderLogger.debug("--------");
 
 			TokenSenderLogger.debug(senderChainMap.equals(receiverChainMap) + " is the chainmap status");
+			
+			TokenSenderLogger.debug("signedChains is "+signedChains.toString());
 			if (senderChainMap.equals(receiverChainMap)) {
 
-				String PvtKeySign = pvtKeySign(signedChains.getJSONObject(i).getString("chainSign"), pvtKey,
-						privateKeyAlgorithm(1));
+			//	String PvtKeySign = pvtKeySign(signedChains.getJSONObject(i).getString("chainSign"), pvtKey,
+			//			privateKeyAlgorithm(1));
 
 				JSONObject obj = new JSONObject();
 				obj.put("hash", signedChains.getJSONObject(i).getString("hash"));
 				obj.put("pvtShareBits", signedChains.getJSONObject(i).getString("chainSign"));
-				obj.put("pvtKeySign", PvtKeySign);
+			//	obj.put("pvtKeySign", PvtKeySign);
 
 				hashAndSigns.put(obj);
 			} else {
@@ -1335,6 +1405,7 @@ public class TokenSender {
 			deleteFile(TOKENS_PATH.concat(wholeTokens.getString(i)));
 			Functions.updateJSON("remove", PAYMENTS_PATH.concat("BNK00.json"), wholeTokens.getString(i));
 		}
+		if(decimalAmount != 0.0) {
 
 		if (newPart) {
 			TokenSenderLogger.debug("Updating files for new parts");
@@ -1524,6 +1595,7 @@ public class TokenSender {
 
 			}
 		}
+	}
 		TokenSenderLogger.info("Transaction Successful");
 		executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
 		updateQuorum(quorumArray, signedQuorumList, true, type);
@@ -1534,7 +1606,7 @@ public class TokenSender {
 
 		// Populating data to explorer
 		if (!EXPLORER_IP.contains("127.0.0.1")) {
-
+			
 			List<String> tokenList = new ArrayList<>();
 			for (int i = 0; i < allTokens.length(); i++)
 				tokenList.add(allTokens.getString(i));
