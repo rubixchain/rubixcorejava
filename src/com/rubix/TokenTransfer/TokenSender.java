@@ -556,8 +556,9 @@ public class TokenSender {
 			lastObject.put("comment", comment);
 			lastObject.put("tid", tid);
 			lastObject.put("receiver", receiverDidIpfsHash);
-			lastObject.put("pledgeToken", Initiator.pledgedNodes);
+			lastObject.put("pledgeToken", "");
 			lastObject.put("tokensPledgedFor", allTokens);
+			lastObject.put("tokensPledgedWith", Initiator.pledgedTokensArray);
 
 			String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
 			JSONArray tokenChain = new JSONArray(tokenChainFileContent);
@@ -635,7 +636,10 @@ public class TokenSender {
 					TokenSenderLogger.debug("key of quorumn is " + key);
 					if (jsonObject.get(key) instanceof JSONArray) {
 						// do something with jsonObject here
+
 						JSONArray hashArray = new JSONArray(jsonObject.get(key).toString());
+						TokenSenderLogger.debug("@@@@@ Calculating hash for: " + hashArray);
+						String hashString = calculateHash(hashArray.toString(), "SHA3-256");
 						for (int j = 0; j < hashArray.length(); j++) {
 							String sign = getSignFromShares(pvt, hashArray.get(j).toString());
 							pledgeSignedObject.put("hash", hashArray.get(j));
@@ -645,11 +649,10 @@ public class TokenSender {
 				}
 				JSONObject signObject = new JSONObject();
 				signObject.put(key, pledgeSignedObject);
-				TokenSenderLogger.debug("signObject is "+signObject);
+				TokenSenderLogger.debug("signObject is " + signObject);
 				quorumWithSignsArray.put(signObject);
 
 			}
-			
 
 //			for (int i = 0; i < intPart; i++) {
 //				JSONObject jsonObject = new JSONObject(Initiator.quorumWithHashesArray);
@@ -680,7 +683,7 @@ public class TokenSender {
 //				signObject.put("sign", signsArray);
 //				quorumWithSignsArray.put(signObject);
 //			}
-			
+
 			payloadSigned.put("pledgeDetails", quorumWithSignsArray);
 
 			FileWriter spfile = new FileWriter(WALLET_DATA_PATH.concat("/signedPayload").concat(tid).concat(".json"));
@@ -698,7 +701,7 @@ public class TokenSender {
 			throws JSONException, IOException, InterruptedException, ParseException {
 
 		TokenSenderLogger.debug("PartB - signPayload " + signPayload);
-		
+
 		String senderSign = signPayload.getString("authSenderByRecHash");
 		JSONObject APIResponse = new JSONObject();
 		String receiverDidIpfsHash = detailsObject.getString("receiverDidIpfsHash");
@@ -708,13 +711,12 @@ public class TokenSender {
 		int type = detailsObject.getInt("type");
 		String comment = detailsObject.getString("comment");
 		String keyPass = detailsObject.getString("pvtKeyPass");
+
 		PrivateKey pvtKey = getPvtKey(keyPass, 1);
 		String senderPeerID = getPeerID(DATA_PATH + "DID.json");
 		String senderDidIpfsHash = getValues(DATA_PATH + "DataTable.json", "didHash", "peerid", senderPeerID);
 		JSONArray quorumWithSignsArray = signPayload.getJSONArray("pledgeDetails");
 		JSONArray signedChains = signPayload.getJSONArray("lastObject");
-
-		
 
 		// If user enters wrong pvt key password
 		if (pvtKey == null) {
@@ -724,7 +726,7 @@ public class TokenSender {
 			return APIResponse;
 		}
 
-		detailsObject.remove("pvtKeyPass");
+		// detailsObject.remove("pvtKeyPass");
 		if (senderMutex) {
 			APIResponse.put("did", senderDidIpfsHash);
 			APIResponse.put("tid", "null");
@@ -844,10 +846,10 @@ public class TokenSender {
 		}
 
 		String pvtKeyType = privateKeyAlgorithm(1);
-	//	String senderSignWithPvtKey = pvtKeySign(senderSign, pvtKey, pvtKeyType);
+		// String senderSignWithPvtKey = pvtKeySign(senderSign, pvtKey, pvtKeyType);
 
 		JSONObject senderDetails2Receiver = new JSONObject();
-	//	senderDetails2Receiver.put("pvtKeySign", senderSignWithPvtKey);
+		// senderDetails2Receiver.put("pvtKeySign", senderSignWithPvtKey);
 		senderDetails2Receiver.put("pvtShareBits", senderSign);
 		senderDetails2Receiver.put("tid", tid);
 		senderDetails2Receiver.put("comment", comment);
@@ -1078,7 +1080,7 @@ public class TokenSender {
 		TokenSenderLogger.debug("Consensus Reached");
 		senderDetails2Receiver.put("status", "Consensus Reached");
 		senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
-		senderDetails2Receiver.put("pledgeDetails", Initiator.pledgedNodes);
+		senderDetails2Receiver.put("pledgeDetails", Initiator.pledgedTokensArray);
 
 		output.println(senderDetails2Receiver);
 		TokenSenderLogger.debug("Quorum Signatures length " + InitiatorConsensus.quorumSignature.length());
@@ -1158,18 +1160,17 @@ public class TokenSender {
 			return APIResponse;
 		}
 
-		TokenSenderLogger.debug("newBlocksForTokenChains is "+newBlocksForTokenChains);
+		TokenSenderLogger.debug("newBlocksForTokenChains is " + newBlocksForTokenChains);
 		TokenSenderLogger.debug("");
 
-		TokenSenderLogger.debug("lastObJsonArray is "+lastObJsonArray.toString());
+		TokenSenderLogger.debug("lastObJsonArray is " + lastObJsonArray.toString());
 
-		
 		JSONArray newTokenChainBlocks = new JSONArray(newBlocksForTokenChains);
 		JSONArray hashAndSigns = new JSONArray();
 
 		for (int i = 0; i < intPart; i++) {
 			JSONObject lastObject = lastObJsonArray.getJSONObject(i);
-			JSONObject receiverLastObject = newTokenChainBlocks.getJSONObject(i);
+			JSONObject receiverLastObject = newTokenChainBlocks.getJSONObject(i).getJSONObject("lastObject");
 
 			Map<String, Object> senderChainMap = lastObject.toMap();
 			Map<String, Object> receiverChainMap = receiverLastObject.toMap();
@@ -1187,17 +1188,18 @@ public class TokenSender {
 			TokenSenderLogger.debug("--------");
 
 			TokenSenderLogger.debug(senderChainMap.equals(receiverChainMap) + " is the chainmap status");
-			
-			TokenSenderLogger.debug("signedChains is "+signedChains.toString());
+
+			TokenSenderLogger.debug("signedChains is " + signedChains.toString());
 			if (senderChainMap.equals(receiverChainMap)) {
 
-			//	String PvtKeySign = pvtKeySign(signedChains.getJSONObject(i).getString("chainSign"), pvtKey,
-			//			privateKeyAlgorithm(1));
+				// String PvtKeySign =
+				// pvtKeySign(signedChains.getJSONObject(i).getString("chainSign"), pvtKey,
+				// privateKeyAlgorithm(1));
 
 				JSONObject obj = new JSONObject();
 				obj.put("hash", signedChains.getJSONObject(i).getString("hash"));
 				obj.put("pvtShareBits", signedChains.getJSONObject(i).getString("chainSign"));
-			//	obj.put("pvtKeySign", PvtKeySign);
+				// obj.put("pvtKeySign", PvtKeySign);
 
 				hashAndSigns.put(obj);
 			} else {
@@ -1405,118 +1407,37 @@ public class TokenSender {
 			deleteFile(TOKENS_PATH.concat(wholeTokens.getString(i)));
 			Functions.updateJSON("remove", PAYMENTS_PATH.concat("BNK00.json"), wholeTokens.getString(i));
 		}
-		if(decimalAmount != 0.0) {
+		if (decimalAmount != 0.0) {
 
-		if (newPart) {
-			TokenSenderLogger.debug("Updating files for new parts");
-			JSONObject newPartTokenObject = new JSONObject();
-			newPartTokenObject.put("tokenHash", partTokens.getString(0));
-			JSONArray newPartArray = new JSONArray();
-			newPartArray.put(newPartTokenObject);
-			writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), newPartArray.toString(), false);
+			if (newPart) {
+				TokenSenderLogger.debug("Updating files for new parts");
+				JSONObject newPartTokenObject = new JSONObject();
+				newPartTokenObject.put("tokenHash", partTokens.getString(0));
+				JSONArray newPartArray = new JSONArray();
+				newPartArray.put(newPartTokenObject);
+				writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), newPartArray.toString(), false);
 
-			String bankNew = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-			JSONArray bankNewArray = new JSONArray(bankNew);
-			bankNewArray.remove(0);
-			writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankNewArray.toString(), false);
+				String bankNew = readFile(PAYMENTS_PATH.concat("BNK00.json"));
+				JSONArray bankNewArray = new JSONArray(bankNew);
+				bankNewArray.remove(0);
+				writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankNewArray.toString(), false);
 
-			String newTokenChain = readFile(TOKENCHAIN_PATH + partTokens.getString(0) + ".json");
-			JSONArray chainArray = new JSONArray(newTokenChain);
-
-			JSONObject newLastObject = new JSONObject();
-			/*
-			 * if (chainArray.length() == 0) { newLastObject.put("previousHash", "");
-			 * 
-			 * } else { JSONObject secondLastObject =
-			 * chainArray.getJSONObject(chainArray.length() - 1);
-			 * secondLastObject.put("nextHash", calculateHash(tid, "SHA3-256"));
-			 * newLastObject.put("previousHash",
-			 * calculateHash(chainArray.getJSONObject(chainArray.length() -
-			 * 1).getString("tid"), "SHA3-256")); }
-			 */
-
-			Double amount = formatAmount(decimalAmount);
-
-			newLastObject.put("senderSign", senderSign);
-			newLastObject.put("sender", senderDidIpfsHash);
-			newLastObject.put("receiver", receiverDidIpfsHash);
-			newLastObject.put("comment", comment);
-			newLastObject.put("tid", tid);
-			// newLastObject.put("nextHash", "");
-			newLastObject.put("role", "Sender");
-			newLastObject.put("amount", amount);
-			chainArray.put(newLastObject);
-
-			output.println("New part token chain to be hashed");
-			output.println(chainArray.toString());
-
-			String finalPartTokenChain_string;
-			try {
-				finalPartTokenChain_string = input.readLine();
-			} catch (SocketException e) {
-				TokenSenderLogger.warn(
-						"Receiver " + receiverDidIpfsHash + " could'nt send hahsed and signed token chain blocks.");
-				executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
-				output.close();
-				input.close();
-				senderSocket.close();
-				senderMutex = false;
-				updateQuorum(quorumArray, null, false, type);
-				APIResponse.put("did", senderDidIpfsHash);
-				APIResponse.put("tid", "null");
-				APIResponse.put("status", "Failed");
-				APIResponse.put("message",
-						"Receiver " + receiverDidIpfsHash + " could'nt send hahsed and signed token chain blocks.");
-
-				return APIResponse;
-			}
-
-			JSONArray newPartTokenChain = new JSONArray(finalPartTokenChain_string);
-			writeToFile(TOKENCHAIN_PATH + partTokens.getString(0) + ".json", newPartTokenChain.toString(), false);
-
-			File tokenFile = new File(TOKENS_PATH.concat(partTokens.getString(0)));
-			tokenFile.renameTo(new File(PART_TOKEN_PATH.concat(partTokens.getString(0))));
-			File chainFile = new File(TOKENCHAIN_PATH.concat(partTokens.getString(0)).concat(".json"));
-			chainFile.renameTo(new File(PART_TOKEN_CHAIN_PATH.concat(partTokens.getString(0)).concat(".json")));
-
-			File shiftedFile = new File(PAYMENTS_PATH.concat("ShiftedTokens.json"));
-			if (!shiftedFile.exists()) {
-				shiftedFile.createNewFile();
-				JSONArray shiftedTokensArray = new JSONArray();
-				shiftedTokensArray.put(partTokens.getString(0));
-				writeToFile(PAYMENTS_PATH.concat("ShiftedTokens.json"), shiftedTokensArray.toString(), false);
-			} else {
-				String shiftedContent = readFile(PAYMENTS_PATH.concat("ShiftedTokens.json"));
-				JSONArray shiftedArray = new JSONArray(shiftedContent);
-				shiftedArray.put(partTokens.getString(0));
-				writeToFile(PAYMENTS_PATH.concat("ShiftedTokens.json"), shiftedArray.toString(), false);
-			}
-		} else {
-
-			JSONObject partTokenChainsToBeSentForHashing = new JSONObject();
-
-			TokenSenderLogger.debug("Updating files for old parts");
-			for (int i = 0; i < partTokens.length(); i++) {
-				String newTokenChain = readFile(TOKENCHAIN_PATH.concat("PARTS/") + partTokens.getString(i) + ".json");
+				String newTokenChain = readFile(TOKENCHAIN_PATH + partTokens.getString(0) + ".json");
 				JSONArray chainArray = new JSONArray(newTokenChain);
 
 				JSONObject newLastObject = new JSONObject();
-
 				/*
 				 * if (chainArray.length() == 0) { newLastObject.put("previousHash", "");
 				 * 
-				 * } else {
-				 * 
-				 * JSONObject secondLastObject = chainArray.getJSONObject(chainArray.length() -
-				 * 1); secondLastObject.put("nextHash", calculateHash(tid, "SHA3-256"));
-				 * newLastObject.put("previousHash", calculateHash(
-				 * chainArray.getJSONObject(chainArray.length() - 1).getString("tid"),
-				 * "SHA3-256")); }
+				 * } else { JSONObject secondLastObject =
+				 * chainArray.getJSONObject(chainArray.length() - 1);
+				 * secondLastObject.put("nextHash", calculateHash(tid, "SHA3-256"));
+				 * newLastObject.put("previousHash",
+				 * calculateHash(chainArray.getJSONObject(chainArray.length() -
+				 * 1).getString("tid"), "SHA3-256")); }
 				 */
 
-				TokenSenderLogger
-						.debug("Amount from ledger: " + formatAmount(amountLedger.getDouble(partTokens.getString(i))));
-				Double amount = formatAmount(amountLedger.getDouble(partTokens.getString(i)));
+				Double amount = formatAmount(decimalAmount);
 
 				newLastObject.put("senderSign", senderSign);
 				newLastObject.put("sender", senderDidIpfsHash);
@@ -1528,74 +1449,163 @@ public class TokenSender {
 				newLastObject.put("amount", amount);
 				chainArray.put(newLastObject);
 
-				partTokenChainsToBeSentForHashing.put(partTokens.getString(i), chainArray);
+				output.println("New part token chain to be hashed");
+				output.println(chainArray.toString());
 
-				TokenSenderLogger.debug("Checking Parts Token Balance ...");
-				Double availableParts = partTokenBalance(partTokens.getString(i));
-				TokenSenderLogger.debug("Available: " + availableParts);
-				if (availableParts >= 1.000 || availableParts <= 0.000) {
-					TokenSenderLogger.debug("Wholly Spent, Removing token from parts");
-					String partFileContent2 = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
-					JSONArray partContentArray2 = new JSONArray(partFileContent2);
-					for (int j = 0; j < partContentArray2.length(); j++) {
-						if (partContentArray2.getJSONObject(j).getString("tokenHash").equals(partTokens.getString(i)))
-							partContentArray2.remove(j);
-						writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partContentArray2.toString(), false);
+				TokenSenderLogger.debug("!@#$% 1: " + chainArray);
+
+				String finalPartTokenChain_string;
+				try {
+					finalPartTokenChain_string = input.readLine();
+				} catch (SocketException e) {
+					TokenSenderLogger.warn(
+							"Receiver " + receiverDidIpfsHash + " could'nt send hahsed and signed token chain blocks.");
+					executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+					output.close();
+					input.close();
+					senderSocket.close();
+					senderMutex = false;
+					updateQuorum(quorumArray, null, false, type);
+					APIResponse.put("did", senderDidIpfsHash);
+					APIResponse.put("tid", "null");
+					APIResponse.put("status", "Failed");
+					APIResponse.put("message",
+							"Receiver " + receiverDidIpfsHash + " could'nt send hahsed and signed token chain blocks.");
+
+					return APIResponse;
+				}
+				TokenSenderLogger.debug("!@#$% 2: " + finalPartTokenChain_string);
+
+				JSONArray newPartTokenChain = new JSONArray(finalPartTokenChain_string);
+				writeToFile(TOKENCHAIN_PATH + partTokens.getString(0) + ".json", newPartTokenChain.toString(), false);
+
+				File tokenFile = new File(TOKENS_PATH.concat(partTokens.getString(0)));
+				tokenFile.renameTo(new File(PART_TOKEN_PATH.concat(partTokens.getString(0))));
+				File chainFile = new File(TOKENCHAIN_PATH.concat(partTokens.getString(0)).concat(".json"));
+				chainFile.renameTo(new File(PART_TOKEN_CHAIN_PATH.concat(partTokens.getString(0)).concat(".json")));
+
+				File shiftedFile = new File(PAYMENTS_PATH.concat("ShiftedTokens.json"));
+				if (!shiftedFile.exists()) {
+					shiftedFile.createNewFile();
+					JSONArray shiftedTokensArray = new JSONArray();
+					shiftedTokensArray.put(partTokens.getString(0));
+					writeToFile(PAYMENTS_PATH.concat("ShiftedTokens.json"), shiftedTokensArray.toString(), false);
+				} else {
+					String shiftedContent = readFile(PAYMENTS_PATH.concat("ShiftedTokens.json"));
+					JSONArray shiftedArray = new JSONArray(shiftedContent);
+					shiftedArray.put(partTokens.getString(0));
+					writeToFile(PAYMENTS_PATH.concat("ShiftedTokens.json"), shiftedArray.toString(), false);
+				}
+			} else {
+
+				JSONObject partTokenChainsToBeSentForHashing = new JSONObject();
+
+				TokenSenderLogger.debug("Updating files for old parts");
+				for (int i = 0; i < partTokens.length(); i++) {
+					String newTokenChain = readFile(
+							TOKENCHAIN_PATH.concat("PARTS/") + partTokens.getString(i) + ".json");
+					JSONArray chainArray = new JSONArray(newTokenChain);
+
+					JSONObject newLastObject = new JSONObject();
+
+					/*
+					 * if (chainArray.length() == 0) { newLastObject.put("previousHash", "");
+					 * 
+					 * } else {
+					 * 
+					 * JSONObject secondLastObject = chainArray.getJSONObject(chainArray.length() -
+					 * 1); secondLastObject.put("nextHash", calculateHash(tid, "SHA3-256"));
+					 * newLastObject.put("previousHash", calculateHash(
+					 * chainArray.getJSONObject(chainArray.length() - 1).getString("tid"),
+					 * "SHA3-256")); }
+					 */
+
+					TokenSenderLogger.debug(
+							"Amount from ledger: " + formatAmount(amountLedger.getDouble(partTokens.getString(i))));
+					Double amount = formatAmount(amountLedger.getDouble(partTokens.getString(i)));
+
+					newLastObject.put("senderSign", senderSign);
+					newLastObject.put("sender", senderDidIpfsHash);
+					newLastObject.put("receiver", receiverDidIpfsHash);
+					newLastObject.put("comment", comment);
+					newLastObject.put("tid", tid);
+					// newLastObject.put("nextHash", "");
+					newLastObject.put("role", "Sender");
+					newLastObject.put("amount", amount);
+					chainArray.put(newLastObject);
+
+					partTokenChainsToBeSentForHashing.put(partTokens.getString(i), chainArray);
+
+					TokenSenderLogger.debug("Checking Parts Token Balance ...");
+					Double availableParts = partTokenBalance(partTokens.getString(i));
+					TokenSenderLogger.debug("Available: " + availableParts);
+					if (availableParts >= 1.000 || availableParts <= 0.000) {
+						TokenSenderLogger.debug("Wholly Spent, Removing token from parts");
+						String partFileContent2 = readFile(PAYMENTS_PATH.concat("PartsToken.json"));
+						JSONArray partContentArray2 = new JSONArray(partFileContent2);
+						for (int j = 0; j < partContentArray2.length(); j++) {
+							if (partContentArray2.getJSONObject(j).getString("tokenHash")
+									.equals(partTokens.getString(i)))
+								partContentArray2.remove(j);
+							writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partContentArray2.toString(), false);
+						}
+						deleteFile(PART_TOKEN_PATH.concat(partTokens.getString(i)));
 					}
-					deleteFile(PART_TOKEN_PATH.concat(partTokens.getString(i)));
 				}
-			}
-			output.println("Old part token chains to be hashed");
-			output.println(partTokenChainsToBeSentForHashing.toString());
+				output.println("Old part token chains to be hashed");
+				output.println(partTokenChainsToBeSentForHashing.toString());
+				TokenSenderLogger.debug("!@#$% 3: " + partTokenChainsToBeSentForHashing);
 
-			String hashedPartTokenChains_string;
-			try {
-				hashedPartTokenChains_string = input.readLine();
-			} catch (SocketException e) {
-				TokenSenderLogger.warn(
-						"Receiver " + receiverDidIpfsHash + " could'nt send hahsed and signed token chain blocks.");
-				executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
-				output.close();
-				input.close();
-				senderSocket.close();
-				senderMutex = false;
-				updateQuorum(quorumArray, null, false, type);
-				APIResponse.put("did", senderDidIpfsHash);
-				APIResponse.put("tid", "null");
-				APIResponse.put("status", "Failed");
-				APIResponse.put("message",
-						"Receiver " + receiverDidIpfsHash + " could'nt send hahsed and signed token chain blocks.");
+				String hashedPartTokenChains_string;
+				try {
+					hashedPartTokenChains_string = input.readLine();
+				} catch (SocketException e) {
+					TokenSenderLogger.warn(
+							"Receiver " + receiverDidIpfsHash + " could'nt send hahsed and signed token chain blocks.");
+					executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
+					output.close();
+					input.close();
+					senderSocket.close();
+					senderMutex = false;
+					updateQuorum(quorumArray, null, false, type);
+					APIResponse.put("did", senderDidIpfsHash);
+					APIResponse.put("tid", "null");
+					APIResponse.put("status", "Failed");
+					APIResponse.put("message",
+							"Receiver " + receiverDidIpfsHash + " could'nt send hahsed and signed token chain blocks.");
 
-				return APIResponse;
-			}
-
-			JSONObject finalPartTokenChains = new JSONObject(hashedPartTokenChains_string);
-			for (int i = 0; i < partTokens.length(); i++) {
-
-				JSONArray chainArray = finalPartTokenChains.getJSONArray(partTokens.getString(i));
-				writeToFile(TOKENCHAIN_PATH.concat("PARTS/").concat(partTokens.getString(i)).concat(".json"),
-						chainArray.toString(), false);
-			}
-
-			if (oldNew) {
-				String token = partTokens.getString(partTokens.length() - 1);
-				String bnk = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-				JSONArray bnkArray = new JSONArray(bnk);
-				for (int i = 0; i < bnkArray.length(); i++) {
-					if (bnkArray.getJSONObject(i).getString("tokenHash").equals(token))
-						bnkArray.remove(i);
+					return APIResponse;
 				}
-				writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bnkArray.toString(), false);
 
-				JSONArray pArray = new JSONArray();
-				JSONObject pObject = new JSONObject();
-				pObject.put("tokenHash", token);
-				pArray.put(pObject);
-				writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), pArray.toString(), false);
+				TokenSenderLogger.debug("!@#$% 4: " + hashedPartTokenChains_string);
 
+				JSONObject finalPartTokenChains = new JSONObject(hashedPartTokenChains_string);
+				for (int i = 0; i < partTokens.length(); i++) {
+
+					JSONArray chainArray = finalPartTokenChains.getJSONArray(partTokens.getString(i));
+					writeToFile(TOKENCHAIN_PATH.concat("PARTS/").concat(partTokens.getString(i)).concat(".json"),
+							chainArray.toString(), false);
+				}
+
+				if (oldNew) {
+					String token = partTokens.getString(partTokens.length() - 1);
+					String bnk = readFile(PAYMENTS_PATH.concat("BNK00.json"));
+					JSONArray bnkArray = new JSONArray(bnk);
+					for (int i = 0; i < bnkArray.length(); i++) {
+						if (bnkArray.getJSONObject(i).getString("tokenHash").equals(token))
+							bnkArray.remove(i);
+					}
+					writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bnkArray.toString(), false);
+
+					JSONArray pArray = new JSONArray();
+					JSONObject pObject = new JSONObject();
+					pObject.put("tokenHash", token);
+					pArray.put(pObject);
+					writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), pArray.toString(), false);
+
+				}
 			}
 		}
-	}
 		TokenSenderLogger.info("Transaction Successful");
 		executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
 		updateQuorum(quorumArray, signedQuorumList, true, type);
@@ -1606,7 +1616,7 @@ public class TokenSender {
 
 		// Populating data to explorer
 		if (!EXPLORER_IP.contains("127.0.0.1")) {
-			
+
 			List<String> tokenList = new ArrayList<>();
 			for (int i = 0; i < allTokens.length(); i++)
 				tokenList.add(allTokens.getString(i));
