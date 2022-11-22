@@ -1547,7 +1547,7 @@ public class TokenReceiver {
 				String senderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(senderDidIpfsHash, 1); // get public key
 																									// ipfs hash of the
 																									// sender.
-
+				TokenReceiverLogger.debug("#@#@ Sender Public Key ipfs hash "+senderPublicKeyIpfsHash);
 				String senderPubKeyStr = IPFSNetwork.get(senderPublicKeyIpfsHash, ipfs); // get sender's public key from
 																							// ipfs.
 
