@@ -624,14 +624,17 @@ public class TokenSender {
 
 			JSONObject finalSignObject = new JSONObject();
 			JSONArray signsArray = new JSONArray();
+			JSONObject signObject = new JSONObject();
 
 			for (int i = 0; i < Initiator.quorumWithHashesArray.length(); i++) {
 				JSONObject jsonObject = Initiator.quorumWithHashesArray.getJSONObject(i);
 				Iterator<String> keys = jsonObject.keys();
 				TokenSenderLogger.debug("jsonObject  is " + jsonObject.toString());
-				JSONObject pledgeSignedObject = new JSONObject();
+				//JSONObject pledgeSignedObject = new JSONObject();
+				
 				String key = "";
 				while (keys.hasNext()) {
+					JSONArray pledgeSignedArray = new JSONArray();
 					key = keys.next();
 					TokenSenderLogger.debug("key of quorumn is " + key);
 					if (jsonObject.get(key) instanceof JSONArray) {
@@ -641,15 +644,19 @@ public class TokenSender {
 						TokenSenderLogger.debug("@@@@@ Calculating hash for: " + hashArray);
 						String hashString = calculateHash(hashArray.toString(), "SHA3-256");
 						for (int j = 0; j < hashArray.length(); j++) {
+							JSONObject pledgeSignedObject = new JSONObject();
 							String sign = getSignFromShares(pvt, hashArray.get(j).toString());
 							pledgeSignedObject.put("hash", hashArray.get(j));
 							pledgeSignedObject.put("sign", sign);
+							pledgeSignedArray.put(pledgeSignedObject);//-> added pledged signdetails object to array
 						}
 					}
+					signObject.put(key, pledgeSignedArray);
 				}
-				JSONObject signObject = new JSONObject();
-				signObject.put(key, pledgeSignedObject);
-				TokenSenderLogger.debug("signObject is " + signObject);
+				//JSONObject signObject = new JSONObject();
+				//signObject.put(key, pledgeSignedObject); //-> here array pledgeSignedObject in array
+				//signObject.put(key, pledgeSignedArray); //-> pledged signedObject changes to pledged signed array
+				TokenSenderLogger.debug("signObject is "+signObject);
 				quorumWithSignsArray.put(signObject);
 
 			}
