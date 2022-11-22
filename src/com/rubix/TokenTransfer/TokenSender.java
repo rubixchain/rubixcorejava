@@ -623,10 +623,10 @@ public class TokenSender {
 			TokenSenderLogger.debug("pledge object is " + pledgeArray.toString());
 
 			JSONObject finalSignObject = new JSONObject();
-			JSONArray signsArray = new JSONArray();
-			JSONObject signObject = new JSONObject();
+			JSONArray signsArray = new JSONArray();		
 
 			for (int i = 0; i < Initiator.quorumWithHashesArray.length(); i++) {
+				JSONObject signObject = new JSONObject();
 				JSONObject jsonObject = Initiator.quorumWithHashesArray.getJSONObject(i);
 				Iterator<String> keys = jsonObject.keys();
 				TokenSenderLogger.debug("jsonObject  is " + jsonObject.toString());
@@ -652,6 +652,8 @@ public class TokenSender {
 						}
 					}
 					signObject.put(key, pledgeSignedArray);
+					// TODO: requires optimisation - 
+					// This loop will run only once, thus signObject will have just one key.
 				}
 				//JSONObject signObject = new JSONObject();
 				//signObject.put(key, pledgeSignedObject); //-> here array pledgeSignedObject in array
