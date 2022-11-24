@@ -623,15 +623,17 @@ public class TokenSender {
 			TokenSenderLogger.debug("pledge object is " + pledgeArray.toString());
 
 			JSONObject finalSignObject = new JSONObject();
-			JSONArray signsArray = new JSONArray();		
+			JSONArray signsArray = new JSONArray();	
+			JSONObject signObject = new JSONObject();	
 
 			for (int i = 0; i < Initiator.quorumWithHashesArray.length(); i++) {
-				JSONObject signObject = new JSONObject();
+				
 				JSONObject jsonObject = Initiator.quorumWithHashesArray.getJSONObject(i);
 				Iterator<String> keys = jsonObject.keys();
 				TokenSenderLogger.debug("jsonObject  is " + jsonObject.toString());
 				//JSONObject pledgeSignedObject = new JSONObject();
 				
+				TokenSenderLogger.debug("keys "+ keys);
 				String key = "";
 				while (keys.hasNext()) {
 					JSONArray pledgeSignedArray = new JSONArray();
