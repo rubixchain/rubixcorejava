@@ -111,11 +111,7 @@ public class Pledger implements Runnable {
 								if (!newChains.contains("Abort")) {
 									JSONArray newChainsArrays = new JSONArray(newChains);
 									for (int i = 0; i < newChainsArrays.length(); i++) {
-										writeToFile(
-												TOKENCHAIN_PATH
-														.concat(tokensArray.getJSONObject(i).getString("tokenHash"))
-														.concat(".json"),
-												newChainsArrays.getJSONArray(i).toString(), false);
+										writeToFile(TOKENCHAIN_PATH.concat(tokensArray.getJSONObject(i).getString("tokenHash")).concat(".json"),newChainsArrays.getJSONArray(i).toString(), false);
 									}
 
 									String bankFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));

@@ -106,6 +106,7 @@ public class APIHandler {
         Functions.pathSet();
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
+        APILogger.debug("input data is "+data);
     
         JSONObject sendMessage = TokenSender.SendPartB(data, ipfs, SEND_PORT);
 
@@ -963,6 +964,17 @@ public class APIHandler {
     	APILogger.debug("pledgedTokenList "+pledgedTokenList);
     	APILogger.debug("tokenList "+tokenList);
     	APILogger.debug(pledgedTokenList.contains(tokenList)+" is the status");
+    	
+    	for(int i=0;i<pledgedTokenList.size();i++) {
+    		for(int j=0;j<tokenList.size();j++) {
+        		if(pledgedTokenList.get(i).equals(pledgedTokenList.get(j))) {
+        			APILogger.debug("Token "+pledgedTokenList.get(j)+ " is found at "+i);
+        			break;
+        		}
+
+    		}
+    	}
+    	
     	String receiverString = "";
     	
     	for(String tempString:pledgedTokenList) {
@@ -970,16 +982,24 @@ public class APIHandler {
         		String tokenChainContentString = readFile(Functions.TOKENCHAIN_PATH.concat(tokenList.get(0).concat(".json")));
         	
         		APILogger.debug(tokenChainContentString);
+        		
         		JSONArray tokenChainJsonContentArray = new JSONArray(tokenChainContentString);
-        		JSONObject lastObject = new JSONObject(tokenChainJsonContentArray.getJSONObject(tokenChainJsonContentArray.length()-1));
+        		APILogger.debug(tokenChainJsonContentArray+" json array");
+        		APILogger.debug(tokenChainJsonContentArray.length()+" is the length of tc");
+
+        		JSONObject lastObject = tokenChainJsonContentArray.getJSONObject(tokenChainJsonContentArray.length()-1);
+        		APILogger.debug(lastObject.toString());
+        		String trnxidString = lastObject.getString("tid");
+        		APILogger.debug("trnx id "+trnxidString);
         		List<String> hashMatchList = new ArrayList<>();
-        		APILogger.debug("receiver status "+lastObject.optString("Receiver"));
-        		if(lastObject.optString("Receiver") != null) {
-            		receiverString = lastObject.optString("Receiver");
+        		APILogger.debug("receiver status "+lastObject.getString("receiver"));
+        		if(lastObject.optString("receiver") != null) {
+            		receiverString = lastObject.optString("receiver");
         		}
         		//String receiverString = lastObject.optString("Receiver");
-        		hashMatchList.add(tokenList.get(0)+receiverString);
-            	status = Unpledge.generateProof(lastObject.optString("tid"), hashMatchList, tokenList);
+        		hashMatchList.add(tokenList.get(0).concat(receiverString));
+        		APILogger.debug("Hashmatch list is "+hashMatchList.toString());
+            	status = Unpledge.generateProof(lastObject.getString("tid"), hashMatchList, tokenList);
         	}else {
         		APILogger.debug(tokenList.get(0)+"is not found in staked token list");
         	}
