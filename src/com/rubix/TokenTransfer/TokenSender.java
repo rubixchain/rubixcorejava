@@ -622,15 +622,13 @@ public class TokenSender {
 
 			TokenSenderLogger.debug("pledge object is " + pledgeArray.toString());
 
-			JSONObject finalSignObject = new JSONObject();
-			JSONArray signsArray = new JSONArray();
-
 			for (int i = 0; i < Initiator.quorumWithHashesArray.length(); i++) {
 				JSONObject jsonObject = Initiator.quorumWithHashesArray.getJSONObject(i);
 				Iterator<String> keys = jsonObject.keys();
 				TokenSenderLogger.debug("jsonObject  is " + jsonObject.toString());
 				JSONObject pledgeSignedObject = new JSONObject();
 				String key = "";
+				JSONArray hashAndSignsArray = new JSONArray();
 				while (keys.hasNext()) {
 					key = keys.next();
 					TokenSenderLogger.debug("key of quorumn is " + key);
@@ -644,11 +642,12 @@ public class TokenSender {
 							String sign = getSignFromShares(pvt, hashArray.get(j).toString());
 							pledgeSignedObject.put("hash", hashArray.get(j));
 							pledgeSignedObject.put("sign", sign);
+							hashAndSignsArray.put(pledgeSignedObject);
 						}
 					}
 				}
 				JSONObject signObject = new JSONObject();
-				signObject.put(key, pledgeSignedObject);
+				signObject.put(key, hashAndSignsArray);
 				TokenSenderLogger.debug("signObject is " + signObject);
 				quorumWithSignsArray.put(signObject);
 
@@ -685,6 +684,7 @@ public class TokenSender {
 //			}
 
 			payloadSigned.put("pledgeDetails", quorumWithSignsArray);
+			TokenSenderLogger.debug("pledgeDetails: " + quorumWithSignsArray);
 
 			FileWriter spfile = new FileWriter(WALLET_DATA_PATH.concat("/signedPayload").concat(tid).concat(".json"));
 			spfile.write(payloadSigned.toString());

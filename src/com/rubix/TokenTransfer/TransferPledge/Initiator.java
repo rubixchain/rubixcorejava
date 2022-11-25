@@ -18,6 +18,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.security.PrivateKey;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import static com.rubix.NFTResources.NFTFunctions.*;
@@ -130,7 +131,7 @@ public class Initiator {
 							pledgeNewObject.put("tid", tid);
 							pledgeNewObject.put("pledgeToken", tokenObject.getString("tokenHash"));
 							pledgeNewObject.put("tokensPledgedFor", tokenList);
-							pledgeNewObject.put("tokensPledgedWith",tokenObject.getString("tokenHash"));
+							pledgeNewObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
 
 							tokenChain.put(pledgeNewObject);
 							PledgeInitiatorLogger.debug("@@@@@ Chain to hash: " + tokenChain);
@@ -250,7 +251,7 @@ public class Initiator {
 						JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
 						PledgeInitiatorLogger.debug("tokenHash is " + tokenHash);
 
-						if (lastObject.has("pledgeToken")) {
+						if (lastObject.optString("pledgeToken").length()>0) {
 							PledgeInitiatorLogger
 									.debug("Quorum " + quorumID + " sent a token which is already pledged");
 							abortReason.put("Quorum", quorumID);
@@ -280,30 +281,55 @@ public class Initiator {
 							String signString = "";
 							String hashString = "";
 
-							for (int i = 0; i < pledgeDetails.length(); i++) {
-								PledgeInitiatorLogger.debug("pledgeDetails is " + pledgeDetails.getJSONObject(i));
+//							for (int i = 0; i < pledgeDetails.length(); i++) {
 
-								JSONObject senderSignPayload = pledgeDetails.getJSONObject(i).getJSONObject(quorumID);
+								PledgeInitiatorLogger
+										.debug("!@#$%^& pledgeDetails is " + pledgeDetails.getJSONObject(j));
 
-								PledgeInitiatorLogger.debug("senderSignPayload is " + senderSignPayload.toString());
+								JSONObject jsonObject = pledgeDetails.getJSONObject(j);
+								Iterator<String> keys = jsonObject.keys();
 
-								signString = senderSignPayload.getString("sign");
-								hashString = senderSignPayload.getString("hash");
-							}
-							PledgeInitiatorLogger.debug("signString is " + signString);
-							PledgeInitiatorLogger.debug("hashString is " + hashString);
+								PledgeInitiatorLogger.debug("!@#$%^& The object is " + jsonObject.toString());
+								String key = "";
+								while (keys.hasNext()) {
+									key = keys.next();
+									PledgeInitiatorLogger.debug("!@#$%^& key of quorumn is " + key);
+									if (jsonObject.get(key) instanceof JSONArray) {
+										// do something with jsonObject here
 
-							// TODO
-							tokenChain.remove(tokenChain.length() - 1);
-							pledgeObject.put("hash", hashString);
-							pledgeObject.put("pvtShareBits", signString);
-							// pledgeObject.put("pvtKeySign", PvtKeySign);
+										JSONArray hashArray = new JSONArray(jsonObject.get(key).toString());
+										PledgeInitiatorLogger.debug("!@#$%^&  hash array: " + hashArray);
+										
+										for(int l = 0; l < hashArray.length(); l++) {
+											JSONObject hashObject = hashArray.getJSONObject(l);
+											PledgeInitiatorLogger.debug("!@#$%^&  hash object: " + hashObject);
 
-							tokenChain.put(pledgeObject);
+											
+											signString = hashObject.getString("sign");
+											hashString = hashObject.getString("hash");
 
-							newChains.put(tokenChain);
-							tokensPledged -= nodesToPledgeTokens.getJSONObject(j).getInt("count");
-							tokens.put(tokenHash);
+											PledgeInitiatorLogger.debug("signString is " + signString);
+											PledgeInitiatorLogger.debug("hashString is " + hashString);
+
+											// TODO
+											tokenChain.remove(tokenChain.length() - 1);
+											pledgeObject.put("hash", hashString);
+											pledgeObject.put("pvtShareBits", signString);
+											// pledgeObject.put("pvtKeySign", PvtKeySign);
+
+											tokenChain.put(pledgeObject);
+
+											newChains.put(tokenChain);
+											tokensPledged -= nodesToPledgeTokens.getJSONObject(j).getInt("count");
+											tokens.put(tokenHash);
+											
+										}
+
+									}
+								}
+
+//							}
+
 						}
 					}
 					JSONObject pledgeObjectDetails = new JSONObject();
