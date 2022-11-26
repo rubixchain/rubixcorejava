@@ -115,7 +115,7 @@ public class Initiator {
 						JSONObject tokenObject = tokenDetails.getJSONObject(k);
 						JSONArray tokenChain = tokenObject.getJSONArray("chain");
 						JSONObject lasObject = tokenChain.getJSONObject(tokenChain.length() - 1);
-						if (lasObject.has("pledgeToken")) {
+						if (lasObject.optString("pledgeToken").length()>0) {
 							PledgeInitiatorLogger.debug("This token has already been pledged - Aborting");
 							PledgeInitiatorLogger.debug("4. Setting abort to true");
 							abortReason.put("Quorum", quorumID);
@@ -132,6 +132,9 @@ public class Initiator {
 							pledgeNewObject.put("pledgeToken", tokenObject.getString("tokenHash"));
 							pledgeNewObject.put("tokensPledgedFor", tokenList);
 							pledgeNewObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
+							
+						//	pledgedTokensArray.put(tokenObject.getString("tokenHash"));
+
 
 							tokenChain.put(pledgeNewObject);
 							PledgeInitiatorLogger.debug("@@@@@ Chain to hash: " + tokenChain);
@@ -239,7 +242,7 @@ public class Initiator {
 				JSONArray tokens = new JSONArray();
 				if (qResponse != null) {
 					JSONArray tokenDetails = new JSONArray(qResponse);
-					// PledgeInitiatorLogger.debug("TokenDetails is "+tokenDetails.toString());
+					PledgeInitiatorLogger.debug("TokenDetails is "+tokenDetails.toString());
 					JSONArray newChains = new JSONArray();
 					for (int k = 0; k < tokenDetails.length(); k++) {
 						JSONObject tokenObject = tokenDetails.getJSONObject(k);
@@ -266,7 +269,11 @@ public class Initiator {
 							pledgeObject.put("tid", tid);
 							pledgeObject.put("pledgeToken", tokenHash);
 							pledgeObject.put("tokensPledgedFor", tokenList);
+							pledgeObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
 							tokenChain.put(pledgeObject);
+							
+							pledgedTokensArray.put(tokenObject.getString("tokenHash"));
+
 //                            lastObject.put("pledgeToken", dataObject.getString("tid"));
 //
 //                            tokenChain.remove(0);
@@ -337,9 +344,8 @@ public class Initiator {
 					pledgeObjectDetails.put("tokens", tokens);
 					pledgeDetails.put(pledgeObjectDetails);
 					pledgedNodes = nodesToPledgeTokens;
-					for (int i = 0; i < tokens.length(); i++) {
-						pledgedTokensArray.put(tokens.getString(i));
-					}
+					//for (int i = 0; i < tokenObject.getString("tokenHash"); i++) {
+				//	}
 					if (abort) {
 						qOut.println("Abort");
 						PledgeInitiatorLogger.debug("Quorum " + quorumID + " Aborted as already Pledged");
