@@ -47,9 +47,28 @@ public class Initiator {
 
 	public static boolean abort = false;
 
-	public static boolean pledgeSetUp(String data, IPFS ipfs, int PORT) throws JSONException, IOException {
-		PledgeInitiatorLogger.debug("Initiator Calling");
+	public static void resetVariables() {
 
+		pledgedNodes = new JSONArray();
+		abortReason = new JSONObject();
+		tokenList = new JSONArray();
+		nodesToPledgeTokens = new JSONArray();
+		quorumDetails = new JSONObject();
+		quorumWithHashesArray = new JSONArray();
+		sender = "";
+		receiver = "";
+		pvt = "";
+		tid = "";
+		keyPass = "";
+		quorumHashObject = new JSONObject();
+		pledgedTokensArray = new JSONArray();
+		abort = false;
+
+	}
+
+	public static boolean pledgeSetUp(String data, IPFS ipfs, int PORT) throws JSONException, IOException {
+		resetVariables();
+		PledgeInitiatorLogger.debug("Initiator Calling");
 		abortReason = new JSONObject();
 		abort = false;
 		pledgedNodes = new JSONArray();
@@ -69,9 +88,7 @@ public class Initiator {
 		Socket qSocket = null;
 		int tokensCount = dataObject.getInt("amount");
 		for (int i = 0; i < alphaList.length(); i++) {
-
 			PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
-
 			String quorumID = alphaList.getString(i);
 			swarmConnectP2P(quorumID, ipfs);
 			syncDataTable(null, quorumID);
@@ -115,7 +132,7 @@ public class Initiator {
 						JSONObject tokenObject = tokenDetails.getJSONObject(k);
 						JSONArray tokenChain = tokenObject.getJSONArray("chain");
 						JSONObject lasObject = tokenChain.getJSONObject(tokenChain.length() - 1);
-						if (lasObject.optString("pledgeToken").length()>0) {
+						if (lasObject.optString("pledgeToken").length() > 0) {
 							PledgeInitiatorLogger.debug("This token has already been pledged - Aborting");
 							PledgeInitiatorLogger.debug("4. Setting abort to true");
 							abortReason.put("Quorum", quorumID);
@@ -132,9 +149,8 @@ public class Initiator {
 							pledgeNewObject.put("pledgeToken", tokenObject.getString("tokenHash"));
 							pledgeNewObject.put("tokensPledgedFor", tokenList);
 							pledgeNewObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
-							
-						//	pledgedTokensArray.put(tokenObject.getString("tokenHash"));
 
+							// pledgedTokensArray.put(tokenObject.getString("tokenHash"));
 
 							tokenChain.put(pledgeNewObject);
 							PledgeInitiatorLogger.debug("@@@@@ Chain to hash: " + tokenChain);
@@ -242,7 +258,7 @@ public class Initiator {
 				JSONArray tokens = new JSONArray();
 				if (qResponse != null) {
 					JSONArray tokenDetails = new JSONArray(qResponse);
-					PledgeInitiatorLogger.debug("TokenDetails is "+tokenDetails.toString());
+					PledgeInitiatorLogger.debug("TokenDetails is " + tokenDetails.toString());
 					JSONArray newChains = new JSONArray();
 					for (int k = 0; k < tokenDetails.length(); k++) {
 						JSONObject tokenObject = tokenDetails.getJSONObject(k);
@@ -254,7 +270,7 @@ public class Initiator {
 						JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
 						PledgeInitiatorLogger.debug("tokenHash is " + tokenHash);
 
-						if (lastObject.optString("pledgeToken").length()>0) {
+						if (lastObject.optString("pledgeToken").length() > 0) {
 							PledgeInitiatorLogger
 									.debug("Quorum " + quorumID + " sent a token which is already pledged");
 							abortReason.put("Quorum", quorumID);
@@ -271,7 +287,7 @@ public class Initiator {
 							pledgeObject.put("tokensPledgedFor", tokenList);
 							pledgeObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
 							tokenChain.put(pledgeObject);
-							
+
 							pledgedTokensArray.put(tokenObject.getString("tokenHash"));
 
 //                            lastObject.put("pledgeToken", dataObject.getString("tid"));
@@ -284,68 +300,83 @@ public class Initiator {
 //                            }
 							PrivateKey pvtKey = getPvtKey(keyPass, 1);
 
-//                            String hashForTokenChain = calculateHash(tokenChain.toString(), "SHA3-256");
-							String signString = "";
-							String hashString = "";
+                            String hashForTokenChain = calculateHash(tokenChain.toString(), "SHA3-256");
+							
 
 //							for (int i = 0; i < pledgeDetails.length(); i++) {
 
-								PledgeInitiatorLogger
-										.debug("!@#$%^& pledgeDetails is " + pledgeDetails.getJSONObject(j));
+							PledgeInitiatorLogger.debug("!@#$%^& pledgeDetails is " + pledgeDetails.getJSONObject(j));
+							
 
-								JSONObject jsonObject = pledgeDetails.getJSONObject(j);
-								Iterator<String> keys = jsonObject.keys();
+							tokenChain.remove(tokenChain.length() - 1);
+							pledgeObject.put("hash", hashForTokenChain);
+							pledgeObject.put("pvtShareBits", fetchSign(pledgeDetails, hashForTokenChain));
+							
+							PledgeInitiatorLogger.debug("pledgeObject is "+pledgeObject.toString());
+							
+							
+							
+							// pledgeObject.put("pvtKeySign", PvtKeySign);
 
-								PledgeInitiatorLogger.debug("!@#$%^& The object is " + jsonObject.toString());
-								String key = "";
-								while (keys.hasNext()) {
-									key = keys.next();
-									PledgeInitiatorLogger.debug("!@#$%^& key of quorumn is " + key);
-									if (jsonObject.get(key) instanceof JSONArray) {
-										// do something with jsonObject here
+							tokenChain.put(pledgeObject);
+							newChains.put(tokenChain);
 
-										JSONArray hashArray = new JSONArray(jsonObject.get(key).toString());
-										PledgeInitiatorLogger.debug("!@#$%^&  hash array: " + hashArray);
-										
-										for(int l = 0; l < hashArray.length(); l++) {
-											JSONObject hashObject = hashArray.getJSONObject(l);
-											PledgeInitiatorLogger.debug("!@#$%^&  hash object: " + hashObject);
+							tokensPledged -= nodesToPledgeTokens.getJSONObject(j).getInt("count");
+							tokens.put(tokenHash);
 
-											
-											signString = hashObject.getString("sign");
-											hashString = hashObject.getString("hash");
+							PledgeInitiatorLogger.debug("newChains length is " + newChains.length());
+							PledgeInitiatorLogger.debug("newChains is " + newChains.toString());
+						}
+					}
 
-											PledgeInitiatorLogger.debug("signString is " + signString);
-											PledgeInitiatorLogger.debug("hashString is " + hashString);
-
-											// TODO
-											tokenChain.remove(tokenChain.length() - 1);
-											pledgeObject.put("hash", hashString);
-											pledgeObject.put("pvtShareBits", signString);
-											// pledgeObject.put("pvtKeySign", PvtKeySign);
-
-											tokenChain.put(pledgeObject);
-
-											newChains.put(tokenChain);
-											tokensPledged -= nodesToPledgeTokens.getJSONObject(j).getInt("count");
-											tokens.put(tokenHash);
-											
-										}
-
-									}
-								}
+					/*
+					 * JSONObject jsonObject = pledgeDetails.getJSONObject(j); Iterator<String> keys
+					 * = jsonObject.keys();
+					 * 
+					 * PledgeInitiatorLogger.debug("!@#$%^& The object is " +
+					 * jsonObject.toString()); String key = ""; while (keys.hasNext()) { key =
+					 * keys.next(); PledgeInitiatorLogger.debug("!@#$%^& key of quorumn is " + key);
+					 * if (jsonObject.get(key) instanceof JSONArray) { // do something with
+					 * jsonObject here
+					 * 
+					 * JSONArray hashArray = new JSONArray(jsonObject.get(key).toString());
+					 * PledgeInitiatorLogger.debug("!@#$%^&  hash array: " + hashArray);
+					 * 
+					 * for(int l = 0; l < hashArray.length(); l++) { JSONObject hashObject =
+					 * hashArray.getJSONObject(k);
+					 * PledgeInitiatorLogger.debug("!@#$%^&  hash object: " + hashObject);
+					 * 
+					 * 
+					 * signString = hashObject.getString("sign"); hashString =
+					 * hashObject.getString("hash");
+					 * 
+					 * PledgeInitiatorLogger.debug("signString is " + signString);
+					 * PledgeInitiatorLogger.debug("hashString is " + hashString);
+					 * 
+					 * // TODO tokenChain.remove(tokenChain.length() - 1); pledgeObject.put("hash",
+					 * hashString); pledgeObject.put("pvtShareBits", signString); //
+					 * pledgeObject.put("pvtKeySign", PvtKeySign);
+					 * 
+					 * tokenChain.put(pledgeObject); newChains.put(tokenChain);
+					 * 
+					 * tokensPledged -= nodesToPledgeTokens.getJSONObject(j).getInt("count");
+					 * tokens.put(tokenHash);
+					 * 
+					 * } PledgeInitiatorLogger.debug("newChains length is "+newChains.length());
+					 * PledgeInitiatorLogger.debug("newChains is "+newChains.toString()); } }
+					 */
 
 //							}
 
-						}
-					}
+		//				}
+		//			}
 					JSONObject pledgeObjectDetails = new JSONObject();
 					pledgeObjectDetails.put("did", quorumID);
 					pledgeObjectDetails.put("tokens", tokens);
 					pledgeDetails.put(pledgeObjectDetails);
 					pledgedNodes = nodesToPledgeTokens;
-					//for (int i = 0; i < tokenObject.getString("tokenHash"); i++) {
-				//	}
+					// for (int i = 0; i < tokenObject.getString("tokenHash"); i++) {
+					// }
 					if (abort) {
 						qOut.println("Abort");
 						PledgeInitiatorLogger.debug("Quorum " + quorumID + " Aborted as already Pledged");
@@ -368,12 +399,52 @@ public class Initiator {
 				qSocket1.close();
 
 			}
-		}
-		if (tokensPledged > 0)
-			abort = true;
 
-		PledgeInitiatorLogger.debug("Quorum Verification with Tokens or Credits with Abort Status:" + Initiator.abort);
-		return abort;
+	}if(tokensPledged>0)abort=true;
+
+	PledgeInitiatorLogger.debug("Quorum Verification with Tokens or Credits with Abort Status:"+Initiator.abort);return abort;}
+
+	public static String fetchSign(JSONArray pledgeArray, String hash) throws JSONException {
+
+		String str = "";
+		
+		for (int i = 0; i < pledgeArray.length(); i++) {
+			JSONObject pledgeObject = pledgeArray.getJSONObject(i);
+			Iterator<String> keys = pledgeObject.keys();
+
+			PledgeInitiatorLogger.debug("!@#$%^& The object is " + pledgeObject.toString());
+			String key = "";
+			while (keys.hasNext()) {
+				key = keys.next();
+				PledgeInitiatorLogger.debug("!@#$%^& key of quorumn is " + key);
+				if (pledgeObject.get(key) instanceof JSONArray) {
+					// do something with jsonObject here
+
+					JSONArray hashArray = new JSONArray(pledgeObject.get(key).toString());
+					PledgeInitiatorLogger.debug("!@#$%^&  hash array: " + hashArray);
+
+					for (int l = 0; l < hashArray.length(); l++) {
+						JSONObject hashObject = hashArray.getJSONObject(l);
+						PledgeInitiatorLogger.debug("!@#$%^&  hash object: " + hashObject);
+						String signString = hashObject.getString("sign");
+						String hashString = hashObject.getString("hash");
+
+						if (hashString.equals(hash)) {
+							str = signString;
+							return str;
+						}
+						PledgeInitiatorLogger.debug("signString is " + signString);
+						PledgeInitiatorLogger.debug("hashString is " + hashString);
+					}
+				}
+			}
+			
+		}
+		
+		
+		
+		
+		return str;
 	}
 
 }

@@ -75,22 +75,26 @@ public class Pledger implements Runnable {
 						String bankFileContent = readFile(PAYMENTS_PATH.concat("BNK00.json"));
 						JSONArray tokensArray = new JSONArray(bankFileContent);
 						if (tokensArray.length() > 0) {
-							JSONObject token = new JSONObject();
-							JSONArray tokenDetails = new JSONArray();
-							JSONArray tokens = new JSONArray();
-							JSONArray pledgingTokens = new JSONArray();
+							JSONArray tokenDetails = new JSONArray();	// Contain tokenHash and its chain
+							JSONArray tokens = new JSONArray();		//contains pledge token list
+							JSONArray pledgingTokens = new JSONArray(); //contains tokenhash of pledged token (pledgedtoken.json)
+							
 							for (int i = 0; i < amountOfTokens; i++) {
+								PledgerLogger.debug("### Token Chosen: " + tokensArray.getJSONObject(i).getString("tokenHash"));
+								
 								String chainFile = readFile(TOKENCHAIN_PATH
 										.concat(tokensArray.getJSONObject(i).getString("tokenHash")).concat(".json"));
 								JSONArray chainArray = new JSONArray(chainFile);
 
+								JSONObject token = new JSONObject();
 								token.put("tokenHash", tokensArray.getJSONObject(i).getString("tokenHash"));
 								token.put("chain", chainArray);
-								tokenDetails.put(token);
+								tokenDetails.put(token); 
+								//tokenDetails==> tokenHash:hash,chain[chainarray]
 
 								JSONObject newObject = new JSONObject();
 								newObject.put("tokenHash", tokensArray.getJSONObject(i).getString("tokenHash"));
-								pledgingTokens.put(newObject);
+								pledgingTokens.put(newObject); //pledgetoken.json
 								tokens.put(tokensArray.getJSONObject(i).getString("tokenHash"));
 							}
 							out.println(tokenDetails.toString());
@@ -99,7 +103,7 @@ public class Pledger implements Runnable {
 
 							String newChains = null;
 							try {
-								newChains = in.readLine();
+								newChains = in.readLine(); //has NxN length
 							} catch (SocketException e) {
 								PledgerLogger.debug("Sender Input Stream Null - New Chains");
 								socket.close();
@@ -107,9 +111,12 @@ public class Pledger implements Runnable {
 								executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPID);
 							}
 							PledgerLogger.debug("Received new TokenChains: " + newChains);
+
 							if (newChains != null) {
 								if (!newChains.contains("Abort")) {
 									JSONArray newChainsArrays = new JSONArray(newChains);
+									PledgerLogger.debug("Received new TokenChains length: " + newChainsArrays.length());
+
 									for (int i = 0; i < newChainsArrays.length(); i++) {
 										writeToFile(TOKENCHAIN_PATH.concat(tokensArray.getJSONObject(i).getString("tokenHash")).concat(".json"),newChainsArrays.getJSONArray(i).toString(), false);
 									}
@@ -190,7 +197,7 @@ public class Pledger implements Runnable {
 						if (balance > 0) {
 							if (numberOfTokens >= amountOfTokens)
 								tokensToPledge = amountOfTokens;
-							else if (numberOfTokens != 0)
+							else if (numberOfTokens != 0 && numberOfTokens < amountOfTokens)
 								tokensToPledge = numberOfTokens;
 							else {
 								pledgeObject.put("pledge", "Abort");
@@ -206,12 +213,12 @@ public class Pledger implements Runnable {
 
 							String bankFileContent = readFile(PAYMENTS_PATH.concat("BNK00.json"));
 							JSONArray tokensArray = new JSONArray(bankFileContent);
-							JSONObject token = new JSONObject();
 							JSONArray tokenDetails = new JSONArray();
 							for (int i = 0; i < tokensToPledge; i++) {
 								String chainFile = readFile(TOKENCHAIN_PATH
 										.concat(tokensArray.getJSONObject(i).getString("tokenHash")).concat(".json"));
 								JSONArray chainArray = new JSONArray(chainFile);
+								JSONObject token = new JSONObject();
 
 								token.put("tokenHash", tokensArray.getJSONObject(i).getString("tokenHash"));
 								token.put("chain", chainArray);
