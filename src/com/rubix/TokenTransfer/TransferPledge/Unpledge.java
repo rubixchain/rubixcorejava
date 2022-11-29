@@ -41,21 +41,24 @@ public class Unpledge {
 		List<String> proofSet = new ArrayList<String>();
 		String hashValueString = null;
 		boolean loopStatus = true;
+		
 		for(int i=0;i<tokenList.size();i++) {
 			hash = hashMatch.get(i);
 			UnpledgeLogger.info("Initating proof generation for token "+tokenList.get(i));
 			hash = Functions.calculateHash(hash, "SHA-256");
-			/*
+			
 			UnpledgeLogger.debug("Input did is " + hashMatch.get(0) + " and sha256 hash is " + hash);
 			UnpledgeLogger.debug("pow level is " + powLevel);
 			UnpledgeLogger.debug("trnx id is " + trnxId);
 			UnpledgeLogger.debug("hashMatch is " + hashMatch.get(0));
 			UnpledgeLogger.debug("hash length " + hashMatch.get(0).length());
-			UnpledgeLogger.debug("hashMatch.get(0).length() - powLevel " + (hashMatch.get(0).length() - powLevel));
+			UnpledgeLogger.debug("hashMatch.get(0).length() - powLevel =" + (hashMatch.get(0).length() - powLevel));
 			UnpledgeLogger
 					.debug("Value to match for " + (hashMatch.get(0).substring(hashMatch.get(0).length() - powLevel)));
 			UnpledgeLogger.debug("unhashed value in sha256" + hash);
-			*/
+			proofSet.add(Integer.toString(powLevel));
+			proofSet.add(hashValueString);
+			
 			int counter = 0;
 			long startTime = System.currentTimeMillis();
 
@@ -65,7 +68,11 @@ public class Unpledge {
 				counter++;
 				hash = Functions.calculateHash(hash, "SHA3-256");
 				if (counter % 1000 == 0) {
+					
 					proofSet.add(hash);
+				}
+				if(counter % 10000 == 0) {
+					UnpledgeLogger.debug(counter +" is "+hash);
 				}
 				
 				hashChain = hash;
@@ -101,7 +108,7 @@ public class Unpledge {
 				movePledgedToken(tokenList.get(i));
 				try {
 					Files.write(out, proofSet, Charset.defaultCharset());
-					System.out.println(Files.setAttribute(out, "level", currentLevel, LinkOption.NOFOLLOW_LINKS));
+					//System.out.println(Files.setAttribute(out, "level", currentLevel, LinkOption.NOFOLLOW_LINKS));
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -140,7 +147,7 @@ public class Unpledge {
 
 	public static int[] pickIndexForValidation(int maxSize) {
 		int[] randomIndex = new int[5];
-		randomIndex[0] = 0;
+		randomIndex[0] = 1;
 		randomIndex[1] = (int) (Math.random() * (maxSize / 2));
 		randomIndex[2] = maxSize / 2;
 		randomIndex[3] = (int) (Math.random() * (maxSize / 2) + maxSize / 2);
@@ -152,19 +159,20 @@ public class Unpledge {
 	public static boolean hashMatch(List<String> tokenProof, int[] index, String did, String trnxID) {
 		int proofSize = tokenProof.size();
 		String hash = "";
-		int powLevel = 6;
-		//UnpledgeLogger.debug("trnxid is " + trnxID);
+		int powLevel = Integer.parseInt(tokenProof.get(0));
+		UnpledgeLogger.debug("powLevel is "+powLevel);
+		UnpledgeLogger.debug("trnxid is " + trnxID);
 		String didHashString = Functions.calculateHash(did, "SHA-256");
-		//UnpledgeLogger.debug("Input did is " + did + " and sha256 hash is " + didHashString);
+		UnpledgeLogger.debug("Input did is " + did + " and sha256 hash is " + didHashString);
 		boolean hashMatch = true;
 		int[] hashMatchScore = new int[index.length];
 		for (int i = 0; i < index.length - 1; i++) {
 			hash = tokenProof.get(index[i]);
-			//UnpledgeLogger.debug("init hash: " + hash + " index: " + index[i]);
+			UnpledgeLogger.debug("init hash: " + hash + " index: " + index[i]);
 			for (int j = 0; j < 1000; j++) {
 				hash = Functions.calculateHash(hash, "SHA3-256");
 			}
-			//UnpledgeLogger.debug("final hash: " + hash + " expected hash: " + tokenProof.get(index[i] + 1));
+			UnpledgeLogger.debug("final hash: " + hash + " expected hash: " + tokenProof.get(index[i] + 1));
 			if (hash.equals(tokenProof.get(index[i] + 1))) {
 				hashMatchScore[i] = 1;
 				//UnpledgeLogger.debug("hashMatchScore updated for " + i);
@@ -174,8 +182,8 @@ public class Unpledge {
 		}
 		// hash = tokenProof.get(tokenProof.size()-1);
 		String hashValueString = tokenProof.get(tokenProof.size() - 1);
-		//UnpledgeLogger.debug("Checking last hash value to match");
-		//UnpledgeLogger.debug("last value in proofSet is " + hashValueString);
+		UnpledgeLogger.debug("Checking last hash value to match");
+		UnpledgeLogger.debug("last value in proofSet is " + hashValueString);
 		// for(int i=0;i<1000;i++) {
 		// check whats happening
 		int ctr = 0;
@@ -192,14 +200,14 @@ public class Unpledge {
 			// }
 			// hashValueString = hash;
 		}
-		//UnpledgeLogger.debug(
-		//		"Hash vlaue string after while loop" + hashValueString + " hash is " + hash + " at index " + ctr);
+		UnpledgeLogger.debug(
+				"Hash vlaue string after while loop" + hashValueString + " hash is " + hash + " at index " + ctr);
 
 		if (hash.equals(tokenProof.get(tokenProof.size() - 1))) {
 			hashMatchScore[index.length - 1] = 1;
 		}
 
-		//UnpledgeLogger.debug(Arrays.toString(hashMatchScore));
+		UnpledgeLogger.debug(Arrays.toString(hashMatchScore));
 
 		for (int i = 0; i < index.length; i++) {
 			if (hashMatchScore[i] != 1) {
@@ -224,26 +232,30 @@ public class Unpledge {
 		
 		String pledgedTokenListString = Functions.readFile(Functions.PAYMENTS_PATH.concat("PledgedTokens.json"));
 		JSONArray listArray = new JSONArray(pledgedTokenListString);
-		JSONArray newPledgedTokenListArray = new JSONArray();
 		String bnkLiString = Functions.readFile(Functions.PAYMENTS_PATH.concat("BNK00.json"));
 		JSONArray bnkListArray = new JSONArray(bnkLiString);
 		
-		UnpledgeLogger.debug("old BNK is "+Functions.readFile(Functions.PAYMENTS_PATH.concat("BNK00.json")));
-		UnpledgeLogger.debug("old pledged is "+Functions.readFile(Functions.PAYMENTS_PATH.concat("PledgedTokens.json")));
+		UnpledgeLogger.debug("old BNK is "+bnkListArray.toString());
+		UnpledgeLogger.debug("old pledged is "+listArray.toString());
 		
 		for(int i=0;i<listArray.length();i++) {
 			if(listArray.getJSONObject(i).toString().contains(tokenHash)) {
 				UnpledgeLogger.debug("removing "+listArray.getJSONObject(i).toString()+" from staked token");
-				Functions.updateJSON("remove", Functions.PAYMENTS_PATH.concat("PledgedTokens.json"), listArray.getJSONObject(i).toString());
-				Functions.updateJSON("add", Functions.PAYMENTS_PATH.concat("BNK00.json"), listArray.getJSONObject(i).toString());
+				bnkListArray.put(listArray.getJSONObject(i));
+				listArray.remove(i);
 			}
 		}
+		UnpledgeLogger.debug("new BNK is "+bnkListArray.toString());
+		UnpledgeLogger.debug("new pledged is "+listArray.toString());
+		
+		Functions.writeToFile(Functions.PAYMENTS_PATH.concat("PledgedTokens.json"),listArray.toString(),false);
+		Functions.writeToFile(Functions.PAYMENTS_PATH.concat("BNK00.json"),bnkListArray.toString(),false);
+
 		
 		UnpledgeLogger.debug("updated BNK is "+Functions.readFile(Functions.PAYMENTS_PATH.concat("BNK00.json")));
 		UnpledgeLogger.debug("updated pledged is "+Functions.readFile(Functions.PAYMENTS_PATH.concat("PledgedTokens.json")));
 
-		
-		
+
 		return status;
 		
 	}

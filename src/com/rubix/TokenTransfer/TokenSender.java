@@ -11,6 +11,7 @@ import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.bouncycastle.cert.cmp.CertificateConfirmationContent;
+import org.bouncycastle.crypto.engines.ISAACEngine;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -65,6 +66,38 @@ public class TokenSender {
 	private static Socket senderSocket;
 	private static boolean senderMutex = false;
 	public static String authSenderByRecHash;
+	
+	public static void resetVariables() {
+		detailsObject = new JSONObject();
+		quorumArray = new JSONArray();
+		tid = null;
+		partTokens = new JSONArray();
+		wholeTokens = new JSONArray();
+		alphaPeersList = new ArrayList<>();
+		betaPeersList = new ArrayList<>();
+		gammaPeersList = new ArrayList<>();
+		alphaSize = -1;
+		tokenPreviousSender = new JSONArray();
+		wholeTokenChainHash = new JSONArray();
+		partTokenChainHash = new JSONArray();
+		lastObJsonArray = new JSONArray();
+		partTokenChainsPrevState = new JSONObject();
+		tokenChainPath = "";
+		tokenPath = "";
+		amountLedger = new JSONObject();
+		allTokens = new JSONArray();
+		newPart = false;
+		oldNew = false;
+		decimalAmount = -1.00;
+		PART_TOKEN_CHAIN_PATH = TOKENCHAIN_PATH.concat("PARTS/");
+		PART_TOKEN_PATH = TOKENS_PATH.concat("PARTS/");
+		senderPayloadHash = null;
+		intPart = -1;
+		wholeAmount = -1;
+		senderMutex = false;
+		authSenderByRecHash = "";
+		TokenSenderLogger.debug("Cleanup completed");
+	}
 
 	/**
 	 * A sender node to transfer tokens
@@ -79,6 +112,7 @@ public class TokenSender {
 	 */
 	public static JSONObject SendPartA(String data, IPFS ipfs, int port) throws Exception {
 		repo(ipfs);
+		resetVariables();
 		JSONObject APIResponse = new JSONObject();
 		PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
@@ -136,20 +170,28 @@ public class TokenSender {
 			writeToFile(partTokensFile.toString(), "[]", false);
 		}
 
-		TokenSenderLogger.debug("Requested Part: " + requestedAmount);
-		TokenSenderLogger.debug("Int Part: " + intPart);
+		TokenSenderLogger.debug("Requested Part: " + requestedAmount); //2
+		TokenSenderLogger.debug("Int Part: " + intPart);               //2
 		String bankFile = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-		JSONArray bankArray = new JSONArray(bankFile);
+		JSONArray bankArray = new JSONArray(bankFile);                 //18
+		
+		//wholeAmount =2 ;
 		if (intPart <= bankArray.length())
-			wholeAmount = intPart;
+			wholeAmount = intPart;			
 		else
 			wholeAmount = bankArray.length();
 
+		TokenSenderLogger.debug("wholeAmount is "+wholeAmount);
+
 		for (int i = 0; i < wholeAmount; i++) {
-			wholeTokens.put(bankArray.getJSONObject(i).getString("tokenHash"));
+			wholeTokens.put(bankArray.getJSONObject(i).getString("tokenHash"));  //2
 		}
 
-		for (int i = 0; i < wholeTokens.length(); i++) {
+		TokenSenderLogger.debug("wholeTokens legnth is "+wholeTokens.length());
+		TokenSenderLogger.debug("wholeTokens is "+wholeTokens.toString());
+		
+		TokenSenderLogger.debug("wholeTokens length is "+wholeTokens.length());
+		for (int i = 0; i < wholeTokens.length(); i++) {		//2
 			String tokenRemove = wholeTokens.getString(i);
 			for (int j = 0; j < bankArray.length(); j++) {
 				if (bankArray.getJSONObject(j).getString("tokenHash").equals(tokenRemove))
@@ -746,6 +788,7 @@ public class TokenSender {
 			APIResponse.put("status", "Failed");
 			APIResponse.put("message", sanityMessage);
 			TokenSenderLogger.warn(sanityMessage);
+			senderMutex = false;
 			return APIResponse;
 		}
 
@@ -904,6 +947,8 @@ public class TokenSender {
 		tokenDetails.put("sender", senderDidIpfsHash);
 		tokenDetails.put("proof", proofOfWork);
 		String doubleSpendString = tokenDetails.toString();
+		
+		TokenSenderLogger.debug("tokenDetails is "+tokenDetails.toString());
 
 		String doubleSpend = calculateHash(doubleSpendString, "SHA3-256");
 		writeToFile(LOGGER_PATH + "doubleSpend", doubleSpend, false);
@@ -919,6 +964,7 @@ public class TokenSender {
 
 		if (Functions.multiplePinCheck(senderDidIpfsHash, tokenObject, ipfs) == 420) {
 			APIResponse.put("message", "Multiple Owners Found. Kindly re-initiate transaction");
+			senderMutex = false;
 			return APIResponse;
 		} else {
 			TokenSenderLogger.debug("No Multiple Pins found, initating transcation");
@@ -1082,6 +1128,8 @@ public class TokenSender {
 		senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
 		senderDetails2Receiver.put("pledgeDetails", Initiator.pledgedTokensArray);
 
+		
+		
 		output.println(senderDetails2Receiver);
 		TokenSenderLogger.debug("Quorum Signatures length " + InitiatorConsensus.quorumSignature.length());
 
@@ -1668,6 +1716,9 @@ public class TokenSender {
 
 			TokenSenderLogger.debug(response.toString());
 		}
+		
+		senderMutex = false;
+		resetVariables();
 		return APIResponse;
 
 	}
