@@ -143,18 +143,20 @@ public class NFTFunctions {
                     // Serialization
                     JSONObject dataToSend = new JSONObject();
                     
+                    url = apiData.getString("url"); 
+                    String creatorInput = apiData.getString("creatorInput");
                     dataToSend.put("type", "NFT");
                     dataToSend.put("creatorId", creatorDID);
                     dataToSend.put("nftToken", nftToken);
-                    dataToSend.put("createdOn", getCurrentUtcTime());
+                    dataToSend.put("createdOn", getCurrentUtcTime().toString());
                     dataToSend.put("creatorPubKeyIpfsHash", creatorPubKeyIpfsHash);
                     dataToSend.put("totalSupply",totalSupply);
                     dataToSend.put("edition", i);
-                    dataToSend.put("url", apiData.getString("url"));
-                    dataToSend.put("creatorInput", apiData.get("creatorInput"));
+                    dataToSend.put("url", url);
+                    //dataToSend.put("creatorInput", creatorInput);
                     String populate = dataToSend.toString();
         
-                    JSONObject jsonObject = new JSONObject();
+                    JSONObject jsonObject = new JSONObject(); 
                     jsonObject.put("inputString", populate);
                     String postJsonData = jsonObject.toString();
         
