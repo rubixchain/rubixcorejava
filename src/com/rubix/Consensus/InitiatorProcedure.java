@@ -63,7 +63,7 @@ public class InitiatorProcedure {
         		String authSenderByQuorumHash = calculateHash(message, "SHA3-256");
              authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
         	
-        }else {
+        }else if (operation.equals("")){
 			
             authQuorumHash = calculateHash(TokenSender.authSenderByRecHash.concat(receiverDidIpfs), "SHA3-256");
 
@@ -131,8 +131,6 @@ public class InitiatorProcedure {
             nftdetails.put("sellerPubKeyIpfsHash", dataObject.getString("sellerPubKeyIpfsHash"));
             nftdetails.put("saleContractIpfsHash", dataObject.getString("saleContractIpfsHash"));
             nftdetails.put("nftTokenDetails", dataObject.getJSONObject("nftTokenDetails"));
-            //nftdetails.put("rbtTokenDetails", dataObject.getJSONObject("rbtTokenDetails"));
-            // nftdetails.put("sellerPvtKeySign", dataObject.getString("sellerPvtKeySign"));
             nftdetails.put("tokenAmount", dataObject.getDouble("tokenAmount"));
             InitiatorProcedureLogger.debug("NFT Token Detials "+dataObject.getJSONObject("nftTokenDetails").toString());
             String authNftSenderByQuorumHash = calculateHash(dataObject.getJSONObject("nftTokenDetails").toString(),
