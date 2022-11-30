@@ -336,9 +336,10 @@ public class NftBuyer {
 
             PrivateKey pvtKey = null;
             String keyPass = null;
+            //String nodePvtKeyPass = detailsObject.getString("nodePvtKeyPass");
             String buyerPvtKeyAlg = null;
             if (detailsObject.getInt("p2pFlag") == 0) {
-                if (detailsObject.has("buyerPvtKey") && detailsObject.getString("buyerPvtKey") != null) {
+                if (detailsObject.has("buyerPvtKey") && (!detailsObject.getString("buyerPvtKey").isBlank())) {
                     keyPass = detailsObject.getString("buyerPvtKeyPass");
                     buyerPvtKeyAlg = privateKeyAlgStr(detailsObject.getString("buyerPvtKey"));
                     pvtKey = getPvtKeyFromStr(detailsObject.getString("buyerPvtKey"), keyPass);
@@ -360,6 +361,29 @@ public class NftBuyer {
                         return APIResponse;
 
                     }
+                }
+                else
+                {
+                    nftBuyerLogger.debug("reading key from node, "+keyPass);
+                    keyPass = detailsObject.getString("buyerPvtKeyPass");
+                    pvtKey = getPvtKey(keyPass, 1);
+                    if (pvtKey == null || pvtKey.equals("")) {
+                        output.println("421");
+                        nftBuyerLogger.warn("Buyer entered wrong private key password");
+                        executeIPFSCommands(" ipfs p2p close -t /p2p/" + sellerPeerID);
+                        output.close();
+                        input.close();
+                        buyerSocket.close();
+
+                        buyerMutex = false;
+                        APIResponse.put("did", buyerDid);
+                        APIResponse.put("tid", "");
+                        APIResponse.put("status", "Failed");
+                        APIResponse.put("message", "Buyer entered wrong private key password");
+                        return APIResponse;
+
+                    }
+
                 }
             } else {
                 nftBuyerLogger.info("Enter Private Key Password to Sign new Ownership of NFT");
@@ -844,8 +868,8 @@ public class NftBuyer {
            
             String rbtTxnComment = comment.concat("-"+tid);
             JSONObject rbtApiPayload = new JSONObject();
-            rbtApiPayload.put("receiver", sellerDid);
-            rbtApiPayload.put("tokenCount", requestedAmount);
+            rbtApiPayload.put("receiverDidIpfsHash", sellerDid);
+            rbtApiPayload.put("amount", requestedAmount);
             rbtApiPayload.put("comment", rbtTxnComment);
             rbtApiPayload.put("type", type);
             rbtApiPayload.put("pvtKeyPass", keyPass);
@@ -1096,6 +1120,8 @@ public class NftBuyer {
             String nftHashString = nftFirstHash.concat(buyerPubKeyIpfsHash);
             String nftSignString = calculateHash(nftHashString, "SHA3-256");
 
+            buyerPvtKeyAlg = privateKeyAlgorithm(1);
+
             String nftOwnerIdentity = pvtKeySign(nftSignString, pvtKey, buyerPvtKeyAlg);
             nftBuyerLogger.info("NFT new Owner Identitiy : " + nftOwnerIdentity);
 
@@ -1151,7 +1177,7 @@ public class NftBuyer {
                 dataToSend.put("totalSupply", nftTokenObject.getLong("totalSupply"));
                 dataToSend.put("editionNumber", nftTokenObject.getLong("tokenCount"));
                 dataToSend.put("rbt_transaction_id", rbtTxnId);
-                dataToSend.put("user_id", detailsObject.get("userHash"));
+                //dataToSend.put("user_id", detailsObject.get("userHash"));
                 String populate = dataToSend.toString();
 
                 JSONObject jsonObject = new JSONObject();
