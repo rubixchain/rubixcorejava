@@ -206,11 +206,11 @@ public class TokenReceiver {
 					String token = proofArray.getJSONObject(i).getString("token");
 					String cid = proofArray.getJSONObject(i).getString("cid");
 					String proof = get(cid, ipfs);
-					File proofFile = new File(TOKENCHAIN_PATH + "Proof/" + token + ".proof");
+					File proofFile = new File(TOKENCHAIN_PATH + "Proof/");
 					if (!proofFile.exists()) {
 						proofFile.mkdirs();
 					}
-					writeToFile(TOKENCHAIN_PATH + "Proof/" + token + ".proof", proof, false);
+					writeToFile(proofFile.getAbsolutePath()+ token + ".proof", proof, false);
 				}
 			}
 
