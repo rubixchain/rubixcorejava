@@ -2209,16 +2209,30 @@ public class Functions {
 		return difficulty;
 
 }
-    public static int calculatePoW() throws IOException, JSONException {
-    	int workLevel = -1;
-    	int currentLevel = getCurrentLevel();
-    	
-    	switch (currentLevel) {
-    	case 4:
-    		workLevel = 6;
-    	}
-    	return workLevel;
+public static int calculatePoW() throws IOException, JSONException {
+    int workLevel = 6;
+    int currentLevel = getCurrentLevel();
+    
+    FunctionsLogger.debug("workLevel is "+workLevel);
+
+    FunctionsLogger.debug("currentLevel is "+currentLevel);
+    
+    switch (currentLevel) {
+    case 4:
+        workLevel = 6;
     }
+    
+    FunctionsLogger.debug("updated workLevel is "+workLevel);
+
+    return workLevel;
+}
+
+
+
+
+
+
+
     
     
     
