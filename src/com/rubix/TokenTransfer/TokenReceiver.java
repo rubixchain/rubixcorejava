@@ -199,6 +199,7 @@ public class TokenReceiver {
 			JSONObject partTokenChains = TokenDetails.getJSONObject("part-tokenChains");
 			JSONObject partTokenChainsForVerification = TokenDetails.getJSONObject("part-tokenChains-PrevState");
 			JSONArray partTokenChainsHash = TokenDetails.getJSONArray("hashSender");
+
 			if (TokenDetails.optJSONArray("proof") != null) {
 				JSONArray proofArray = TokenDetails.getJSONArray("proof");
 
@@ -210,7 +211,9 @@ public class TokenReceiver {
 					if (!proofFile.exists()) {
 						proofFile.mkdirs();
 					}
-					writeToFile(proofFile.getAbsolutePath()+ token + ".proof", proof, false);
+					//TOKENCHAIN_PATH + "Proof/"+ token + ".proof"
+					writeToFile(proofFile.getAbsolutePath()+"/"+ token + ".proof", proof, false);
+					TokenReceiverLogger.debug(proofFile.getAbsolutePath());
 				}
 			}
 
@@ -329,30 +332,41 @@ public class TokenReceiver {
 				tokenMaxLimitMap.put(tokenNumberHash, tokenLimitForLevel);
 				tokenDetailMap.put(tokenNumberHash, -1);
 			}
+
+
+			//QmWcmK38g9XcrCwhoEq3rQjNseJW2HyscoG66DWF62X6bK.proof
+			//BNK00.json -- unpledge
+			//
 			repo(ipfs);
 			String pledgeErrorMessage = "";
 			if (wholeTokens.length() > 0) {
-				boolean pledged = false;
+				boolean pledged = true;
 				JSONArray pledgedTokens = new JSONArray();
 				for (int i = 0; i < wholeTokens.length(); i++) {
 					JSONArray chain = new JSONArray(wholeTokenChainContent.get(i));
 					if (chain.length() > 0) {
 						JSONObject pledgeBlock = chain.getJSONObject(chain.length() - 1);
-						if (pledgeBlock.has("pledgeToken")) {
+						TokenReceiverLogger.debug("pledgeBlock object " + pledgeBlock.toString());
+						// if (pledgeBlock.has("pledgeToken")) {
 
-							if (!pledgeBlock.getString("pledgeToken").isEmpty()) {
-								String tokenName = chain.getJSONObject(chain.length() - 1).getString("pledgeToken");
-								String did = chain.getJSONObject(chain.length() - 1).getString("receiver");
-								String tid = chain.getJSONObject(chain.length() - 1).getString("tid");
+						if (pledgeBlock.optString("pledgeToken").length() > 0) {
+							pledged = false;
+							String tokenName = chain.getJSONObject(chain.length() - 1).getString("pledgeToken");
+							String did = chain.getJSONObject(chain.length() - 1).getString("receiver");
+							String tid = chain.getJSONObject(chain.length() - 1).getString("tid");
+							String path = TOKENCHAIN_PATH + "Proof/"+ tokenName + ".proof";
+							File proofFile = new File(path);
+							if(proofFile.exists()){
 								pledged = Unpledge.verifyProof(tokenName, did, tid);
-								JSONObject pledgedTokenObject = new JSONObject();
-								pledgedTokenObject.put("tokenHash", wholeTokens.getString(i));
-								pledgedTokens.put(pledgedTokenObject);
 							}
+							JSONObject pledgedTokenObject = new JSONObject();
+							pledgedTokenObject.put("tokenHash", wholeTokens.getString(i));
+							pledgedTokens.put(pledgedTokenObject);
 						}
+						// }
 					}
 				}
-				if (pledged) {
+				if (!pledged) {
 					output.println("419");
 					output.println(pledgedTokens.toString());
 					APIResponse.put("did", senderDidIpfsHash);
