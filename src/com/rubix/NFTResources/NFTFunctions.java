@@ -38,6 +38,8 @@ public class NFTFunctions {
 
     public static Logger NftFunctionsLogger = Logger.getLogger(NFTFunctions.class);
 
+    static {Security.addProvider(new BouncyCastleProvider());}
+
     /**
      * This method is used to create NFT tokens
      *
