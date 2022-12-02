@@ -11,6 +11,7 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -357,12 +358,27 @@ public class Initiator {
 							PrivateKey pvtKey = getPvtKey(keyPass, 1);
 
 							String hashForTokenChain = calculateHash(tokenChain.toString(), "SHA3-256");
+							FileWriter spfile = new FileWriter(
+									WALLET_DATA_PATH.concat("/hashForTokenChain").concat(tid).concat(".json"));
+							spfile.write(tokenChain.toString());
+							spfile.close();
+
 
 							// for (int i = 0; i < pledgeDetails.length(); i++) {
 
 							PledgeInitiatorLogger.debug("!@#$%^& pledgeDetails is " + pledgeDetails.getJSONObject(j));
 
+							PledgeInitiatorLogger.debug("!@#$%^& hashForTokenChain is "+ hashForTokenChain);
+
 							tokenChain.remove(tokenChain.length() - 1);
+							FileWriter pfile = new FileWriter(
+									WALLET_DATA_PATH.concat("/hashForTokenChainRemoved").concat(tid).concat(".json"));
+							pfile.write(tokenChain.toString());
+							pfile.close();
+
+
+							PledgeInitiatorLogger.debug("!@#$%^& hashForTokenChain after removing new last object "+ calculateHash(tokenChain.toString(), "SHA3-256"));
+
 							pledgeObject.put("hash", hashForTokenChain);
 							pledgeObject.put("pvtShareBits", fetchSign(pledgeDetails, hashForTokenChain));
 
