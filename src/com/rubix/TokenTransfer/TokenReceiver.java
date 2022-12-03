@@ -6,7 +6,6 @@ import static com.rubix.Resources.IPFSNetwork.*;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -30,14 +29,9 @@ import com.rubix.Ping.VerifyStakedToken;
 import com.rubix.Resources.Functions;
 import com.rubix.Resources.IPFSNetwork;
 import com.rubix.TokenTransfer.TransferPledge.Unpledge;
-import com.rubix.Constants.MiningConstants.*;
 
 import static com.rubix.Resources.APIHandler.getPubKeyIpfsHash_DIDserver;
 import static com.rubix.NFTResources.NFTFunctions.*;
-import static com.rubix.TokenTransfer.TransferPledge.Unpledge.verifyProof;
-
-import java.lang.reflect.Field;
-import java.util.LinkedHashMap;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -224,60 +218,32 @@ public class TokenReceiver {
 			JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
 			TokenReceiverLogger.debug("Amount Ledger: " + amountLedger);
 			int intPart = wholeTokens.length();
-			// ? multiple pin check starts
+
 			Double decimalPart = formatAmount(amount - intPart);
-			JSONArray doubleSpentToken = new JSONArray();
-			boolean tokenOwners = true;
-			ArrayList pinOwnersArray = new ArrayList();
-			ArrayList previousSender = new ArrayList();
-			JSONArray ownersReceived = new JSONArray();
-			TokenReceiverLogger.debug("previousSendersArray is " + previousSendersArray.toString());
-			TokenReceiverLogger.debug("tokenObject is " + tokenObject.toString());
-			TokenReceiverLogger.debug("tokenDetails(base for tokenObj) is " + tokenDetails.toString());
 
-			// previoussenderarray
-			// tokenobject
+			boolean forkResolution = true;
+			JSONArray forkedTokens = new JSONArray();
 			for (int i = 0; i < wholeTokens.length(); ++i) {
-				try {
-					TokenReceiverLogger.debug("Checking owners for " + wholeTokens.getString(i) + " Please wait...");
-					pinOwnersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
-
-					if (pinOwnersArray.size() > 2) {
-
-						for (int j = 0; j < previousSendersArray.length(); j++) {
-							if (previousSendersArray.getJSONObject(j).getString("token")
-									.equals(wholeTokens.getString(i)))
-								ownersReceived = previousSendersArray.getJSONObject(j).getJSONArray("sender");
-						}
-
-						for (int j = 0; j < ownersReceived.length(); j++) {
-							previousSender.add(ownersReceived.getString(j));
-						}
-						TokenReceiverLogger.debug("Previous Owners: " + previousSender);
-
-						for (int j = 0; j < pinOwnersArray.size(); j++) {
-							if (!previousSender.contains(pinOwnersArray.get(j).toString()))
-								tokenOwners = false;
-						}
-					}
-				} catch (IOException e) {
-
-					TokenReceiverLogger.debug("Ipfs dht find did not execute");
+				TokenReceiverLogger.debug("Fork Checking for token: " + wholeTokens.getString(i));
+				JSONObject forkObject = new JSONObject();
+				forkObject.put("token",  wholeTokens.getString(i));
+				forkObject.put("tokenChain", wholeTokenChains.getJSONArray(i));
+				forkObject.put("previousSendersArray", previousSendersArray);
+				forkResolution = ForkResolution.check(forkObject);
+				if(!forkResolution) {
+					TokenReceiverLogger.debug("Fork found and not resolved for token: " + wholeTokens.getString(i));
+					TokenReceiverLogger.debug("Message: " + ForkResolution.resolutionMessage);
+					forkedTokens.put(wholeTokens.getString(i));
 				}
 			}
-			if (!tokenOwners) {
-				JSONArray owners = new JSONArray();
-				for (int i = 0; i < pinOwnersArray.size(); i++)
-					owners.put(pinOwnersArray.get(i).toString());
-				TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
-				TokenReceiverLogger.debug("Owners: " + owners);
-				output.println("420");
-				output.println(doubleSpentToken.toString());
-				output.println(owners.toString());
+			if (!forkResolution) {
+				TokenReceiverLogger.debug("Fork not resolved for " + forkedTokens);
+				output.println("418");
+				output.println(forkedTokens.toString());
 				APIResponse.put("did", senderDidIpfsHash);
 				APIResponse.put("tid", "null");
 				APIResponse.put("status", "Failed");
-				APIResponse.put("message", "Multiple Owners for " + doubleSpentToken + " " + owners);
+				APIResponse.put("message", "Fork not resolved");
 				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
 				output.close();
 				input.close();
@@ -285,7 +251,67 @@ public class TokenReceiver {
 				ss.close();
 				return APIResponse.toString();
 			}
-			// ? multiple pin check ends
+
+
+// 			? multiple pin check starts
+//			JSONArray doubleSpentToken = new JSONArray();
+//			boolean tokenOwners = true;
+//			ArrayList pinOwnersArray = new ArrayList();
+//			ArrayList previousSender = new ArrayList();
+//			JSONArray ownersReceived = new JSONArray();
+//			TokenReceiverLogger.debug("previousSendersArray is " + previousSendersArray.toString());
+//			TokenReceiverLogger.debug("tokenObject is " + tokenObject.toString());
+//			TokenReceiverLogger.debug("tokenDetails(base for tokenObj) is " + tokenDetails.toString());
+//			for (int i = 0; i < wholeTokens.length(); ++i) {
+//				try {
+//					TokenReceiverLogger.debug("Checking owners for " + wholeTokens.getString(i) + " Please wait...");
+//					pinOwnersArray = IPFSNetwork.dhtOwnerCheck(wholeTokens.getString(i));
+//
+//					if (pinOwnersArray.size() > 2) {
+//
+//						for (int j = 0; j < previousSendersArray.length(); j++) {
+//							if (previousSendersArray.getJSONObject(j).getString("token")
+//									.equals(wholeTokens.getString(i)))
+//								ownersReceived = previousSendersArray.getJSONObject(j).getJSONArray("sender");
+//						}
+//
+//						for (int j = 0; j < ownersReceived.length(); j++) {
+//							previousSender.add(ownersReceived.getString(j));
+//						}
+//						TokenReceiverLogger.debug("Previous Owners: " + previousSender);
+//
+//						for (int j = 0; j < pinOwnersArray.size(); j++) {
+//							if (!previousSender.contains(pinOwnersArray.get(j).toString()))
+//								tokenOwners = false;
+//						}
+//					}
+//				} catch (IOException e) {
+//
+//					TokenReceiverLogger.debug("Ipfs dht find did not execute");
+//				}
+//			}
+//			if (!tokenOwners) {
+//				JSONArray owners = new JSONArray();
+//				for (int i = 0; i < pinOwnersArray.size(); i++)
+//					owners.put(pinOwnersArray.get(i).toString());
+//				TokenReceiverLogger.debug("Multiple Owners for " + doubleSpentToken);
+//				TokenReceiverLogger.debug("Owners: " + owners);
+//				output.println("420");
+//				output.println(doubleSpentToken.toString());
+//				output.println(owners.toString());
+//				APIResponse.put("did", senderDidIpfsHash);
+//				APIResponse.put("tid", "null");
+//				APIResponse.put("status", "Failed");
+//				APIResponse.put("message", "Multiple Owners for " + doubleSpentToken + " " + owners);
+//				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+//				output.close();
+//				input.close();
+//				sk.close();
+//				ss.close();
+//				return APIResponse.toString();
+//			}
+//			? multiple pin check ends
+
 			String senderToken = TokenDetails.toString();
 			String consensusID = calculateHash(senderToken, "SHA3-256");
 			TokenReceiverLogger.debug("consensusID is " + consensusID);
