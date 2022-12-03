@@ -679,7 +679,7 @@ public class TokenSender {
 
 						JSONArray hashArray = new JSONArray(jsonObject.get(key).toString());
 						TokenSenderLogger.debug("@@@@@ Calculating hash for: " + hashArray);
-						String hashString = calculateHash(hashArray.toString(), "SHA3-256");
+						//String hashString = calculateHash(hashArray.toString(), "SHA3-256");
 						for (int j = 0; j < hashArray.length(); j++) {
 							String sign = getSignFromShares(pvt, hashArray.get(j).toString());
 							pledgeSignedObject.put("hash", hashArray.get(j));

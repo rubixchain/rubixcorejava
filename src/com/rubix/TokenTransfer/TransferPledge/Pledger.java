@@ -89,6 +89,18 @@ public class Pledger implements Runnable {
 								JSONObject token = new JSONObject();
 								token.put("tokenHash", tokensArray.getJSONObject(i).getString("tokenHash"));
 								token.put("chain", chainArray);
+
+								/*checking if token being sent for pleding is unpledged and has proof */
+								String tokenHash = tokensArray.getJSONObject(i).getString("tokenHash");
+								File proofFile = new File(TOKENCHAIN_PATH + "Proof/" + tokenHash + ".proof");
+								if(proofFile.exists())
+								{
+									String proofCID = add(
+											TOKENCHAIN_PATH + "Proof/" + tokenHash + ".proof", ipfs);
+									token.put("token",tokenHash);
+									token.put("cid", proofCID);
+								}
+
 								tokenDetails.put(token); 
 								//tokenDetails==> tokenHash:hash,chain[chainarray]
 
@@ -96,6 +108,9 @@ public class Pledger implements Runnable {
 								newObject.put("tokenHash", tokensArray.getJSONObject(i).getString("tokenHash"));
 								pledgingTokens.put(newObject); //pledgetoken.json
 								tokens.put(tokensArray.getJSONObject(i).getString("tokenHash"));
+
+
+
 							}
 							out.println(tokenDetails.toString());
 							PledgerLogger.debug("Data for pledging " + tokenDetails.toString());
@@ -215,6 +230,7 @@ public class Pledger implements Runnable {
 							JSONArray tokensArray = new JSONArray(bankFileContent);
 							JSONArray tokenDetails = new JSONArray();
 							for (int i = 0; i < tokensToPledge; i++) {
+
 								String chainFile = readFile(TOKENCHAIN_PATH
 										.concat(tokensArray.getJSONObject(i).getString("tokenHash")).concat(".json"));
 								JSONArray chainArray = new JSONArray(chainFile);
@@ -222,6 +238,18 @@ public class Pledger implements Runnable {
 
 								token.put("tokenHash", tokensArray.getJSONObject(i).getString("tokenHash"));
 								token.put("chain", chainArray);
+
+								/*adding proof details if exist */
+								String tokenHash = tokensArray.getJSONObject(i).getString("tokenHash");
+								File proofFile = new File(TOKENCHAIN_PATH + "Proof/" + tokenHash + ".proof");
+								if(proofFile.exists())
+								{
+									String proofCID = add(
+											TOKENCHAIN_PATH + "Proof/" + tokenHash + ".proof", ipfs);
+									token.put("token",tokenHash);
+									token.put("cid", proofCID);
+								}
+
 								tokenDetails.put(token);
 							}
 							pledgeObject.put("tokenDetails", tokenDetails);

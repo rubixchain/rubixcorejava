@@ -57,7 +57,7 @@ public class Unpledge {
 					.debug("Value to match for " + (hashMatch.get(0).substring(hashMatch.get(0).length() - powLevel)));
 			UnpledgeLogger.debug("unhashed value in sha256" + hash);
 			proofSet.add(Integer.toString(powLevel));
-			proofSet.add(hashValueString);
+			proofSet.add(hash);
 			
 			int counter = 0;
 			long startTime = System.currentTimeMillis();
