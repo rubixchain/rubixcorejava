@@ -3,17 +3,18 @@ package com.rubix.TokenTransfer;
 import com.rubix.Resources.IPFSNetwork;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
 public class ForkResolution {
-    public static Logger ForkResolutionLogger = Logger.getLogger(TokenReceiver.class);
+    public static Logger ForkResolutionLogger = Logger.getLogger(ForkResolution.class);
     public static String resolutionMessage;
     public static ArrayList pinOwnersArrayTransferToken = new ArrayList();
     public static ArrayList pinOwnersArrayPledgedToken = new ArrayList();
-    public static boolean check(JSONObject tokenDetails) throws IOException, InterruptedException {
+    public static boolean check(JSONObject tokenDetails) throws IOException, InterruptedException, JSONException {
         boolean resolution = true;
         /**
          *  1. Check number of pins on the token
@@ -66,15 +67,21 @@ public class ForkResolution {
         if (!tokenOwners) {
            JSONObject lastObject = tokenChain.getJSONObject(tokenChain.length() - 1);
            ForkResolutionLogger.debug("Last Object of token " + token + ": " + lastObject);
-           if(lastObject.has("pledgeToken")){
-               String pledgeToken = lastObject.getString("pledgeToken");
-               ForkResolutionLogger.debug("Checking owners for pledgeToken" + pledgeToken + " Please wait...");
-               pinOwnersArrayPledgedToken = IPFSNetwork.dhtOwnerCheck(pledgeToken);
-               if (pinOwnersArrayPledgedToken.size() != 1) {
-                   resolution = false;
-                   resolutionMessage = "Pledge token has more than one owner";
-               }else
-                   ForkResolutionLogger.debug("Pledged Token " + pledgeToken + " has not multiple pins. Passed !!!");
+           if(lastObject.has("tokensPledgedWith")){
+               if(lastObject.getJSONArray("tokensPledgedWith") != null) {
+                   JSONArray pledgeTokens = lastObject.getJSONArray("tokensPledgedWith");
+                   for (int i = 0; i < pledgeTokens.length(); i++) {
+                       ForkResolutionLogger.debug("Checking owners for pledgeToken" + pledgeTokens.getString(i) + " Please wait...");
+                       pinOwnersArrayPledgedToken = IPFSNetwork.dhtOwnerCheck(pledgeTokens.getString(i));
+                       if (pinOwnersArrayPledgedToken.size() != 1) {
+                           resolution = false;
+                           resolutionMessage = "Pledge token has more than one owner";
+                       } else {
+                           ForkResolutionLogger.debug("Pledged Token " + pledgeTokens.getString(i) + " has not multiple pins. Passed !!!");
+                           return true;
+                       }
+                   }
+               }
            }
            else {
                resolution = false;

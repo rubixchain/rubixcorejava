@@ -221,36 +221,7 @@ public class TokenReceiver {
 
 			Double decimalPart = formatAmount(amount - intPart);
 
-			boolean forkResolution = true;
-			JSONArray forkedTokens = new JSONArray();
-			for (int i = 0; i < wholeTokens.length(); ++i) {
-				TokenReceiverLogger.debug("Fork Checking for token: " + wholeTokens.getString(i));
-				JSONObject forkObject = new JSONObject();
-				forkObject.put("token",  wholeTokens.getString(i));
-				forkObject.put("tokenChain", wholeTokenChains.getJSONArray(i));
-				forkObject.put("previousSendersArray", previousSendersArray);
-				forkResolution = ForkResolution.check(forkObject);
-				if(!forkResolution) {
-					TokenReceiverLogger.debug("Fork found and not resolved for token: " + wholeTokens.getString(i));
-					TokenReceiverLogger.debug("Message: " + ForkResolution.resolutionMessage);
-					forkedTokens.put(wholeTokens.getString(i));
-				}
-			}
-			if (!forkResolution) {
-				TokenReceiverLogger.debug("Fork not resolved for " + forkedTokens);
-				output.println("418");
-				output.println(forkedTokens.toString());
-				APIResponse.put("did", senderDidIpfsHash);
-				APIResponse.put("tid", "null");
-				APIResponse.put("status", "Failed");
-				APIResponse.put("message", "Fork not resolved");
-				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-				output.close();
-				input.close();
-				sk.close();
-				ss.close();
-				return APIResponse.toString();
-			}
+
 
 
 // 			? multiple pin check starts
@@ -359,6 +330,39 @@ public class TokenReceiver {
 				tokenDetailMap.put(tokenNumberHash, -1);
 			}
 
+			boolean forkResolution = true;
+			TokenReceiverLogger.debug("Fork Checking version 3: ");
+			TokenReceiverLogger.debug("Whole Token Chains: " + wholeTokenChainContent.get(0));
+			TokenReceiverLogger.debug("Whole Token Chains: " + new JSONArray(wholeTokenChainContent.get(0)));
+			JSONArray forkedTokens = new JSONArray();
+			for (int i = 0; i < wholeTokens.length(); ++i) {
+				TokenReceiverLogger.debug("Fork Checking for token: " + wholeTokens.getString(i));
+				JSONObject forkObject = new JSONObject();
+				forkObject.put("token",  wholeTokens.getString(i));
+				forkObject.put("tokenChain", new JSONArray(wholeTokenChainContent.get(i)));
+				forkObject.put("previousSendersArray", previousSendersArray);
+				forkResolution = ForkResolution.check(forkObject);
+				if(!forkResolution) {
+					TokenReceiverLogger.debug("Fork found and not resolved for token: " + wholeTokens.getString(i));
+					TokenReceiverLogger.debug("Message: " + ForkResolution.resolutionMessage);
+					forkedTokens.put(wholeTokens.getString(i));
+				}
+			}
+			if (!forkResolution) {
+				TokenReceiverLogger.debug("Fork not resolved for " + forkedTokens);
+				output.println("418");
+				output.println(forkedTokens.toString());
+				APIResponse.put("did", senderDidIpfsHash);
+				APIResponse.put("tid", "null");
+				APIResponse.put("status", "Failed");
+				APIResponse.put("message", "Fork not resolved");
+				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+				output.close();
+				input.close();
+				sk.close();
+				ss.close();
+				return APIResponse.toString();
+			}
 
 			//QmWcmK38g9XcrCwhoEq3rQjNseJW2HyscoG66DWF62X6bK.proof
 			//BNK00.json -- unpledge
