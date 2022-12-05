@@ -42,8 +42,6 @@ public class TokenSender {
     private static JSONArray partTokens = new JSONArray();
     private static JSONArray wholeTokens = new JSONArray();
     private static ArrayList alphaPeersList;
-    private static ArrayList betaPeersList;
-    private static ArrayList gammaPeersList;
     private static int alphaSize = -1;
     private static JSONArray tokenPreviousSender = new JSONArray();
     private static JSONArray wholeTokenChainHash = new JSONArray();
@@ -71,8 +69,6 @@ public class TokenSender {
         partTokens = new JSONArray();
         wholeTokens = new JSONArray();
         alphaPeersList = new ArrayList<>();
-        betaPeersList = new ArrayList<>();
-        gammaPeersList = new ArrayList<>();
         alphaSize = -1;
         tokenPreviousSender = new JSONArray();
         wholeTokenChainHash = new JSONArray();
@@ -391,8 +387,6 @@ public class TokenSender {
             allTokens.put(partTokens.getString(i));
 
         JSONArray alphaQuorum = new JSONArray();
-        JSONArray betaQuorum = new JSONArray();
-        JSONArray gammaQuorum = new JSONArray();
 
         switch (type) {
             case 1: {
@@ -432,6 +426,14 @@ public class TokenSender {
             }
             case 3: {
                 quorumArray = detailsObject.getJSONArray("quorum");
+                JSONArray finArray = new JSONArray();
+                if(quorumArray.length()>7) {
+                	for(int i=0;i<7;i++) {
+                		finArray.put(quorumArray.get(i));
+                		
+                	}
+                	quorumArray = finArray;
+                }
                 break;
             }
             default: {
@@ -468,7 +470,7 @@ public class TokenSender {
         TokenSenderLogger.debug("Updated quorumlist is " + quorumArray.toString());
 
 //        //sanity check for Quorum - starts
-        int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
+        int alphaCheck = 0;
         JSONArray sanityFailedQuorum = new JSONArray();
         for (int i = 0; i < quorumArray.length(); i++) {
             String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
@@ -479,14 +481,11 @@ public class TokenSender {
                 sanityFailedQuorum.put(quorumPeerID);
                 if (i <= 6)
                     alphaCheck++;
-                if (i >= 7 && i <= 13)
-                    betaCheck++;
-                if (i >= 14 && i <= 20)
-                    gammaCheck++;
+                
             }
         }
 
-        if (alphaCheck > 2 || betaCheck > 2 || gammaCheck > 2) {
+        if (alphaCheck > 2) {
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
             APIResponse.put("status", "Failed");
@@ -505,21 +504,16 @@ public class TokenSender {
         for (int i = 0; i < alphaSize; i++)
             alphaQuorum.put(quorumArray.getString(i));
 
-        for (int i = 0; i < 7; i++) {
-            betaQuorum.put(quorumArray.getString(alphaSize + i));
-            gammaQuorum.put(quorumArray.getString(alphaSize + 7 + i));
-        }
+        
         startTime = System.currentTimeMillis();
 
         alphaPeersList = QuorumCheck(alphaQuorum, alphaSize);
-        betaPeersList = QuorumCheck(betaQuorum, 7);
-        gammaPeersList = QuorumCheck(gammaQuorum, 7);
-
+        
         endTime = System.currentTimeMillis();
         totalTime = endTime - startTime;
         eventLogger.debug("Quorum Check " + totalTime);
 
-        if (alphaPeersList.size() < minQuorum(alphaSize) || betaPeersList.size() < 5 || gammaPeersList.size() < 5) {
+        if (alphaPeersList.size() < minQuorum(alphaSize)) {
             updateQuorum(quorumArray, null, false, type);
             APIResponse.put("did", senderDidIpfsHash);
             APIResponse.put("tid", "null");
@@ -1102,14 +1096,12 @@ public class TokenSender {
         dataObject.put("senderDidIpfs", senderDidIpfsHash);
         dataObject.put("token", wholeTokens.toString());
         dataObject.put("alphaList", alphaPeersList);
-        dataObject.put("betaList", betaPeersList);
-        dataObject.put("gammaList", gammaPeersList);
         dataObject.put("sign", signPayload.getString("authSenderByRecHash"));
         dataObject.put("hash", authSenderByRecHash);
 
         InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize, "");
 
-        if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+        if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize))) {
             TokenSenderLogger.debug("Consensus Failed");
             senderDetails2Receiver.put("status", "Consensus Failed");
             output.println(senderDetails2Receiver);
