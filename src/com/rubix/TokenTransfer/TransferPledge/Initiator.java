@@ -155,8 +155,9 @@ public class Initiator {
 
 								String tokenName = lasObject.getString("pledgeToken");
 								String did = lasObject.getString("receiver");
-								String tid = lasObject.getString("tid");
-								pledged = Unpledge.verifyProof(tokenName, did, tid);
+								String tidForProof = lasObject.getString("tid");
+								PledgeInitiatorLogger.debug("tid for Proof verification "+ tidForProof);
+								pledged = Unpledge.verifyProof(tokenName, did, tidForProof);
 
 								if (!pledged) {
 									PledgeInitiatorLogger.debug("This token has already been pledged - Aborting");
@@ -170,6 +171,7 @@ public class Initiator {
 									return abort;
 								}
 
+								PledgeInitiatorLogger.debug("tid for current txn "+tid);
 								JSONObject pledgeNewObject = new JSONObject();
 								pledgeNewObject.put("sender", sender);
 								pledgeNewObject.put("receiver", receiver);
@@ -185,7 +187,13 @@ public class Initiator {
 
 								PledgeInitiatorLogger.debug("pledgeNewObject is " + pledgeNewObject);
 								String chainHashString = calculateHash(tokenChain.toString(), "SHA3-256");
+
+								PledgeInitiatorLogger.debug("chainHashString calculated in partA "+chainHashString);
 								hashesArray.put(chainHashString);
+
+								if (proofFile.exists() && pledged) {
+									proofFile.delete();
+								}
 
 							} else {
 								PledgeInitiatorLogger.debug("This token has already been pledged - Aborting");
