@@ -110,7 +110,7 @@ public class InitiatorConsensus {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         synchronized (signLock) {
             try {
-                if (quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))
+                if (quorumSignature.length() < (minQuorum(alphaSize))
                         && quorumResponse[index] <= minQuorum(quorumSize)) {
                     JSONObject jsonObject = new JSONObject();
                     JSONObject quorumMemberSign = new JSONObject();
@@ -280,7 +280,7 @@ public class InitiatorConsensus {
                                                         if (role.equals("alpha")) {
                                                             InitiatorConsensusLogger
                                                                     .debug("Picking Quorum for Staking " + quorumID[j]);
-                                                            signedAphaQuorumArray.put(quorumID[j]);
+															signedAphaQuorumArray.put(quorumID[j]);
                                                         }
                                                         while (quorumResponse[index] < minQuorum(quorumSize)) {
                                                         }
@@ -545,7 +545,7 @@ public class InitiatorConsensus {
             }
 
             while (quorumResponse[index] < minQuorum(quorumSize)
-                    || quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+                    || quorumSignature.length() < (minQuorum(alphaSize))) {
             }
             repo(ipfs);
         } catch (JSONException e) {
