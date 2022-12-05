@@ -191,6 +191,10 @@ public class Initiator {
 								PledgeInitiatorLogger.debug("chainHashString calculated in partA "+chainHashString);
 								hashesArray.put(chainHashString);
 
+								if (proofFile.exists() && pledged) {
+									proofFile.delete();
+								}
+
 							} else {
 								PledgeInitiatorLogger.debug("This token has already been pledged - Aborting");
 								PledgeInitiatorLogger.debug("4. Setting abort to true");
