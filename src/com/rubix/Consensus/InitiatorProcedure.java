@@ -175,13 +175,13 @@ public class InitiatorProcedure {
         alphaThread.start();
 
         if (operation.equals("NFT")) {
-            while ((InitiatorConsensus.nftQuorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7))))) {
+            while ((InitiatorConsensus.nftQuorumSignature.length() < ((minQuorum(alphaSize))))) {
             }
             InitiatorProcedureLogger.debug(
                     "ABG NFT Consensus completed with length for NFT :" + InitiatorConsensus.nftQuorumSignature.length()
                             + " RBT " + InitiatorConsensus.quorumSignature.length());
         } else {
-            while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+            while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize))) {
             }
             InitiatorProcedureLogger
                     .debug("ABG Consensus completed with length " + InitiatorConsensus.quorumSignature.length());
