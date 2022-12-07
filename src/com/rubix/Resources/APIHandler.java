@@ -1000,6 +1000,7 @@ public class APIHandler {
         		hashMatchList.add(tokenList.get(0).concat(receiverString));
         		APILogger.debug("Hashmatch list is "+hashMatchList.toString());
             	status = Unpledge.generateProof(lastObject.getString("tid"), hashMatchList, tokenList);
+            	return status;
         	}else {
         		APILogger.debug(tokenList.get(0)+"is not found in staked token list");
         	}
