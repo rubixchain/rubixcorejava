@@ -166,9 +166,9 @@ public class Initiator {
 									abortReason.put("Reason",
 											"Token " + tokenObject.getString("tokenHash")
 													+ " has already been pledged");
-									abort = true;
+									//abort = true;
 									qSocket.close();
-									return abort;
+									//return abort;
 								}
 
 								PledgeInitiatorLogger.debug("tid for current txn "+tid);
@@ -201,9 +201,9 @@ public class Initiator {
 								abortReason.put("Quorum", quorumID);
 								abortReason.put("Reason",
 										"Token " + tokenObject.getString("tokenHash") + " has already been pledged");
-								abort = true;
+								//abort = true;
 								qSocket.close();
-								return abort;
+								//return abort;
 							}
 						} else {
 							JSONObject pledgeNewObject = new JSONObject();
@@ -248,6 +248,7 @@ public class Initiator {
 				} else {
 					IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID);
 					qSocket.close();
+					PledgeInitiatorLogger.debug(quorumID+ " no tokens to pledge. next quorm Id");
 
 				}
 			} else {
@@ -260,7 +261,7 @@ public class Initiator {
 				qSocket.close();
 				return abort;
 			}
-			return abort;
+			//return abort;
 		}
 
 		PledgeInitiatorLogger.debug("Closing all connections...");
