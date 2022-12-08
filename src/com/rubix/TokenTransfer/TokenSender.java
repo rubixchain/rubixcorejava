@@ -61,8 +61,10 @@ public class TokenSender {
 	private static BufferedReader input;
 	private static Socket senderSocket;
 	private static boolean senderMutex = false;
+	private static int numberOfTokensToPledge;
 
 	public static void resetVariables() {
+		numberOfTokensToPledge = 0;
 		detailsObject = new JSONObject();
 		quorumArray = new JSONArray();
 		tid = null;
@@ -520,10 +522,10 @@ public class TokenSender {
 			alphaList.put(alphaPeersList.get(i));
 		}
 
-		int numberOfTokensToPledge = 0;
-		if (wholeAmount > 0) {
-			numberOfTokensToPledge += wholeAmount;
-			if (decimalAmount > 0)
+		numberOfTokensToPledge = 0;
+		if (wholeTokens.length() > 0) {
+			numberOfTokensToPledge += wholeTokens.length();
+			if (partTokens.length() > 0)
 				numberOfTokensToPledge += 1;
 		} else
 			numberOfTokensToPledge = 1;
@@ -565,8 +567,6 @@ public class TokenSender {
 
 		}
 
-		TokenSenderLogger.debug("Nodes that pledged tokens: " + Initiator.pledgedNodes);
-
 		/**
 		 * Send the array without sender sign calculated
 		 */
@@ -581,7 +581,8 @@ public class TokenSender {
 			lastObject.put("receiver", receiverDidIpfsHash);
 			lastObject.put("pledgeToken", "");
 			lastObject.put("tokensPledgedFor", allTokens);
-			lastObject.put("tokensPledgedWith", Initiator.pledgedTokensArray);
+			lastObject.put("tokensPledgedWith", Initiator.pledgedTokensWithNodesArray);
+			lastObject.put("distributedObject", Initiator.distributedObject);
 
 			String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
 			JSONArray tokenChain = new JSONArray(tokenChainFileContent);
@@ -760,7 +761,7 @@ public class TokenSender {
 		}
 
 		senderMutex = true;
-		Initiator.pledge(quorumWithSignsArray, requestedAmount, port);
+		Initiator.pledge(quorumWithSignsArray, numberOfTokensToPledge, port);
 
 		boolean sanityCheck = sanityCheck("Receiver", receiverPeerId, ipfs, port + 10);
 		if (!sanityCheck) {
@@ -927,6 +928,7 @@ public class TokenSender {
 		tokenDetails.put("part-tokenChains-PrevState", partTokenChainsPrevState);
 		tokenDetails.put("sender", senderDidIpfsHash);
 		tokenDetails.put("proof", proofOfWork);
+		tokenDetails.put("distributedObject", Initiator.distributedObject);
 		String doubleSpendString = tokenDetails.toString();
 
 		TokenSenderLogger.debug("tokenDetails is " + tokenDetails.toString());
@@ -937,19 +939,21 @@ public class TokenSender {
 		IPFSNetwork.addHashOnly(LOGGER_PATH + "doubleSpend", ipfs);
 		deleteFile(LOGGER_PATH + "doubleSpend");
 
+		
+		
 		JSONObject tokenObject = new JSONObject();
 		tokenObject.put("tokenDetails", tokenDetails);
 		tokenObject.put("previousSender", tokenPreviousSender);
 		tokenObject.put("amount", requestedAmount);
 		tokenObject.put("amountLedger", amountLedger);
 
-		if (Functions.multiplePinCheck(senderDidIpfsHash, tokenObject, ipfs) == 420) {
-			APIResponse.put("message", "Multiple Owners Found. Kindly re-initiate transaction");
-			senderMutex = false;
-			return APIResponse;
-		} else {
-			TokenSenderLogger.debug("No Multiple Pins found, initating transcation");
-		}
+//		if (Functions.multiplePinCheck(senderDidIpfsHash, tokenObject, ipfs) == 420) {
+//			APIResponse.put("message", "Multiple Owners Found. Kindly re-initiate transaction");
+//			senderMutex = false;
+//			return APIResponse;
+//		} else {
+//			TokenSenderLogger.debug("No Multiple Pins found, initating transcation");
+//		}
 
 		/**
 		 * Sending Token Details to Receiver Receiver to authenticate Tokens (Double
@@ -1112,7 +1116,7 @@ public class TokenSender {
 		TokenSenderLogger.debug("Consensus Reached");
 		senderDetails2Receiver.put("status", "Consensus Reached");
 		senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
-		senderDetails2Receiver.put("pledgeDetails", Initiator.pledgedTokensArray);
+		senderDetails2Receiver.put("pledgeDetails", Initiator.pledgedTokensWithNodesArray);
 
 		output.println(senderDetails2Receiver);
 		TokenSenderLogger.debug("Quorum Signatures length " + InitiatorConsensus.quorumSignature.length());

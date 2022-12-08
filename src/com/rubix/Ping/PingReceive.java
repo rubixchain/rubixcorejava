@@ -93,8 +93,7 @@ public class PingReceive {
                     PingReceiverLogger.info(userType + " Pong Sent "+currentVersion);
 
                 }
-            		else
-            	if(pingRequest.contains("Get-TokenChain-Height")) {
+            	else if(pingRequest.contains("Get-TokenChain-Height")) {
             			String tokenHash;
                         try {
                             tokenHash = input.readLine();
@@ -125,9 +124,43 @@ public class PingReceive {
                                 height = chainArray.length()-1;
                                 PingReceiverLogger.info("Chain height: " + height);
                             }
+                            output.println(height);
                         }
             			
             		}
+            	else if(pingRequest.contains("Get-TokenChain")){
+                    String tokenHash;
+                    try {
+                        tokenHash = input.readLine();
+                    } catch (SocketException e) {
+                        PingReceiverLogger.warn("Sender Stream Null - tokenHash");
+                        APIResponse.put("did", "");
+                        APIResponse.put("tid", "null");
+                        APIResponse.put("status", "Failed");
+                        APIResponse.put("message", "Sender Stream Null - tokenHash");
+
+                        output.close();
+                        input.close();
+                        sk.close();
+                        ss.close();
+                        return APIResponse.toString();
+
+                    }
+                    if (tokenHash != null && tokenHash.startsWith("Qm") && tokenHash.length() == 46) {
+                        JSONArray tokenChain;
+                        PingReceiverLogger.info("Token chain height requested for: " + tokenHash);
+                        File tokenChainFile = new File(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                        if(!tokenChainFile.exists()) {
+                            PingReceiverLogger.info("Token chain file not found");
+                            tokenChain = new JSONArray();
+                        }
+                        else{
+                            String tokenChainFileContent = readFile(TOKENCHAIN_PATH.concat(tokenHash).concat(".json"));
+                            tokenChain = new JSONArray(tokenChainFileContent);
+                        }
+                        output.println(tokenChain);
+                    }
+                }
                 else{
                     APIResponse.put("status", "Failed");
                     APIResponse.put("message", "Request Failed");
