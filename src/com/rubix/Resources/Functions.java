@@ -50,6 +50,7 @@ import org.json.JSONObject;
 import com.rubix.AuthenticateNode.PropImage;
 import com.rubix.Datum.Dependency;
 import com.rubix.Ping.PingCheck;
+import com.rubix.TokenTransfer.TokenSender;
 
 import io.ipfs.api.IPFS;
 import io.ipfs.multiaddr.MultiAddress;
@@ -158,8 +159,8 @@ public class Functions {
             } else {
                 Dependency.checkDatumPath();
                 try {
-                	configFileContent = readFile(configPath);
-                	pathsArray = new JSONArray(configFileContent);
+                    configFileContent = readFile(configPath);
+                    pathsArray = new JSONArray(configFileContent);
                     DATUM_CHAIN_PATH = pathsArray.getJSONObject(0).getString("DATUM_CHAIN_PATH");
                     Dependency.checkDatumFolder();
                 } catch (IOException e) {
@@ -403,7 +404,7 @@ public class Functions {
      * @return Signature for the data
      * @throws IOException Handles IO Exceptions
      */
-    										
+
     public static String getSignFromShares(String filePath, String hash) throws IOException, JSONException {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         BufferedImage pvt = ImageIO.read(new File(filePath));
@@ -909,16 +910,17 @@ public class Functions {
         File didImage = new File(DATA_PATH + myDID + "/DID.png");
         File widImage = new File(DATA_PATH + myDID + "/PublicShare.png");
         File pvtImage = new File(DATA_PATH + myDID + "/PrivateShare.png");
-      //  if (!didImage.exists() || !widImage.exists() || !pvtImage.exists()) {
-      //      didImage.delete();
-        //    didImage.delete();
-        //    didImage.delete();
-         //   JSONObject result = new JSONObject();
-        //    result.put("message", "User not registered, create your Decentralised Identity!");
-        //    result.put("info", "Shares Images Missing");
-        //    result.put("status", "Failed");
-        //    return result.toString();
-       // }
+        // if (!didImage.exists() || !widImage.exists() || !pvtImage.exists()) {
+        // didImage.delete();
+        // didImage.delete();
+        // didImage.delete();
+        // JSONObject result = new JSONObject();
+        // result.put("message", "User not registered, create your Decentralised
+        // Identity!");
+        // result.put("info", "Shares Images Missing");
+        // result.put("status", "Failed");
+        // return result.toString();
+        // }
         JSONObject returnObject = new JSONObject();
         returnObject.put("message", "User successfully registered!");
         returnObject.put("status", "Success");
@@ -1927,7 +1929,7 @@ public class Functions {
     public static int multiplePinCheck(String senderDidIpfsHash, JSONObject tokenObject, IPFS ipfs)
             throws JSONException, InterruptedException {
         int statusCode = 200;
-     //   FunctionsLogger.debug("Input tokenObject is " + tokenObject.toString());
+        // FunctionsLogger.debug("Input tokenObject is " + tokenObject.toString());
         JSONObject TokenDetails = tokenObject.getJSONObject("tokenDetails");
         JSONArray wholeTokens = TokenDetails.getJSONArray("whole-tokens");
         JSONArray wholeTokenChains = TokenDetails.getJSONArray("whole-tokenChains");
@@ -1937,7 +1939,7 @@ public class Functions {
         JSONArray partTokenChainsHash = TokenDetails.getJSONArray("hashSender");
 
         JSONArray previousSendersArray = tokenObject.getJSONArray("previousSender");
-        //JSONArray positionsArray = tokenObject.getJSONArray("positions");
+        // JSONArray positionsArray = tokenObject.getJSONArray("positions");
 
         Double amount = tokenObject.getDouble("amount");
         JSONObject amountLedger = tokenObject.getJSONObject("amountLedger");
@@ -2183,10 +2185,10 @@ public class Functions {
         final byte[] hashBytes = digest.digest(messageBytes);
         return bytesToHex(hashBytes);
     }
-    
+
     public static int getCurrentLevel() throws IOException, JSONException {
-    	int difficulty = -1;
-    	String GET_URL_level = SYNC_IP + "/getCurrentLevel";
+        int difficulty = -1;
+        String GET_URL_level = SYNC_IP + "/getCurrentLevel";
         URL URLobj_level = new URL(GET_URL_level);
         HttpURLConnection con_level = (HttpURLConnection) URLobj_level.openConnection();
         con_level.setRequestMethod("GET");
@@ -2201,39 +2203,155 @@ public class Functions {
                 response_level.append(inputLine_level);
             }
             in_level.close();
-            
+
             JSONObject resJsonData = new JSONObject(response_level.toString());
             int level = resJsonData.getInt("level");
 
-          }
-		return difficulty;
+        }
+        return difficulty;
 
-}
-public static int calculatePoW() throws IOException, JSONException {
-    int workLevel = 6;
-    int currentLevel = getCurrentLevel();
-    
-    FunctionsLogger.debug("workLevel is "+workLevel);
-
-    FunctionsLogger.debug("currentLevel is "+currentLevel);
-    
-    switch (currentLevel) {
-    case 4:
-        workLevel = 6;
     }
-    
-    FunctionsLogger.debug("updated workLevel is "+workLevel);
 
-    return workLevel;
-}
+    public static int calculatePoW() throws IOException, JSONException {
+        int workLevel = 6;
+        int currentLevel = getCurrentLevel();
 
+        FunctionsLogger.debug("workLevel is " + workLevel);
 
+        FunctionsLogger.debug("currentLevel is " + currentLevel);
 
+        switch (currentLevel) {
+            case 4:
+                workLevel = 6;
+        }
 
+        FunctionsLogger.debug("updated workLevel is " + workLevel);
 
+        return workLevel;
+    }
 
+    public static boolean signChallengePayload(String tid) {
+        File challengeFile = new File(WALLET_DATA_PATH.concat("/ChallengePayload").concat(tid).concat(".json"));
 
-    
-    
-    
+        if(!challengeFile.exists())
+        {
+            FunctionsLogger.debug("Challenge Payload file for the txn "+ tid +" not found in path "+ challengeFile.getAbsolutePath());
+            return false;
+        }
+
+        JSONObject challengeObject = new JSONObject(readFile(WALLET_DATA_PATH.concat("/ChallengePayload").concat(tid).concat(".json")));
+
+        String authSenderByRecHash = challengeObject.getString("authSenderByRecHash");
+        String senderPayloadHash = challengeObject.getString("senderPayloadSign");
+        
+        JSONArray pledgeDetails = challengeObject.getJSONArray("pledgeDetails");
+        JSONArray lastObject = challengeObject.getJSONArray("lastObject");
+
+        String DID = getNodeDID();
+        String pvt = DATA_PATH.concat(DID).concat("/PrivateShare.png");
+
+        JSONArray signedChains = new JSONArray();
+		JSONObject payloadSigned = new JSONObject();
+
+        try {
+            payloadSigned.put("authSenderByRecHash", getSignFromShares(pvt, authSenderByRecHash));
+            payloadSigned.put("senderPayloadSign", getSignFromShares(pvt, senderPayloadHash));
+
+            for(int i=0; i<lastObject.length();i++)
+            {
+                JSONObject object =lastObject.getJSONObject(i);
+                FunctionsLogger.debug(object.toString());
+                String chainSign = getSignFromShares(pvt, object.getString("hash"));
+				object.put("chainSign", chainSign);
+
+                signedChains.put(object);
+            }
+            payloadSigned.put("lastObject", signedChains);
+
+            JSONArray quorumWithSignsArray = new JSONArray();
+            for(int i=0;i<pledgeDetails.length();i++)
+            {
+                JSONObject jsonObject = pledgeDetails.getJSONObject(i);
+                Iterator<String> keys = jsonObject.keys();
+				FunctionsLogger.debug("jsonObject  is " + jsonObject.toString());
+				JSONObject pledgeSignedObject = new JSONObject();
+				String key = "";
+				JSONArray hashAndSignsArray = new JSONArray();
+				while (keys.hasNext()) {
+					key = keys.next();
+					FunctionsLogger.debug("key of quorumn is " + key);
+					if (jsonObject.get(key) instanceof JSONArray) {
+						// do something with jsonObject here
+
+						JSONArray hashArray = new JSONArray(jsonObject.get(key).toString());
+						FunctionsLogger.debug("@@@@@ Calculating hash for: " + hashArray);
+						//String hashString = calculateHash(hashArray.toString(), "SHA3-256");
+						for (int j = 0; j < hashArray.length(); j++) {
+							String sign = getSignFromShares(pvt, hashArray.get(j).toString());
+							pledgeSignedObject.put("hash", hashArray.get(j));
+							pledgeSignedObject.put("sign", sign);
+							hashAndSignsArray.put(pledgeSignedObject);
+						}
+					}
+				}
+				JSONObject signObject = new JSONObject();
+				signObject.put(key, hashAndSignsArray);
+				FunctionsLogger.debug("signObject is " + signObject);
+				quorumWithSignsArray.put(signObject);
+            }
+            payloadSigned.put("pledgeDetails", quorumWithSignsArray);
+            FileWriter spfile = new FileWriter(WALLET_DATA_PATH.concat("/signedPayload").concat(tid).concat(".json"));
+			spfile.write(payloadSigned.toString());
+			spfile.close();
+
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        File signedPayloadFile = new File(WALLET_DATA_PATH.concat("/signedPayload").concat(tid).concat(".json"));
+        if(!signedPayloadFile.exists())
+        {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    public static String getNodeDID() {
+        String filecontent = readFile(DATA_PATH + "DID.json");
+        JSONObject object = null;
+        String DID = "";
+        try {
+            JSONArray fileContentArray = new JSONArray(filecontent);
+            object = fileContentArray.getJSONObject(0);
+            DID = object.getString("didHash");
+        } catch (JSONException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+        return DID;
+    }
+
+    public static boolean checkSignPayloadFile()
+    {
+        String txnId = TokenSender.tid;
+        File signedPayloadFile = new File(WALLET_DATA_PATH.concat("/signedPayload").concat(txnId).concat(".json"));
+        if(!signedPayloadFile.exists())
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public static String readSignPayloadFile()
+    {
+        String txnId = TokenSender.tid;
+        return readFile(WALLET_DATA_PATH.concat("/signedPayload").concat(txnId).concat(".json"));
+    }
 }
