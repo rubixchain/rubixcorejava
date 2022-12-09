@@ -22,6 +22,7 @@ import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
 
 public class Initiator {
 
+<<<<<<< HEAD
     public static Logger PledgeInitiatorLogger = Logger.getLogger(Initiator.class);
     public static JSONArray pledgedNodes = new JSONArray();
     public static JSONObject abortReason = new JSONObject();
@@ -146,8 +147,9 @@ public class Initiator {
 
                                 String tokenName = lasObject.getString("pledgeToken");
                                 String did = lasObject.getString("receiver");
-                                String tid = lasObject.getString("tid");
-                                pledged = Unpledge.verifyProof(tokenName, did, tid);
+                                String tidForProof = lasObject.getString("tid");
+								PledgeInitiatorLogger.debug("tid for Proof verification "+ tidForProof);
+                                pledged = Unpledge.verifyProof(tokenName, did, tidForProof);
 
                                 if (!pledged) {
                                     PledgeInitiatorLogger.debug("PoW not Verified");
@@ -238,7 +240,7 @@ public class Initiator {
         pledgedTokensArray = new JSONArray();
 
         Double tokensPledged = amount;
-        PledgeInitiatorLogger.debug("pledgeDetails in pledge is " + pledgeDetails.toString());
+        //PledgeInitiatorLogger.debug("pledgeDetails in pledge is " + pledgeDetails.toString());
 
         if (!abort) {
             PledgeInitiatorLogger.debug("Initating pledging");
@@ -276,7 +278,7 @@ public class Initiator {
                 JSONArray tokens = new JSONArray();
                 if (qResponse != null) {
                     JSONArray tokenDetails = new JSONArray(qResponse);
-//                    PledgeInitiatorLogger.debug("TokenDetails is " + tokenDetails.toString());
+                    //PledgeInitiatorLogger.debug("TokenDetails is " + tokenDetails.toString());
                     JSONArray newChains = new JSONArray();
                     for (int k = 0; k < tokenDetails.length(); k++) {
                         JSONObject tokenObject = tokenDetails.getJSONObject(k);
@@ -321,31 +323,31 @@ public class Initiator {
                             PrivateKey pvtKey = getPvtKey(keyPass, 1);
 
                             String hashForTokenChain = calculateHash(tokenChain.toString(), "SHA3-256");
-                            FileWriter spfile = new FileWriter(
+                            /* FileWriter spfile = new FileWriter(
                                     WALLET_DATA_PATH.concat("/hashForTokenChain").concat(tid).concat(".json"));
                             spfile.write(tokenChain.toString());
-                            spfile.close();
+                            spfile.close(); */
 
 
                             // for (int i = 0; i < pledgeDetails.length(); i++) {
 
-                            PledgeInitiatorLogger.debug("!@#$%^& pledgeDetails is " + pledgeDetails.getJSONObject(j));
+                            //PledgeInitiatorLogger.debug("!@#$%^& pledgeDetails is " + pledgeDetails.getJSONObject(j));
 
-                            PledgeInitiatorLogger.debug("!@#$%^& hashForTokenChain is "+ hashForTokenChain);
+                            //PledgeInitiatorLogger.debug("!@#$%^& hashForTokenChain is "+ hashForTokenChain);
 
                             tokenChain.remove(tokenChain.length() - 1);
-                            FileWriter pfile = new FileWriter(
+                            /* FileWriter pfile = new FileWriter(
                                     WALLET_DATA_PATH.concat("/hashForTokenChainRemoved").concat(tid).concat(".json"));
                             pfile.write(tokenChain.toString());
-                            pfile.close();
+                            pfile.close(); */
 
 
-                            PledgeInitiatorLogger.debug("!@#$%^& hashForTokenChain after removing new last object "+ calculateHash(tokenChain.toString(), "SHA3-256"));
+                            //PledgeInitiatorLogger.debug("!@#$%^& hashForTokenChain after removing new last object "+ calculateHash(tokenChain.toString(), "SHA3-256"));
 
                             pledgeObject.put("hash", hashForTokenChain);
                             pledgeObject.put("pvtShareBits", fetchSign(pledgeDetails, hashForTokenChain));
 
-                            PledgeInitiatorLogger.debug("pledgeObject is " + pledgeObject.toString());
+                            //PledgeInitiatorLogger.debug("pledgeObject is " + pledgeObject.toString());
 
                             // pledgeObject.put("pvtKeySign", PvtKeySign);
 
@@ -355,8 +357,8 @@ public class Initiator {
                             tokensPledged -= nodesToPledgeTokens.getJSONObject(j).getInt("count");
                             tokens.put(tokenHash);
 
-                            PledgeInitiatorLogger.debug("newChains length is " + newChains.length());
-//                            PledgeInitiatorLogger.debug("newChains is " + newChains.toString());
+                            //PledgeInitiatorLogger.debug("newChains length is " + newChains.length());
+//                            //PledgeInitiatorLogger.debug("newChains is " + newChains.toString());
                         }
                     }
                     JSONObject nodesWithTokensObject = new JSONObject();
@@ -495,7 +497,7 @@ public class Initiator {
             JSONObject pledgeObject = pledgeArray.getJSONObject(i);
             Iterator<String> keys = pledgeObject.keys();
 
-            PledgeInitiatorLogger.debug("!@#$%^& The object is " + pledgeObject.toString());
+            //PledgeInitiatorLogger.debug("!@#$%^& The object is " + pledgeObject.toString());
             String key = "";
             while (keys.hasNext()) {
                 key = keys.next();
