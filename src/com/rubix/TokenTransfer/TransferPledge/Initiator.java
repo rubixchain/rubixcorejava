@@ -4,26 +4,18 @@ import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
-import org.bouncycastle.LICENSE;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.security.PrivateKey;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 
-import static com.rubix.NFTResources.NFTFunctions.*;
+import static com.rubix.NFTResources.NFTFunctions.getPvtKey;
 import static com.rubix.Resources.Functions.*;
 import static com.rubix.Resources.IPFSNetwork.forward;
 import static com.rubix.Resources.IPFSNetwork.swarmConnectP2P;
@@ -54,8 +46,8 @@ public class Initiator {
     public static boolean abort = false;
 
     public static void resetVariables() {
-    	alphaList = new JSONArray();
-    	pledgedTokensWithNodesArray = new JSONArray();
+        alphaList = new JSONArray();
+        pledgedTokensWithNodesArray = new JSONArray();
         distributedObject = new JSONObject();
         pledgedNodes = new JSONArray();
         abortReason = new JSONObject();
@@ -78,12 +70,8 @@ public class Initiator {
     public static boolean pledgeSetUp(String data, IPFS ipfs, int PORT) throws JSONException, IOException {
         resetVariables();
         PledgeInitiatorLogger.debug("Initiator Calling");
-        abortReason = new JSONObject();
-        abort = false;
         pledgedNodes = new JSONArray();
         JSONObject dataObject = new JSONObject(data);
-        // PledgeInitiatorLogger.debug("pledgeSetUp dataObject is
-        // "+dataObject.toString());
 
         alphaList = dataObject.getJSONArray("alphaList");
         pvt = dataObject.getString("pvt");
@@ -91,8 +79,6 @@ public class Initiator {
         String keyPass = dataObject.getString("pvtKeyPass");
         sender = dataObject.getString("sender");
         receiver = dataObject.getString("receiver");
-        // HashMap<String, List<String>> tokenList = (HashMap<String, List<String>>)
-        // dataObject.get("tokenList");
         tokenList = dataObject.getJSONArray("tokenList");
 
         Socket qSocket = null;
@@ -134,8 +120,8 @@ public class Initiator {
             if (qResponse != null) {
                 JSONObject pledgeObject = new JSONObject(qResponse);
                 if (pledgeObject.getString("pledge").equals("Tokens")) {
-                    PledgeInitiatorLogger.debug("Quorum " + quorumID + " is pledging Tokens");
                     JSONArray tokenDetails = pledgeObject.getJSONArray("tokenDetails");
+                    PledgeInitiatorLogger.debug("Quorum " + quorumID + " is pledging Tokens: " + tokenDetails);
 
                     JSONArray hashesArray = new JSONArray();
                     for (int k = 0; k < tokenDetails.length(); k++) {
@@ -144,9 +130,9 @@ public class Initiator {
                         JSONArray tokenChain = tokenObject.getJSONArray("chain");
                         JSONObject lasObject = tokenChain.getJSONObject(tokenChain.length() - 1);
                         if (lasObject.optString("pledgeToken").length() > 0) {
-
-                            /*
-                             * added code block to verify unpledged tokens proof
+                            PledgeInitiatorLogger.debug(tokenObject.getString("tokenHash") +" is a recently unpledged token");
+                            /**
+                             *  code block to verify unpledged tokens proof
                              */
                             if (tokenObject.has("cid")) {
                                 String token = tokenObject.getString("token");
@@ -164,44 +150,31 @@ public class Initiator {
                                 pledged = Unpledge.verifyProof(tokenName, did, tid);
 
                                 if (!pledged) {
-                                    PledgeInitiatorLogger.debug("This token has already been pledged - Aborting");
-                                    PledgeInitiatorLogger.debug("4. Setting abort to true");
-                                    abortReason.put("Quorum", quorumID);
-                                    abortReason.put("Reason",
-                                            "Token " + tokenObject.getString("tokenHash")
-                                                    + " has already been pledged");
-                                    abort = true;
+                                    PledgeInitiatorLogger.debug("PoW not Verified");
+                                    IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID);
                                     qSocket.close();
-                                    return abort;
+                                }else {
+                                    PledgeInitiatorLogger.debug("PoW verified");
+                                    JSONObject pledgeNewObject = new JSONObject();
+                                    pledgeNewObject.put("sender", sender);
+                                    pledgeNewObject.put("receiver", receiver);
+                                    pledgeNewObject.put("tid", tid);
+                                    pledgeNewObject.put("pledgeToken", tokenObject.getString("tokenHash"));
+                                    pledgeNewObject.put("tokensPledgedFor", tokenList);
+                                    pledgeNewObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
+                                    pledgeNewObject.put("distributedObject", new JSONObject());
+
+                                    pledgedTokensArray.put(tokenObject.getString("tokenHash"));
+
+                                    tokenChain.put(pledgeNewObject);
+                                    String chainHashString = calculateHash(tokenChain.toString(), "SHA3-256");
+                                    hashesArray.put(chainHashString);
                                 }
 
-                                JSONObject pledgeNewObject = new JSONObject();
-                                pledgeNewObject.put("sender", sender);
-                                pledgeNewObject.put("receiver", receiver);
-                                pledgeNewObject.put("tid", tid);
-                                pledgeNewObject.put("pledgeToken", tokenObject.getString("tokenHash"));
-                                pledgeNewObject.put("tokensPledgedFor", tokenList);
-                                pledgeNewObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
-                                pledgeNewObject.put("distributedObject", new JSONObject());
-
-                                // pledgedTokensArray.put(tokenObject.getString("tokenHash"));
-
-                                tokenChain.put(pledgeNewObject);
-//                                PledgeInitiatorLogger.debug("@@@@@ Chain to hash: " + tokenChain);
-
-//                                PledgeInitiatorLogger.debug("pledgeNewObject is " + pledgeNewObject);
-                                String chainHashString = calculateHash(tokenChain.toString(), "SHA3-256");
-                                hashesArray.put(chainHashString);
-
                             } else {
-                                PledgeInitiatorLogger.debug("This token has already been pledged - Aborting");
-                                PledgeInitiatorLogger.debug("4. Setting abort to true");
-                                abortReason.put("Quorum", quorumID);
-                                abortReason.put("Reason",
-                                        "Token " + tokenObject.getString("tokenHash") + " has already been pledged");
-                                abort = true;
+                                PledgeInitiatorLogger.debug("The token does not have PoW");
+                                IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID);
                                 qSocket.close();
-                                return abort;
                             }
                         } else {
                             JSONObject pledgeNewObject = new JSONObject();
@@ -213,13 +186,9 @@ public class Initiator {
                             pledgeNewObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
                             pledgeNewObject.put("distributedObject", new JSONObject());
 
-                            // pledgedTokensArray.put(tokenObject.getString("tokenHash"));
 
                             pledgedTokensArray.put(tokenObject.getString("tokenHash"));
                             tokenChain.put(pledgeNewObject);
-//                            PledgeInitiatorLogger.debug("@@@@@ Chain to hash: " + tokenChain);
-
-//                            PledgeInitiatorLogger.debug("pledgeNewObject is " + pledgeNewObject);
                             String chainHashString = calculateHash(tokenChain.toString(), "SHA3-256");
                             hashesArray.put(chainHashString);
 
@@ -229,16 +198,11 @@ public class Initiator {
                     quorumWithHashesArray.put(quorumHashObject);
                     quorumDetails.put("tokenDetails", tokenDetails);
 
-                    PledgeInitiatorLogger.debug("quorumHashObject: " + quorumHashObject.toString());
-                    PledgeInitiatorLogger.debug("quorumWithHashesArray is " + quorumWithHashesArray.toString());
-
                     PledgeInitiatorLogger.debug("tokensCount: " + tokensCount);
                     quorumDetails.put("ID", quorumID);
                     quorumDetails.put("count", tokenDetails.length());
                     nodesToPledgeTokens.put(quorumDetails);
                     tokensCount -= tokenDetails.length();
-                    PledgeInitiatorLogger
-                            .debug("Contacted Node " + quorumID + "  for Pledging  - Over with abort status: " + abort);
                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID);
                     qSocket.close();
                     PledgeInitiatorLogger.debug("tokensCount: " + tokensCount);
@@ -246,47 +210,32 @@ public class Initiator {
                         break;
 
                 } else {
+                    PledgeInitiatorLogger.debug("Quorum " + quorumID + " is not pledging tokens");
                     IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID);
                     qSocket.close();
 
                 }
             } else {
-                PledgeInitiatorLogger.debug("6. Setting abort to true");
-                abortReason.put("Quorum", quorumID);
-                abortReason.put("Reason", "Response is null");
-                abort = true;
-                PledgeInitiatorLogger.debug("Response is null");
+                PledgeInitiatorLogger.debug("Quorum " + quorumID + " Response is null");
                 IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID);
                 qSocket.close();
-                return abort;
             }
-            
-            if(tokensCount != 0) {
-            	abortReason.put("Quorum", quorumID);
-                abortReason.put("Reason", "Not enough tokens to pledge");
-            	return true;
-            }
-            else {
-				return false;
-			}
         }
 
         closeAllConnections(alphaList);
-
         PledgeInitiatorLogger.debug("Token Count: " + tokensCount);
         if (tokensCount > 0) {
-            PledgeInitiatorLogger.debug("Quorum Nodes cannot Pledge, Aborting...");
-            abortReason.put("Reason", "Quorum Nodes cannot Pledge, Aborting...");
-            abort = true;
+            PledgeInitiatorLogger.debug("Quorum nodes with lesser tokens to pledge, Exiting...");
             return true;
-        }else
+        }else {
             distributePledgeTokens(tokenList, pledgedTokensArray);
-        return abort;
+            return false;
+        }
     }
 
     public static boolean pledge(JSONArray pledgeDetails, double amount, int PORT)
             throws JSONException, UnknownHostException, IOException {
-    	pledgedTokensArray = new JSONArray();
+        pledgedTokensArray = new JSONArray();
 
         Double tokensPledged = amount;
         PledgeInitiatorLogger.debug("pledgeDetails in pledge is " + pledgeDetails.toString());
@@ -495,7 +444,7 @@ public class Initiator {
         PledgeInitiatorLogger.debug("Quorum Verification with Tokens or Credits with Abort Status:" + Initiator.abort);
         return abort;
     }
-    
+
     public static void closeAllConnections(JSONArray nodes){
         for(int i = 0; i < nodes.length(); i++){
             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + nodes.getString(i));
@@ -504,37 +453,37 @@ public class Initiator {
 
     public static boolean distributePledgeTokens(JSONArray transferTokens, JSONArray pledgedTokens){
         distributedObject = new JSONObject();
-       
+
         PledgeInitiatorLogger.debug("<1> Transfer tokens: " + transferTokens);
         PledgeInitiatorLogger.debug("<1> Pledge tokens: " + pledgedTokens);
 
         if(transferTokens.length() > pledgedTokens.length()) {
-        	PledgeInitiatorLogger.debug("Only Whole Tokens");
-        	String partPledgedTokenString = pledgedTokens.getString(pledgedTokens.length()-1);
-        	pledgedTokens.remove(pledgedTokens.length()-1);
-        
-        	 PledgeInitiatorLogger.debug("<2> Transfer tokens: " + transferTokens);
-             PledgeInitiatorLogger.debug("<2> Pledge tokens: " + pledgedTokens);
-        	 for(int i = 0; i < transferTokens.length(); i++) {
-                 distributedObject.put(transferTokens.getString(i), pledgedTokens.getString(i));
-                 transferTokens.remove(i);
-        	 }
-        	 
-        	 PledgeInitiatorLogger.debug("<3> Transfer tokens: " + transferTokens);
-             PledgeInitiatorLogger.debug("<3> Pledge tokens: " + pledgedTokens);
-        	 
-        	 for (int i = 0; i < transferTokens.length(); i++)
- 	            distributedObject.put(transferTokens.getString(i), partPledgedTokenString);
-        	
+            PledgeInitiatorLogger.debug("Only Whole Tokens");
+            String partPledgedTokenString = pledgedTokens.getString(pledgedTokens.length()-1);
+            pledgedTokens.remove(pledgedTokens.length()-1);
+
+            PledgeInitiatorLogger.debug("<2> Transfer tokens: " + transferTokens);
+            PledgeInitiatorLogger.debug("<2> Pledge tokens: " + pledgedTokens);
+            for(int i = 0; i < transferTokens.length(); i++) {
+                distributedObject.put(transferTokens.getString(i), pledgedTokens.getString(i));
+                transferTokens.remove(i);
+            }
+
+            PledgeInitiatorLogger.debug("<3> Transfer tokens: " + transferTokens);
+            PledgeInitiatorLogger.debug("<3> Pledge tokens: " + pledgedTokens);
+
+            for (int i = 0; i < transferTokens.length(); i++)
+                distributedObject.put(transferTokens.getString(i), partPledgedTokenString);
+
         }else {
-        	PledgeInitiatorLogger.debug("Parts Tokens Included");
-        	for(int i = 0; i < transferTokens.length(); i++) {
-        		distributedObject.put(transferTokens.getString(i), pledgedTokens.getString(i));
-        	}
-        	 PledgeInitiatorLogger.debug("<4> Transfer tokens: " + transferTokens);
-             PledgeInitiatorLogger.debug("<4> Pledge tokens: " + pledgedTokens);
+            PledgeInitiatorLogger.debug("Parts Tokens Included");
+            for(int i = 0; i < transferTokens.length(); i++) {
+                distributedObject.put(transferTokens.getString(i), pledgedTokens.getString(i));
+            }
+            PledgeInitiatorLogger.debug("<4> Transfer tokens: " + transferTokens);
+            PledgeInitiatorLogger.debug("<4> Pledge tokens: " + pledgedTokens);
         }
-       
+
         return true;
     }
 

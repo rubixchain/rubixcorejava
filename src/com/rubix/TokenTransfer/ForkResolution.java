@@ -10,8 +10,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import static com.rubix.Resources.Functions.SEND_PORT;
-import static com.rubix.Resources.Functions.calculateHash;
+import static com.rubix.Resources.Functions.*;
 
 public class ForkResolution {
     public static Logger ForkResolutionLogger = Logger.getLogger(ForkResolution.class);
@@ -110,7 +109,7 @@ public class ForkResolution {
         if(pinListTransferToken.size() > 2) {
             ForkResolutionLogger.debug("Transfer token " + transferToken + " has multiple pins. Checking pledged details");
             ArrayList pinListPledgeToken = IPFSNetwork.dhtOwnerCheck(pledgedToken);
-            if (pinListPledgeToken.size() > 0) {
+            if (pinListPledgeToken.size() > 1) {
                 ForkResolutionLogger.debug("Pledged token has multiple pins. Verifying token chain height details");
                 JSONArray tokenChainsList = new JSONArray();
                 for (int i = 0; i < pinListPledgeToken.size(); i++) {
@@ -150,19 +149,27 @@ public class ForkResolution {
                 /**
                  * Iterate through chains until transfer token found in the object with correct receiver
                  */
+                boolean includedCheck = true;
                 for (int i = 0; i < tokenChainsList.length(); i++) {
                     JSONArray chain = tokenChainsList.getJSONObject(i).getJSONArray("chain");
-                    boolean includedCheck = true;
+                    includedCheck = true;
                     for (int j = chain.length() - 1; j > 0; j--) {
+                        ForkResolutionLogger.debug("Object " + j);
                         JSONObject chainIndexObject = chain.getJSONObject(j);
                         if (chainIndexObject.has("tokensPledgedWith")) {
-                            JSONArray tokensPledgedWithArray = chainIndexObject.getJSONArray("tokensPledgedWith");
-                            if (tokensPledgedWithArray.toString().contains(pledgedToken)) {
-                                if(chainIndexObject.getString("receiver").equals(tokenChainsList.getJSONObject(i).getString("node"))) {
+                            String tokensPledgedWithString = chainIndexObject.get("tokensPledgedWith").toString();
+                            ForkResolutionLogger.debug("tokensPledgedWithString: " + tokensPledgedWithString + " pledgedToken: " + pledgedToken);
+                            if (tokensPledgedWithString.contains(transferToken)) {
+                                ForkResolutionLogger.debug("tokensPledgedWithString.contains(pledgedToken)");
+                                String receiverPID = getValues(DATA_PATH.concat("DataTable.json"), "peerid", "didHash", chainIndexObject.getString("receiver"));
+                                ForkResolutionLogger.debug("Receiver: " + receiverPID + " Node: " + tokenChainsList.getJSONObject(i).getString("node"));
+                                if(receiverPID.equals(tokenChainsList.getJSONObject(i).getString("node"))) {
+                                    ForkResolutionLogger.debug("Receiver IDs match");
                                     if (j < chain.length() - 1) {
                                         resolutionMessage = "<1> Token Pledged correctly in the appropriate level";
                                         ForkResolutionLogger.debug(" <1> Token Pledged correctly in the appropriate level");
                                         includedCheck = true;
+                                        break;
                                     } else {
                                         resolutionMessage = "<2> Token Pledged maliciously. Present in the current level";
                                         ForkResolutionLogger.debug(" <2> Token Pledged maliciously. Present in the current level");
@@ -184,11 +191,10 @@ public class ForkResolution {
                             includedCheck = false;
                         }
                     }
-                    resolutionMessage = "<6> Token Pledged correctly in the appropriate level";
                     ForkResolutionLogger.debug("Token " + transferToken + " was pledged for " + pledgedToken + " and check status for token chain of " + tokenChainsList.getJSONObject(i).getString("node") + " is " + includedCheck);
-                    if (includedCheck)
-                        return true;
                 }
+                if (includedCheck)
+                    return true;
                 ForkResolutionLogger.debug("Transfer token " + transferToken + " not found in any pledged token chains");
                 return false;
             } else {
