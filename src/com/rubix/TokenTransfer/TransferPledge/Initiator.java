@@ -183,12 +183,12 @@ public class Initiator {
 								// pledgedTokensArray.put(tokenObject.getString("tokenHash"));
 
 								tokenChain.put(pledgeNewObject);
-								PledgeInitiatorLogger.debug("@@@@@ Chain to hash: " + tokenChain);
+								//PledgeInitiatorLogger.debug("@@@@@ Chain to hash: " + tokenChain);
 
-								PledgeInitiatorLogger.debug("pledgeNewObject is " + pledgeNewObject);
+								//PledgeInitiatorLogger.debug("pledgeNewObject is " + pledgeNewObject);
 								String chainHashString = calculateHash(tokenChain.toString(), "SHA3-256");
 
-								PledgeInitiatorLogger.debug("chainHashString calculated in partA "+chainHashString);
+								//PledgeInitiatorLogger.debug("chainHashString calculated in partA "+chainHashString);
 								hashesArray.put(chainHashString);
 
 								if (proofFile.exists() && pledged) {
@@ -217,9 +217,9 @@ public class Initiator {
 							// pledgedTokensArray.put(tokenObject.getString("tokenHash"));
 
 							tokenChain.put(pledgeNewObject);
-							PledgeInitiatorLogger.debug("@@@@@ Chain to hash: " + tokenChain);
+							//PledgeInitiatorLogger.debug("@@@@@ Chain to hash: " + tokenChain);
 
-							PledgeInitiatorLogger.debug("pledgeNewObject is " + pledgeNewObject);
+							//PledgeInitiatorLogger.debug("pledgeNewObject is " + pledgeNewObject);
 							String chainHashString = calculateHash(tokenChain.toString(), "SHA3-256");
 							hashesArray.put(chainHashString);
 
@@ -229,8 +229,8 @@ public class Initiator {
 					quorumWithHashesArray.put(quorumHashObject);
 					quorumDetails.put("tokenDetails", tokenDetails);
 
-					PledgeInitiatorLogger.debug("quorumHashObject: " + quorumHashObject.toString());
-					PledgeInitiatorLogger.debug("quorumWithHashesArray is " + quorumWithHashesArray.toString());
+					//PledgeInitiatorLogger.debug("quorumHashObject: " + quorumHashObject.toString());
+					//PledgeInitiatorLogger.debug("quorumWithHashesArray is " + quorumWithHashesArray.toString());
 
 					PledgeInitiatorLogger.debug("tokensCount: " + tokensCount);
 					quorumDetails.put("ID", quorumID);
@@ -285,7 +285,7 @@ public class Initiator {
 			throws JSONException, UnknownHostException, IOException {
 
 		Double tokensPledged = amount;
-		PledgeInitiatorLogger.debug("pledgeDetails in pledge is " + pledgeDetails.toString());
+		//PledgeInitiatorLogger.debug("pledgeDetails in pledge is " + pledgeDetails.toString());
 
 		if (!abort) {
 			PledgeInitiatorLogger.debug("Initating pledging");
@@ -323,7 +323,7 @@ public class Initiator {
 				JSONArray tokens = new JSONArray();
 				if (qResponse != null) {
 					JSONArray tokenDetails = new JSONArray(qResponse);
-					PledgeInitiatorLogger.debug("TokenDetails is " + tokenDetails.toString());
+					//PledgeInitiatorLogger.debug("TokenDetails is " + tokenDetails.toString());
 					JSONArray newChains = new JSONArray();
 					for (int k = 0; k < tokenDetails.length(); k++) {
 						JSONObject tokenObject = tokenDetails.getJSONObject(k);
@@ -367,31 +367,31 @@ public class Initiator {
 							PrivateKey pvtKey = getPvtKey(keyPass, 1);
 
 							String hashForTokenChain = calculateHash(tokenChain.toString(), "SHA3-256");
-							FileWriter spfile = new FileWriter(
+							/* FileWriter spfile = new FileWriter(
 									WALLET_DATA_PATH.concat("/hashForTokenChain").concat(tid).concat(".json"));
 							spfile.write(tokenChain.toString());
-							spfile.close();
+							spfile.close(); */
 
 
 							// for (int i = 0; i < pledgeDetails.length(); i++) {
 
-							PledgeInitiatorLogger.debug("!@#$%^& pledgeDetails is " + pledgeDetails.getJSONObject(j));
+							//PledgeInitiatorLogger.debug("!@#$%^& pledgeDetails is " + pledgeDetails.getJSONObject(j));
 
-							PledgeInitiatorLogger.debug("!@#$%^& hashForTokenChain is "+ hashForTokenChain);
+							//PledgeInitiatorLogger.debug("!@#$%^& hashForTokenChain is "+ hashForTokenChain);
 
 							tokenChain.remove(tokenChain.length() - 1);
-							FileWriter pfile = new FileWriter(
+							/* FileWriter pfile = new FileWriter(
 									WALLET_DATA_PATH.concat("/hashForTokenChainRemoved").concat(tid).concat(".json"));
 							pfile.write(tokenChain.toString());
-							pfile.close();
+							pfile.close(); */
 
 
-							PledgeInitiatorLogger.debug("!@#$%^& hashForTokenChain after removing new last object "+ calculateHash(tokenChain.toString(), "SHA3-256"));
+							//PledgeInitiatorLogger.debug("!@#$%^& hashForTokenChain after removing new last object "+ calculateHash(tokenChain.toString(), "SHA3-256"));
 
 							pledgeObject.put("hash", hashForTokenChain);
 							pledgeObject.put("pvtShareBits", fetchSign(pledgeDetails, hashForTokenChain));
 
-							PledgeInitiatorLogger.debug("pledgeObject is " + pledgeObject.toString());
+							//PledgeInitiatorLogger.debug("pledgeObject is " + pledgeObject.toString());
 
 							// pledgeObject.put("pvtKeySign", PvtKeySign);
 
@@ -401,8 +401,8 @@ public class Initiator {
 							tokensPledged -= nodesToPledgeTokens.getJSONObject(j).getInt("count");
 							tokens.put(tokenHash);
 
-							PledgeInitiatorLogger.debug("newChains length is " + newChains.length());
-							PledgeInitiatorLogger.debug("newChains is " + newChains.toString());
+							//PledgeInitiatorLogger.debug("newChains length is " + newChains.length());
+							//PledgeInitiatorLogger.debug("newChains is " + newChains.toString());
 						}
 					}
 
@@ -493,7 +493,7 @@ public class Initiator {
 			JSONObject pledgeObject = pledgeArray.getJSONObject(i);
 			Iterator<String> keys = pledgeObject.keys();
 
-			PledgeInitiatorLogger.debug("!@#$%^& The object is " + pledgeObject.toString());
+			//PledgeInitiatorLogger.debug("!@#$%^& The object is " + pledgeObject.toString());
 			String key = "";
 			while (keys.hasNext()) {
 				key = keys.next();
