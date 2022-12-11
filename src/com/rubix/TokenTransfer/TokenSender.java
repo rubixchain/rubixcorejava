@@ -541,7 +541,7 @@ public class TokenSender {
 		dataToSendToInitiator.put("sender", senderDidIpfsHash);
 		dataToSendToInitiator.put("receiver", receiverDidIpfsHash);
 
-		TokenSenderLogger.debug("Details being sent to Initiator: " + dataToSendToInitiator);
+//		TokenSenderLogger.debug("Details being sent to Initiator: " + dataToSendToInitiator);
 
 		boolean abort = Initiator.pledgeSetUp(dataToSendToInitiator.toString(), ipfs, 22143);
 		if (abort) {
@@ -581,7 +581,10 @@ public class TokenSender {
 			lastObject.put("receiver", receiverDidIpfsHash);
 			lastObject.put("pledgeToken", "");
 			lastObject.put("tokensPledgedFor", allTokens);
-			lastObject.put("tokensPledgedWith", Initiator.pledgedTokensArray);
+			lastObject.put("tokensPledgedWith", Initiator.pledgedTokensWithNodesArray);
+			lastObject.put("distributedObject", Initiator.distributedObject);
+//        	TokenSenderLogger.debug("Distributed Object in TokenSender: " + Initiator.distributedObject);
+
 
 			String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
 			JSONArray tokenChain = new JSONArray(tokenChainFileContent);
@@ -643,12 +646,12 @@ public class TokenSender {
 				return APIResponse;
 			}
 
-			TokenSenderLogger.debug("pledge object is " + pledgeArray.toString());
+//			TokenSenderLogger.debug("pledge object is " + pledgeArray.toString());
 
 			for (int i = 0; i < Initiator.quorumWithHashesArray.length(); i++) {
 				JSONObject jsonObject = Initiator.quorumWithHashesArray.getJSONObject(i);
 				Iterator<String> keys = jsonObject.keys();
-				TokenSenderLogger.debug("jsonObject  is " + jsonObject.toString());
+//				TokenSenderLogger.debug("jsonObject  is " + jsonObject.toString());
 				JSONObject pledgeSignedObject = new JSONObject();
 				String key = "";
 				JSONArray hashAndSignsArray = new JSONArray();
@@ -659,7 +662,7 @@ public class TokenSender {
 						// do something with jsonObject here
 
 						JSONArray hashArray = new JSONArray(jsonObject.get(key).toString());
-						TokenSenderLogger.debug("@@@@@ Calculating hash for: " + hashArray);
+//						TokenSenderLogger.debug("@@@@@ Calculating hash for: " + hashArray);
 						// String hashString = calculateHash(hashArray.toString(), "SHA3-256");
 						for (int j = 0; j < hashArray.length(); j++) {
 							String sign = getSignFromShares(pvt, hashArray.get(j).toString());
@@ -671,7 +674,7 @@ public class TokenSender {
 				}
 				JSONObject signObject = new JSONObject();
 				signObject.put(key, hashAndSignsArray);
-				TokenSenderLogger.debug("signObject is " + signObject);
+//				TokenSenderLogger.debug("signObject is " + signObject);
 				quorumWithSignsArray.put(signObject);
 
 			}
@@ -707,7 +710,7 @@ public class TokenSender {
 //			}
 
 			payloadSigned.put("pledgeDetails", quorumWithSignsArray);
-			TokenSenderLogger.debug("pledgeDetails: " + quorumWithSignsArray);
+//			TokenSenderLogger.debug("pledgeDetails: " + quorumWithSignsArray);
 
 			FileWriter spfile = new FileWriter(WALLET_DATA_PATH.concat("/signedPayload").concat(tid).concat(".json"));
 			spfile.write(payloadSigned.toString());
@@ -927,9 +930,10 @@ public class TokenSender {
 		tokenDetails.put("part-tokenChains-PrevState", partTokenChainsPrevState);
 		tokenDetails.put("sender", senderDidIpfsHash);
 		tokenDetails.put("proof", proofOfWork);
+		tokenDetails.put("distributedObject", Initiator.distributedObject);
 		String doubleSpendString = tokenDetails.toString();
 
-		TokenSenderLogger.debug("tokenDetails is " + tokenDetails.toString());
+//		TokenSenderLogger.debug("tokenDetails is " + tokenDetails.toString());
 
 		String doubleSpend = calculateHash(doubleSpendString, "SHA3-256");
 		writeToFile(LOGGER_PATH + "doubleSpend", doubleSpend, false);
@@ -942,14 +946,14 @@ public class TokenSender {
 		tokenObject.put("previousSender", tokenPreviousSender);
 		tokenObject.put("amount", requestedAmount);
 		tokenObject.put("amountLedger", amountLedger);
-
-		if (Functions.multiplePinCheck(senderDidIpfsHash, tokenObject, ipfs) == 420) {
-			APIResponse.put("message", "Multiple Owners Found. Kindly re-initiate transaction");
-			senderMutex = false;
-			return APIResponse;
-		} else {
-			TokenSenderLogger.debug("No Multiple Pins found, initating transcation");
-		}
+//
+//		if (Functions.multiplePinCheck(senderDidIpfsHash, tokenObject, ipfs) == 420) {
+//			APIResponse.put("message", "Multiple Owners Found. Kindly re-initiate transaction");
+//			senderMutex = false;
+//			return APIResponse;
+//		} else {
+//			TokenSenderLogger.debug("No Multiple Pins found, initating transcation");
+//		}
 
 		/**
 		 * Sending Token Details to Receiver Receiver to authenticate Tokens (Double
@@ -1112,8 +1116,7 @@ public class TokenSender {
 		TokenSenderLogger.debug("Consensus Reached");
 		senderDetails2Receiver.put("status", "Consensus Reached");
 		senderDetails2Receiver.put("quorumsign", InitiatorConsensus.quorumSignature.toString());
-		senderDetails2Receiver.put("pledgeDetails", Initiator.pledgedTokensArray);
-
+		senderDetails2Receiver.put("pledgeDetails", Initiator.pledgedTokensWithNodesArray);
 		output.println(senderDetails2Receiver);
 		TokenSenderLogger.debug("Quorum Signatures length " + InitiatorConsensus.quorumSignature.length());
 
@@ -1192,10 +1195,10 @@ public class TokenSender {
 			return APIResponse;
 		}
 
-		TokenSenderLogger.debug("newBlocksForTokenChains is " + newBlocksForTokenChains);
+//		TokenSenderLogger.debug("newBlocksForTokenChains is " + newBlocksForTokenChains);
 		TokenSenderLogger.debug("");
 
-		TokenSenderLogger.debug("lastObJsonArray is " + lastObJsonArray.toString());
+//		TokenSenderLogger.debug("lastObJsonArray is " + lastObJsonArray.toString());
 
 		JSONArray newTokenChainBlocks = new JSONArray(newBlocksForTokenChains);
 		JSONArray hashAndSigns = new JSONArray();
@@ -1208,6 +1211,8 @@ public class TokenSender {
 			Map<String, Object> receiverChainMap = receiverLastObject.toMap();
 			senderChainMap.remove("pledgeToken");
 			receiverChainMap.remove("pledgeToken");
+			senderChainMap.remove("distributedObject");
+			receiverChainMap.remove("distributedObject");
 
 			TokenSenderLogger.debug("--------");
 			TokenSenderLogger.debug("senderChainMap   " + senderChainMap.keySet().toString());
@@ -1221,7 +1226,7 @@ public class TokenSender {
 
 			TokenSenderLogger.debug(senderChainMap.equals(receiverChainMap) + " is the chainmap status");
 
-			TokenSenderLogger.debug("signedChains is " + signedChains.toString());
+//			TokenSenderLogger.debug("signedChains is " + signedChains.toString());
 			if (senderChainMap.equals(receiverChainMap)) {
 
 				// String PvtKeySign =
@@ -1484,7 +1489,7 @@ public class TokenSender {
 				output.println("New part token chain to be hashed");
 				output.println(chainArray.toString());
 
-				TokenSenderLogger.debug("!@#$% 1: " + chainArray);
+//				TokenSenderLogger.debug("!@#$% 1: " + chainArray);
 
 				String finalPartTokenChain_string;
 				try {
@@ -1586,7 +1591,7 @@ public class TokenSender {
 				}
 				output.println("Old part token chains to be hashed");
 				output.println(partTokenChainsToBeSentForHashing.toString());
-				TokenSenderLogger.debug("!@#$% 3: " + partTokenChainsToBeSentForHashing);
+//				TokenSenderLogger.debug("!@#$% 3: " + partTokenChainsToBeSentForHashing);
 
 				String hashedPartTokenChains_string;
 				try {
@@ -1609,7 +1614,7 @@ public class TokenSender {
 					return APIResponse;
 				}
 
-				TokenSenderLogger.debug("!@#$% 4: " + hashedPartTokenChains_string);
+//				TokenSenderLogger.debug("!@#$% 4: " + hashedPartTokenChains_string);
 
 				JSONObject finalPartTokenChains = new JSONObject(hashedPartTokenChains_string);
 				for (int i = 0; i < partTokens.length(); i++) {

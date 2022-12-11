@@ -1235,43 +1235,7 @@ public class Functions {
         }
     }
 
-    public static void tokenBank() throws JSONException {
-        pathSet();
-        String bank = readFile(PAYMENTS_PATH.concat("BNK00.json"));
-        JSONArray bankArray = new JSONArray(bank);
 
-        ArrayList<String> bankDuplicates = new ArrayList<>();
-        for (int i = 0; i < bankArray.length(); i++) {
-            if (!bankDuplicates.contains(bankArray.getJSONObject(i).getString("tokenHash")))
-                bankDuplicates.add(bankArray.getJSONObject(i).getString("tokenHash"));
-        }
-
-        if (bankDuplicates.size() < bankArray.length()) {
-            FunctionsLogger.debug("Duplicates Found. Cleaning up ...");
-
-            JSONArray newBank = new JSONArray();
-            for (int i = 0; i < bankDuplicates.size(); i++) {
-                JSONObject tokenObject = new JSONObject();
-                tokenObject.put("tokenHash", bankDuplicates.get(i));
-                newBank.put(tokenObject);
-            }
-            writeToFile(PAYMENTS_PATH.concat("BNK00.json"), newBank.toString(), false);
-        }
-
-        File tokensPath = new File(TOKENS_PATH);
-        String contents[] = tokensPath.list();
-        ArrayList tokenFiles = new ArrayList();
-        for (int i = 0; i < contents.length; i++) {
-            if (!contents[i].contains("PARTS"))
-                tokenFiles.add(contents[i]);
-        }
-
-        for (int i = 0; i < tokenFiles.size(); i++) {
-            if (!bankDuplicates.contains(tokenFiles.get(i).toString()))
-                deleteFile(TOKENS_PATH.concat(tokenFiles.get(i).toString()));
-        }
-
-    }
 
     public static Double getPartsBalance() throws JSONException {
         pathSet();
@@ -1551,25 +1515,7 @@ public class Functions {
         writeToFile(PAYMENTS_PATH.concat("PartsToken.json"), partsArray.toString(), false);
     }
 
-    public static void backgroundChecks() {
-        try {
-            Functions.tokenBank();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            Functions.clearParts();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
-        IPFSNetwork.repo(ipfs);
-
-        addPublicData();
-
-    }
+  
 
     public static String sanityMessage;
 

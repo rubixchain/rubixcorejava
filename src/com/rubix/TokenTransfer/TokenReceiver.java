@@ -193,6 +193,7 @@ public class TokenReceiver {
 			JSONObject partTokenChains = TokenDetails.getJSONObject("part-tokenChains");
 			JSONObject partTokenChainsForVerification = TokenDetails.getJSONObject("part-tokenChains-PrevState");
 			JSONArray partTokenChainsHash = TokenDetails.getJSONArray("hashSender");
+			JSONObject distributedObject = TokenDetails.getJSONObject("distributedObject");
 
 			if (TokenDetails.optJSONArray("proof") != null) {
 				JSONArray proofArray = TokenDetails.getJSONArray("proof");
@@ -330,38 +331,58 @@ public class TokenReceiver {
 				tokenDetailMap.put(tokenNumberHash, -1);
 			}
 
-			boolean forkResolution = true;
-			TokenReceiverLogger.debug("Fork Checking version 3: ");
-			TokenReceiverLogger.debug("Whole Token Chains: " + wholeTokenChainContent.get(0));
-			TokenReceiverLogger.debug("Whole Token Chains: " + new JSONArray(wholeTokenChainContent.get(0)));
-			JSONArray forkedTokens = new JSONArray();
-			for (int i = 0; i < wholeTokens.length(); ++i) {
-				TokenReceiverLogger.debug("Fork Checking for token: " + wholeTokens.getString(i));
-				JSONObject forkObject = new JSONObject();
-				forkObject.put("token",  wholeTokens.getString(i));
-				forkObject.put("tokenChain", new JSONArray(wholeTokenChainContent.get(i)));
-				forkObject.put("previousSendersArray", previousSendersArray);
-				forkResolution = ForkResolution.check(forkObject);
-				if(!forkResolution) {
-					TokenReceiverLogger.debug("Fork found and not resolved for token: " + wholeTokens.getString(i));
-					TokenReceiverLogger.debug("Message: " + ForkResolution.resolutionMessage);
-					forkedTokens.put(wholeTokens.getString(i));
+			if(intPart > 0) {
+
+				boolean forkResolution = true;
+				TokenReceiverLogger.debug("Fork Checking version 3: ");
+				TokenReceiverLogger.debug("Whole Token Chains: " + wholeTokenChainContent.get(0));
+				TokenReceiverLogger.debug("Whole Token Chains: " + new JSONArray(wholeTokenChainContent.get(0)));
+				JSONArray forkedTokens = new JSONArray();
+				for (int i = 0; i < wholeTokens.length(); ++i) {
+					TokenReceiverLogger.debug("Fork Checking for token: " + wholeTokens.getString(i));
+	
+					JSONArray tokenChain = new JSONArray(wholeTokenChainContent.get(i));
+					JSONObject forkObject = new JSONObject();
+					forkObject.put("token",  wholeTokens.getString(i));
+					forkObject.put("tokenChain", tokenChain);
+					forkObject.put("previousSendersArray", previousSendersArray);
+	
+	
+					if(tokenChain.getJSONObject(tokenChain.length()-1).has("pledgeToken")){
+						TokenReceiverLogger.debug("Token " + wholeTokens.getString(i) + " is a new token (SHAG structure)");
+						if(!tokenChain.getJSONObject(tokenChain.length()-1).getString("pledgeToken").equals("")){
+							TokenReceiverLogger.debug("Token " + wholeTokens.getString(i) + " is a pledged token");
+							forkResolution = ForkResolution.verifyUnpledgedToken(wholeTokens.getString(i), tokenChain.getJSONObject(tokenChain.length()-1).getJSONArray("tokensPledgedFor").get(0).toString());
+	
+						} else {
+							TokenReceiverLogger.debug("Token " + wholeTokens.getString(i) + " is a new token (SHAG structure) and not pledged");
+							forkResolution = ForkResolution.check(forkObject);
+						}
+					}else {
+						TokenReceiverLogger.debug("Token " + wholeTokens.getString(i) + " is an Eismeer Token");
+						forkResolution = ForkResolution.check(forkObject);
+					}
+					if(!forkResolution) {
+						TokenReceiverLogger.debug("Fork found and not resolved for token: " + wholeTokens.getString(i));
+						TokenReceiverLogger.debug("Message: " + ForkResolution.resolutionMessage);
+						forkedTokens.put(wholeTokens.getString(i));
+					}
 				}
-			}
-			if (!forkResolution) {
-				TokenReceiverLogger.debug("Fork not resolved for " + forkedTokens);
-				output.println("418");
-				output.println(forkedTokens.toString());
-				APIResponse.put("did", senderDidIpfsHash);
-				APIResponse.put("tid", "null");
-				APIResponse.put("status", "Failed");
-				APIResponse.put("message", "Fork not resolved");
-				IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
-				output.close();
-				input.close();
-				sk.close();
-				ss.close();
-				return APIResponse.toString();
+				if (!forkResolution) {
+					TokenReceiverLogger.debug("Fork not resolved for " + forkedTokens);
+					output.println("418");
+					output.println(forkedTokens.toString());
+					APIResponse.put("did", senderDidIpfsHash);
+					APIResponse.put("tid", "null");
+					APIResponse.put("status", "Failed");
+					APIResponse.put("message", "Fork not resolved");
+					IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+					output.close();
+					input.close();
+					sk.close();
+					ss.close();
+					return APIResponse.toString();
+				}
 			}
 
 			//QmWcmK38g9XcrCwhoEq3rQjNseJW2HyscoG66DWF62X6bK.proof
@@ -1328,7 +1349,7 @@ public class TokenReceiver {
 					for (int i = 0; i < ownersArray.size(); i++) {
 						if (!VerifyStakedToken.Contact(ownersArray.get(i), SEND_PORT + 16,
 								stakeData.getString(MiningConstants.STAKED_TOKEN),
-								mineIDContentJSON.getString("tokenContent"))) {
+								mineIDContentJSON.getString("tokenContent"), "Get-TokenChain-Height")) {
 							minedTokenStatus = false;
 						}
 					}
@@ -1683,6 +1704,7 @@ public class TokenReceiver {
 						lastObject.put("pledgeToken", "");
 						lastObject.put("tokensPledgedFor", allTokens);
 						lastObject.put("tokensPledgedWith", pledgedDetails);
+						lastObject.put("distributedObject", distributedObject);
 
 						if (!BlockHash.isEmpty()) {
 							lastObject.put("blockHash", BlockHash);
@@ -1809,6 +1831,10 @@ public class TokenReceiver {
 					newPartObject.put("receiver", receiverDidIpfsHash);
 					newPartObject.put("comment", comment);
 					newPartObject.put("tid", tid);
+					newPartObject.put("pledgeToken", "");
+					newPartObject.put("tokensPledgedFor", allTokens);
+					newPartObject.put("tokensPledgedWith", pledgedDetails);
+					newPartObject.put("distributedObject", distributedObject);
 					// newPartObject.put("nextHash", "");
 //						newPartObject.put("owner", ownerIdentityHash);
 					/*
