@@ -221,6 +221,7 @@ public class Unpledge {
 	}
 
 	public static boolean verifyProof(String tokenName, String did, String trnxid) {
+		UnpledgeLogger.debug("Verifying proof for "+tokenName);
 		List<String> data = readData(Functions.TOKENCHAIN_PATH + "Proof/" + tokenName + ".proof");
 		boolean hashMatchStatus = hashMatch(data, pickIndexForValidation(data.size()), did, trnxid);
 		UnpledgeLogger.debug("Hashmatch status is " + hashMatchStatus);

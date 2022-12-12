@@ -1,5 +1,6 @@
 package com.rubix.TokenTransfer.TransferPledge;
 
+import com.jfoenix.controls.base.IFXLabelFloatControl;
 import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
@@ -11,6 +12,7 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -134,6 +136,7 @@ public class Initiator {
 
 			if (qResponse != null) {
 				JSONObject pledgeObject = new JSONObject(qResponse);
+				PledgeInitiatorLogger.debug("quorum response is "+pledgeObject.toString()+" from "+quorumID);
 				if (pledgeObject.getString("pledge").equals("Tokens")) {
 					PledgeInitiatorLogger.debug("Quorum " + quorumID + " is pledging Tokens");
 					JSONArray tokenDetails = pledgeObject.getJSONArray("tokenDetails");
@@ -158,10 +161,17 @@ public class Initiator {
 									proofFile.mkdirs();
 								}
 								writeToFile(proofFile.getAbsolutePath() + "/" + token + ".proof", proof, false);
+								proofFile = new File(TOKENCHAIN_PATH + "Proof/"+ token + ".proof", proof);
+								if(proofFile.exists()) {
+									PledgeInitiatorLogger.debug("Proof file added for" + token);
+								}
 
 								String tokenName = lasObject.getString("pledgeToken");
 								String did = lasObject.getString("receiver");
 								String txnID = lasObject.getString("tid");
+								
+								
+								
 								pledged = Unpledge.verifyProof(tokenName, did, txnID);
 
 								if (!pledged) {
@@ -193,6 +203,10 @@ public class Initiator {
 //								PledgeInitiatorLogger.debug("pledgeNewObject is " + pledgeNewObject);
 								String chainHashString = calculateHash(tokenChain.toString(), "SHA3-256");
 								hashesArray.put(chainHashString);
+								
+								if(proofFile.exists() && pledged) {
+									proofFile.delete();
+								}
 
 							} else {
 								PledgeInitiatorLogger.debug("This token has already been pledged - Aborting");
@@ -260,7 +274,9 @@ public class Initiator {
 				qSocket.close();
 				return abort;
 			}
-			return abort;
+		//	return abort;
+			IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + quorumID);
+			qSocket.close();
 		}
 
 		PledgeInitiatorLogger.debug("Closing all connections...");
@@ -505,7 +521,7 @@ public class Initiator {
 		return abort;
 	}
 	
-	public static void closeAllConnections(JSONArray nodes){
+	public static void closeAllConnections(JSONArray nodes) throws JSONException{
         for(int i = 0; i < nodes.length(); i++){
             IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + nodes.getString(i));
         }

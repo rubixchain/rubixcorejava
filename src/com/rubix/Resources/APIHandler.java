@@ -242,9 +242,38 @@ public class APIHandler {
         }
 
         rd.close();
-
         writeToFile(DATA_PATH + "DataTable.json", result.toString(), false);
-        if (syncFlag == 1) {
+        if(syncFlag ==1)
+        {
+            APILogger.debug("Network info synced to DataTable.json");
+        }
+
+        URL url2 = new URL(SYNC_IP + "/getPubKeyData");
+        HttpURLConnection conn2 = (HttpURLConnection) url2.openConnection();
+        conn2.setRequestMethod("GET");
+        StringBuilder result2 = new StringBuilder();
+        BufferedReader rd2 = new BufferedReader(new InputStreamReader(conn2.getInputStream()));
+        String line2;
+        int syncFlag2 =0;
+
+        while ((line2 = rd2.readLine()) != null) {
+            result2.append(line2);
+            syncFlag2=1;
+        }
+        rd2.close();
+
+        File dt_PubKey = new File(DATA_PATH + "DataTable_PublicKeys.json");
+        if (!dt_PubKey.exists()) {
+            dt_PubKey.createNewFile();
+        }
+
+        writeToFile(DATA_PATH + "DataTable_PublicKeys.json", result2.toString(), false);
+        if(syncFlag ==1)
+        {
+            APILogger.debug("Network info synced to DataTable_PublicKeys.json");
+        }
+        
+        if (syncFlag == 1 && syncFlag2==1) {
             jsonObject.put("message", "Synced Successfully!");
         } else {
             jsonObject.put("message", "Not synced! Try again after sometime.");
