@@ -307,12 +307,23 @@ public class APIHandler {
             if(type == 1){
                 
                 pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                if(pubKeyIpfsHash.isBlank())
+                {
+                    networkInfo();
+                    pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","pubKeyIpfsHash","didHash", senderDidIpfsHash);
+
+                }
                 return pubKeyIpfsHash;
 
             }
             else{
                 
                 quorum_pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","quorum_pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                if(quorum_pubKeyIpfsHash.isBlank())
+                {
+                    networkInfo();
+                    quorum_pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","quorum_pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                }
                 return quorum_pubKeyIpfsHash;
             }
             
