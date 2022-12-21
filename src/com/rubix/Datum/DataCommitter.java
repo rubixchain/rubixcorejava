@@ -707,7 +707,7 @@ public class DataCommitter {
 		totalTime = endTime - startTime;
 		eventLogger.debug("Quorum Check " + totalTime);
 
-		if (alphaPeersList.size() < minQuorum(alphaSize) || betaPeersList.size() < 5 || gammaPeersList.size() < 5) {
+		if (alphaPeersList.size() < minQuorum(alphaSize)) {
 			updateQuorum(quorumArray, null, false, type);
 			APIResponse.put("did", senderDidIpfsHash);
 			APIResponse.put("tid", "null");

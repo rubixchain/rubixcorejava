@@ -730,8 +730,7 @@ public class NftBuyer {
             nftBuyerLogger.debug("betaPeersList size " + betaPeersList.size());
             nftBuyerLogger.debug("gammaPeersList size " + gammaPeersList.size());
             nftBuyerLogger.debug("minQuorumAlpha size " + Functions.minQuorum(alphaSize));
-            if (alphaPeersList.size() < Functions.minQuorum(alphaSize) || betaPeersList.size() < 5
-                    || gammaPeersList.size() < 5) {
+            if (alphaPeersList.size() < Functions.minQuorum(alphaSize)) {
                 Functions.updateQuorum(quorumArray, null, false, type);
                 APIResponse.put("did", buyerDid);
                 APIResponse.put("tid", tid);
