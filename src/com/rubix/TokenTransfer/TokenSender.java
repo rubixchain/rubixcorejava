@@ -10,8 +10,6 @@ import com.rubix.TokenTransfer.TransferPledge.Unpledge;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
-import org.bouncycastle.cert.cmp.CertificateConfirmationContent;
-import org.bouncycastle.crypto.engines.ISAACEngine;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -394,19 +392,10 @@ public class TokenSender {
 			allTokens.put(partTokens.getString(i));
 
 		JSONArray alphaQuorum = new JSONArray();
-		JSONArray betaQuorum = new JSONArray();
-		JSONArray gammaQuorum = new JSONArray();
 
 		switch (type) {
 		case 1: {
-			writeToFile(LOGGER_PATH + "tempbeta", tid.concat(senderDidIpfsHash), false);
-			String betaHash = IPFSNetwork.add(LOGGER_PATH + "tempbeta", ipfs);
-			deleteFile(LOGGER_PATH + "tempbeta");
-
-			writeToFile(LOGGER_PATH + "tempgamma", tid.concat(receiverDidIpfsHash), false);
-			String gammaHash = IPFSNetwork.add(LOGGER_PATH + "tempgamma", ipfs);
-			deleteFile(LOGGER_PATH + "tempgamma");
-
+		
 			quorumArray = getQuorum(senderDidIpfsHash, receiverDidIpfsHash, allTokens.length());
 			break;
 		}
@@ -445,6 +434,10 @@ public class TokenSender {
 
 		}
 		}
+		
+		if(quorumArray.length()>7) {
+			quorumArray = cleanQuorum(quorumArray, senderDidIpfsHash, receiverDidIpfsHash, 7);
+		}
 
 		String errMessage = null;
 		for (int i = 0; i < quorumArray.length(); i++) {
@@ -482,14 +475,10 @@ public class TokenSender {
 				sanityFailedQuorum.put(quorumPeerID);
 				if (i <= 6)
 					alphaCheck++;
-				if (i >= 7 && i <= 13)
-					betaCheck++;
-				if (i >= 14 && i <= 20)
-					gammaCheck++;
 			}
 		}
 
-		if (alphaCheck > 2 || betaCheck > 2 || gammaCheck > 2) {
+		if (alphaCheck > 2) {
 			APIResponse.put("did", senderDidIpfsHash);
 			APIResponse.put("tid", "null");
 			APIResponse.put("status", "Failed");
@@ -503,26 +492,20 @@ public class TokenSender {
 
 		QuorumSwarmConnect(quorumArray, ipfs);
 
-		alphaSize = quorumArray.length() - 14;
+		alphaSize = quorumArray.length();
 
 		for (int i = 0; i < alphaSize; i++)
 			alphaQuorum.put(quorumArray.getString(i));
 
-		for (int i = 0; i < 7; i++) {
-			betaQuorum.put(quorumArray.getString(alphaSize + i));
-			gammaQuorum.put(quorumArray.getString(alphaSize + 7 + i));
-		}
 		startTime = System.currentTimeMillis();
 
 		alphaPeersList = QuorumCheck(alphaQuorum, alphaSize);
-		betaPeersList = QuorumCheck(betaQuorum, 7);
-		gammaPeersList = QuorumCheck(gammaQuorum, 7);
 
 		endTime = System.currentTimeMillis();
 		totalTime = endTime - startTime;
 		eventLogger.debug("Quorum Check " + totalTime);
 
-		if (alphaPeersList.size() < minQuorum(alphaSize) || betaPeersList.size() < 5 || gammaPeersList.size() < 5) {
+		if (alphaPeersList.size() < minQuorum(alphaSize)) {
 			updateQuorum(quorumArray, null, false, type);
 			APIResponse.put("did", senderDidIpfsHash);
 			APIResponse.put("tid", "null");
@@ -965,7 +948,7 @@ public class TokenSender {
 		tokenObject.put("amount", requestedAmount);
 		tokenObject.put("amountLedger", amountLedger);
 
-		if (Functions.multiplePinCheck(senderDidIpfsHash, tokenObject, ipfs) == 420) {
+		if (Functions.multiplePinCheck(senderPeerID, tokenObject, ipfs, receiverPeerId) == 420) {
 			APIResponse.put("message", "Multiple Owners Found. Kindly re-initiate transaction");
 			senderMutex = false;
 			return APIResponse;
@@ -1076,6 +1059,17 @@ public class TokenSender {
 						.info("Token chain verification has failed. Part token chain/chains could not be verified.");
 				APIResponse.put("message", "Token Chain/(s) could not be verified.");
 				break;
+			case "432":
+				TokenSenderLogger
+						.info("Receiver unable to get Quorum(s) public data");
+				APIResponse.put("message", "Receiver unable to get Quorum(s) public data");
+				break;
+			
+			case "433":
+				TokenSenderLogger
+						.info("Receiver unable to get Sender public data");
+				APIResponse.put("message", "Receiver unable to get Sender public data");
+				break;
 
 			}
 			executeIPFSCommands(" ipfs p2p close -t /p2p/" + receiverPeerId);
@@ -1108,7 +1102,7 @@ public class TokenSender {
 
 		InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 100, alphaSize, "");
 
-		if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+		if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize))) {
 			TokenSenderLogger.debug("Consensus Failed");
 			senderDetails2Receiver.put("status", "Consensus Failed");
 			output.println(senderDetails2Receiver);

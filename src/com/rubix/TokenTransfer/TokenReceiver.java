@@ -227,7 +227,7 @@ public class TokenReceiver {
 			// ? multiple pin check starts
 			Double decimalPart = formatAmount(amount - intPart);
 			JSONArray doubleSpentToken = new JSONArray();
-			boolean tokenOwners = true;
+			boolean multiplePin = false;
 			ArrayList pinOwnersArray = new ArrayList();
 			ArrayList previousSender = new ArrayList();
 			JSONArray ownersReceived = new JSONArray();
@@ -253,19 +253,30 @@ public class TokenReceiver {
 						for (int j = 0; j < ownersReceived.length(); j++) {
 							previousSender.add(ownersReceived.getString(j));
 						}
-						TokenReceiverLogger.debug("Previous Owners: " + previousSender);
+						TokenReceiverLogger.debug("Previous Owners: " + previousSender.toString());
+						TokenReceiverLogger.debug("Pin owners " + pinOwnersArray.toString());
 
-						for (int j = 0; j < pinOwnersArray.size(); j++) {
-							if (!previousSender.contains(pinOwnersArray.get(j).toString()))
-								tokenOwners = false;
-						}
+
+						ArrayList retainOrder = pinOwnersArray;
+						previousSender.add(senderPeerID);
+	                    previousSender.add(receiverPeerID);
+	                    
+	                    retainOrder.removeAll(previousSender);
+                        FunctionsLogger.debug("retain list "+ retainOrder.toString());
+
+
+	                    if(retainOrder.size()>0) {
+	                        FunctionsLogger.debug("retain list in if "+ retainOrder.toString());
+	                        multiplePin = true;
+	                        
+	                    }
 					}
 				} catch (IOException e) {
 
 					TokenReceiverLogger.debug("Ipfs dht find did not execute");
 				}
 			}
-			if (!tokenOwners) {
+			if (multiplePin) {
 				JSONArray owners = new JSONArray();
 				for (int i = 0; i < pinOwnersArray.size(); i++)
 					owners.put(pinOwnersArray.get(i).toString());
@@ -1527,6 +1538,24 @@ public class TokenReceiver {
 						String QuorumPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(
 								quorumMember.getString("quorum_did"), 2); // get public key ipfs hash of the quorum
 																			// member.
+						
+						//TODO
+						if(QuorumPublicKeyIpfsHash.isEmpty()) {
+							output.println("432");
+							APIResponse.put("did", senderDidIpfsHash);
+							APIResponse.put("tid", tid);
+							APIResponse.put("status", "Failed");
+							APIResponse.put("message", "Quorum data not available for "+quorumMember.getString("quorum_did"));
+							TokenReceiverLogger.info("Quorum data not available for "+quorumMember.getString("quorum_did")+". Please initate sync command");
+							IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+							output.close();
+							input.close();
+							sk.close();
+							ss.close();
+							return APIResponse.toString();
+							
+						}
+						
 						String quorumPubKeyStr = IPFSNetwork.get(QuorumPublicKeyIpfsHash, ipfs); // get quorum member's
 																									// public key from
 																									// ipfs.
@@ -1561,6 +1590,23 @@ public class TokenReceiver {
 				String senderPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(senderDidIpfsHash, 1); // get public key
 																									// ipfs hash of the
 																									// sender.
+				
+				if(senderPublicKeyIpfsHash.isEmpty()) {
+					output.println("433");
+					APIResponse.put("did", senderDidIpfsHash);
+					APIResponse.put("tid", tid);
+					APIResponse.put("status", "Failed");
+					APIResponse.put("message", "Sender data not available for "+senderDidIpfsHash);
+					TokenReceiverLogger.info("Sender's public key data not available for "+senderDidIpfsHash+". Please initate sync command");
+					IPFSNetwork.executeIPFSCommands(" ipfs p2p close -t /p2p/" + senderPeerID);
+					output.close();
+					input.close();
+					sk.close();
+					ss.close();
+					return APIResponse.toString();
+					
+				}
+				
 
 				String senderPubKeyStr = IPFSNetwork.get(senderPublicKeyIpfsHash, ipfs); // get sender's public key from
 																							// ipfs.
