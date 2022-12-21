@@ -110,7 +110,7 @@ public class InitiatorConsensus {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         synchronized (signLock) {
             try {
-                if (quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))
+                if (quorumSignature.length() < (minQuorum(alphaSize))
                         && quorumResponse[index] <= minQuorum(quorumSize)) {
                     JSONObject jsonObject = new JSONObject();
                     JSONObject quorumMemberSign = new JSONObject();
@@ -147,7 +147,7 @@ public class InitiatorConsensus {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         synchronized (nftSignLock) {
             try {
-                if (nftQuorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))
+                if (nftQuorumSignature.length() < (minQuorum(alphaSize))
                         && nftQuorumResponse[index] <= minQuorum(quorumSize)) {
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put("did", quorumDID);
@@ -290,7 +290,7 @@ public class InitiatorConsensus {
                                                                 alphaSize);
                                                         quorumWithShares.add(quorumPeersObject.getString(j));
                                                         while (quorumSignature
-                                                                .length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+                                                                .length() < (minQuorum(alphaSize))) {
                                                         }
                                                         InitiatorConsensusLogger.debug("sending Qsign  of length "
                                                                 + quorumSignature.length() + "at index " + index);
@@ -400,7 +400,7 @@ public class InitiatorConsensus {
                                                         alphaSize);
                                                 nftQuorumWithShares.add(quorumPeersObject.getString(j));
                                                 while (nftQuorumSignature
-                                                        .length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+                                                        .length() < (minQuorum(alphaSize))) {
                                                 }
                                                 InitiatorConsensusLogger.debug("NFT :sending Qsign  of length "
                                                         + nftQuorumSignature.length() + "at index " + index);
@@ -429,7 +429,7 @@ public class InitiatorConsensus {
 
                             while ((nftQuorumResponse[index] < minQuorum(quorumSize)
                                             || nftQuorumSignature
-                                                    .length() < (minQuorum(alphaSize) + 2 * minQuorum(7)))) {
+                                                    .length() < (minQuorum(alphaSize)))) {
                             }
 
                         } else {
@@ -463,6 +463,10 @@ public class InitiatorConsensus {
                                         InitiatorConsensusLogger.debug("DID obtained for this quorum member : "+ didHash);
 
                                         String QuorumPublicKeyIpfsHash = getPubKeyIpfsHash_DIDserver(didHash,2); //get public key ipfs hash of the quorum member.
+                                        
+                             
+                                        
+                                        
                                         InitiatorConsensusLogger.debug("Quorum's pub key ipfs hash : "+QuorumPublicKeyIpfsHash);
 
                                         String quorumPubKeyStr= IPFSNetwork.get(QuorumPublicKeyIpfsHash, ipfs); // get quorum member's public key from ipfs.
@@ -506,7 +510,7 @@ public class InitiatorConsensus {
                                                     quorumSign(didHash, hash, quorumsPrivateShareSign, quorumsPrivateKeySign, index, quorumSize, alphaSize);
                                                     quorumWithShares.add(quorumPeersObject.getString(j));
                                                     while (quorumSignature
-                                                            .length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+                                                            .length() < (minQuorum(alphaSize))) {
                                                     }
                                                     InitiatorConsensusLogger.debug("sending Qsign  of length "
                                                             + quorumSignature.length() + "at index " + index);
@@ -545,7 +549,7 @@ public class InitiatorConsensus {
             }
 
             while (quorumResponse[index] < minQuorum(quorumSize)
-                    || quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+                    || quorumSignature.length() < (minQuorum(alphaSize))) {
             }
             repo(ipfs);
         } catch (JSONException e) {

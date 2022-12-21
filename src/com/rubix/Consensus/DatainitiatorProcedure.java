@@ -150,7 +150,7 @@ public class DatainitiatorProcedure {
         alphaThread.start();
         betaThread.start();
         gammaThread.start();
-        while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+        while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize))) {
         }
         DataInitiatorProcedureLogger
                 .debug("ABG Consensus completed with length " + InitiatorConsensus.quorumSignature.length());

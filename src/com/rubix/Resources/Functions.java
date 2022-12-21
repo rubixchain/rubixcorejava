@@ -1926,7 +1926,7 @@ public class Functions {
 
     }
 
-    public static int multiplePinCheck(String senderDidIpfsHash, JSONObject tokenObject, IPFS ipfs)
+    public static int multiplePinCheck(String senderPID, JSONObject tokenObject, IPFS ipfs,String receiverPID)
             throws JSONException, InterruptedException {
         int statusCode = 200;
         // FunctionsLogger.debug("Input tokenObject is " + tokenObject.toString());
@@ -1948,7 +1948,7 @@ public class Functions {
         // ? multiple pin check starts
         Double decimalPart = formatAmount(amount - intPart);
         JSONArray doubleSpentToken = new JSONArray();
-        boolean tokenOwners = true;
+        boolean multiplePin = false;
         ArrayList pinOwnersArray = new ArrayList();
         ArrayList previousSender = new ArrayList();
         JSONArray ownersReceived = new JSONArray();
@@ -1971,19 +1971,28 @@ public class Functions {
                     for (int j = 0; j < ownersReceived.length(); j++) {
                         previousSender.add(ownersReceived.getString(j));
                     }
-                    FunctionsLogger.debug("Previous Owners: " + previousSender);
+                    FunctionsLogger.debug("Previous Owners: " + previousSender.toString());
+                    FunctionsLogger.debug("Pin owners " + pinOwnersArray.toString());
+                    ArrayList retainOrder = pinOwnersArray;
+                    previousSender.add(senderPID);
+                    previousSender.add(receiverPID);
 
-                    for (int j = 0; j < pinOwnersArray.size(); j++) {
-                        if (!previousSender.contains(pinOwnersArray.get(j).toString()))
-                            tokenOwners = false;
+                    
+                    
+                    retainOrder.removeAll(previousSender);
+
+                    if(retainOrder.size()>0) {
+                        FunctionsLogger.debug("retain list "+ retainOrder.toString());
+                        multiplePin = true;
                     }
+                    
                 }
             } catch (IOException e) {
 
                 FunctionsLogger.debug("Ipfs dht find did not execute");
             }
         }
-        if (!tokenOwners) {
+        if (multiplePin) {
             JSONArray owners = new JSONArray();
             for (int i = 0; i < pinOwnersArray.size(); i++)
                 owners.put(pinOwnersArray.get(i).toString());
@@ -2230,7 +2239,7 @@ public class Functions {
         return workLevel;
     }
 
-    public static boolean signChallengePayload(String tid) {
+    public static boolean signChallengePayload(String tid) throws JSONException {
         File challengeFile = new File(WALLET_DATA_PATH.concat("/ChallengePayload").concat(tid).concat(".json"));
 
         if(!challengeFile.exists())
@@ -2353,5 +2362,15 @@ public class Functions {
     {
         String txnId = TokenSender.tid;
         return readFile(WALLET_DATA_PATH.concat("/signedPayload").concat(txnId).concat(".json"));
+    }
+    
+    public static JSONArray cleanQuorum(JSONArray quroumList, String sender, String receiver,int size) throws JSONException {
+        JSONArray cleanedQuorum = new JSONArray();
+        for (int i = 0; i < size; i++) {
+            if (!quroumList.getString(i).equals(sender) && !quroumList.getString(i).equals(receiver)) {
+                cleanedQuorum.put(quroumList.getString(i));
+            }
+        }
+        return cleanedQuorum;
     }
 }
