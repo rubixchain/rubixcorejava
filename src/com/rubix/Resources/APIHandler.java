@@ -282,7 +282,7 @@ public class APIHandler {
     }
 
 
-    public static String getPubKeyIpfsHash_DIDserver(String senderDidIpfsHash, int type) throws IOException{
+    public static String getPubKeyIpfsHash_DIDserver(String senderDidIpfsHash, int type) throws IOException, JSONException{
         
             String pubKeyIpfsHash;
             String quorum_pubKeyIpfsHash;
