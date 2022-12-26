@@ -48,8 +48,6 @@ public class DatainitiatorProcedure {
         String operation = ConsensusConstants.DATA;
         String senderDidIpfs = dataObject.getString("senderDidIpfs");
         JSONArray alphaList = dataObject.getJSONArray("alphaList");
-        JSONArray betaList = dataObject.getJSONArray("betaList");
-        JSONArray gammaList = dataObject.getJSONArray("gammaList");
         String token = dataObject.getString("token");        
         
         	String blockHash = dataObject.getString("blockHash");
@@ -124,32 +122,10 @@ public class DatainitiatorProcedure {
             }
         });
 
-        Thread betaThread = new Thread(() -> {
-            try {
-            DataInitiatorProcedureLogger.debug("sending data to betaThread dataSend beta is "+ betaList + "beta size is "+ alphaSize
-                        +" port is "+ (PORT + 100));
-                betaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 100, 1, "beta", betaList,
-                        alphaSize, 7, operation);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        });
-
-        Thread gammaThread = new Thread(() -> {
-            try {
-            	DataInitiatorProcedureLogger.debug("sending data to gammaThread dataSend JSON gamma is "+ gammaList + "alpha size is "+ alphaSize
-                  +" port is "+ (PORT + 107));
-                gammaReply = InitiatorConsensus.start(dataSend.toString(), ipfs, PORT + 107, 2, "gamma", gammaList,
-                        alphaSize, 7, operation);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        });
+        
         InitiatorConsensus.quorumSignature = new JSONArray();
         InitiatorConsensus.finalQuorumSignsArray = new JSONArray();
         alphaThread.start();
-        betaThread.start();
-        gammaThread.start();
         while (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize))) {
         }
         DataInitiatorProcedureLogger
