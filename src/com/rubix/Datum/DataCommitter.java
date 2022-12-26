@@ -677,7 +677,7 @@ public class DataCommitter {
 		for (int i = 0; i < quorumArray.length(); i++) {
 			String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
 					quorumArray.getString(i));
-			boolean quorumSanityCheck = Functions.sanityCheck("Quorum", quorumPeerID, ipfs, port + 11);
+			boolean quorumSanityCheck = Functions.sanityCheck("Quorum", quorumPeerID, ipfs, port + 10);
 			DataCommitterLogger.debug("quorumSanityCheck is " + quorumSanityCheck);
 
 			if (!quorumSanityCheck) {

@@ -700,6 +700,8 @@ public class QuorumConsensus implements Runnable {
 	                                		//
 	                                String senderWidIpfsHash = getValues(DATA_PATH + "DataTable.json", "walletHash", "didHash", senderDidIpfsHash);
 	                                		//Dependency.getWIDfromPID(senderPID, Dependency.dataTableHashMap());
+	                        		QuorumConsensusLogger.debug("senderWidIpfsHash "+ senderWidIpfsHash);
+
 	                        		QuorumConsensusLogger.debug("WID from PID "+  Dependency.getWIDfromPID(senderPID, Dependency.dataTableHashMap()));
 
 	                                		
@@ -729,8 +731,10 @@ public class QuorumConsensus implements Runnable {
 	                                    QuorumConsensusLogger.debug("ConsensusID pass");
 	                                    String QuorumSignature = getSignFromShares(DATA_PATH + didHash + "/PrivateShare.png",
 	                                            quorumHash);
+	                                    
+	                                    QuorumConsensusLogger.debug("Quourmsignature size is "+QuorumSignature.length());
 
-	                                    Authenticate.verifySignature(quorumHash);
+	                                  //  Authenticate.verifySignature(quorumHash);
 	                                    
 	                                    
                                                 PrivateKey pvtKey = null;
@@ -741,6 +745,9 @@ public class QuorumConsensus implements Runnable {
                                                 JSONObject quorum_sign = new JSONObject();
                                                 quorum_sign.put("privateShareSign",QuorumSignature);
                                                 quorum_sign.put("privateKeySign",PvtKeySign);
+                                                
+        										QuorumConsensusLogger.info("!!! quorumsign "+quorum_sign.toString());
+
 
 	                                    out.println(quorum_sign.toString());
 
