@@ -305,14 +305,19 @@ public class APIHandler {
                 networkInfo();
             }
             if(type == 1){
-                
                 pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                if(!(pubKeyIpfsHash.length()>0)) {
+                	networkInfo();
+                    pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                }
                 return pubKeyIpfsHash;
-
             }
             else{
-                
                 quorum_pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","quorum_pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                if(!(quorum_pubKeyIpfsHash.length()>0)) {
+                	networkInfo();
+                	quorum_pubKeyIpfsHash = getValues(DATA_PATH + "DataTable_PublicKeys.json","pubKeyIpfsHash","didHash", senderDidIpfsHash);
+                }
                 return quorum_pubKeyIpfsHash;
             }
             

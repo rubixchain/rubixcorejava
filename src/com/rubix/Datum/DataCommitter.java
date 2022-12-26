@@ -14,6 +14,7 @@ import static com.rubix.Resources.Functions.TOKENCHAIN_PATH;
 import static com.rubix.Resources.Functions.TOKENS_PATH;
 import static com.rubix.Resources.Functions.WALLET_DATA_PATH;
 import static com.rubix.Resources.Functions.calculateHash;
+import static com.rubix.Resources.Functions.cleanQuorum;
 import static com.rubix.Resources.Functions.deleteFile;
 import static com.rubix.Resources.Functions.getCurrentUtcTime;
 import static com.rubix.Resources.Functions.getPeerID;
@@ -632,8 +633,24 @@ public class DataCommitter {
 			}
 
 			case 2: {
-				DataCommitterLogger.debug("quorumlist open");
-				quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+				File quorumFile = new File(DATA_PATH.concat("quorumlist.json"));
+				if (!quorumFile.exists()) {
+					DataCommitterLogger.error("Quorum List for Subnet not found");
+					APIResponse.put("status", "Failed");
+					APIResponse.put("message", "Quorum List for Subnet not found");
+					return APIResponse;
+				} else {
+					String quorumList = readFile(DATA_PATH + "quorumlist.json");
+					if (quorumList != null) {
+						quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+					} else {
+						DataCommitterLogger.error("File for Quorum List for Subnet is empty");
+						APIResponse.put("status", "Failed");
+						APIResponse.put("message", "File for Quorum List for Subnet is empty");
+						return APIResponse;
+					}
+
+				}
 				break;
 			}
 			case 3: {
@@ -648,9 +665,13 @@ public class DataCommitter {
 
 			}
 		}
+		
+		if(quorumArray.length()>7) {
+			quorumArray = cleanQuorum(quorumArray, senderDidIpfsHash, senderDidIpfsHash, 7);
+		}
 
 		DataCommitterLogger.debug("Quorum list " + quorumArray.toString());
-		int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
+		int alphaCheck = 0;
 		JSONArray sanityFailedQuorum = new JSONArray();
 		DataCommitterLogger.debug("Getting into Sanity Check for quorum");
 		for (int i = 0; i < quorumArray.length(); i++) {
@@ -663,14 +684,10 @@ public class DataCommitter {
 				sanityFailedQuorum.put(quorumPeerID);
 				if (i <= 6)
 					alphaCheck++;
-				if (i >= 7 && i <= 13)
-					betaCheck++;
-				if (i >= 14 && i <= 20)
-					gammaCheck++;
 			}
 		}
 
-		if (alphaCheck > 2 || betaCheck > 2 || gammaCheck > 2) {
+		if (alphaCheck > 2) {
 			DataCommitterLogger.debug("Inisde alpha beta gamma check");
 			APIResponse.put("did", senderDidIpfsHash);
 			APIResponse.put("tid", "null");
@@ -685,22 +702,17 @@ public class DataCommitter {
 
 		QuorumSwarmConnect(quorumArray, ipfs);
 
-		alphaSize = quorumArray.length() - 14;
+		alphaSize = quorumArray.length();
 
 		for (int i = 0; i < alphaSize; i++)
 			alphaQuorum.put(quorumArray.getString(i));
 
-		for (int i = 0; i < 7; i++) {
-			betaQuorum.put(quorumArray.getString(alphaSize + i));
-			gammaQuorum.put(quorumArray.getString(alphaSize + 7 + i));
-		}
+		
 		startTime = System.currentTimeMillis();
 
 		// DataCommitterLogger.debug("Alpha node list is " + alphaQuorum.toString());
 
 		alphaPeersList = QuorumCheck(alphaQuorum, alphaSize);
-		betaPeersList = QuorumCheck(betaQuorum, 7);
-		gammaPeersList = QuorumCheck(gammaQuorum, 7);
 		// DataCommitterLogger.debug("Alpha peer list list is " + alphaPeersList);
 
 		endTime = System.currentTimeMillis();
@@ -745,8 +757,6 @@ public class DataCommitter {
 		dataObject.put("senderDidIpfs", senderDidIpfsHash);
 		dataObject.put("token", wholeTokensListForData.get(0).toString());
 		dataObject.put("alphaList", alphaPeersList);
-		dataObject.put("betaList", betaPeersList);
-		dataObject.put("gammaList", gammaPeersList);
 
 		// DataCommitterLogger.debug("dataobject for Data (Double Spend Hash) " +
 		// dataObject.toString());
@@ -756,7 +766,7 @@ public class DataCommitter {
 		DataCommitterLogger.debug("SENDport is  " + SEND_PORT);
 		// InitiatorConsensus.quorumSignature.length() + "response count "
 		// + InitiatorConsensus.quorumResponse);
-		if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize) + 2 * minQuorum(7))) {
+		if (InitiatorConsensus.quorumSignature.length() < (minQuorum(alphaSize))) {
 			DataCommitterLogger.debug("Consensus Failed");
 			// senderDetails2Receiver.put("status", "Consensus Failed");
 			// output.println(senderDetails2Receiver);
