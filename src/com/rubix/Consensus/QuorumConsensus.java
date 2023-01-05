@@ -151,6 +151,7 @@ public class QuorumConsensus implements Runnable {
 					}
 					// Verify QST Credits
 					JSONObject qstObject = new JSONObject(getNewCreditsData);
+					QuorumConsensusLogger.debug("@@@@@ "+qstObject.toString());
 
 					if (qstObject.getString(INIT_HASH).equals(initHash())) {
 
@@ -185,6 +186,10 @@ public class QuorumConsensus implements Runnable {
 						// Level 1 Verification: Verify hash of n objects
 						JSONArray qstArray = qstObject.getJSONArray("qstArray");
 						JSONArray creditsArray = qstObject.getJSONArray("credits");
+						JSONArray creditsArray5 = qstObject.optJSONArray("credits5");
+						JSONArray creditsArray15 = qstObject.optJSONArray("credits15");
+						JSONArray qstArray5 = qstObject.optJSONArray("qstArray5");
+						JSONArray qstArray15 = qstObject.optJSONArray("qstArray15");
 
 						boolean flag = true;
 						// if qstArray has any duplicate object
@@ -193,14 +198,15 @@ public class QuorumConsensus implements Runnable {
 								if (qstArray.getJSONObject(i).getString("credits")
 										.equals(qstArray.getJSONObject(j).getString("credits"))) {
 									flag = false;
+									QuorumConsensusLogger.debug("Duplicate object in qstArray");
 									break;
 								}
 							}
 						}
 						for (int i = 0; i < creditsRequired; i++) {
-							QuorumConsensusLogger.debug("Credit object: " + creditsArray.getJSONObject(i).toString());
+							/* QuorumConsensusLogger.debug("Credit object: " + creditsArray.getJSONObject(i).toString());
 							QuorumConsensusLogger.debug("Credit Hash: "
-									+ calculateHash(creditsArray.getJSONObject(i).toString(), "SHA3-256"));
+									+ calculateHash(creditsArray.getJSONObject(i).toString(), "SHA3-256")); */
 							String reHash = calculateHash(qstArray.getJSONObject(i).getString("credits"), "SHA3-256");
 							if (!reHash.equals(qstArray.getJSONObject(i).getString("creditHash"))) {
 								QuorumConsensusLogger.debug("Recalculation " + reHash + " - "
@@ -217,21 +223,63 @@ public class QuorumConsensus implements Runnable {
 							}
 							if (verifySigns) {
 								HashSet hashSet = new HashSet();
+								HashSet hashSet5 = new HashSet();
+								HashSet hashSet15 = new HashSet();
 								long startTime = System.currentTimeMillis();
-								for (int i = 0; i < creditsArray.length(); i++) {
+								QuorumConsensusLogger.debug("@@@@@" + creditsArray.length());
+								 for (int i = 0; i < creditsArray.length(); i++) {
 									String sign = creditsArray.getJSONObject(i).getString("signature");
 									String signHash = calculateHash(sign, "SHA3-256");
 									hashSet.add(signHash);
+
+								} 
+								if (creditsArray5.length() != 0) {
+									for (int i = 0; i < creditsArray5.length(); i++) {
+										String sign = creditsArray5.getJSONObject(i).getString("signature");
+										String signHash = calculateHash(sign, "SHA3-256");
+										hashSet5.add(signHash);
+
+									}
+								}
+								if (creditsArray15.length() != 0) {
+									for (int i = 0; i < creditsArray15.length(); i++) {
+										String sign = creditsArray15.getJSONObject(i).getString("signature");
+										String signHash = calculateHash(sign, "SHA3-256");
+										hashSet15.add(signHash);
+
+									}
 								}
 								long endTime = System.currentTimeMillis();
 								QuorumConsensusLogger.debug("Total Time for HashSet: " + (endTime - startTime));
-								if (hashSet.size() == qstArray.length() * 15) {
+
+
+								boolean check5 = false;
+								boolean check15 = false;
+								boolean checkNormal = false;
+
+								if (hashSet.size() != qstArray.length() * 15) {
+									if (hashSet5.size() == (qstArray5.length() * 5)) {
+										check5 = true;
+									}
+									if (hashSet15.size() == (qstArray15.length() * 15)) {
+										check15 = true;
+									}
+								} else {
+									checkNormal = true;
+								}
+
+								/* if (hashSet.size() == qstArray.length() * 15) */
+								if ((check15 && check5)|| checkNormal || check5) {
 									QuorumConsensusLogger.debug("Mining Verified");
 									out.println("Verified");
 
 								} else {
 									QuorumConsensusLogger
 											.debug("HashSet: " + hashSet.size() + " QST Size " + qstArray.length());
+									QuorumConsensusLogger
+											.debug("HashSet5: " + hashSet5.size() + " qstArray5 QST Size " + qstArray5.length());
+									QuorumConsensusLogger
+											.debug("HashSet15: " + hashSet15.size() + " qstArray15 QST Size " + qstArray15.length());
 									QuorumConsensusLogger.debug("Mining Not Verified: Duplicates Found");
 									out.println("440");
 									socket.close();
@@ -320,16 +368,28 @@ public class QuorumConsensus implements Runnable {
 					if (genesisBlock.has("quorumSignatures")) {
 
 						try {
-							int randomNumber = new Random().nextInt(15);
-							JSONObject genesisSignatures = genesisBlock.getJSONObject("quorumSignContent");
-							JSONArray keys = genesisSignatures.names();
+							/* int randomNumber = new Random().nextInt(15); */
+							int randomNumber = new Random().nextInt(5);
+							/* JSONObject genesisSignatures = genesisBlock.getJSONObject("quorumSignContent"); */
+
+							JSONArray genesisSignatures = genesisBlock.getJSONArray("quorumSignContent");
+							/* JSONArray keys = genesisSignatures.names();
 							String signer = keys.getString(randomNumber);
-							String signature = genesisSignatures.getString(signer);
+							String signature = genesisSignatures.getString(signer); */
+
+							JSONObject genesisSignaturesObj = genesisSignatures.getJSONObject(randomNumber);
+							QuorumConsensusLogger.debug("@!#"+genesisSignaturesObj);
+							String signer = genesisSignaturesObj.getString("quorum_did");
+
+							JSONObject temp = new JSONObject(genesisSignaturesObj.getString("quorumPrivateShareSign"));
+
+							String signature = temp.getString("privateShareSign");
+							String hash = genesisSignaturesObj.getString("hash");
 
 							JSONObject VerificationPick = new JSONObject();
 							VerificationPick.put("signature", signature);
 							VerificationPick.put("did", signer);
-							VerificationPick.put("hash", genesisBlock.getString("tid"));
+							VerificationPick.put("hash", genesisBlock.getString("hash"));
 
 							QuorumConsensusLogger.debug("Verifying credit signature of new token: " + VerificationPick);
 
@@ -667,7 +727,7 @@ public class QuorumConsensus implements Runnable {
 						}
 					}
 
-				} else {
+				}  {
 					QuorumConsensusLogger.debug("Old Credits Mining / Whole RBT Token Transfer");
 
 					String getRecData = null;

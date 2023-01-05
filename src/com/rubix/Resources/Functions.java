@@ -2373,4 +2373,132 @@ public class Functions {
         }
         return cleanedQuorum;
     }
+
+    public static int checkDuplicateCredit(int creditsRequired) {
+
+        /*
+         * 1. read qst.json
+         * 2. iterate over required credit and check for duplicate in QST file
+         * 3. check credithash duplication also
+         * 4. check for credit filer
+         * 5. if exist check for duplicate signatures i credit files
+         * 6. Check if the credit file lenth is either >=15 or >=5
+         * 7. if signature duplicated exit and clean QST.json file
+         * 8. reinitialize mining
+         */
+        boolean qstDuplicatFlag = false, qstCreditHashcheck = true;
+        HashSet crdiSet = new HashSet();
+        String qstContent = readFile(WALLET_DATA_PATH.concat("QuorumSignedTransactions.json")); // 1
+        JSONArray qstArray = new JSONArray(qstContent);
+
+        for (int k = 0; k < creditsRequired; k++) {// 2
+            for (int j = k + 1; j < qstArray.length(); j++) {
+                if (qstArray.getJSONObject(k).getString("credits")
+                        .equals(qstArray.getJSONObject(j).getString("credits"))) {
+                    qstDuplicatFlag = true;
+                    FunctionsLogger.debug("Duplicate object in QuorumSignedTransactions.json at position " + j);
+                    cleanQstFile(j);
+                    return 440;
+                }
+            }
+        }
+
+        for (int k = 0; k < creditsRequired; k++) { // 3
+            String reHash = calculateHash(qstArray.getJSONObject(k).getString("credits"), "SHA3-256");
+            if (!reHash.equals(qstArray.getJSONObject(k).getString("creditHash"))) {
+                FunctionsLogger.debug("Recalculation " + reHash + " - "
+                        + qstArray.getJSONObject(k).getString("creditHash"));
+                FunctionsLogger.debug("CreditHash mismatch for QuorumSignedTransactions.json object at positions " + k);
+                qstCreditHashcheck = true;
+                cleanQstFile(k);
+                return 442;
+            }
+        }
+
+        for (int k = 0; k < creditsRequired; k++) { // 4
+            String filePath = WALLET_DATA_PATH.concat("/Credits/")
+                    .concat(qstArray.getJSONObject(k).getString("credits")).concat(".json");
+            File creditFile = new File(filePath);
+            if (creditFile.exists()) {
+                String creditContent = readFile(filePath);
+                JSONArray creditArray = new JSONArray(creditContent);
+
+                /* if(creditArray.length()<15 || creditArray.length() <5)
+                {
+                    FunctionsLogger.debug("Duplicate Credit Signatures found");
+                        FunctionsLogger.debug(
+                                "in credit file " + qstArray.getJSONObject(k).getString("credits").concat(".json"));
+                        FunctionsLogger.debug("in QuorumSignedTransactions.json object at position " + k);
+                        cleanQstFile(k);
+                        return 443;
+                } */
+
+                for (int i = 0; i < creditArray.length(); i++) { // 5
+                    String sign = creditArray.getJSONObject(i).getString("signature");
+                    String signHash = calculateHash(sign, "SHA3-256");
+
+                    if (crdiSet.contains(signHash)) {
+                        FunctionsLogger.debug("Duplicate Credit Signatures found");
+                        FunctionsLogger.debug(
+                                "in credit file " + qstArray.getJSONObject(k).getString("credits").concat(".json"));
+                        FunctionsLogger.debug("in QuorumSignedTransactions.json object at position " + k);
+                        cleanQstFile(k);
+                        return 441;
+                    } else {
+                        crdiSet.add(signHash);
+                    }
+                }
+            }
+            else {
+                FunctionsLogger.debug("Credit file " + qstArray.getJSONObject(k).getString("credits")
+                        + ".json does not exist for credit " + qstArray.getJSONObject(k).getString("credits"));
+                FunctionsLogger.debug("in QuorumSignedTransactions.json object at position " + k);
+                cleanQstFile(k);
+                return 443;
+            }
+        }
+        return 200;
+    }
+
+    public static void cleanQstFile(int invalidCreditPosition) {
+        /*
+         * 1. read QST file
+         * 2. take the object at invalidCreditPosition
+         * 3. create a invalidQST file if does not exist
+         * 4. check if invalidQST file empty or not
+         * 5. add the new object to invalidQST and save
+         * 6. remove the invalid credit object form QST file
+         * 7. save QST file
+         */
+
+        FunctionsLogger.debug("Duplicates/invalid credit found. Cleaning QuorumSignedTransactions.json ");
+        String qstContent = readFile(WALLET_DATA_PATH.concat("QuorumSignedTransactions.json"));
+        JSONArray qstArray = new JSONArray(qstContent); // 1
+
+        FunctionsLogger.debug("QST array size before cleanup " + qstArray.length());
+
+        JSONObject invalidCreditObj = qstArray.getJSONObject(invalidCreditPosition);
+
+        String invalidQstFilePath = WALLET_DATA_PATH.concat("InvalidQuorumSignedTransactions.json");
+        File invalidQstFile = new File(invalidQstFilePath);
+
+        if (!invalidQstFile.exists()) {
+            writeToFile(invalidQstFilePath, "[]", false);
+        }
+
+        String invalidQstContent = readFile(invalidQstFilePath);
+
+        JSONArray invalidQstArray = new JSONArray(invalidQstContent);
+
+        invalidQstArray.put(invalidCreditObj);
+
+        qstArray.remove(invalidCreditPosition);
+
+        writeToFile(WALLET_DATA_PATH.concat("QuorumSignedTransactions.json"), qstArray.toString(), false);
+        writeToFile(WALLET_DATA_PATH.concat("InvalidQuorumSignedTransactions.json"), invalidQstArray.toString(), false);
+
+        FunctionsLogger.debug("QST array size after cleanup " + qstArray.length());
+        FunctionsLogger.debug("QuorumSignedTransactions.json File Clean up completed");
+
+    }
 }
