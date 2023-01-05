@@ -33,12 +33,13 @@ public class HashChain {
     
     
     public static String hashChainCounter(String tID, ArrayList<String>  DIDs, int rule) {
+        HashChainLogger.debug("Entering Hashchain Counter");
         //String hashChain = "";
     	long start = 0;
         long end = 0;
     	start = System.currentTimeMillis();
     	Random rand = new Random();
-    	String DID = DIDs.get(rand.nextInt(3)) ;
+    	String DID = DIDs.get(rand.nextInt(DIDs.size())) ;
     			//DIDs[rand.nextInt(3)];
     	//for (String DID : DIDs) {
             int counter = 0;
