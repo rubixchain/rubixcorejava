@@ -57,8 +57,6 @@ public class NftBuyer {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
 
         JSONArray alphaQuorum = new JSONArray();
-        JSONArray betaQuorum = new JSONArray();
-        JSONArray gammaQuorum = new JSONArray();
 
         BufferedReader sysInput = new BufferedReader(new InputStreamReader(System.in));
 
@@ -646,14 +644,7 @@ public class NftBuyer {
             nftBuyerLogger.debug("TID  " + tid);
 
             nftBuyerLogger.debug("connecting to quorum");
-            Functions.writeToFile(Functions.LOGGER_PATH + "tempbeta", tid.concat(buyerDid),
-                    Boolean.valueOf(false));
-            String betaHash = add(Functions.LOGGER_PATH + "tempbeta", ipfs);
-            Functions.deleteFile(Functions.LOGGER_PATH + "tempbeta");
-            Functions.writeToFile(Functions.LOGGER_PATH + "tempgamma", tid.concat(sellerDid),
-                    Boolean.valueOf(false));
-            String gammaHash = add(Functions.LOGGER_PATH + "tempgamma", ipfs);
-            Functions.deleteFile(Functions.LOGGER_PATH + "tempgamma");
+           
             switch (type) {
                 case 1:
                     quorumArray = Functions.getQuorum(buyerDid, sellerDid, (int) requestedAmount);
@@ -679,7 +670,10 @@ public class NftBuyer {
                     return APIResponse;
             }
 
-            int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
+            if(quorumArray.length()>7) {
+                quorumArray = cleanQuorum(quorumArray, buyerDid, sellerDid, 7);
+            }
+            int alphaCheck = 0;
             JSONArray sanityFailedQuorum = new JSONArray();
             for (int i = 0; i < quorumArray.length(); i++) {
                 String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
@@ -690,14 +684,10 @@ public class NftBuyer {
                     sanityFailedQuorum.put(quorumPeerID);
                     if (i <= 6)
                         alphaCheck++;
-                    if (i >= 7 && i <= 13)
-                        betaCheck++;
-                    if (i >= 14 && i <= 20)
-                        gammaCheck++;
                 }
             }
 
-            if (alphaCheck > 2 || betaCheck > 2 || gammaCheck > 2) {
+            if (alphaCheck > 2) {
                 APIResponse.put("did", buyerDid);
                 APIResponse.put("tid", "null");
                 APIResponse.put("status", "Failed");
@@ -712,23 +702,16 @@ public class NftBuyer {
             long endTime, totalTime;
 
             Functions.QuorumSwarmConnect(quorumArray, ipfs);
-            int alphaSize = quorumArray.length() - 14;
+            int alphaSize = quorumArray.length();
             int j;
             for (j = 0; j < alphaSize; j++)
                 alphaQuorum.put(quorumArray.getString(j));
-            for (j = 0; j < 7; j++) {
-                betaQuorum.put(quorumArray.getString(alphaSize + j));
-                gammaQuorum.put(quorumArray.getString(alphaSize + 7 + j));
-            }
+            
             nftBuyerLogger.debug("alphaquorum " + alphaQuorum + " size " + alphaQuorum.length());
-            nftBuyerLogger.debug("betaquorum " + betaQuorum + " size " + betaQuorum.length());
-            nftBuyerLogger.debug("gammaquorum " + gammaQuorum + " size " + gammaQuorum.length());
             ArrayList alphaPeersList = Functions.QuorumCheck(alphaQuorum, alphaSize);
-            ArrayList betaPeersList = Functions.QuorumCheck(betaQuorum, 7);
-            ArrayList gammaPeersList = Functions.QuorumCheck(gammaQuorum, 7);
+            
             nftBuyerLogger.debug("alphaPeersList size " + alphaPeersList.size());
-            nftBuyerLogger.debug("betaPeersList size " + betaPeersList.size());
-            nftBuyerLogger.debug("gammaPeersList size " + gammaPeersList.size());
+            
             nftBuyerLogger.debug("minQuorumAlpha size " + Functions.minQuorum(alphaSize));
             if (alphaPeersList.size() < Functions.minQuorum(alphaSize)) {
                 Functions.updateQuorum(quorumArray, null, false, type);
@@ -759,8 +742,7 @@ public class NftBuyer {
             // transfer created by seller and
             // sent to buyer
             consensusDataObject.put("alphaList", alphaPeersList);
-            consensusDataObject.put("betaList", betaPeersList);
-            consensusDataObject.put("gammaList", gammaPeersList);
+            
 
             nftBuyerLogger.debug(consensusDataObject.toString());
             nftBuyerLogger.debug("NFT and RBT transfer Consensus setup begins");
@@ -789,9 +771,7 @@ public class NftBuyer {
             consensusDetails.put("comment", comment);
             consensusDetails.put("sign", buyerBySellerSign);
             consensusDetails.put("rbtAmount", requestedAmount);
-            if (InitiatorConsensus.quorumSignature
-                    .length() > ((Functions.minQuorum(alphaSize) + 2 * Functions.minQuorum(7)))
-                    && InitiatorConsensus.nftQuorumSignature.length() < ((minQuorum(alphaSize) + 2 * minQuorum(7)))) {
+            if (InitiatorConsensus.nftQuorumSignature.length() < minQuorum(alphaSize)) {
                 nftBuyerLogger.debug("Consensus Failed");
                 consensusDetails.put("status", "Consensus Failed");
                 output.println(consensusDetails);
