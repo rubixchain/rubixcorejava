@@ -10,11 +10,11 @@ public class Recombine {
     public static Logger RecombineLogger = Logger.getLogger(Recombine.class);
 
 
-    public static String recombine(int[] Share1, int[] Share2, int[] Share3)
+    public static String recombine(int[] Share1, int[] Share2, int[] Share3, int payloadlength)
     {
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
         StringBuilder recStr = new StringBuilder();
-        int payloadlength = 205; // fix the payload size here ( 33070 )
+        //int payloadlength = 313; // fix the payload size here ( 33070 )
 
         //reconstruction with ideal contrast secret sharing, just shown an example of combining share1(essential share), share2 and share3
         int[] K = new int[8 * payloadlength];
@@ -80,7 +80,7 @@ System.out.println("The secret COMB");
 
             recStr.append((char) dec_value);
         }
-        RecombineLogger.debug("(1,3,5) Secret Recreated : " + recStr);
+        //RecombineLogger.debug("(1,3,5) Secret Recreated : " + recStr);
         return recStr.toString();
     }
 
