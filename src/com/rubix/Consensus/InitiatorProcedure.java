@@ -7,6 +7,7 @@ import static com.rubix.Resources.Functions.initHash;
 import static com.rubix.Resources.Functions.minQuorum;
 
 import java.io.IOException;
+import java.security.PublicKey;
 
 import com.rubix.Constants.ConsensusConstants;
 import com.rubix.SplitandStore.SeperateShares;
@@ -26,6 +27,7 @@ public class InitiatorProcedure {
     public static String senderSignQ;
     public static JSONObject payload = new JSONObject();
     public static JSONArray alphaReply, betaReply, gammaReply;
+    public static String authQuorumHash = "";
 
     public static Logger InitiatorProcedureLogger = Logger.getLogger(InitiatorProcedure.class);
 
@@ -50,24 +52,35 @@ public class InitiatorProcedure {
         String senderDidIpfs = dataObject.optString("senderDidIpfs");
         String token = dataObject.optString("token");
         JSONArray alphaList = dataObject.optJSONArray("alphaList");
-        JSONArray betaList = dataObject.optJSONArray("betaList");
-        JSONArray gammaList = dataObject.optJSONArray("gammaList");
+        /* JSONArray betaList = dataObject.optJSONArray("betaList");
+        JSONArray gammaList = dataObject.optJSONArray("gammaList"); */
         String senderPayloadSign = dataObject.optString("senderPayloadSign");
         senderSignQ = dataObject.optString("sign");
-        String authQuorumHash = "";
+        String Hash = TokenSender.authSenderByRecHash;
         
  
-        if(operation.equals("new-credits-mining")) {
-        	
+        if (operation.equals("new-credits-mining")) {
+
             String message = dataObject.getString("message");
-        		String authSenderByQuorumHash = calculateHash(message, "SHA3-256");
-             authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
-        	
-        }else if (operation.equals("")){
-			
+            String authSenderByQuorumHash = calculateHash(message, "SHA3-256");
+            authQuorumHash = calculateHash(authSenderByQuorumHash.concat(receiverDidIpfs), "SHA3-256");
+            Hash = authSenderByQuorumHash;
+
+            InitiatorProcedureLogger.debug("%% authSenderByQuorumHash :"+authSenderByQuorumHash);
+            InitiatorProcedureLogger.debug("%% authQuorumHash : "+authQuorumHash);
+
+            try {
+                senderSignQ = getSignFromShares(pvt, authSenderByQuorumHash);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+        } else if (operation.equals("")) {
+
             authQuorumHash = calculateHash(TokenSender.authSenderByRecHash.concat(receiverDidIpfs), "SHA3-256");
 
-		}
+        }
 
         try {
             payload.put("sender", senderDidIpfs);
@@ -94,7 +107,7 @@ public class InitiatorProcedure {
             data1.put("sign", senderSignQ);
             data1.put("senderDID", senderDidIpfs);
             data1.put(ConsensusConstants.TRANSACTION_ID, tid);
-            data1.put(ConsensusConstants.HASH, TokenSender.authSenderByRecHash);
+            data1.put(ConsensusConstants.HASH, Hash);
             data1.put(ConsensusConstants.RECEIVERID, receiverDidIpfs);
             data1.put(ConsensusConstants.INIT_HASH, initHash());
 

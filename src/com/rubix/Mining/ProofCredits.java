@@ -67,8 +67,8 @@ public class ProofCredits {
 
     public static Logger ProofCreditsLogger = Logger.getLogger(ProofCredits.class);
     private static ArrayList alphaPeersList;
-    private static ArrayList betaPeersList;
-    private static ArrayList gammaPeersList;
+    /* private static ArrayList betaPeersList;
+    private static ArrayList gammaPeersList; */
     private static int alphaSize = 0;
     public static String hashChainProof = new String();
     private static int hashChainRule = 7;
@@ -93,10 +93,11 @@ public class ProofCredits {
         int creditUsed = 0;
         long totalTime = 0;
         int QSTHeight = 0;
+        String tokenHash="";
 
         JSONArray alphaQuorum = new JSONArray();
-        JSONArray betaQuorum = new JSONArray();
-        JSONArray gammaQuorum = new JSONArray();
+       /*  JSONArray betaQuorum = new JSONArray();
+        JSONArray gammaQuorum = new JSONArray(); */
         JSONArray qstArray = new JSONArray();
         
         boolean Status = false;
@@ -161,7 +162,25 @@ public class ProofCredits {
             JSONArray quorumArray;
             switch (type) {
                 case 2: {
-                    quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                    File quorumFile = new File(DATA_PATH.concat("quorumlist.json"));
+                    if (!quorumFile.exists()) {
+                        ProofCreditsLogger.error("Quorum List for Subnet not found");
+                        APIResponse.put("status", "Failed");
+                        APIResponse.put("message", "Quorum List for Subnet not found");
+                        return APIResponse;
+                    } else {
+                        String quorumList = readFile(DATA_PATH + "quorumlist.json");
+                        if (quorumList != null) {
+                            quorumArray = new JSONArray(readFile(DATA_PATH + "quorumlist.json"));
+                        } else {
+                            ProofCreditsLogger.error("File for Quorum List for Subnet is empty");
+                            APIResponse.put("status", "Failed");
+                            APIResponse.put("message", "File for Quorum List for Subnet is empty");
+                            return APIResponse;
+                        }
+        
+                    }
+        
                     break;
                 }
                 default: {
@@ -177,6 +196,10 @@ public class ProofCredits {
                 }
             }
 
+            if(quorumArray.length()>7) {
+                quorumArray = Functions.cleanQuorum(quorumArray, DID, DID, 7);
+            }
+            
             // String GET_URL = SYNC_IP+"/getInfo?count="+availableCredits;
             String GET_URL = SYNC_IP + "/getTokenToMine";
             URL URLobj = new URL(GET_URL);
@@ -255,7 +278,7 @@ public class ProofCredits {
                 ProofCreditsLogger.debug("Final quorums list is "+quorumArray.toString());
 
                 // Sanity Check - Start                 
-                int alphaCheck = 0, betaCheck = 0, gammaCheck = 0;
+                int alphaCheck = 0/* , betaCheck = 0, gammaCheck = 0 */;
                 JSONArray sanityFailedQuorum = new JSONArray();
                 for (int i = 0; i < quorumArray.length(); i++) {
                     String quorumPeerID = getValues(DATA_PATH + "DataTable.json", "peerid", "didHash",
@@ -266,14 +289,14 @@ public class ProofCredits {
                         sanityFailedQuorum.put(quorumPeerID);
                         if (i <= 6)
                             alphaCheck++;
-                        if (i >= 7 && i <= 13)
+                        /* if (i >= 7 && i <= 13)
                             betaCheck++;
                         if (i >= 14 && i <= 20)
-                            gammaCheck++;
+                            gammaCheck++; */
                     }
                 }
 
-                if (alphaCheck > 2 || betaCheck > 2 || gammaCheck > 2) {
+                if (alphaCheck > 2 /* || betaCheck > 2 || gammaCheck > 2 */) {
                     APIResponse.put("did", DID);
                     APIResponse.put("tid", "null");
                     APIResponse.put("status", "Failed");
@@ -286,28 +309,27 @@ public class ProofCredits {
                 
                 QuorumSwarmConnect(quorumArray, ipfs);
 
-                alphaSize = quorumArray.length() - 14;
+                alphaSize = quorumArray.length();
 
                 for (int i = 0; i < alphaSize; i++)
                     alphaQuorum.put(quorumArray.getString(i));
 
-                for (int i = 0; i < 7; i++) {
+                /* for (int i = 0; i < 7; i++) {
                     betaQuorum.put(quorumArray.getString(alphaSize + i));
                     gammaQuorum.put(quorumArray.getString(alphaSize + 7 + i));
-                }
+                } */
 
                 ProofCreditsLogger.debug("alphaquorum " + alphaQuorum + " size " + alphaQuorum.length());
-                ProofCreditsLogger.debug("betaquorum " + betaQuorum + " size " + betaQuorum.length());
-                ProofCreditsLogger.debug("gammaquorum " + gammaQuorum + " size " + gammaQuorum.length());
+                /* ProofCreditsLogger.debug("betaquorum " + betaQuorum + " size " + betaQuorum.length());
+                ProofCreditsLogger.debug("gammaquorum " + gammaQuorum + " size " + gammaQuorum.length()); */
 
                 alphaPeersList = QuorumCheck(alphaQuorum, alphaSize);
-                betaPeersList = QuorumCheck(betaQuorum, 7);
-                gammaPeersList = QuorumCheck(gammaQuorum, 7);
+                /* betaPeersList = QuorumCheck(betaQuorum, 7);
+                gammaPeersList = QuorumCheck(gammaQuorum, 7); */
 
                 // quorumPeersList = QuorumCheck(quorumArray, ipfs);
 
-                if (alphaPeersList.size() < minQuorum(alphaSize) || betaPeersList.size() < 5
-                        || gammaPeersList.size() < 5) {
+                if (alphaPeersList.size() < minQuorum(alphaSize) /* || betaPeersList.size() < 5|| gammaPeersList.size() < 5 */) {
                     updateQuorum(quorumArray, null, false, type);
                     APIResponse.put("did", DID);
                     APIResponse.put("tid", "null");
@@ -321,13 +343,69 @@ public class ProofCredits {
                 boolean creditRemoveStatus = false;
 				if (!oldCreditsFlag) {
                     ProofCreditsLogger.debug("New Credits");
+
+                    /*
+                     * Check QST file and credits file for Duplicates and cleanup
+                     */
+
+                    int qstCheck = Functions.checkDuplicateCredit(creditsRequired);
+
+                    switch (qstCheck) {
+                        case 440: {
+                            updateQuorum(quorumArray, null, false, type);
+                            APIResponse.put("did", DID);
+                            APIResponse.put("tid", "null");
+                            APIResponse.put("status", "Failed");
+                            APIResponse.put("message", "");
+                            ProofCreditsLogger.warn("Duplicate Entry found in QuorumSignedTransactions.json.");
+                            return APIResponse;
+                        }
+                        case 441: {
+                            updateQuorum(quorumArray, null, false, type);
+                            APIResponse.put("did", DID);
+                            APIResponse.put("tid", "null");
+                            APIResponse.put("status", "Failed");
+                            APIResponse.put("message", "");
+                            ProofCreditsLogger.warn("Duplicate Credit Signature.");
+                            return APIResponse;
+                        }
+                        case 442: {
+                            updateQuorum(quorumArray, null, false, type);
+                            APIResponse.put("did", DID);
+                            APIResponse.put("tid", "null");
+                            APIResponse.put("status", "Failed");
+                            APIResponse.put("message", "");
+                            ProofCreditsLogger.warn("CreditHash Mismatch in QuorumSignedTransactions.json.");
+                            return APIResponse;
+                        }
+                        case 443: {
+                            updateQuorum(quorumArray, null, false, type);
+                            APIResponse.put("did", DID);
+                            APIResponse.put("tid", "null");
+                            APIResponse.put("status", "Failed");
+                            APIResponse.put("message", "");
+                            ProofCreditsLogger.warn("Credit file missing.");
+                            return APIResponse;
+                        }
+
+                        case 200: {
+                            ProofCreditsLogger.info("No Duplicate found, Valid Credits and QuorumSignedTransactions.json entries");
+                            break;
+                        }
+
+                    }
+
                     // Send QST for verification
                     String qstContent = readFile(WALLET_DATA_PATH.concat("QuorumSignedTransactions.json"));
                     qstArray = new JSONArray(qstContent);
 
                     int count = 0;
                     JSONArray creditSignsArray = new JSONArray();
-                    for (int k = 0; k < qstArray.length(); k++) {
+                    JSONArray creditSignsArray5 = new JSONArray();
+                    JSONArray creditSignsArray15 = new JSONArray();
+                    JSONArray qstArray5 = new JSONArray();
+                    JSONArray qstArray15 = new JSONArray();
+                    for (int k = 0; k < creditsRequired; k++) {
                         String creditIpfs = add(WALLET_DATA_PATH.concat("/Credits/")
                                 .concat(qstArray.getJSONObject(k).getString("credits")).concat(".json"), ipfs);
                         pin(creditIpfs, ipfs);
@@ -340,17 +418,47 @@ public class ProofCredits {
                             String creditContent = readFile(filePath);
                             JSONArray creditArray = new JSONArray(creditContent);
 
-                            for (int i = 0; i < creditArray.length(); i++)
+                            if(creditArray.length()==5)
+                            {
+                                qstArray5.put(qstArray.getJSONObject(k));
+                            }
+                            else
+                            {
+                                qstArray15.put(qstArray.getJSONObject(k));
+                            }
+
+                            ProofCreditsLogger.debug("size of credit file "+creditFile + " "+creditArray.length() );
+
+                            for (int i = 0; i < creditArray.length(); i++) {
                                 creditSignsArray.put(creditArray.getJSONObject(i));
+
+                                if (creditArray.length() == 5) {
+                                    creditSignsArray5.put(creditArray.getJSONObject(i));
+                                } else {
+                                    creditSignsArray15.put(creditArray.getJSONObject(i));
+                                }
+                            }
+                            
+                                
                         } else
                             ProofCreditsLogger
                                     .debug(qstArray.getJSONObject(k).getString("credits").concat(" file not found"));
                     }
+                    //1.iterate the qst array
+                    //2. get the value of each credit file
+                    //3. check if size of each credit file is either 15 or 5
+                    //4. make 2 arrays one for 15 and one for 5
+
+                    ProofCreditsLogger.debug("@@@@@ creditSignsArray length "+creditSignsArray.length() );
 
                     JSONObject qstObject = new JSONObject();
-                    if (count == qstArray.length()) {
+                    if (count == creditsRequired) {
                         qstObject.put("qstArray", qstArray);
                         qstObject.put("credits", creditSignsArray);
+                        qstObject.put("credits5", creditSignsArray5);
+                        qstObject.put("credits15", creditSignsArray15);
+                        qstObject.put("qstArray5", qstArray5);
+                        qstObject.put("qstArray15", qstArray15);
                     } else {
                         updateQuorum(quorumArray, null, false, type);
                         APIResponse.put("did", DID);
@@ -369,14 +477,15 @@ public class ProofCredits {
                     dataObject.put("senderDidIpfs", DID);
                     dataObject.put("token", token.toString());
                     dataObject.put("alphaList", alphaPeersList);
-                    dataObject.put("betaList", betaPeersList);
-                    dataObject.put("gammaList", gammaPeersList);
+                    /* dataObject.put("betaList", betaPeersList);
+                    dataObject.put("gammaList", gammaPeersList); */
                     dataObject.put("qstDetails", qstObject);
 
                     InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3, alphaSize,
                             "new-credits-mining");
 
-                    if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
+                    /* if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) { */
+                    if (!(InitiatorConsensus.quorumSignature.length() >= minQuorum(7))) {
                         APIResponse.put("did", DID);
                         APIResponse.put("tid", "null");
                         APIResponse.put("status", "Failed");
@@ -410,12 +519,13 @@ public class ProofCredits {
                     dataObject.put("senderDidIpfs", DID);
                     dataObject.put("token", token.toString());
                     dataObject.put("alphaList", alphaPeersList);
-                    dataObject.put("betaList", betaPeersList);
-                    dataObject.put("gammaList", gammaPeersList);
+                    /* dataObject.put("betaList", betaPeersList);
+                    dataObject.put("gammaList", gammaPeersList); */
 
                     InitiatorProcedure.consensusSetUp(dataObject.toString(), ipfs, SEND_PORT + 3, alphaSize, "");
 
-                    if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
+                    /* if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) { */
+                    if (!(InitiatorConsensus.quorumSignature.length() >= minQuorum(7))) {
                         APIResponse.put("did", DID);
                         APIResponse.put("tid", "null");
                         APIResponse.put("status", "Failed");
@@ -441,7 +551,7 @@ public class ProofCredits {
                 for (int i = 0; i < token.length(); i++) {
 
                     writeToFile(LOGGER_PATH + "tempToken", token.getString(i), false);
-                    String tokenHash = IPFSNetwork.add(LOGGER_PATH + "tempToken", ipfs);
+                    tokenHash = IPFSNetwork.add(LOGGER_PATH + "tempToken", ipfs);
 
                     FileWriter shareWriter = new FileWriter(new File(LOGGER_PATH + "mycredit.txt"), true);
                     shareWriter.write(InitiatorConsensus.quorumSignature.toString());
@@ -491,6 +601,7 @@ public class ProofCredits {
                     tokenChainGenesisObject.put("QSTHeight", QSTHeight);
                     tokenChainGenesisObject.put("tokenHash", tokenHash);
                     tokenChainGenesisObject.put("tokenContent", token.getString(i));
+                    tokenChainGenesisObject.put("hash", InitiatorProcedure.authQuorumHash);
 
                     tokenChainGenesisObject.put("nextHash", calculateHash(tid, "SHA3-256"));
                     tokenChainGenesisObject.put("previousHash", "");
@@ -547,6 +658,7 @@ public class ProofCredits {
                         temp.put("tokenHash", tokenHash);
                         JSONArray tempArray = new JSONArray();
                         tempArray.put(temp);
+                        ProofCreditsLogger.debug("Proceeding for hashChainProof");
                         hashChainProof = HashChain.hashChainCounter(tid, StakeConsensus.stakedDIDs, hashChainRule);
                         ProofCreditsLogger.debug("HashChainProof is "+hashChainProof+" transcation id is "+ tid);
                         updateJSON("add", PAYMENTS_PATH + "BNK00.json", tempArray.toString());
@@ -566,7 +678,8 @@ public class ProofCredits {
 
                 // updateJSON("add", TOKENCHAIN_PATH + tkHash + ".json", tempArray.toString());
 
-                if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) {
+                /* if (!(InitiatorConsensus.quorumSignature.length() >= 3 * minQuorum(7))) { */
+                if (!(InitiatorConsensus.quorumSignature.length() >= minQuorum(7))) {
                     APIResponse.put("did", DID);
                     APIResponse.put("tid", "null");
                     APIResponse.put("status", "Failed");
@@ -574,6 +687,7 @@ public class ProofCredits {
                     ProofCreditsLogger.debug("consensus failed");
                 } else {
                     ProofCreditsLogger.debug("token mined " + token);
+                    ProofCreditsLogger.debug("token hash "+ tokenHash);
 
                     int counter = 0;
 
@@ -618,7 +732,7 @@ public class ProofCredits {
                 }
 
                 updateQuorum(quorumArray, signedQuorumList, true, type);
-                mineUpdate(DID, creditUsed);
+                //mineUpdate(DID, creditUsed);
                 APIResponse.put("did", DID);
                 APIResponse.put("tid", tid);
                 APIResponse.put("token", token);

@@ -1120,13 +1120,13 @@ public class TokenReceiver {
 							JSONObject genesiObject = tokenChain.getJSONObject(0);
 							JSONArray stakeDataArray = genesiObject.getJSONArray(MiningConstants.MINE_ID);
 
-							int randomNumber = new Random().nextInt(15);
+							/* int randomNumber = new Random().nextInt(15);
 							JSONObject genesisSignaturesContent = genesiObject
 									.getJSONObject(MiningConstants.QUORUM_SIGN_CONTENT);
 							Iterator randomKey = genesisSignaturesContent.keys();
 							for (int i = 0; i < randomNumber; i++) {
 								randomKey.next();
-							}
+							} */
 							/**
 							 * String randomKeyString = randomKey.next().toString(); JSONObject
 							 * verificationPick = new JSONObject(); verificationPick.put("did",

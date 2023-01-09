@@ -263,10 +263,13 @@ public class InitiatorConsensus {
                                             } else {
                                                 String didHash = getValues(DATA_PATH + "DataTable.json", "didHash",
                                                         "peerid", quorumID[j]);
+                                                
+                                                JSONObject qResObject = new JSONObject(qResponse[j]);
+                                                String pvtPosSign = qResObject.getString("privateShareSign");
                                                 JSONObject detailsToVerify = new JSONObject();
                                                 detailsToVerify.put("did", didHash);
                                                 detailsToVerify.put("hash", hash);
-                                                detailsToVerify.put("signature", qResponse[j]);
+                                                detailsToVerify.put("signature",pvtPosSign);
                                                InitiatorConsensusLogger.debug("Hash to check "+detailsToVerify.toString());
                                                InitiatorConsensusLogger.debug(" ");
 
