@@ -2,7 +2,11 @@ package com.rubix.SplitandStore;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONObject;
 
+import com.rubix.Resources.Functions;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -194,4 +198,50 @@ System.out.println("The secret COMB");
     public static int[][] get135Shares() {
         return Share;
     }
+
+    /*
+     * Split the Private key in to multiple shares and store them in files
+     */
+    public static void splitAndStorePvtKey(String pvtKeyStr){
+        Functions.pathSet();
+        split(pvtKeyStr);
+        int[][] shares = get135Shares();
+
+
+        int payloadLength = pvtKeyStr.length();
+
+        SplitLogger.debug("Splitting Pvt key in to 5 shares");
+        String pvtKeySharePath = Functions.DATA_PATH+"PvtKeyShares";
+        File pvtKeySharesFolder = new File(pvtKeySharePath);
+        if(!pvtKeySharesFolder.exists())
+        {
+            SplitLogger.info("PrivateKey Shares Folder does not exist, Creating. . . ");
+            pvtKeySharesFolder.mkdirs();
+        }
+        
+
+        SplitLogger.info("Writing shares in to "+ pvtKeySharePath);
+        for(int i=0;i<5;i++)
+        {
+            JSONObject obj = new JSONObject();
+            obj.put("payloadLength", payloadLength);
+
+            if(i==0)
+            {
+                String share = SeperateShares.getShare(shares, pvtKeyStr.length(), i);
+                obj.put("share", share);
+                Functions.writeToFile(pvtKeySharePath+"/essential.json",obj.toString(), false);
+            }
+            else
+            {
+                String share = SeperateShares.getShare(shares, pvtKeyStr.length(), i);
+                obj.put("share", share);
+                Functions.writeToFile(pvtKeySharePath+"/share"+i+".json", obj.toString(), false);
+            }
+            
+        }
+
+        
+    }
+
 }
