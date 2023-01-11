@@ -18,6 +18,7 @@ import java.net.URL;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -26,8 +27,9 @@ import io.ipfs.api.IPFS;
 public class VerifyStakedToken {
     private static final Logger PingSenderLogger = Logger.getLogger(VerifyStakedToken.class);
     public static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
+    public static JSONArray tokenChain;
 
-    public static boolean Contact(String pid, int port, String tokenHash, String tokenContent)
+    public static boolean Contact(String pid, int port, String tokenHash, String tokenContent, String pingMessage)
             throws IOException, JSONException {
         repo(ipfs);
         PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
@@ -42,78 +44,123 @@ public class VerifyStakedToken {
         BufferedReader input = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
         PrintStream output = new PrintStream(senderSocket.getOutputStream());
 
-        output.println("Get-TokenChain-Height");
-        output.println(tokenHash);
-        String heightResponse;
-        try {
-            heightResponse = input.readLine();
-        } catch (SocketException e) {
-            PingSenderLogger.warn("Quorum " + pid + " is unable to Respond! - Credits Ping");
-            executeIPFSCommands(" ipfs p2p close -t /p2p/" + pid);
-            output.close();
-            input.close();
-            senderSocket.close();
-            APIResponse.put("status", "Failed");
-            APIResponse.put("message", "Quorum " + pid + "is unable to respond! - Credits Ping");
+        output.println(pingMessage);
 
-            return false;
-        }
+        if(pingMessage.equals("Get-TokenChain-Height")) {
+            output.println(tokenHash);
+            String heightResponse;
+            try {
+                heightResponse = input.readLine();
+            } catch (SocketException e) {
+                PingSenderLogger.warn("Quorum " + pid + " is unable to Respond! - Credits Ping");
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + pid);
+                output.close();
+                input.close();
+                senderSocket.close();
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Quorum " + pid + "is unable to respond! - Credits Ping");
 
-        int height = 0;
-        if (heightResponse == null) {
-            executeIPFSCommands(" ipfs p2p close -t /p2p/" + pid);
-            PingSenderLogger.info("TokenChain height not received");
-            output.close();
-            input.close();
-            senderSocket.close();
-            APIResponse.put("status", "Failed");
-            APIResponse.put("message", "TokenChain height not received");
-
-        } else {
-            PingSenderLogger.info("TokenChain height received from " + pid);
-            PingSenderLogger.info("TokenChain height: " + heightResponse);
-            executeIPFSCommands(" ipfs p2p close -t /p2p/" + pid);
-            output.close();
-            input.close();
-            senderSocket.close();
-            APIResponse.put("status", "Success");
-            APIResponse.put("message", Integer.parseInt(heightResponse));
-            height = Integer.parseInt(heightResponse);
-        }
-
-        String tokenLevel = tokenContent.substring(0, 3);
-        int tokenLevelInt = Integer.parseInt(tokenLevel);
-        int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
-        int requiredMinedTokenHeight = tokenLevelValue * 4;
-
-        String GET_URL_credit = SYNC_IP + "/getCurrentLevel";
-        URL URLobj_credit = new URL(GET_URL_credit);
-        HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
-        con_credit.setRequestMethod("GET");
-        int responseCode_credit = con_credit.getResponseCode();
-        System.out.println("GET Response Code :: " + responseCode_credit);
-        if (responseCode_credit == HttpURLConnection.HTTP_OK) {
-            BufferedReader in_credit = new BufferedReader(
-                    new InputStreamReader(con_credit.getInputStream()));
-            String inputLine_credit;
-            StringBuffer response_credit = new StringBuffer();
-            while ((inputLine_credit = in_credit.readLine()) != null) {
-                response_credit.append(inputLine_credit);
+                return false;
             }
-            in_credit.close();
-            // QuorumConsensusLogger.debug("response from service " +
-            // response_credit.toString());
-            JSONObject resJsonData_credit = new JSONObject(response_credit.toString());
-            int level_credit = resJsonData_credit.getInt("level");
 
-            // ! release staked token if the mined token is from previous level(s)
-            if (level_credit > tokenLevelInt) {
+            int height = 0;
+            if (heightResponse == null) {
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + pid);
+                PingSenderLogger.info("TokenChain height not received");
+                output.close();
+                input.close();
+                senderSocket.close();
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "TokenChain height not received");
+
+            } else {
+                PingSenderLogger.info("TokenChain height received from " + pid);
+                PingSenderLogger.info("TokenChain height: " + heightResponse);
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + pid);
+                output.close();
+                input.close();
+                senderSocket.close();
+                APIResponse.put("status", "Success");
+                APIResponse.put("message", Integer.parseInt(heightResponse));
+                height = Integer.parseInt(heightResponse);
+            }
+
+            String tokenLevel = tokenContent.substring(0, 3);
+            int tokenLevelInt = Integer.parseInt(tokenLevel);
+            int tokenLevelValue = (int) Math.pow(2, tokenLevelInt + 2);
+            int requiredMinedTokenHeight = tokenLevelValue * 4;
+
+            String GET_URL_credit = SYNC_IP + "/getCurrentLevel";
+            URL URLobj_credit = new URL(GET_URL_credit);
+            HttpURLConnection con_credit = (HttpURLConnection) URLobj_credit.openConnection();
+            con_credit.setRequestMethod("GET");
+            int responseCode_credit = con_credit.getResponseCode();
+            System.out.println("GET Response Code :: " + responseCode_credit);
+            if (responseCode_credit == HttpURLConnection.HTTP_OK) {
+                BufferedReader in_credit = new BufferedReader(
+                        new InputStreamReader(con_credit.getInputStream()));
+                String inputLine_credit;
+                StringBuffer response_credit = new StringBuffer();
+                while ((inputLine_credit = in_credit.readLine()) != null) {
+                    response_credit.append(inputLine_credit);
+                }
+                in_credit.close();
+                // QuorumConsensusLogger.debug("response from service " +
+                // response_credit.toString());
+                JSONObject resJsonData_credit = new JSONObject(response_credit.toString());
+                int level_credit = resJsonData_credit.getInt("level");
+
+                // ! release staked token if the mined token is from previous level(s)
+                if (level_credit > tokenLevelInt) {
+                    return true;
+                }
+
+            } else
+                PingSenderLogger.debug("GET request not worked");
+
+            return height > requiredMinedTokenHeight;
+        }
+        else{
+            tokenChain = new JSONArray();
+            output.println(tokenHash);
+            String tokenChainResponse;
+            try {
+                tokenChainResponse = input.readLine();
+            } catch (SocketException e) {
+                PingSenderLogger.warn("Node " + pid + " is unable to Respond! - Token Chain Ping");
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + pid);
+                output.close();
+                input.close();
+                senderSocket.close();
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "Node " + pid + "is unable to respond! - Token Chain Ping");
+
+                return false;
+            }
+
+            if (tokenChainResponse == null) {
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + pid);
+                PingSenderLogger.info("TokenChain not received");
+                output.close();
+                input.close();
+                senderSocket.close();
+                APIResponse.put("status", "Failed");
+                APIResponse.put("message", "TokenChain not received");
+                return false;
+
+            } else {
+                tokenChain = new JSONArray(tokenChainResponse);
+                PingSenderLogger.info("TokenChain received from " + pid);
+                PingSenderLogger.info("TokenChain: " + tokenChainResponse);
+                executeIPFSCommands(" ipfs p2p close -t /p2p/" + pid);
+                output.close();
+                input.close();
+                senderSocket.close();
+                APIResponse.put("status", "Success");
+                APIResponse.put("message", "Tokenchain Received");
                 return true;
             }
+        }
 
-        } else
-            PingSenderLogger.debug("GET request not worked");
-
-        return height > requiredMinedTokenHeight;
     }
 }

@@ -4,7 +4,6 @@ import com.rubix.Resources.IPFSNetwork;
 import io.ipfs.api.IPFS;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
-import org.bouncycastle.LICENSE;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,6 +34,7 @@ public class Initiator {
 	public static JSONObject abortReason = new JSONObject();
 	public static JSONArray tokenList = new JSONArray();
 
+    public static JSONObject distributedObject;
 	public static JSONArray nodesToPledgeTokens = new JSONArray();
 	public static JSONObject quorumDetails = new JSONObject();
 	public static JSONArray quorumWithHashesArray = new JSONArray();
@@ -45,6 +45,7 @@ public class Initiator {
 	public static String keyPass;
 	public static JSONObject quorumHashObject = new JSONObject();
 	public static boolean pledged = false;
+    public static JSONArray alphaList = new JSONArray();
 
 
 	public static JSONArray pledgedTokensArray = new JSONArray();
@@ -53,7 +54,9 @@ public class Initiator {
 
 	public static void resetVariables() {
 
+        alphaList = new JSONArray();
 		pledgedNodes = new JSONArray();
+        distributedObject = new JSONObject();
 		abortReason = new JSONObject();
 		tokenList = new JSONArray();
 		nodesToPledgeTokens = new JSONArray();
@@ -81,8 +84,8 @@ public class Initiator {
 		// PledgeInitiatorLogger.debug("pledgeSetUp dataObject is
 		// "+dataObject.toString());
 
-		JSONArray alphaList = dataObject.getJSONArray("alphaList");
-		pvt = dataObject.getString("pvt");
+        alphaList = dataObject.getJSONArray("alphaList");
+        pvt = dataObject.getString("pvt");
 		tid = dataObject.getString("tid");
 		String keyPass = dataObject.getString("pvtKeyPass");
 		sender = dataObject.getString("sender");
@@ -179,6 +182,7 @@ public class Initiator {
 								pledgeNewObject.put("pledgeToken", tokenObject.getString("tokenHash"));
 								pledgeNewObject.put("tokensPledgedFor", tokenList);
 								pledgeNewObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
+                                pledgeNewObject.put("distributedObject", new JSONObject());
 
 								// pledgedTokensArray.put(tokenObject.getString("tokenHash"));
 
@@ -213,6 +217,7 @@ public class Initiator {
 							pledgeNewObject.put("pledgeToken", tokenObject.getString("tokenHash"));
 							pledgeNewObject.put("tokensPledgedFor", tokenList);
 							pledgeNewObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
+                            pledgeNewObject.put("distributedObject", new JSONObject());
 
 							// pledgedTokensArray.put(tokenObject.getString("tokenHash"));
 
@@ -352,6 +357,7 @@ public class Initiator {
 							pledgeObject.put("pledgeToken", tokenHash);
 							pledgeObject.put("tokensPledgedFor", tokenList);
 							pledgeObject.put("tokensPledgedWith", tokenObject.getString("tokenHash"));
+                            pledgeObject.put("distributedObject", new JSONObject());
 							tokenChain.put(pledgeObject);
 
 							pledgedTokensArray.put(tokenObject.getString("tokenHash"));
@@ -478,12 +484,56 @@ public class Initiator {
 			}
 
 		}
+		closeAllConnections(alphaList);
+        distributePledgeTokens(tokenList, pledgedTokensArray);
 		if (tokensPledged > 0)
 			abort = true;
 
 		PledgeInitiatorLogger.debug("Quorum Verification with Tokens or Credits with Abort Status:" + Initiator.abort);
 		return abort;
 	}
+	
+	public static void closeAllConnections(JSONArray nodes) throws JSONException{
+        for(int i = 0; i < nodes.length(); i++){
+            IPFSNetwork.executeIPFSCommands("ipfs p2p close -t /p2p/" + nodes.getString(i));
+        }
+    }
+
+    public static boolean distributePledgeTokens(JSONArray transferTokens, JSONArray pledgedTokens) throws JSONException{
+        distributedObject = new JSONObject();
+
+        PledgeInitiatorLogger.debug("<1> Transfer tokens: " + transferTokens);
+        PledgeInitiatorLogger.debug("<1> Pledge tokens: " + pledgedTokens);
+
+        if(transferTokens.length() > pledgedTokens.length()) {
+            PledgeInitiatorLogger.debug("Only Whole Tokens");
+            String partPledgedTokenString = pledgedTokens.getString(pledgedTokens.length()-1);
+            pledgedTokens.remove(pledgedTokens.length()-1);
+
+            PledgeInitiatorLogger.debug("<2> Transfer tokens: " + transferTokens);
+            PledgeInitiatorLogger.debug("<2> Pledge tokens: " + pledgedTokens);
+            for(int i = 0; i < transferTokens.length(); i++) {
+                distributedObject.put(transferTokens.getString(i), pledgedTokens.getString(i));
+                transferTokens.remove(i);
+            }
+
+            PledgeInitiatorLogger.debug("<3> Transfer tokens: " + transferTokens);
+            PledgeInitiatorLogger.debug("<3> Pledge tokens: " + pledgedTokens);
+
+            for (int i = 0; i < transferTokens.length(); i++)
+                distributedObject.put(transferTokens.getString(i), partPledgedTokenString);
+
+        }else {
+            PledgeInitiatorLogger.debug("Parts Tokens Included");
+            for(int i = 0; i < transferTokens.length(); i++) {
+                distributedObject.put(transferTokens.getString(i), pledgedTokens.getString(i));
+            }
+            PledgeInitiatorLogger.debug("<4> Transfer tokens: " + transferTokens);
+            PledgeInitiatorLogger.debug("<4> Pledge tokens: " + pledgedTokens);
+        }
+
+        return true;
+    }
 
 	public static String fetchSign(JSONArray pledgeArray, String hash) throws JSONException {
 
