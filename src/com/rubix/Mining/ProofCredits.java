@@ -543,6 +543,7 @@ public class ProofCredits {
                                 counter++;
                             }
                         }
+                        creditRemoveStatus= true;
                     }
                 }
                 // JSONObject stakingData = new JSONObject();
