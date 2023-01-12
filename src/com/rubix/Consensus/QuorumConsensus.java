@@ -427,6 +427,7 @@ public class QuorumConsensus implements Runnable {
 							String stakedTokenHash = "";
 							boolean tokenAvailableToStake = false;
 							JSONArray stakedTokenChainArray = new JSONArray();
+							JSONArray stakeTokenArray = new JSONArray();
 
 							// for loop to check bankArray for token
 							for (int i = 0; i < bankArray.length(); i++) {
@@ -461,7 +462,6 @@ public class QuorumConsensus implements Runnable {
 											bankArray.put(bankObject);
 											writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(),
 													false);
-
 											tokenAvailableToStake = true;
 
 											break;
