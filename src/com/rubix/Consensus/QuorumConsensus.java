@@ -459,12 +459,9 @@ public class QuorumConsensus implements Runnable {
 											tokenToStake.put(stakedTokenChainArray);
 
 											bankArray.remove(i);
-											stakeTokenArray.put(bankObject);
+											bankArray.put(bankObject);
 											writeToFile(PAYMENTS_PATH.concat("BNK00.json"), bankArray.toString(),
 													false);
-											writeToFile(PAYMENTS_PATH.concat("StakeToken.json"), stakeTokenArray.toString(),
-													false);
-
 											tokenAvailableToStake = true;
 
 											break;
