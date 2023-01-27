@@ -287,8 +287,8 @@ public class InitiatorConsensus {
                                                         }
                                                         while (quorumResponse[index] < minQuorum(quorumSize)) {
                                                         }
-                                                        InitiatorConsensusLogger.debug("between Q1- to Q" + quorumSize
-                                                                + " for index " + index);
+//                                                        InitiatorConsensusLogger.debug("between Q1- to Q" + quorumSize
+//                                                                + " for index " + index);
                                                         quorumSign(didHash, hash, qResponse[j], "", index, quorumSize,
                                                                 alphaSize);
                                                         quorumWithShares.add(quorumPeersObject.getString(j));
@@ -306,8 +306,8 @@ public class InitiatorConsensus {
                                                         IPFSNetwork.executeIPFSCommands(
                                                                 "ipfs p2p close -t /p2p/" + quorumID[j]);
                                                     }
-                                                    InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse
-                                                            + "Signature count : " + quorumSignature.length());
+                                                    InitiatorConsensusLogger.debug("Quorum Count : " + quorumResponse.length 
+                                                            + " Signature count : " + quorumSignature.length());
                                                 } else {
                                                     InitiatorConsensusLogger
                                                             .debug("node failed authentication with index " + index
@@ -508,8 +508,7 @@ public class InitiatorConsensus {
                                                     }
                                                     while (quorumResponse[index] < minQuorum(quorumSize)) {
                                                     }
-                                                    InitiatorConsensusLogger
-                                                            .debug("between Q1- to Q" + quorumSize + " for index " + index);
+//                                                    InitiatorConsensusLogger.debug("between Q1- to Q" + quorumSize + " for index " + index);
                                                     quorumSign(didHash, hash, quorumsPrivateShareSign, quorumsPrivateKeySign, index, quorumSize, alphaSize);
                                                     quorumWithShares.add(quorumPeersObject.getString(j));
                                                     while (quorumSignature

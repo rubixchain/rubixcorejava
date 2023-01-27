@@ -15,6 +15,8 @@ import static com.rubix.Resources.Functions.writeToFile;
 import static com.rubix.Resources.IPFSNetwork.add;
 import static com.rubix.Resources.IPFSNetwork.executeIPFSCommands;
 import static com.rubix.Resources.IPFSNetwork.pin;
+import  com.rubix.ConvinientTransfer.*;
+
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -50,6 +52,56 @@ public class APIHandler {
     private static final Logger APILogger = Logger.getLogger(APIHandler.class);
     public static IPFS ipfs = new IPFS("/ip4/127.0.0.1/tcp/" + IPFS_PORT);
     private static final Logger eventLogger = Logger.getLogger("eventLogger");
+    
+    /**
+     * (2-Step) Initiates a transfer between two nodes
+     * 
+     * @param data Data specific to token transfer
+     * @return Message from the sender with transaction details
+     * @throws JSONException            handles JSON Exceptions
+     * @throws NoSuchAlgorithmException handles Invalid Algorithms Exceptions
+     * @throws IOException              handles IO Exceptions
+     */
+
+    public static JSONObject twoStepSend(String data) throws Exception {
+        Functions.pathSet();
+        PropertyConfigurator.configure(LOGGER_PATH + "log4jWallet.properties");
+
+        String senderPeerID = getPeerID(DATA_PATH + "DID.json");
+        String senDID = getValues(DATA_PATH + "DID.json", "didHash", "peerid", senderPeerID);
+
+        JSONObject dataObject = new JSONObject(data);
+        String recDID = dataObject.getString("receiverDidIpfsHash");
+
+        String dataTableData = readFile(DATA_PATH + "DataTable.json");
+        boolean isObjectValid = false;
+        JSONArray dataTable = new JSONArray(dataTableData);
+        for (int i = 0; i < dataTable.length(); i++) {
+            JSONObject dataTableObject = dataTable.getJSONObject(i);
+            if (dataTableObject.getString("didHash").equals(recDID)) {
+                isObjectValid = true;
+            }
+        }
+        if (!isObjectValid)
+            networkInfo();
+
+        JSONObject sendMessage = new JSONObject();
+        if (recDID.length() != 46) {
+            sendMessage.put("did", senDID);
+            sendMessage.put("tid", "null");
+            sendMessage.put("status", "Failed");
+            sendMessage.put("message", "Invalid Receiver Did Entered");
+            return sendMessage;
+        }
+        //***-----------------****
+        //PVT Share here
+        //***-----------------****
+        dataObject.put("pvt", DATA_PATH + senDID + "/PrivateShare.png");
+        sendMessage = com.rubix.ConvinientTransfers.Sender.SendPartA(dataObject.toString(), ipfs, SEND_PORT);
+
+       // APILogger.info(sendMessage);
+        return sendMessage;
+    }
 
     /**
      * Initiates a transfer between two nodes

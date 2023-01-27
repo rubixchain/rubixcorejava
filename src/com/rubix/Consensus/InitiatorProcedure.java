@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.security.PublicKey;
 
 import com.rubix.Constants.ConsensusConstants;
+import com.rubix.ConvinientTransfers.Sender;
 import com.rubix.SplitandStore.SeperateShares;
 import com.rubix.SplitandStore.Split;
 import com.rubix.TokenTransfer.TokenSender;
@@ -56,7 +57,7 @@ public class InitiatorProcedure {
         JSONArray gammaList = dataObject.optJSONArray("gammaList"); */
         String senderPayloadSign = dataObject.optString("senderPayloadSign");
         senderSignQ = dataObject.optString("sign");
-        String Hash = TokenSender.authSenderByRecHash;
+        String Hash = Sender.authSenderByRecHash;
         
  
         if (operation.equals("new-credits-mining")) {
@@ -78,7 +79,7 @@ public class InitiatorProcedure {
 
         } else if (operation.equals("")) {
 
-            authQuorumHash = calculateHash(TokenSender.authSenderByRecHash.concat(receiverDidIpfs), "SHA3-256");
+            authQuorumHash = calculateHash(Sender.authSenderByRecHash.concat(receiverDidIpfs), "SHA3-256");
 
         }
 
