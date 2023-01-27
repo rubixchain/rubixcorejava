@@ -2638,7 +2638,7 @@ public class Functions {
         return result;
     }
 
-    public static JSONObject verifySpecificCommit(String blockHash) {
+    public static JSONObject verifySpecificCommit(String blockHash) throws JSONException {
         JSONObject APIResponse = new JSONObject();
         String transcationID = null;
         String senderDidIpfsHash = null;

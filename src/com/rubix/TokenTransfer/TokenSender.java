@@ -584,6 +584,7 @@ public class TokenSender {
 			lastObject.put("pledgeToken", "");
 			lastObject.put("tokensPledgedFor", allTokens);
 			lastObject.put("tokensPledgedWith", Initiator.pledgedTokensArray);
+			lastObject.put("distributedObject", Initiator.distributedObject);
 
 			String tokenChainFileContent = readFile(TOKENCHAIN_PATH + wholeTokens.get(i) + ".json");
 			JSONArray tokenChain = new JSONArray(tokenChainFileContent);
@@ -932,6 +933,7 @@ public class TokenSender {
 		tokenDetails.put("part-tokenChains-PrevState", partTokenChainsPrevState);
 		tokenDetails.put("sender", senderDidIpfsHash);
 		tokenDetails.put("proof", proofOfWork);
+		tokenDetails.put("distributedObject", Initiator.distributedObject);
 		String doubleSpendString = tokenDetails.toString();
 		
 		//TokenSenderLogger.debug("tokenDetails is "+tokenDetails.toString());
@@ -1221,6 +1223,9 @@ public class TokenSender {
 			Map<String, Object> receiverChainMap = receiverLastObject.toMap();
 			senderChainMap.remove("pledgeToken");
 			receiverChainMap.remove("pledgeToken");
+			senderChainMap.remove("distributedObject");
+			receiverChainMap.remove("distributedObject");
+
 
 			//TokenSenderLogger.debug("--------");
 			//TokenSenderLogger.debug("senderChainMap   " + senderChainMap.keySet().toString());
